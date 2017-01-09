@@ -3,3 +3,6 @@ azure.err
 *.publishsettings
 .idea
 .js
+js.map
+npm-debug.log
+/.idea
