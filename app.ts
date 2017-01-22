@@ -3,7 +3,6 @@ import * as http from 'http';
 import * as io from 'socket.io';
 import * as path from 'path'
 import {GameServer} from "./server/GameServer";
-import Socket = SocketIOClient.Socket;
 
 const port: number = process.env.PORT || 3000;
 
