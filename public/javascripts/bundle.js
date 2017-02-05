@@ -20,6 +20,8 @@ class GameClient {
         this.socket.on('startgame', this.startGame);
     }
     startGame() {
+        this.game = new Game_1.Game;
+        this.game.startGameLoop();
     }
 }
 exports.GameClient = GameClient;
@@ -74,7 +76,14 @@ client.connect();
 "use strict";
 class Game {
     constructor() {
+        this.tickrate = 60;
         console.log("create game instance");
+    }
+    startGameLoop() {
+        this.timeoutId = setTimeout(() => this.startGameLoop(), 1 / this.tickrate * 1000);
+    }
+    stopGameLoop() {
+        clearTimeout(this.timeoutId);
     }
 }
 exports.Game = Game;

@@ -29,6 +29,7 @@ export class GameClient {
     }
 
     public startGame() {
-
+        this.game = new Game;
+        this.game.startGameLoop();
     }
 }

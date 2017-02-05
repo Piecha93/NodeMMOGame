@@ -20,6 +20,11 @@ export class GameServer {
         this.configureSockets();
     }
 
+    private startGame() {
+        this.game = new Game;
+        this.game.startGameLoop();
+    }
+
     private configureSockets() {
         this.sockets.on('connection', (socket: Socket) => {
             let clientName: string = "Guest " + this.nameCounter.toString();
@@ -32,8 +37,5 @@ export class GameServer {
         });
     }
 
-    private startGame() {
-        this.game = new Game;
-    }
 }
 
