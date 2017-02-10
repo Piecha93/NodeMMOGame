@@ -2,7 +2,9 @@
 
 import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
-import {InputHandler} from "./InputHandler";
+import {InputHandler, InputSnapshot} from "./InputHandler";
+import {Player} from "./utils/Player";
+import {Position} from "./utils/Position";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -11,9 +13,12 @@ export class GameClient {
     private inputHandler: InputHandler;
 
     constructor() {
-        this.inputHandler = new InputHandler;
         this.game = new Game;
-        this.renderer = new Renderer;
+        this.renderer = new Renderer(() => {
+            this.inputHandler = new InputHandler(this.renderer.PhaserInput);
+            this.socket.emit('clientready');
+        });
+
     }
 
     connect() {
@@ -25,11 +30,18 @@ export class GameClient {
     }
 
     private configureSocket() {
-        this.socket.on('startgame', this.startGame);
+        this.socket.on('startgame', this.startGame.bind(this));
+        this.socket.on('initializegame', this.initializeGame.bind(this));
     }
 
-    public startGame() {
+    private startGame() {
         this.game = new Game;
         this.game.startGameLoop();
+    }
+
+    private initializeGame(initData) {
+        let player: Player = this.game.addPlayer(initData.name, new Position(initData.x, initData.y));
+        this.renderer.addGameObject(player);
+        this.renderer.update();
     }
 }

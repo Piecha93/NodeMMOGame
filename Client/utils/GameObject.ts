@@ -1,7 +1,7 @@
 import {Position} from "./Position";
 
 export class GameObject {
-    private position: Position;
+    protected position: Position;
 
     constructor(position?: Position) {
         if(position) {

@@ -1,23 +1,42 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
-export class Renderer {
-    private phaser: Phaser.Game;
+import {GameObject} from "../utils/GameObject";
+import {GameObjectRender} from "./GameObjectRender";
 
-    constructor() {
-        this.phaser = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this) });
-        if(this.phaser == null) {
-            console.log("KURWA MAĆ");
-        } else {
-            console.log("XD" + this.phaser.antialias);
-        }
+export class Renderer {
+    private phaserGame: Phaser.Game;
+
+    private objectList: Array<GameObjectRender>;
+
+    constructor(afterCreateCallback: Function) {
+        this.phaserGame = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        this.objectList = new Array<GameObjectRender>();
     }
 
     private preload() {
-        this.phaser.load.image('bunny', 'resources/images/bunny.png');
+        this.phaserGame.load.image('bunny', 'resources/images/bunny.png');
+
+        //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
 
-    private create() {
-        let logo = this.phaser.add.sprite(this.phaser.world.centerX, this.phaser.world.centerY, 'bunny');
-        logo.anchor.setTo(0.5, 0.5);
+    private create(afterCreateCallback: Function) {
+        //console.log("PHASER CREATE");
+        afterCreateCallback();
+    }
+
+    public update() {
+        for(let gameObjectRender of this.objectList) {
+            gameObjectRender.render();
+        }
+    }
+
+    public addGameObject(gameObject: GameObject) {
+        let gameObjectRender: GameObjectRender = new GameObjectRender(this.phaserGame);
+        gameObjectRender.GameObject = gameObject;
+        this.objectList.push(gameObjectRender);
+    }
+
+    get PhaserInput(): Phaser.Input {
+        return this.phaserGame.input;
     }
 }
