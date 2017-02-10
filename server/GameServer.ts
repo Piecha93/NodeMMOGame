@@ -4,6 +4,7 @@ import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
 import {Position} from "../Common/utils/Position";
 import {Player} from "../Common/utils/Player";
+import {InputSnapshot} from "../Common/InputSnapshot";
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -43,6 +44,14 @@ export class GameServer {
                 let player: Player =  this.game.addPlayer(clientName, new Position(10, 50));
 
                 socket.emit('initializegame', {name: clientName, x: x, y: y});
+            });
+
+            socket.on('serializationtest', (data) => {
+
+               let deserializedData = JSON.parse(data);
+               let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
+
+               console.log("x: " + snapshot.MoveTo.X + " y: " + snapshot.MoveTo.Y);
             });
         });
     }

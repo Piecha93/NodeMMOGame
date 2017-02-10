@@ -5,6 +5,7 @@ import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./InputHandler";
 import {Player} from "../Common/utils/Player";
 import {Position} from "../Common/utils/Position";
+import {InputSnapshot} from "../Common/InputSnapshot";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -18,6 +19,16 @@ export class GameClient {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
             this.socket.emit('clientready');
         });
+
+        setInterval(() => {
+            console.log('xx');
+            if (this.inputHandler.Changed) {
+                let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
+                let serializedSnapshot = JSON.stringify(snapshot);
+
+                this.socket.emit('serializationtest', serializedSnapshot);
+            }
+        }, 1000)
     }
 
     connect() {

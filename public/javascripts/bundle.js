@@ -16,10 +16,8 @@ class GameClient {
             console.log('xx');
             if (this.inputHandler.Changed) {
                 let snapshot = this.inputHandler.cloneInputSnapshot();
-                let position = snapshot.MoveTo;
-                let testString = JSON.stringify(snapshot);
-                let snap = eval(testString);
-                console.log(snap.MoveTo.X);
+                let serializedSnapshot = JSON.stringify(snapshot);
+                this.socket.emit('serializationtest', serializedSnapshot);
             }
         }, 1000);
     }
@@ -60,21 +58,19 @@ class InputHandler {
         this.phaserInput.onDown.add(this.mouseClick, this);
         //this.phaserInput.addMoveCallback(this.mouseClick, this);
     }
-    keyPressed(event) {
-        console.log(event.keyCode);
-    }
-    keyReleased(event) {
-        console.log(event.keyCode);
-    }
+    // private keyPressed(event : KeyboardEvent) {
+    //     console.log(event.keyCode);
+    // }
+    // private keyReleased(event : KeyboardEvent) {
+    //     console.log(event.keyCode);
+    // }
     mouseClick(mouseEvent) {
-        let position = new Position_1.Position(mouseEvent.x, mouseEvent.y);
-        this.inputSnapshot.MoveTo = position;
+        this.inputSnapshot.MoveTo = new Position_1.Position(mouseEvent.x, mouseEvent.y);
         this.changed = true;
     }
     cloneInputSnapshot() {
         this.changed = false;
         let inputSnapshotCopy = this.inputSnapshot.clone();
-        ;
         this.inputSnapshot.clear();
         return inputSnapshotCopy;
     }
@@ -200,6 +196,15 @@ class InputSnapshot {
     get MoveTo() {
         return this.moveTo;
     }
+    deserialize(input) {
+        if (this.moveTo) {
+            this.moveTo = this.moveTo.deserialize(input.moveTo);
+        }
+        else {
+            this.moveTo = new Position_1.Position().deserialize(input.moveTo);
+        }
+        return this;
+    }
 }
 exports.InputSnapshot = InputSnapshot;
 
@@ -217,6 +222,15 @@ class GameObject {
     }
     get Position() {
         return this.position;
+    }
+    deserialize(input) {
+        if (this.position) {
+            this.position = this.position.deserialize(input.position);
+        }
+        else {
+            this.position = new Position_1.Position().deserialize(input.position);
+        }
+        return this;
     }
 }
 exports.GameObject = GameObject;
@@ -245,8 +259,8 @@ exports.Player = Player;
 "use strict";
 class Position {
     constructor(x, y) {
-        this.x = x;
-        this.y = y;
+        this.x = x || 0;
+        this.y = y || 0;
     }
     get X() {
         return this.x;
@@ -259,6 +273,16 @@ class Position {
     }
     set Y(y) {
         this.y = y;
+    }
+    deserialize(input) {
+        this.x = input.x;
+        this.y = input.y;
+        return this;
+    }
+    clone(position) {
+        this.x = position.x;
+        this.y = position.y;
+        return new Position(position.x, position.y);
     }
 }
 exports.Position = Position;

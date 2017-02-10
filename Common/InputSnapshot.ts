@@ -1,6 +1,7 @@
 import {Position} from "../Common/utils/Position";
+import {Serializable} from "./Serializable";
 
-export class InputSnapshot {
+export class InputSnapshot implements Serializable<InputSnapshot> {
     constructor() {
         this.clear();
     }
@@ -30,5 +31,14 @@ export class InputSnapshot {
 
     get MoveTo(): Position {
         return this.moveTo;
+    }
+
+    deserialize(input) {
+        if(this.moveTo) {
+            this.moveTo = this.moveTo.deserialize(input.moveTo);
+        } else {
+            this.moveTo = new Position().deserialize(input.moveTo);
+        }
+        return this;
     }
 }

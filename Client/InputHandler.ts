@@ -17,28 +17,27 @@ export class InputHandler {
         this.changed = false;
 
         this.phaserInput = phaserInput;
-        this.phaserInput.onDown.add(this.mouseClick, this)
+        this.phaserInput.onDown.add(this.mouseClick, this);
         //this.phaserInput.addMoveCallback(this.mouseClick, this);
     }
 
-    private keyPressed(event : KeyboardEvent) {
-        console.log(event.keyCode);
-    }
+    // private keyPressed(event : KeyboardEvent) {
+    //     console.log(event.keyCode);
+    // }
 
-    private keyReleased(event : KeyboardEvent) {
-        console.log(event.keyCode);
-    }
+    // private keyReleased(event : KeyboardEvent) {
+    //     console.log(event.keyCode);
+    // }
 
     public mouseClick(mouseEvent: MouseEvent) {
-        let position: Position = new Position(mouseEvent.x, mouseEvent.y);
-        this.inputSnapshot.MoveTo = position;
+        this.inputSnapshot.MoveTo = new Position(mouseEvent.x, mouseEvent.y);
 
         this.changed = true;
     }
 
     public cloneInputSnapshot(): InputSnapshot {
         this.changed = false;
-        let inputSnapshotCopy: InputSnapshot = this.inputSnapshot.clone();;
+        let inputSnapshotCopy: InputSnapshot = this.inputSnapshot.clone();
         this.inputSnapshot.clear();
         return inputSnapshotCopy;
     }
