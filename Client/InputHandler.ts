@@ -1,40 +1,8 @@
 /// <reference path="libs/@types/phaser.d.ts" />
 
 import Pointer = Phaser.Pointer;
-import {Position} from "./utils/Position";
-
-export class InputSnapshot {
-    constructor() {
-        this.clear();
-    }
-
-    private keysPressed: Array<number>;
-    private keysReleased: Array<number>;
-
-    private moveTo: Position;
-
-    public clear() {
-        this.keysPressed = [];
-        this.keysReleased = [];
-
-        this.keysPressed = null;
-    }
-
-    public clone(): InputSnapshot {
-        let inputSnapshot: InputSnapshot = new InputSnapshot;
-        inputSnapshot.MoveTo = new Position(this.moveTo.X, this.moveTo.Y);
-
-        return inputSnapshot;
-    }
-
-    set MoveTo(position: Position) {
-        this.moveTo = position;
-    }
-
-    get MoveTo(): Position {
-        return this.moveTo;
-    }
-}
+import {Position} from "../Common/utils/Position";
+import {InputSnapshot} from "../Common/InputSnapshot";
 
 export class InputHandler {
     private phaserInput: Phaser.Input;

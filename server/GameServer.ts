@@ -2,8 +2,8 @@ import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
-import {Position} from "../Client/utils/Position";
-import {Player} from "../Client/utils/Player";
+import {Position} from "../Common/utils/Position";
+import {Player} from "../Common/utils/Player";
 
 export class GameServer {
     private sockets: SocketIO.Server;

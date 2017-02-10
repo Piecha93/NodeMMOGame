@@ -4,7 +4,7 @@
 const Game_1 = require("../Common/Game");
 const Renderer_1 = require("./graphic/Renderer");
 const InputHandler_1 = require("./InputHandler");
-const Position_1 = require("./utils/Position");
+const Position_1 = require("../Common/utils/Position");
 class GameClient {
     constructor() {
         this.game = new Game_1.Game;
@@ -45,37 +45,16 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Common/Game":9,"./InputHandler":2,"./graphic/Renderer":4,"./utils/Position":8}],2:[function(require,module,exports){
+},{"../Common/Game":6,"../Common/utils/Position":10,"./InputHandler":2,"./graphic/Renderer":4}],2:[function(require,module,exports){
 /// <reference path="libs/@types/phaser.d.ts" />
 "use strict";
-const Position_1 = require("./utils/Position");
-class InputSnapshot {
-    constructor() {
-        this.clear();
-    }
-    clear() {
-        this.keysPressed = [];
-        this.keysReleased = [];
-        this.keysPressed = null;
-    }
-    clone() {
-        let inputSnapshot = new InputSnapshot;
-        inputSnapshot.MoveTo = new Position_1.Position(this.moveTo.X, this.moveTo.Y);
-        return inputSnapshot;
-    }
-    set MoveTo(position) {
-        this.moveTo = position;
-    }
-    get MoveTo() {
-        return this.moveTo;
-    }
-}
-exports.InputSnapshot = InputSnapshot;
+const Position_1 = require("../Common/utils/Position");
+const InputSnapshot_1 = require("../Common/InputSnapshot");
 class InputHandler {
     constructor(phaserInput) {
         // document.addEventListener("keydown", this.keyPressed);
         // document.addEventListener("keyup", this.keyReleased);
-        this.inputSnapshot = new InputSnapshot;
+        this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
         this.changed = false;
         this.phaserInput = phaserInput;
         this.phaserInput.onDown.add(this.mouseClick, this);
@@ -105,7 +84,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"./utils/Position":8}],3:[function(require,module,exports){
+},{"../Common/InputSnapshot":7,"../Common/utils/Position":10}],3:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 class GameObjectRender {
@@ -169,67 +148,7 @@ client.connect();
 
 },{"./GameClient":1}],6:[function(require,module,exports){
 "use strict";
-const Position_1 = require("./Position");
-class GameObject {
-    constructor(position) {
-        if (position) {
-            this.position = position;
-        }
-        else {
-            this.position = new Position_1.Position(0, 0);
-        }
-    }
-    get Position() {
-        return this.position;
-    }
-}
-exports.GameObject = GameObject;
-
-},{"./Position":8}],7:[function(require,module,exports){
-"use strict";
-const GameObject_1 = require("./GameObject");
-class Player extends GameObject_1.GameObject {
-    constructor(name, position) {
-        if (position) {
-            super(position);
-        }
-        else {
-            super();
-        }
-        this.name = name;
-        this.hp = 100;
-    }
-    get Name() {
-        return this.name;
-    }
-}
-exports.Player = Player;
-
-},{"./GameObject":6}],8:[function(require,module,exports){
-"use strict";
-class Position {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    get X() {
-        return this.x;
-    }
-    get Y() {
-        return this.y;
-    }
-    set X(x) {
-        this.x = x;
-    }
-    set Y(y) {
-        this.y = y;
-    }
-}
-exports.Position = Position;
-
-},{}],9:[function(require,module,exports){
-"use strict";
-const Player_1 = require("../Client/utils/Player");
+const Player_1 = require("./utils/Player");
 class Game {
     constructor() {
         this.tickrate = 60;
@@ -258,4 +177,90 @@ class Game {
 }
 exports.Game = Game;
 
-},{"../Client/utils/Player":7}]},{},[5]);
+},{"./utils/Player":9}],7:[function(require,module,exports){
+"use strict";
+const Position_1 = require("../Common/utils/Position");
+class InputSnapshot {
+    constructor() {
+        this.clear();
+    }
+    clear() {
+        this.keysPressed = [];
+        this.keysReleased = [];
+        this.keysPressed = null;
+    }
+    clone() {
+        let inputSnapshot = new InputSnapshot;
+        inputSnapshot.MoveTo = new Position_1.Position(this.moveTo.X, this.moveTo.Y);
+        return inputSnapshot;
+    }
+    set MoveTo(position) {
+        this.moveTo = position;
+    }
+    get MoveTo() {
+        return this.moveTo;
+    }
+}
+exports.InputSnapshot = InputSnapshot;
+
+},{"../Common/utils/Position":10}],8:[function(require,module,exports){
+"use strict";
+const Position_1 = require("./Position");
+class GameObject {
+    constructor(position) {
+        if (position) {
+            this.position = position;
+        }
+        else {
+            this.position = new Position_1.Position(0, 0);
+        }
+    }
+    get Position() {
+        return this.position;
+    }
+}
+exports.GameObject = GameObject;
+
+},{"./Position":10}],9:[function(require,module,exports){
+"use strict";
+const GameObject_1 = require("./GameObject");
+class Player extends GameObject_1.GameObject {
+    constructor(name, position) {
+        if (position) {
+            super(position);
+        }
+        else {
+            super();
+        }
+        this.name = name;
+        this.hp = 100;
+    }
+    get Name() {
+        return this.name;
+    }
+}
+exports.Player = Player;
+
+},{"./GameObject":8}],10:[function(require,module,exports){
+"use strict";
+class Position {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    get X() {
+        return this.x;
+    }
+    get Y() {
+        return this.y;
+    }
+    set X(x) {
+        this.x = x;
+    }
+    set Y(y) {
+        this.y = y;
+    }
+}
+exports.Position = Position;
+
+},{}]},{},[5]);

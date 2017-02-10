@@ -1,5 +1,5 @@
-import {Player} from "../Client/utils/Player";
-import {Position} from "../Client/utils/Position";
+import {Player} from "./utils/Player";
+import {Position} from "./utils/Position";
 
 export class Game {
     private tickrate: number = 60;

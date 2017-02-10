@@ -1,6 +1,6 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
-import {GameObject} from "../utils/GameObject";
+import {GameObject} from "../../Common/utils/GameObject";
 import {GameObjectRender} from "./GameObjectRender";
 
 export class Renderer {

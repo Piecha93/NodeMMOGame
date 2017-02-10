@@ -2,9 +2,9 @@
 
 import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
-import {InputHandler, InputSnapshot} from "./InputHandler";
-import {Player} from "./utils/Player";
-import {Position} from "./utils/Position";
+import {InputHandler} from "./InputHandler";
+import {Player} from "../Common/utils/Player";
+import {Position} from "../Common/utils/Position";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -18,7 +18,6 @@ export class GameClient {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
             this.socket.emit('clientready');
         });
-
     }
 
     connect() {
