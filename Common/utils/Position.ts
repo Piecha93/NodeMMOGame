@@ -1,4 +1,4 @@
-import {Serializable} from "../Serializable";
+import {Serializable} from "../net/Serializable";
 
 export class Position implements Serializable<Position> {
     private x: number;

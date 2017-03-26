@@ -1,7 +1,7 @@
 import {Position} from "./Position";
-import {Serializable} from "../Serializable";
+import {Serializable} from "../net/Serializable";
 
-export class GameObject implements Serializable<GameObject> {
+export abstract class GameObject implements Serializable<GameObject> {
     protected position: Position;
 
     constructor(position?: Position) {
@@ -17,10 +17,15 @@ export class GameObject implements Serializable<GameObject> {
     }
 
     deserialize(input) {
-        if(this.position) {
-            this.position = this.position.deserialize(input.position);
-        } else {
-            this.position = new Position().deserialize(input.position);
+        if(!input) {
+            return this;
+        }
+        if(input.position) {
+            if (this.position) {
+                this.position = this.position.deserialize(input.position);
+            } else {
+                this.position = new Position().deserialize(input.position);
+            }
         }
         return this;
     }

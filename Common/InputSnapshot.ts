@@ -1,5 +1,5 @@
 import {Position} from "../Common/utils/Position";
-import {Serializable} from "./Serializable";
+import {Serializable} from "./net/Serializable";
 
 export class InputSnapshot implements Serializable<InputSnapshot> {
     constructor() {
@@ -20,16 +20,16 @@ export class InputSnapshot implements Serializable<InputSnapshot> {
 
     public clone(): InputSnapshot {
         let inputSnapshot: InputSnapshot = new InputSnapshot;
-        inputSnapshot.MoveTo = new Position(this.moveTo.X, this.moveTo.Y);
+        inputSnapshot.ClickPosition = new Position(this.moveTo.X, this.moveTo.Y);
 
         return inputSnapshot;
     }
 
-    set MoveTo(position: Position) {
+    set ClickPosition(position: Position) {
         this.moveTo = position;
     }
 
-    get MoveTo(): Position {
+    get ClickPosition(): Position {
         return this.moveTo;
     }
 

@@ -6,6 +6,8 @@ import {InputHandler} from "./InputHandler";
 import {Player} from "../Common/utils/Player";
 import {Position} from "../Common/utils/Position";
 import {InputSnapshot} from "../Common/InputSnapshot";
+import {NetObjectsManager} from "../Common/net/NetObjectsManager";
+import {GameObject} from "../Common/utils/GameObject";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -20,15 +22,16 @@ export class GameClient {
             this.socket.emit('clientready');
         });
 
+        // TEST
         setInterval(() => {
-            console.log('xx');
             if (this.inputHandler.Changed) {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
 
-                this.socket.emit('serializationtest', serializedSnapshot);
+                this.socket.emit('inputsnapshot', serializedSnapshot);
             }
-        }, 1000)
+        }, 100);
+        // /TEST
     }
 
     connect() {
@@ -46,12 +49,23 @@ export class GameClient {
 
     private startGame() {
         this.game = new Game;
-        this.game.startGameLoop();
+      //  this.game.startGameLoop();
     }
 
     private initializeGame(initData) {
-        let player: Player = this.game.addPlayer(initData.name, new Position(initData.x, initData.y));
-        this.renderer.addGameObject(player);
-        this.renderer.update();
+        let deserializedObjects = JSON.parse(initData.objects);
+        for (let object in deserializedObjects) {
+            if (deserializedObjects.hasOwnProperty(object)) {
+                let gameObject: GameObject = NetObjectsManager.Instance.updateObject(deserializedObjects[object]);
+                if(gameObject) {
+                    this.renderer.addGameObject(gameObject);
+                }
+            }
+        }
+        console.log(initData);
+            this.renderer.update();
+        // let player: Player = this.game.spawn(initData.name, new Position(initData.x, initData.y));
+        // this.renderer.addGameObject(player);
+        // this.renderer.update();
     }
 }

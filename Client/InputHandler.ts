@@ -30,7 +30,7 @@ export class InputHandler {
     // }
 
     public mouseClick(mouseEvent: MouseEvent) {
-        this.inputSnapshot.MoveTo = new Position(mouseEvent.x, mouseEvent.y);
+        this.inputSnapshot.ClickPosition = new Position(mouseEvent.x, mouseEvent.y);
 
         this.changed = true;
     }
