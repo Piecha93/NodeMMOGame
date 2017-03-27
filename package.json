@@ -17,8 +17,8 @@
     "socket.io": "^1.7.2",
     "typescript": "next"
   },
-  "postinstall": "tsc",
   "scripts": {
+    "postinstall": "tsc",
     "start": "node app.js"
   }
 }
