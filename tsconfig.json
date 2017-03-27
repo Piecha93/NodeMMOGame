@@ -4,7 +4,7 @@
     "target": "es6",
     "sourceMap": true,
     "experimentalDecorators": true,
-    "outDir": "dist",
+    "outDir": ".",
     "declaration": false
   },
   "exclude": [
