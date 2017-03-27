@@ -15407,7 +15407,7 @@ PIXI.Sprite.prototype.onTextureUpdate = function()
 * The bounds calculation takes the worldTransform into account.
 *
 * It is important to note that the transform is not updated when you call this method.
-* So if this Sprite is the child of a Display GameObject which has had its transform
+* So if this Sprite is the child of a Display CreateGameObject which has had its transform
 * updated since the last render pass, those changes will not yet have been applied
 * to this Sprites worldTransform. If you need to ensure that all parent transforms
 * are factored into this getBounds operation then you should call `updateTransform`
@@ -15553,7 +15553,7 @@ PIXI.Sprite.prototype.getLocalBounds = function () {
 *
 * @method _renderWebGL
 * @param renderSession {RenderSession}
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 * @private
 */
 PIXI.Sprite.prototype._renderWebGL = function(renderSession, matrix)
@@ -15623,7 +15623,7 @@ PIXI.Sprite.prototype._renderWebGL = function(renderSession, matrix)
 *
 * @method _renderCanvas
 * @param renderSession {RenderSession}
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 * @private
 */
 PIXI.Sprite.prototype._renderCanvas = function(renderSession, matrix)
@@ -17467,7 +17467,7 @@ PIXI.WebGLRenderer.prototype.render = function(stage)
 };
 
 /**
- * Renders a Display GameObject.
+ * Renders a Display CreateGameObject.
  *
  * @method renderDisplayObject
  * @param displayObject {DisplayObject} The DisplayObject to render
@@ -18459,7 +18459,7 @@ PIXI.WebGLSpriteBatch.prototype.end = function()
 /**
 * @method render
 * @param sprite {Sprite} the sprite to render when using this spritebatch
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 */
 PIXI.WebGLSpriteBatch.prototype.render = function(sprite, matrix)
 {
@@ -21098,7 +21098,7 @@ PIXI.TextureUvs = function()
  *
  * __Hint__: All DisplayObjects (i.e. Sprites) that render to a RenderTexture should be preloaded otherwise black rectangles will be drawn instead.
  *
- * A RenderTexture takes a snapshot of any Display GameObject given to its render method. The position and rotation of the given Display Objects is ignored. For example:
+ * A RenderTexture takes a snapshot of any Display CreateGameObject given to its render method. The position and rotation of the given Display Objects is ignored. For example:
  *
  *    var renderTexture = new PIXI.RenderTexture(800, 600);
  *    var sprite = PIXI.Sprite.fromImage("spinObj_01.png");
@@ -22831,210 +22831,210 @@ var Phaser = Phaser || {    // jshint ignore:line
     DOWN: 4,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     SPRITE: 0,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     BUTTON: 1,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     IMAGE: 2,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     GRAPHICS: 3,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     TEXT: 4,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     TILESPRITE: 5,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     BITMAPTEXT: 6,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     GROUP: 7,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     RENDERTEXTURE: 8,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     TILEMAP: 9,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     TILEMAPLAYER: 10,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     EMITTER: 11,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     POLYGON: 12,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     BITMAPDATA: 13,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     CANVAS_FILTER: 14,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     WEBGL_FILTER: 15,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     ELLIPSE: 16,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     SPRITEBATCH: 17,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     RETROFONT: 18,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     POINTER: 19,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     ROPE: 20,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     CIRCLE: 21,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     RECTANGLE: 22,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     LINE: 23,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     MATRIX: 24,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     POINT: 25,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     ROUNDEDRECTANGLE: 26,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     CREATURE: 27,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
     VIDEO: 28,
 
     /**
-    * Game GameObject type.
+    * Game CreateGameObject type.
     * @constant
     * @type {integer}
     */
@@ -23069,56 +23069,56 @@ var Phaser = Phaser || {    // jshint ignore:line
     PORTRAIT: 1,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face up.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face up.
     * @constant
     * @type {integer}
     */
     ANGLE_UP: 270,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face down.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face down.
     * @constant
     * @type {integer}
     */
     ANGLE_DOWN: 90,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face left.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face left.
     * @constant
     * @type {integer}
     */
     ANGLE_LEFT: 180,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face right.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face right.
     * @constant
     * @type {integer}
     */
     ANGLE_RIGHT: 0,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face north east.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face north east.
     * @constant
     * @type {integer}
     */
     ANGLE_NORTH_EAST: 315,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face north west.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face north west.
     * @constant
     * @type {integer}
     */
     ANGLE_NORTH_WEST: 225,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face south east.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face south east.
     * @constant
     * @type {integer}
     */
     ANGLE_SOUTH_EAST: 45,
 
     /**
-    * The Angle (in degrees) a Game GameObject needs to be set to in order to face south west.
+    * The Angle (in degrees) a Game CreateGameObject needs to be set to in order to face south west.
     * @constant
     * @type {integer}
     */
@@ -23660,7 +23660,7 @@ Phaser.Utils = {
 
     /**
     * This is a slightly modified version of jQuery.isPlainObject.
-    * A plain object is an object whose internal class property is [object GameObject].
+    * A plain object is an object whose internal class property is [object CreateGameObject].
     * @method Phaser.Utils.isPlainObject
     * @param {object} obj - The object to inspect.
     * @return {boolean} - true if the object is plain, otherwise false.
@@ -23668,7 +23668,7 @@ Phaser.Utils = {
     isPlainObject: function (obj) {
 
         // Not plain objects:
-        // - Any object or value whose internal [[Class]] property is not "[object GameObject]"
+        // - Any object or value whose internal [[Class]] property is not "[object CreateGameObject]"
         // - DOM nodes
         // - window
         if (typeof(obj) !== "object" || obj.nodeType || obj === obj.window)
@@ -23690,7 +23690,7 @@ Phaser.Utils = {
         }
 
         // If the function hasn't returned already, we're confident that
-        // |obj| is a plain object, created by {} or constructed with new GameObject
+        // |obj| is a plain object, created by {} or constructed with new CreateGameObject
         return true;
     },
 
@@ -30407,7 +30407,7 @@ Phaser.Signal.prototype = {
     * @param {boolean} isOnce - Should the listener only be called once?
     * @param {object} [listenerContext] - The context under which the listener is invoked.
     * @param {number} [priority] - The priority level of the event listener. Listeners with higher priority will be executed before listeners with lower priority. Listeners with same priority level will be executed at the same order as they were added. (default = 0).
-    * @return {Phaser.SignalBinding} An GameObject representing the binding between the Signal and listener.
+    * @return {Phaser.SignalBinding} An CreateGameObject representing the binding between the Signal and listener.
     */
     _registerListener: function (listener, isOnce, listenerContext, priority, args) {
 
@@ -30441,7 +30441,7 @@ Phaser.Signal.prototype = {
     /**
     * @method Phaser.Signal#_addBinding
     * @private
-    * @param {Phaser.SignalBinding} binding - An GameObject representing the binding between the Signal and listener.
+    * @param {Phaser.SignalBinding} binding - An CreateGameObject representing the binding between the Signal and listener.
     */
     _addBinding: function (binding) {
 
@@ -30531,7 +30531,7 @@ Phaser.Signal.prototype = {
     * @param {object} [listenerContext] - The context under which the listener will be executed (i.e. the object that should represent the `this` variable).
     * @param {number} [priority] - The priority level of the event listener. Listeners with higher priority will be executed before listeners with lower priority. Listeners with same priority level will be executed at the same order as they were added (default = 0)
     * @param {...any} [args=(none)] - Additional arguments to pass to the callback (listener) function. They will be appended after any arguments usually dispatched.
-    * @return {Phaser.SignalBinding} An GameObject representing the binding between the Signal and listener.
+    * @return {Phaser.SignalBinding} An CreateGameObject representing the binding between the Signal and listener.
     */
     add: function (listener, listenerContext, priority) {
 
@@ -30562,7 +30562,7 @@ Phaser.Signal.prototype = {
     * @param {object} [listenerContext] - The context under which the listener will be executed (i.e. the object that should represent the `this` variable).
     * @param {number} [priority] - The priority level of the event listener. Listeners with higher priority will be executed before listeners with lower priority. Listeners with same priority level will be executed at the same order as they were added (default = 0)
     * @param {...any} [args=(none)] - Additional arguments to pass to the callback (listener) function. They will be appended after any arguments usually dispatched.
-    * @return {Phaser.SignalBinding} An GameObject representing the binding between the Signal and listener.
+    * @return {Phaser.SignalBinding} An CreateGameObject representing the binding between the Signal and listener.
     */
     addOnce: function (listener, listenerContext, priority) {
 
@@ -30792,7 +30792,7 @@ Phaser.Signal.prototype.constructor = Phaser.Signal;
 */
 
 /**
-* GameObject that represents a binding between a Signal and a listener function.
+* CreateGameObject that represents a binding between a Signal and a listener function.
 * This is an internal constructor and shouldn't be created directly.
 * Inspired by Joa Ebert AS3 SignalBinding and Robert Penner's Slot classes.
 * 
@@ -34136,7 +34136,7 @@ Phaser.Group.prototype.iterate = function (key, value, returnType, callback, cal
 /**
 * Get the first display object that exists, or doesn't exist.
 * 
-* You can use the optional argument `createIfNull` to create a new Game GameObject if none matching your exists argument were found in this Group.
+* You can use the optional argument `createIfNull` to create a new Game CreateGameObject if none matching your exists argument were found in this Group.
 *
 * It works by calling `Group.create` passing it the parameters given to this method, and returning the new child.
 *
@@ -34172,7 +34172,7 @@ Phaser.Group.prototype.getFirstExists = function (exists, createIfNull, x, y, ke
 *
 * This is handy for choosing a squad leader, etc.
 *
-* You can use the optional argument `createIfNull` to create a new Game GameObject if no alive ones were found in this Group.
+* You can use the optional argument `createIfNull` to create a new Game CreateGameObject if no alive ones were found in this Group.
 *
 * It works by calling `Group.create` passing it the parameters given to this method, and returning the new child.
 *
@@ -34202,7 +34202,7 @@ Phaser.Group.prototype.getFirstAlive = function (createIfNull, x, y, key, frame)
 *
 * This is handy for checking if everything has been wiped out and adding to the pool as needed.
 *
-* You can use the optional argument `createIfNull` to create a new Game GameObject if no dead ones were found in this Group.
+* You can use the optional argument `createIfNull` to create a new Game CreateGameObject if no dead ones were found in this Group.
 *
 * It works by calling `Group.create` passing it the parameters given to this method, and returning the new child.
 *
@@ -34301,7 +34301,7 @@ Phaser.Group.prototype.getBottom = function () {
 };
 
 /**
-* Get the closest child to given GameObject, with optional callback to filter children.
+* Get the closest child to given CreateGameObject, with optional callback to filter children.
 *
 * This can be a Sprite, Group, Image or any object with public x and y properties.
 *
@@ -34345,7 +34345,7 @@ Phaser.Group.prototype.getClosestTo = function (object, callback, callbackContex
 };
 
 /**
-* Get the child furthest away from the given GameObject, with optional callback to filter children.
+* Get the child furthest away from the given CreateGameObject, with optional callback to filter children.
 *
 * This can be a Sprite, Group, Image or any object with public x and y properties.
 *
@@ -34576,12 +34576,12 @@ Phaser.Group.prototype.moveAll = function (group, silent) {
 * The children can be optionally destroyed as they are removed.
 * 
 * You can also optionally also destroy the BaseTexture the Child is using. Be careful if you've
-* more than one Game GameObject sharing the same BaseTexture.
+* more than one Game CreateGameObject sharing the same BaseTexture.
 *
 * @method Phaser.Group#removeAll
 * @param {boolean} [destroy=false] - If true `destroy` will be invoked on each removed child.
 * @param {boolean} [silent=false] - If true the children will not dispatch their `onRemovedFromGroup` events.
-* @param {boolean} [destroyTexture=false] - If true, and if the `destroy` argument is also true, the BaseTexture belonging to the Child is also destroyed. Note that if another Game GameObject is sharing the same BaseTexture it will invalidate it.
+* @param {boolean} [destroyTexture=false] - If true, and if the `destroy` argument is also true, the BaseTexture belonging to the Child is also destroyed. Note that if another Game CreateGameObject is sharing the same BaseTexture it will invalidate it.
 */
 Phaser.Group.prototype.removeAll = function (destroy, silent, destroyTexture) {
 
@@ -34936,15 +34936,15 @@ Object.defineProperty(Phaser.Group.prototype, "bottom", {
 });
 
 /**
-* Aligns this Group within another Game GameObject, or Rectangle, known as the
+* Aligns this Group within another Game CreateGameObject, or Rectangle, known as the
 * 'container', to one of 9 possible positions.
 *
-* The container must be a Game GameObject, or Phaser.Rectangle object. This can include properties
+* The container must be a Game CreateGameObject, or Phaser.Rectangle object. This can include properties
 * such as `World.bounds` or `Camera.view`, for aligning Groups within the world 
 * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
 * TileSprites or Buttons.
 *
-* Please note that aligning a Group to another Game GameObject does **not** make it a child of
+* Please note that aligning a Group to another Game CreateGameObject does **not** make it a child of
 * the container. It simply modifies its position coordinates so it aligns with it.
 * 
 * The position constants you can use are:
@@ -34968,25 +34968,25 @@ Object.defineProperty(Phaser.Group.prototype, "bottom", {
 * one expands it.
 *
 * @method Phaser.Group#alignIn
-* @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} container - The Game GameObject or Rectangle with which to align this Group to. Can also include properties such as `World.bounds` or `Camera.view`.
+* @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} container - The Game CreateGameObject or Rectangle with which to align this Group to. Can also include properties such as `World.bounds` or `Camera.view`.
 * @param {integer} [position] - The position constant. One of `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`, `Phaser.CENTER`, `Phaser.RIGHT_CENTER`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` or `Phaser.BOTTOM_RIGHT`.
-* @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-* @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
+* @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+* @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
 * @return {Phaser.Group} This Group.
 */
 
 //  This function is set at the bottom of src/gameobjects/components/Bounds.js
 
 /**
-* Aligns this Group to the side of another Game GameObject, or Rectangle, known as the
+* Aligns this Group to the side of another Game CreateGameObject, or Rectangle, known as the
 * 'parent', in one of 11 possible positions.
 *
-* The parent must be a Game GameObject, or Phaser.Rectangle object. This can include properties
+* The parent must be a Game CreateGameObject, or Phaser.Rectangle object. This can include properties
 * such as `World.bounds` or `Camera.view`, for aligning Groups within the world 
 * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
 * TileSprites or Buttons.
 *
-* Please note that aligning a Group to another Game GameObject does **not** make it a child of
+* Please note that aligning a Group to another Game CreateGameObject does **not** make it a child of
 * the parent. It simply modifies its position coordinates so it aligns with it.
 * 
 * The position constants you can use are:
@@ -35011,10 +35011,10 @@ Object.defineProperty(Phaser.Group.prototype, "bottom", {
 * one expands it.
 *
 * @method Phaser.Group#alignTo
-* @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} parent - The Game GameObject or Rectangle with which to align this Group to. Can also include properties such as `World.bounds` or `Camera.view`.
+* @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} parent - The Game CreateGameObject or Rectangle with which to align this Group to. Can also include properties such as `World.bounds` or `Camera.view`.
 * @param {integer} [position] - The position constant. One of `Phaser.TOP_LEFT`, `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_TOP`, `Phaser.LEFT_CENTER`, `Phaser.LEFT_BOTTOM`, `Phaser.RIGHT_TOP`, `Phaser.RIGHT_CENTER`, `Phaser.RIGHT_BOTTOM`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` or `Phaser.BOTTOM_RIGHT`.
-* @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-* @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
+* @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+* @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
 * @return {Phaser.Group} This Group.
 */
 
@@ -35592,7 +35592,7 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     this.add = null;
 
     /**
-    * @property {Phaser.GameObjectCreator} make - Reference to the GameObject Creator.
+    * @property {Phaser.GameObjectCreator} make - Reference to the CreateGameObject Creator.
     */
     this.make = null;
 
@@ -36945,7 +36945,7 @@ Phaser.Input = function (game) {
     this.onHold = null;
 
     /**
-    * You can tell all Pointers to ignore any Game GameObject with a `priorityID` lower than this value.
+    * You can tell all Pointers to ignore any Game CreateGameObject with a `priorityID` lower than this value.
     * This is useful when stacking UI layers. Set to zero to disable.
     * @property {number} minPriorityID
     * @default
@@ -37111,7 +37111,7 @@ Phaser.Input.prototype = {
 
     /**
     * Adds a callback that is fired every time `Pointer.processInteractiveObjects` is called.
-    * The purpose of `processInteractiveObjects` is to work out which Game GameObject the Pointer is going to
+    * The purpose of `processInteractiveObjects` is to work out which Game CreateGameObject the Pointer is going to
     * interact with. It works by polling all of the valid game objects, and then slowly discounting those
     * that don't meet the criteria (i.e. they aren't under the Pointer, are disabled, invisible, etc).
     *
@@ -39559,7 +39559,7 @@ Phaser.Pointer = function (game, id, pointerMode) {
     this.msSinceLastClick = Number.MAX_VALUE;
 
     /**
-    * @property {any} targetObject - The Game GameObject this Pointer is currently over / touching / dragging.
+    * @property {any} targetObject - The Game CreateGameObject this Pointer is currently over / touching / dragging.
     * @default
     */
     this.targetObject = null;
@@ -42189,7 +42189,7 @@ Phaser.InputHandler.prototype = {
     },
 
     /**
-    * Called as a Pointer actively drags this Game GameObject.
+    * Called as a Pointer actively drags this Game CreateGameObject.
     * 
     * @method Phaser.InputHandler#updateDrag
     * @private
@@ -42904,7 +42904,7 @@ Phaser.Gamepad.prototype = {
     * 
     * @method Phaser.Gamepad#addCallbacks
     * @param {object} context - The context under which the callbacks are run.
-    * @param {object} callbacks - GameObject that takes six different callback methods:
+    * @param {object} callbacks - CreateGameObject that takes six different callback methods:
     * onConnectCallback, onDisconnectCallback, onDownCallback, onUpCallback, onAxisCallback, onFloatCallback
     */
     addCallbacks: function (context, callbacks) {
@@ -43558,7 +43558,7 @@ Phaser.SinglePad.prototype = {
     * 
     * @method Phaser.SinglePad#addCallbacks
     * @param {object} context - The context under which the callbacks are run.
-    * @param {object} callbacks - GameObject that takes six different callbak methods:
+    * @param {object} callbacks - CreateGameObject that takes six different callbak methods:
     * onConnectCallback, onDisconnectCallback, onDownCallback, onUpCallback, onAxisCallback, onFloatCallback
     */
     addCallbacks: function (context, callbacks) {
@@ -45193,7 +45193,7 @@ Phaser.Component = function () {};
 */
 
 /**
-* The Angle Component provides access to an `angle` property; the rotation of a Game GameObject in degrees.
+* The Angle Component provides access to an `angle` property; the rotation of a Game CreateGameObject in degrees.
 *
 * @class
 */
@@ -45202,7 +45202,7 @@ Phaser.Component.Angle = function () {};
 Phaser.Component.Angle.prototype = {
 
     /**
-    * The angle property is the rotation of the Game GameObject in *degrees* from its original orientation.
+    * The angle property is the rotation of the Game CreateGameObject in *degrees* from its original orientation.
     * 
     * Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
     * 
@@ -45280,7 +45280,7 @@ Phaser.Component.Animation.prototype = {
 */
 
 /**
-* The AutoCull Component is responsible for providing methods that check if a Game GameObject is within the bounds of the World Camera.
+* The AutoCull Component is responsible for providing methods that check if a Game CreateGameObject is within the bounds of the World Camera.
 * It is used by the InWorld component.
 *
 * @class
@@ -45290,9 +45290,9 @@ Phaser.Component.AutoCull = function () {};
 Phaser.Component.AutoCull.prototype = {
 
     /**
-    * A Game GameObject with `autoCull` set to true will check its bounds against the World Camera every frame.
+    * A Game CreateGameObject with `autoCull` set to true will check its bounds against the World Camera every frame.
     * If it is not intersecting the Camera bounds at any point then it has its `renderable` property set to `false`.
-    * This keeps the Game GameObject alive and still processing updates, but forces it to skip the render step entirely.
+    * This keeps the Game CreateGameObject alive and still processing updates, but forces it to skip the render step entirely.
     * 
     * This is a relatively expensive operation, especially if enabled on hundreds of Game Objects. So enable it only if you know it's required,
     * or you have tested performance and find it acceptable.
@@ -45335,7 +45335,7 @@ Phaser.Component.AutoCull.prototype = {
 */
 
 /**
-* The Bounds component contains properties related to the bounds of the Game GameObject.
+* The Bounds component contains properties related to the bounds of the Game CreateGameObject.
 *
 * @class
 */
@@ -45344,7 +45344,7 @@ Phaser.Component.Bounds = function () {};
 Phaser.Component.Bounds.prototype = {
 
     /**
-    * The amount the Game GameObject is visually offset from its x coordinate.
+    * The amount the Game CreateGameObject is visually offset from its x coordinate.
     * This is the same as `width * anchor.x`.
     * It will only be > 0 if anchor.x is not equal to zero.
     *
@@ -45362,7 +45362,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The amount the Game GameObject is visually offset from its y coordinate.
+    * The amount the Game CreateGameObject is visually offset from its y coordinate.
     * This is the same as `height * anchor.y`.
     * It will only be > 0 if anchor.y is not equal to zero.
     *
@@ -45380,7 +45380,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The center x coordinate of the Game GameObject.
+    * The center x coordinate of the Game CreateGameObject.
     * This is the same as `(x - offsetX) + (width / 2)`.
     *
     * @property {number} centerX
@@ -45402,7 +45402,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The center y coordinate of the Game GameObject.
+    * The center y coordinate of the Game CreateGameObject.
     * This is the same as `(y - offsetY) + (height / 2)`.
     *
     * @property {number} centerY
@@ -45424,7 +45424,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The left coordinate of the Game GameObject.
+    * The left coordinate of the Game CreateGameObject.
     * This is the same as `x - offsetX`.
     *
     * @property {number} left
@@ -45446,7 +45446,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The right coordinate of the Game GameObject.
+    * The right coordinate of the Game CreateGameObject.
     * This is the same as `x + width - offsetX`.
     *
     * @property {number} right
@@ -45468,7 +45468,7 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * The y coordinate of the Game GameObject.
+    * The y coordinate of the Game CreateGameObject.
     * This is the same as `y - offsetY`.
     *
     * @property {number} top
@@ -45512,15 +45512,15 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * Aligns this Game GameObject within another Game GameObject, or Rectangle, known as the
+    * Aligns this Game CreateGameObject within another Game CreateGameObject, or Rectangle, known as the
     * 'container', to one of 9 possible positions.
     *
-    * The container must be a Game GameObject, or Phaser.Rectangle object. This can include properties
+    * The container must be a Game CreateGameObject, or Phaser.Rectangle object. This can include properties
     * such as `World.bounds` or `Camera.view`, for aligning Game Objects within the world 
     * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
     * TileSprites or Buttons.
     *
-    * Please note that aligning a Sprite to another Game GameObject does **not** make it a child of
+    * Please note that aligning a Sprite to another Game CreateGameObject does **not** make it a child of
     * the container. It simply modifies its position coordinates so it aligns with it.
     * 
     * The position constants you can use are:
@@ -45534,7 +45534,7 @@ Phaser.Component.Bounds.prototype = {
     * This allows you to neatly align Game Objects, irrespective of their position value.
     *
     * The optional `offsetX` and `offsetY` arguments allow you to apply extra spacing to the final
-    * aligned position of the Game GameObject. For example:
+    * aligned position of the Game CreateGameObject. For example:
     *
     * `sprite.alignIn(background, Phaser.BOTTOM_RIGHT, -20, -20)`
     *
@@ -45544,11 +45544,11 @@ Phaser.Component.Bounds.prototype = {
     * one expands it.
     *
     * @method
-    * @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} container - The Game GameObject or Rectangle with which to align this Game GameObject to. Can also include properties such as `World.bounds` or `Camera.view`.
+    * @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} container - The Game CreateGameObject or Rectangle with which to align this Game CreateGameObject to. Can also include properties such as `World.bounds` or `Camera.view`.
     * @param {integer} [position] - The position constant. One of `Phaser.TOP_LEFT` (default), `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_CENTER`, `Phaser.CENTER`, `Phaser.RIGHT_CENTER`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` or `Phaser.BOTTOM_RIGHT`.
-    * @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-    * @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-    * @return {Object} This Game GameObject.
+    * @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+    * @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+    * @return {Object} This Game CreateGameObject.
     */
     alignIn: function (container, position, offsetX, offsetY) {
 
@@ -45609,15 +45609,15 @@ Phaser.Component.Bounds.prototype = {
     },
 
     /**
-    * Aligns this Game GameObject to the side of another Game GameObject, or Rectangle, known as the
+    * Aligns this Game CreateGameObject to the side of another Game CreateGameObject, or Rectangle, known as the
     * 'parent', in one of 11 possible positions.
     *
-    * The parent must be a Game GameObject, or Phaser.Rectangle object. This can include properties
+    * The parent must be a Game CreateGameObject, or Phaser.Rectangle object. This can include properties
     * such as `World.bounds` or `Camera.view`, for aligning Game Objects within the world 
     * and camera bounds. Or it can include other Sprites, Images, Text objects, BitmapText,
     * TileSprites or Buttons.
     *
-    * Please note that aligning a Sprite to another Game GameObject does **not** make it a child of
+    * Please note that aligning a Sprite to another Game CreateGameObject does **not** make it a child of
     * the parent. It simply modifies its position coordinates so it aligns with it.
     * 
     * The position constants you can use are:
@@ -45632,7 +45632,7 @@ Phaser.Component.Bounds.prototype = {
     * This allows you to neatly align Game Objects, irrespective of their position value.
     *
     * The optional `offsetX` and `offsetY` arguments allow you to apply extra spacing to the final
-    * aligned position of the Game GameObject. For example:
+    * aligned position of the Game CreateGameObject. For example:
     *
     * `sprite.alignTo(background, Phaser.BOTTOM_RIGHT, -20, -20)`
     *
@@ -45642,11 +45642,11 @@ Phaser.Component.Bounds.prototype = {
     * one expands it.
     *
     * @method
-    * @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} parent - The Game GameObject or Rectangle with which to align this Game GameObject to. Can also include properties such as `World.bounds` or `Camera.view`.
+    * @param {Phaser.Rectangle|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText|Phaser.Button|Phaser.Graphics|Phaser.TileSprite} parent - The Game CreateGameObject or Rectangle with which to align this Game CreateGameObject to. Can also include properties such as `World.bounds` or `Camera.view`.
     * @param {integer} [position] - The position constant. One of `Phaser.TOP_LEFT`, `Phaser.TOP_CENTER`, `Phaser.TOP_RIGHT`, `Phaser.LEFT_TOP`, `Phaser.LEFT_CENTER`, `Phaser.LEFT_BOTTOM`, `Phaser.RIGHT_TOP`, `Phaser.RIGHT_CENTER`, `Phaser.RIGHT_BOTTOM`, `Phaser.BOTTOM_LEFT`, `Phaser.BOTTOM_CENTER` or `Phaser.BOTTOM_RIGHT`.
-    * @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-    * @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game GameObject. Use a negative value to shrink the bounds, positive to increase it.
-    * @return {Object} This Game GameObject.
+    * @param {integer} [offsetX=0] - A horizontal adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+    * @param {integer} [offsetY=0] - A vertical adjustment of the Containers bounds, applied to the aligned position of the Game CreateGameObject. Use a negative value to shrink the bounds, positive to increase it.
+    * @return {Object} This Game CreateGameObject.
     */
     alignTo: function (parent, position, offsetX, offsetY) {
 
@@ -45742,10 +45742,10 @@ Phaser.Group.prototype.alignTo = Phaser.Component.Bounds.prototype.alignTo;
 Phaser.Component.BringToTop = function () {};
 
 /**
-* Brings this Game GameObject to the top of its parents display list.
+* Brings this Game CreateGameObject to the top of its parents display list.
 * Visually this means it will render over the top of any old child in the same Group.
 * 
-* If this Game GameObject hasn't been added to a custom Group then this method will bring it to the top of the Game World,
+* If this Game CreateGameObject hasn't been added to a custom Group then this method will bring it to the top of the Game World,
 * because the World is the root Group from which all Game Objects descend.
 *
 * @method
@@ -45763,10 +45763,10 @@ Phaser.Component.BringToTop.prototype.bringToTop = function() {
 };
 
 /**
-* Sends this Game GameObject to the bottom of its parents display list.
+* Sends this Game CreateGameObject to the bottom of its parents display list.
 * Visually this means it will render below all other children in the same Group.
 * 
-* If this Game GameObject hasn't been added to a custom Group then this method will send it to the bottom of the Game World,
+* If this Game CreateGameObject hasn't been added to a custom Group then this method will send it to the bottom of the Game World,
 * because the World is the root Group from which all Game Objects descend.
 *
 * @method
@@ -45784,10 +45784,10 @@ Phaser.Component.BringToTop.prototype.sendToBack = function() {
 };
 
 /**
-* Moves this Game GameObject up one place in its parents display list.
-* This call has no effect if the Game GameObject is already at the top of the display list.
+* Moves this Game CreateGameObject up one place in its parents display list.
+* This call has no effect if the Game CreateGameObject is already at the top of the display list.
 * 
-* If this Game GameObject hasn't been added to a custom Group then this method will move it one object up within the Game World,
+* If this Game CreateGameObject hasn't been added to a custom Group then this method will move it one object up within the Game World,
 * because the World is the root Group from which all Game Objects descend.
 *
 * @method
@@ -45805,10 +45805,10 @@ Phaser.Component.BringToTop.prototype.moveUp = function () {
 };
 
 /**
-* Moves this Game GameObject down one place in its parents display list.
-* This call has no effect if the Game GameObject is already at the bottom of the display list.
+* Moves this Game CreateGameObject down one place in its parents display list.
+* This call has no effect if the Game CreateGameObject is already at the bottom of the display list.
 * 
-* If this Game GameObject hasn't been added to a custom Group then this method will move it one object down within the Game World,
+* If this Game CreateGameObject hasn't been added to a custom Group then this method will move it one object down within the Game World,
 * because the World is the root Group from which all Game Objects descend.
 *
 * @method
@@ -45969,7 +45969,7 @@ Phaser.Component.Core.prototype = {
     game: null,
 
     /**
-    * A user defined name given to this Game GameObject.
+    * A user defined name given to this Game CreateGameObject.
     * This value isn't ever used internally by Phaser, it is meant as a game level property.
     * @property {string} name
     * @default
@@ -45977,27 +45977,27 @@ Phaser.Component.Core.prototype = {
     name: '',
 
     /**
-    * An empty GameObject that belongs to this Game GameObject.
+    * An empty CreateGameObject that belongs to this Game CreateGameObject.
     * This value isn't ever used internally by Phaser, but may be used by your own code, or
-    * by Phaser Plugins, to store data that needs to be associated with the Game GameObject,
-    * without polluting the Game GameObject directly.
+    * by Phaser Plugins, to store data that needs to be associated with the Game CreateGameObject,
+    * without polluting the Game CreateGameObject directly.
     * @property {Object} data
     * @default
     */
     data: {},
 
     /**
-    * The components this Game GameObject has installed.
+    * The components this Game CreateGameObject has installed.
     * @property {object} components
     * @protected
     */
     components: {},
 
     /**
-    * The z depth of this Game GameObject within its parent Group.
+    * The z depth of this Game CreateGameObject within its parent Group.
     * No two objects in a Group can have the same z value.
     * This value is adjusted automatically whenever the Group hierarchy changes.
-    * If you wish to re-order the layering of a Game GameObject then see methods like Group.moveUp or Group.bringToTop.
+    * If you wish to re-order the layering of a Game CreateGameObject then see methods like Group.moveUp or Group.bringToTop.
     * @property {number} z
     * @readOnly
     */
@@ -46005,14 +46005,14 @@ Phaser.Component.Core.prototype = {
 
     /**
     * All Phaser Game Objects have an Events class which contains all of the events that are dispatched when certain things happen to this
-    * Game GameObject, or any of its components.
+    * Game CreateGameObject, or any of its components.
     * @see Phaser.Events
     * @property {Phaser.Events} events
     */
     events: undefined,
 
     /**
-    * If the Game GameObject is enabled for animation (such as a Phaser.Sprite) this is a reference to its AnimationManager instance.
+    * If the Game CreateGameObject is enabled for animation (such as a Phaser.Sprite) this is a reference to its AnimationManager instance.
     * Through it you can create, play, pause and stop animations.
     * @see Phaser.AnimationManager
     * @property {Phaser.AnimationManager} animations
@@ -46020,18 +46020,18 @@ Phaser.Component.Core.prototype = {
     animations: undefined,
 
     /**
-    * The key of the image or texture used by this Game GameObject during rendering.
+    * The key of the image or texture used by this Game CreateGameObject during rendering.
     * If it is a string it's the string used to retrieve the texture from the Phaser Image Cache.
     * It can also be an instance of a RenderTexture, BitmapData, Video or PIXI.Texture.
-    * If a Game GameObject is created without a key it is automatically assigned the key `__default` which is a 32x32 transparent PNG stored within the Cache.
-    * If a Game GameObject is given a key which doesn't exist in the Image Cache it is re-assigned the key `__missing` which is a 32x32 PNG of a green box with a line through it.
+    * If a Game CreateGameObject is created without a key it is automatically assigned the key `__default` which is a 32x32 transparent PNG stored within the Cache.
+    * If a Game CreateGameObject is given a key which doesn't exist in the Image Cache it is re-assigned the key `__missing` which is a 32x32 PNG of a green box with a line through it.
     * @property {string|Phaser.RenderTexture|Phaser.BitmapData|Phaser.Video|PIXI.Texture} key
     */
     key: '',
 
     /**
-    * The world coordinates of this Game GameObject in pixels.
-    * Depending on where in the display list this Game GameObject is placed this value can differ from `position`,
+    * The world coordinates of this Game CreateGameObject in pixels.
+    * Depending on where in the display list this Game CreateGameObject is placed this value can differ from `position`,
     * which contains the x/y coordinates relative to the Game Objects parent.
     * @property {Phaser.Point} world
     */
@@ -46045,14 +46045,14 @@ Phaser.Component.Core.prototype = {
     debug: false,
 
     /**
-    * The position the Game GameObject was located in the previous frame.
+    * The position the Game CreateGameObject was located in the previous frame.
     * @property {Phaser.Point} previousPosition
     * @readOnly
     */
     previousPosition: null,
 
     /**
-    * The rotation the Game GameObject was in set to in the previous frame. Value is in radians.
+    * The rotation the Game CreateGameObject was in set to in the previous frame. Value is in radians.
     * @property {number} previousRotation
     * @readOnly
     */
@@ -46067,7 +46067,7 @@ Phaser.Component.Core.prototype = {
     renderOrderID: 0,
 
     /**
-    * A Game GameObject is considered `fresh` if it has just been created or reset and is yet to receive a renderer transform update.
+    * A Game CreateGameObject is considered `fresh` if it has just been created or reset and is yet to receive a renderer transform update.
     * This property is mostly used internally by the physics systems, but is exposed for the use of plugins.
     * @property {boolean} fresh
     * @readOnly
@@ -46075,7 +46075,7 @@ Phaser.Component.Core.prototype = {
     fresh: true,
 
     /**
-    * A Game GameObject is that is pendingDestroy is flagged to have its destroy method called on the next logic update.
+    * A Game CreateGameObject is that is pendingDestroy is flagged to have its destroy method called on the next logic update.
     * You can set it directly to allow you to flag an object to be destroyed on its next update.
     * 
     * This is extremely useful if you wish to destroy an object from within one of its own callbacks 
@@ -46098,8 +46098,8 @@ Phaser.Component.Core.prototype = {
     _exists: true,
 
     /**
-    * Controls if this Game GameObject is processed by the core game loop.
-    * If this Game GameObject has a physics body it also controls if its physics body is updated or not.
+    * Controls if this Game CreateGameObject is processed by the core game loop.
+    * If this Game CreateGameObject has a physics body it also controls if its physics body is updated or not.
     * When `exists` is set to `false` it will remove its physics body from the physics world if it has one.
     * It also toggles the `visible` property to false as well.
     *
@@ -46148,7 +46148,7 @@ Phaser.Component.Core.prototype = {
     /**
     * Override this method in your own custom objects to handle any update requirements.
     * It is called immediately after `preUpdate` and before `postUpdate`.
-    * Remember if this Game GameObject has any children you should call update on those too.
+    * Remember if this Game CreateGameObject has any children you should call update on those too.
     *
     * @method
     */
@@ -46195,7 +46195,7 @@ Phaser.Component.Core.prototype = {
 */
 
 /**
-* The Crop component provides the ability to crop a texture based Game GameObject to a defined rectangle,
+* The Crop component provides the ability to crop a texture based Game CreateGameObject to a defined rectangle,
 * which can be updated in real-time.
 *
 * @class
@@ -46205,7 +46205,7 @@ Phaser.Component.Crop = function () {};
 Phaser.Component.Crop.prototype = {
 
     /**
-    * The Rectangle used to crop the texture this Game GameObject uses.
+    * The Rectangle used to crop the texture this Game CreateGameObject uses.
     * Set this property via `crop`. 
     * If you modify this property directly you must call `updateCrop` in order to have the change take effect.
     * @property {Phaser.Rectangle} cropRect
@@ -46220,8 +46220,8 @@ Phaser.Component.Crop.prototype = {
     _crop: null,
 
     /**
-    * Crop allows you to crop the texture being used to display this Game GameObject.
-    * Setting a crop rectangle modifies the core texture frame. The Game GameObject width and height properties will be adjusted accordingly.
+    * Crop allows you to crop the texture being used to display this Game CreateGameObject.
+    * Setting a crop rectangle modifies the core texture frame. The Game CreateGameObject width and height properties will be adjusted accordingly.
     *
     * Cropping takes place from the top-left and can be modified in real-time either by providing an updated rectangle object to this method,
     * or by modifying `cropRect` property directly and then calling `updateCrop`.
@@ -46268,7 +46268,7 @@ Phaser.Component.Crop.prototype = {
     },
 
     /**
-    * If you have set a crop rectangle on this Game GameObject via `crop` and since modified the `cropRect` property,
+    * If you have set a crop rectangle on this Game CreateGameObject via `crop` and since modified the `cropRect` property,
     * or the rectangle it references, then you need to update the crop frame by calling this method.
     *
     * @method
@@ -46334,7 +46334,7 @@ Phaser.Component.Delta.prototype = {
     /**
     * Returns the delta x value. The difference between world.x now and in the previous frame.
     * 
-    * The value will be positive if the Game GameObject has moved to the right or negative if to the left.
+    * The value will be positive if the Game CreateGameObject has moved to the right or negative if to the left.
     *
     * @property {number} deltaX
     * @readonly
@@ -46352,7 +46352,7 @@ Phaser.Component.Delta.prototype = {
     /**
     * Returns the delta y value. The difference between world.y now and in the previous frame.
     * 
-    * The value will be positive if the Game GameObject has moved down or negative if up.
+    * The value will be positive if the Game CreateGameObject has moved down or negative if up.
     *
     * @property {number} deltaY
     * @readonly
@@ -46392,7 +46392,7 @@ Phaser.Component.Delta.prototype = {
 */
 
 /**
-* The Destroy component is responsible for destroying a Game GameObject.
+* The Destroy component is responsible for destroying a Game CreateGameObject.
 *
 * @class
 */
@@ -46401,7 +46401,7 @@ Phaser.Component.Destroy = function () {};
 Phaser.Component.Destroy.prototype = {
 
     /**
-    * As a Game GameObject runs through its destroy method this flag is set to true,
+    * As a Game CreateGameObject runs through its destroy method this flag is set to true,
     * and can be checked in any sub-systems or plugins it is being destroyed from.
     * @property {boolean} destroyPhase
     * @readOnly
@@ -46409,17 +46409,17 @@ Phaser.Component.Destroy.prototype = {
     destroyPhase: false,
 
     /**
-    * Destroys the Game GameObject. This removes it from its parent group, destroys the input, event and animation handlers if present
+    * Destroys the Game CreateGameObject. This removes it from its parent group, destroys the input, event and animation handlers if present
     * and nulls its reference to `game`, freeing it up for garbage collection.
     * 
-    * If this Game GameObject has the Events component it will also dispatch the `onDestroy` event.
+    * If this Game CreateGameObject has the Events component it will also dispatch the `onDestroy` event.
     *
-    * You can optionally also destroy the BaseTexture this Game GameObject is using. Be careful if you've
-    * more than one Game GameObject sharing the same BaseTexture.
+    * You can optionally also destroy the BaseTexture this Game CreateGameObject is using. Be careful if you've
+    * more than one Game CreateGameObject sharing the same BaseTexture.
     *
     * @method
     * @param {boolean} [destroyChildren=true] - Should every child of this object have its destroy method called as well?
-    * @param {boolean} [destroyTexture=false] - Destroy the BaseTexture this Game GameObject is using? Note that if another Game GameObject is sharing the same BaseTexture it will invalidate it.
+    * @param {boolean} [destroyTexture=false] - Destroy the BaseTexture this Game CreateGameObject is using? Note that if another Game CreateGameObject is sharing the same BaseTexture it will invalidate it.
     */
     destroy: function (destroyChildren, destroyTexture) {
 
@@ -46558,7 +46558,7 @@ Phaser.Component.Destroy.prototype = {
 */
 
 /**
-* The Events component is a collection of events fired by the parent Game GameObject.
+* The Events component is a collection of events fired by the parent Game CreateGameObject.
 * 
 * Phaser uses what are known as 'Signals' for all event handling. All of the events in
 * this class are signals you can subscribe to, much in the same way you'd "listen" for
@@ -46628,18 +46628,18 @@ Phaser.Events.prototype = {
     // The following properties are sentinels that will be replaced with getters
 
     /**
-    * This signal is dispatched when this Game GameObject is added to a new Group.
+    * This signal is dispatched when this Game CreateGameObject is added to a new Group.
     * It is sent two arguments:
-    * {any} The Game GameObject that was added to the Group.
+    * {any} The Game CreateGameObject that was added to the Group.
     * {Phaser.Group} The Group it was added to.
     * @property {Phaser.Signal} onAddedToGroup
     */
     onAddedToGroup: null,
 
     /**
-    * This signal is dispatched when the Game GameObject is removed from a Group.
+    * This signal is dispatched when the Game CreateGameObject is removed from a Group.
     * It is sent two arguments:
-    * {any} The Game GameObject that was removed from the Group.
+    * {any} The Game CreateGameObject that was removed from the Group.
     * {Phaser.Group} The Group it was removed from.
     * @property {Phaser.Signal} onRemovedFromGroup
     */
@@ -46653,100 +46653,100 @@ Phaser.Events.prototype = {
     onRemovedFromWorld: null,
 
     /**
-    * This signal is dispatched when the Game GameObject is destroyed.
+    * This signal is dispatched when the Game CreateGameObject is destroyed.
     * This happens when `Sprite.destroy()` is called, or `Group.destroy()` with `destroyChildren` set to true.
     * It is sent one argument:
-    * {any} The Game GameObject that was destroyed.
+    * {any} The Game CreateGameObject that was destroyed.
     * @property {Phaser.Signal} onDestroy
     */
     onDestroy: null,
 
     /**
-    * This signal is dispatched when the Game GameObject is killed.
+    * This signal is dispatched when the Game CreateGameObject is killed.
     * This happens when `Sprite.kill()` is called.
     * Please understand the difference between `kill` and `destroy` by looking at their respective methods.
     * It is sent one argument:
-    * {any} The Game GameObject that was killed.
+    * {any} The Game CreateGameObject that was killed.
     * @property {Phaser.Signal} onKilled
     */
     onKilled: null,
 
     /**
-    * This signal is dispatched when the Game GameObject is revived from a previously killed state.
+    * This signal is dispatched when the Game CreateGameObject is revived from a previously killed state.
     * This happens when `Sprite.revive()` is called.
     * It is sent one argument:
-    * {any} The Game GameObject that was revived.
+    * {any} The Game CreateGameObject that was revived.
     * @property {Phaser.Signal} onRevived
     */
     onRevived: null,
 
     /**
-    * This signal is dispatched when the Game GameObject leaves the Phaser.World bounds.
+    * This signal is dispatched when the Game CreateGameObject leaves the Phaser.World bounds.
     * This signal is only if `Sprite.checkWorldBounds` is set to `true`.
     * It is sent one argument:
-    * {any} The Game GameObject that left the World bounds.
+    * {any} The Game CreateGameObject that left the World bounds.
     * @property {Phaser.Signal} onOutOfBounds
     */
     onOutOfBounds: null,
 
     /**
-    * This signal is dispatched when the Game GameObject returns within the Phaser.World bounds, having previously been outside of them.
+    * This signal is dispatched when the Game CreateGameObject returns within the Phaser.World bounds, having previously been outside of them.
     * This signal is only if `Sprite.checkWorldBounds` is set to `true`.
     * It is sent one argument:
-    * {any} The Game GameObject that entered the World bounds.
+    * {any} The Game CreateGameObject that entered the World bounds.
     * @property {Phaser.Signal} onEnterBounds
     */
     onEnterBounds: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has `inputEnabled` set to `true`,
+    * This signal is dispatched if the Game CreateGameObject has `inputEnabled` set to `true`,
     * and receives an over event from a Phaser.Pointer.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
     * @property {Phaser.Signal} onInputOver
     */
     onInputOver: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has `inputEnabled` set to `true`,
+    * This signal is dispatched if the Game CreateGameObject has `inputEnabled` set to `true`,
     * and receives an out event from a Phaser.Pointer, which was previously over it.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
     * @property {Phaser.Signal} onInputOut
     */
     onInputOut: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has `inputEnabled` set to `true`,
+    * This signal is dispatched if the Game CreateGameObject has `inputEnabled` set to `true`,
     * and receives a down event from a Phaser.Pointer. This effectively means the Pointer has been
-    * pressed down (but not yet released) on the Game GameObject.
+    * pressed down (but not yet released) on the Game CreateGameObject.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
     * @property {Phaser.Signal} onInputDown
     */
     onInputDown: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has `inputEnabled` set to `true`,
+    * This signal is dispatched if the Game CreateGameObject has `inputEnabled` set to `true`,
     * and receives an up event from a Phaser.Pointer. This effectively means the Pointer had been
-    * pressed down, and was then released on the Game GameObject.
+    * pressed down, and was then released on the Game CreateGameObject.
     * It is sent three arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
-    * {boolean} isOver - Is the Pointer still over the Game GameObject?
+    * {boolean} isOver - Is the Pointer still over the Game CreateGameObject?
     * @property {Phaser.Signal} onInputUp
     */
     onInputUp: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has been `inputEnabled` and `enableDrag` has been set.
-    * It is sent when a Phaser.Pointer starts to drag the Game GameObject, taking into consideration the various
+    * This signal is dispatched if the Game CreateGameObject has been `inputEnabled` and `enableDrag` has been set.
+    * It is sent when a Phaser.Pointer starts to drag the Game CreateGameObject, taking into consideration the various
     * drag limitations that may be set.
     * It is sent four arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
     * {number} The x coordinate that the drag started from.
     * {number} The y coordinate that the drag started from.
@@ -46755,58 +46755,58 @@ Phaser.Events.prototype = {
     onDragStart: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has been `inputEnabled` and `enableDrag` has been set.
-    * It is sent when a Phaser.Pointer is actively dragging the Game GameObject.
+    * This signal is dispatched if the Game CreateGameObject has been `inputEnabled` and `enableDrag` has been set.
+    * It is sent when a Phaser.Pointer is actively dragging the Game CreateGameObject.
     * Be warned: This is a high volume Signal. Be careful what you bind to it.
     * It is sent six arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
-    * {number} The new x coordinate of the Game GameObject.
-    * {number} The new y coordinate of the Game GameObject.
-    * {Phaser.Point} A Point object that contains the point the Game GameObject was snapped to, if `snapOnDrag` has been enabled.
+    * {number} The new x coordinate of the Game CreateGameObject.
+    * {number} The new y coordinate of the Game CreateGameObject.
+    * {Phaser.Point} A Point object that contains the point the Game CreateGameObject was snapped to, if `snapOnDrag` has been enabled.
     * {boolean} The `fromStart` boolean, indicates if this is the first update immediately after the drag has started.
     * @property {Phaser.Signal} onDragUpdate
     */
     onDragUpdate: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has been `inputEnabled` and `enableDrag` has been set.
-    * It is sent when a Phaser.Pointer stops dragging the Game GameObject.
+    * This signal is dispatched if the Game CreateGameObject has been `inputEnabled` and `enableDrag` has been set.
+    * It is sent when a Phaser.Pointer stops dragging the Game CreateGameObject.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Pointer} The Phaser.Pointer object that caused the event.
     * @property {Phaser.Signal} onDragStop
     */
     onDragStop: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has the AnimationManager component,
+    * This signal is dispatched if the Game CreateGameObject has the AnimationManager component,
     * and an Animation has been played.
     * You can also listen to `Animation.onStart` rather than via the Game Objects events.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Animation} The Phaser.Animation that was started.
     * @property {Phaser.Signal} onAnimationStart
     */
     onAnimationStart: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has the AnimationManager component,
+    * This signal is dispatched if the Game CreateGameObject has the AnimationManager component,
     * and an Animation has been stopped (via `animation.stop()` and the `dispatchComplete` argument has been set.
     * You can also listen to `Animation.onComplete` rather than via the Game Objects events.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Animation} The Phaser.Animation that was stopped.
     * @property {Phaser.Signal} onAnimationComplete
     */
     onAnimationComplete: null,
 
     /**
-    * This signal is dispatched if the Game GameObject has the AnimationManager component,
+    * This signal is dispatched if the Game CreateGameObject has the AnimationManager component,
     * and an Animation has looped playback.
     * You can also listen to `Animation.onLoop` rather than via the Game Objects events.
     * It is sent two arguments:
-    * {any} The Game GameObject that received the event.
+    * {any} The Game CreateGameObject that received the event.
     * {Phaser.Animation} The Phaser.Animation that looped.
     * @property {Phaser.Signal} onAnimationLoop
     */
@@ -46854,7 +46854,7 @@ for (var prop in Phaser.Events.prototype)
 */
 
 /**
-* The FixedToCamera component enables a Game GameObject to be rendered relative to the game camera coordinates, regardless
+* The FixedToCamera component enables a Game CreateGameObject to be rendered relative to the game camera coordinates, regardless
 * of where in the world the camera is. This is used for things like sticking game UI to the camera that scrolls as it moves around the world.
 *
 * @class
@@ -46863,7 +46863,7 @@ Phaser.Component.FixedToCamera = function () {};
 
 /**
  * The FixedToCamera component postUpdate handler.
- * Called automatically by the Game GameObject.
+ * Called automatically by the Game CreateGameObject.
  *
  * @method
  */
@@ -46886,17 +46886,17 @@ Phaser.Component.FixedToCamera.prototype = {
     _fixedToCamera: false,
 
     /**
-    * A Game GameObject that is "fixed" to the camera uses its x/y coordinates as offsets from the top left of the camera during rendering.
+    * A Game CreateGameObject that is "fixed" to the camera uses its x/y coordinates as offsets from the top left of the camera during rendering.
     * 
     * The values are adjusted at the rendering stage, overriding the Game Objects actual world position.
     * 
-    * The end result is that the Game GameObject will appear to be 'fixed' to the camera, regardless of where in the game world
-    * the camera is viewing. This is useful if for example this Game GameObject is a UI item that you wish to be visible at all times
+    * The end result is that the Game CreateGameObject will appear to be 'fixed' to the camera, regardless of where in the game world
+    * the camera is viewing. This is useful if for example this Game CreateGameObject is a UI item that you wish to be visible at all times
     * regardless where in the world the camera is.
     * 
     * The offsets are stored in the `cameraOffset` property.
     * 
-    * Note that the `cameraOffset` values are in addition to any parent of this Game GameObject on the display list.
+    * Note that the `cameraOffset` values are in addition to any parent of this Game CreateGameObject on the display list.
     *
     * Be careful not to set `fixedToCamera` on Game Objects which are in Groups that already have `fixedToCamera` enabled on them.
     *
@@ -46927,9 +46927,9 @@ Phaser.Component.FixedToCamera.prototype = {
     },
 
     /**
-    * The x/y coordinate offset applied to the top-left of the camera that this Game GameObject will be drawn at if `fixedToCamera` is true.
+    * The x/y coordinate offset applied to the top-left of the camera that this Game CreateGameObject will be drawn at if `fixedToCamera` is true.
     * 
-    * The values are relative to the top-left of the camera view and in addition to any parent of the Game GameObject on the display list.
+    * The values are relative to the top-left of the camera view and in addition to any parent of the Game CreateGameObject on the display list.
     * @property {Phaser.Point} cameraOffset
     */
     cameraOffset: new Phaser.Point()
@@ -46954,7 +46954,7 @@ Phaser.Component.Health = function () {};
 Phaser.Component.Health.prototype = {
 
     /**
-    * The Game Objects health value. This is a handy property for setting and manipulating health on a Game GameObject.
+    * The Game Objects health value. This is a handy property for setting and manipulating health on a Game CreateGameObject.
     * 
     * It can be used in combination with the `damage` method or modified directly.
     * 
@@ -46973,7 +46973,7 @@ Phaser.Component.Health.prototype = {
     maxHealth: 100,
 
     /**
-    * Damages the Game GameObject. This removes the given amount of health from the `health` property.
+    * Damages the Game CreateGameObject. This removes the given amount of health from the `health` property.
     * 
     * If health is taken below or is equal to zero then the `kill` method is called.
     *
@@ -46998,7 +46998,7 @@ Phaser.Component.Health.prototype = {
     },
 
     /**
-    * Sets the health property of the Game GameObject to the given amount.
+    * Sets the health property of the Game CreateGameObject to the given amount.
     * Will never exceed the `maxHealth` value.
     *
     * @member
@@ -47019,7 +47019,7 @@ Phaser.Component.Health.prototype = {
     },
 
     /**
-    * Heal the Game GameObject. This adds the given amount of health to the `health` property.
+    * Heal the Game CreateGameObject. This adds the given amount of health to the `health` property.
     *
     * @member
     * @param {number} amount - The amount to add to the current `health` value. The total will never exceed `maxHealth`.
@@ -47050,7 +47050,7 @@ Phaser.Component.Health.prototype = {
 */
 
 /**
-* The InCamera component checks if the Game GameObject intersects with the Game Camera.
+* The InCamera component checks if the Game CreateGameObject intersects with the Game Camera.
 *
 * @class
 */
@@ -47061,7 +47061,7 @@ Phaser.Component.InCamera.prototype = {
     /**
     * Checks if this Game Objects bounds intersects with the Game Cameras bounds.
     * 
-    * It will be `true` if they intersect, or `false` if the Game GameObject is fully outside of the Cameras bounds.
+    * It will be `true` if they intersect, or `false` if the Game CreateGameObject is fully outside of the Cameras bounds.
     * 
     * An object outside the bounds can be considered for camera culling if it has the AutoCull component.
     *
@@ -47087,7 +47087,7 @@ Phaser.Component.InCamera.prototype = {
 */
 
 /**
-* The InputEnabled component allows a Game GameObject to have its own InputHandler and process input related events.
+* The InputEnabled component allows a Game CreateGameObject to have its own InputHandler and process input related events.
 *
 * @class
 */
@@ -47096,9 +47096,9 @@ Phaser.Component.InputEnabled = function () {};
 Phaser.Component.InputEnabled.prototype = {
 
     /**
-    * The Input Handler for this Game GameObject.
+    * The Input Handler for this Game CreateGameObject.
     * 
-    * By default it is disabled. If you wish this Game GameObject to process input events you should enable it with: `inputEnabled = true`.
+    * By default it is disabled. If you wish this Game CreateGameObject to process input events you should enable it with: `inputEnabled = true`.
     * 
     * After you have done this, this property will be a reference to the Phaser InputHandler.
     * @property {Phaser.InputHandler|null} input 
@@ -47106,8 +47106,8 @@ Phaser.Component.InputEnabled.prototype = {
     input: null,
 
     /**
-    * By default a Game GameObject won't process any input events. By setting `inputEnabled` to true a Phaser.InputHandler is created
-    * for this Game GameObject and it will then start to process click / touch events and more.
+    * By default a Game CreateGameObject won't process any input events. By setting `inputEnabled` to true a Phaser.InputHandler is created
+    * for this Game CreateGameObject and it will then start to process click / touch events and more.
     * 
     * You can then access the Input Handler via `this.input`.
     * 
@@ -47115,7 +47115,7 @@ Phaser.Component.InputEnabled.prototype = {
     * 
     * If you set this property to false it will stop the Input Handler from processing any more input events.
     * 
-    * If you want to _temporarily_ disable input for a Game GameObject, then it's better to set
+    * If you want to _temporarily_ disable input for a Game CreateGameObject, then it's better to set
     * `input.enabled = false`, as it won't reset any of the Input Handlers internal properties.
     * You can then toggle this back on as needed.
     *
@@ -47164,9 +47164,9 @@ Phaser.Component.InputEnabled.prototype = {
 */
 
 /**
-* The InWorld component checks if a Game GameObject is within the Game World Bounds.
+* The InWorld component checks if a Game CreateGameObject is within the Game World Bounds.
 * An object is considered as being "in bounds" so long as its own bounds intersects at any point with the World bounds.
-* If the AutoCull component is enabled on the Game GameObject then it will check the Game GameObject against the Camera bounds as well.
+* If the AutoCull component is enabled on the Game CreateGameObject then it will check the Game CreateGameObject against the Camera bounds as well.
 *
 * @class
 */
@@ -47174,7 +47174,7 @@ Phaser.Component.InWorld = function () {};
 
 /**
  * The InWorld component preUpdate handler.
- * Called automatically by the Game GameObject.
+ * Called automatically by the Game CreateGameObject.
  *
  * @method
  */
@@ -47238,15 +47238,15 @@ Phaser.Component.InWorld.preUpdate = function () {
 Phaser.Component.InWorld.prototype = {
 
     /**
-    * If this is set to `true` the Game GameObject checks if it is within the World bounds each frame.
+    * If this is set to `true` the Game CreateGameObject checks if it is within the World bounds each frame.
     * 
     * When it is no longer intersecting the world bounds it dispatches the `onOutOfBounds` event.
     * 
     * If it was *previously* out of bounds but is now intersecting the world bounds again it dispatches the `onEnterBounds` event.
     * 
-    * It also optionally kills the Game GameObject if `outOfBoundsKill` is `true`.
+    * It also optionally kills the Game CreateGameObject if `outOfBoundsKill` is `true`.
     * 
-    * When `checkWorldBounds` is enabled it forces the Game GameObject to calculate its full bounds every frame.
+    * When `checkWorldBounds` is enabled it forces the Game CreateGameObject to calculate its full bounds every frame.
     * 
     * This is a relatively expensive operation, especially if enabled on hundreds of Game Objects. So enable it only if you know it's required,
     * or you have tested performance and find it acceptable.
@@ -47266,7 +47266,7 @@ Phaser.Component.InWorld.prototype = {
 
     /**
      * If this and the `autoCull` property are both set to `true`, then the `kill` method
-     * is called as soon as the Game GameObject leaves the camera bounds.
+     * is called as soon as the Game CreateGameObject leaves the camera bounds.
      *
      * @property {boolean} outOfCameraBoundsKill
      * @default
@@ -47312,7 +47312,7 @@ Phaser.Component.LifeSpan = function () {};
 
 /**
  * The LifeSpan component preUpdate handler.
- * Called automatically by the Game GameObject.
+ * Called automatically by the Game CreateGameObject.
  *
  * @method
  */
@@ -47336,7 +47336,7 @@ Phaser.Component.LifeSpan.preUpdate = function () {
 Phaser.Component.LifeSpan.prototype = {
 
     /**
-    * A useful flag to control if the Game GameObject is alive or dead.
+    * A useful flag to control if the Game CreateGameObject is alive or dead.
     *
     * This is set automatically by the Health components `damage` method should the object run out of health.
     * Or you can toggle it via your game code.
@@ -47349,9 +47349,9 @@ Phaser.Component.LifeSpan.prototype = {
     alive: true,
 
     /**
-    * The lifespan allows you to give a Game GameObject a lifespan in milliseconds.
+    * The lifespan allows you to give a Game CreateGameObject a lifespan in milliseconds.
     *
-    * Once the Game GameObject is 'born' you can set this to a positive value.
+    * Once the Game CreateGameObject is 'born' you can set this to a positive value.
     *
     * It is automatically decremented by the millisecond equivalent of `game.time.physicsElapsed` each frame.
     * When it reaches zero it will call the `kill` method.
@@ -47364,14 +47364,14 @@ Phaser.Component.LifeSpan.prototype = {
     lifespan: 0,
 
     /**
-    * Brings a 'dead' Game GameObject back to life, optionally resetting its health value in the process.
+    * Brings a 'dead' Game CreateGameObject back to life, optionally resetting its health value in the process.
     *
-    * A resurrected Game GameObject has its `alive`, `exists` and `visible` properties all set to true.
+    * A resurrected Game CreateGameObject has its `alive`, `exists` and `visible` properties all set to true.
     *
     * It will dispatch the `onRevived` event. Listen to `events.onRevived` for the signal.
     *
     * @method
-    * @param {number} [health=100] - The health to give the Game GameObject. Only set if the GameObject has the Health component.
+    * @param {number} [health=100] - The health to give the Game CreateGameObject. Only set if the CreateGameObject has the Health component.
     * @return {PIXI.DisplayObject} This instance.
     */
     revive: function (health) {
@@ -47397,14 +47397,14 @@ Phaser.Component.LifeSpan.prototype = {
     },
 
     /**
-    * Kills a Game GameObject. A killed Game GameObject has its `alive`, `exists` and `visible` properties all set to false.
+    * Kills a Game CreateGameObject. A killed Game CreateGameObject has its `alive`, `exists` and `visible` properties all set to false.
     *
     * It will dispatch the `onKilled` event. You can listen to `events.onKilled` for the signal.
     *
-    * Note that killing a Game GameObject is a way for you to quickly recycle it in an object pool,
+    * Note that killing a Game CreateGameObject is a way for you to quickly recycle it in an object pool,
     * it doesn't destroy the object or free it up from memory.
     *
-    * If you don't need this Game GameObject any more you should call `destroy` instead.
+    * If you don't need this Game CreateGameObject any more you should call `destroy` instead.
     *
     * @method
     * @return {PIXI.DisplayObject} This instance.
@@ -47433,7 +47433,7 @@ Phaser.Component.LifeSpan.prototype = {
 */
 
 /**
-* The LoadTexture component manages the loading of a texture into the Game GameObject and the changing of frames.
+* The LoadTexture component manages the loading of a texture into the Game CreateGameObject and the changing of frames.
 *
 * @class
 */
@@ -47454,9 +47454,9 @@ Phaser.Component.LoadTexture.prototype = {
     _frame: null,
 
     /**
-    * Changes the base texture the Game GameObject is using. The old texture is removed and the new one is referenced or fetched from the Cache.
+    * Changes the base texture the Game CreateGameObject is using. The old texture is removed and the new one is referenced or fetched from the Cache.
     * 
-    * If your Game GameObject is using a frame from a texture atlas and you just wish to change to another frame, then see the `frame` or `frameName` properties instead.
+    * If your Game CreateGameObject is using a frame from a texture atlas and you just wish to change to another frame, then see the `frame` or `frameName` properties instead.
     * 
     * You should only use `loadTexture` if you want to replace the base texture entirely.
     * 
@@ -47573,7 +47573,7 @@ Phaser.Component.LoadTexture.prototype = {
     },
 
     /**
-    * Sets the texture frame the Game GameObject uses for rendering.
+    * Sets the texture frame the Game CreateGameObject uses for rendering.
     * 
     * This is primarily an internal method used by `loadTexture`, but is exposed for the use of plugins and custom classes.
     *
@@ -47635,7 +47635,7 @@ Phaser.Component.LoadTexture.prototype = {
     },
 
     /**
-    * Resizes the Frame dimensions that the Game GameObject uses for rendering.
+    * Resizes the Frame dimensions that the Game CreateGameObject uses for rendering.
     * 
     * You shouldn't normally need to ever call this, but in the case of special texture types such as Video or BitmapData
     * it can be useful to adjust the dimensions directly in this way.
@@ -47653,7 +47653,7 @@ Phaser.Component.LoadTexture.prototype = {
     },
 
     /**
-    * Resets the texture frame dimensions that the Game GameObject uses for rendering.
+    * Resets the texture frame dimensions that the Game CreateGameObject uses for rendering.
     *
     * @method
     */
@@ -47667,9 +47667,9 @@ Phaser.Component.LoadTexture.prototype = {
     },
 
     /**
-    * Gets or sets the current frame index of the texture being used to render this Game GameObject.
+    * Gets or sets the current frame index of the texture being used to render this Game CreateGameObject.
     *
-    * To change the frame set `frame` to the index of the new frame in the sprite sheet you wish this Game GameObject to use,
+    * To change the frame set `frame` to the index of the new frame in the sprite sheet you wish this Game CreateGameObject to use,
     * for example: `player.frame = 4`.
     * 
     * If the frame index given doesn't exist it will revert to the first frame found in the texture.
@@ -47692,9 +47692,9 @@ Phaser.Component.LoadTexture.prototype = {
     },
 
     /**
-    * Gets or sets the current frame name of the texture being used to render this Game GameObject.
+    * Gets or sets the current frame name of the texture being used to render this Game CreateGameObject.
     * 
-    * To change the frame set `frameName` to the name of the new frame in the texture atlas you wish this Game GameObject to use,
+    * To change the frame set `frameName` to the name of the new frame in the texture atlas you wish this Game CreateGameObject to use,
     * for example: `player.frameName = "idle"`.
     *
     * If the frame name given doesn't exist it will revert to the first frame found in the texture and throw a console warning.
@@ -47725,7 +47725,7 @@ Phaser.Component.LoadTexture.prototype = {
 */
 
 /**
-* The Overlap component allows a Game GameObject to check if it overlaps with the bounds of another Game GameObject.
+* The Overlap component allows a Game CreateGameObject to check if it overlaps with the bounds of another Game CreateGameObject.
 *
 * @class
 */
@@ -47734,7 +47734,7 @@ Phaser.Component.Overlap = function () {};
 Phaser.Component.Overlap.prototype = {
 
     /**
-    * Checks to see if the bounds of this Game GameObject overlaps with the bounds of the given Display GameObject,
+    * Checks to see if the bounds of this Game CreateGameObject overlaps with the bounds of the given Display CreateGameObject,
     * which can be a Sprite, Image, TileSprite or anything that extends those such as Button or provides a `getBounds` method and result.
     * 
     * This check ignores the `hitArea` property if set and runs a `getBounds` comparison on both objects to determine the result.
@@ -47744,7 +47744,7 @@ Phaser.Component.Overlap.prototype = {
     *
     * @method
     * @param {Phaser.Sprite|Phaser.Image|Phaser.TileSprite|Phaser.Button|PIXI.DisplayObject} displayObject - The display object to check against.
-    * @return {boolean} True if the bounds of this Game GameObject intersects at any point with the bounds of the given display object.
+    * @return {boolean} True if the bounds of this Game CreateGameObject intersects at any point with the bounds of the given display object.
     */
     overlap: function (displayObject) {
 
@@ -47770,7 +47770,7 @@ Phaser.Component.PhysicsBody = function () {};
 
 /**
  * The PhysicsBody component preUpdate handler.
- * Called automatically by the Game GameObject.
+ * Called automatically by the Game CreateGameObject.
  *
  * @method
  */
@@ -47810,7 +47810,7 @@ Phaser.Component.PhysicsBody.preUpdate = function () {
 
 /**
  * The PhysicsBody component postUpdate handler.
- * Called automatically by the Game GameObject.
+ * Called automatically by the Game CreateGameObject.
  *
  * @method
  */
@@ -47826,18 +47826,18 @@ Phaser.Component.PhysicsBody.postUpdate = function () {
 Phaser.Component.PhysicsBody.prototype = {
 
     /**
-    * `body` is the Game Objects physics body. Once a Game GameObject is enabled for physics you access all associated
+    * `body` is the Game Objects physics body. Once a Game CreateGameObject is enabled for physics you access all associated
     * properties and methods via it.
     * 
     * By default Game Objects won't add themselves to any physics system and their `body` property will be `null`.
     * 
-    * To enable this Game GameObject for physics you need to call `game.physics.enable(object, system)` where `object` is this object
+    * To enable this Game CreateGameObject for physics you need to call `game.physics.enable(object, system)` where `object` is this object
     * and `system` is the Physics system you are using. If none is given it defaults to `Phaser.Physics.Arcade`.
     * 
-    * You can alternatively call `game.physics.arcade.enable(object)`, or add this Game GameObject to a physics enabled Group.
+    * You can alternatively call `game.physics.arcade.enable(object)`, or add this Game CreateGameObject to a physics enabled Group.
     *
-    * Important: Enabling a Game GameObject for P2 or Ninja physics will automatically set its `anchor` property to 0.5,
-    * so the physics body is centered on the Game GameObject.
+    * Important: Enabling a Game CreateGameObject for P2 or Ninja physics will automatically set its `anchor` property to 0.5,
+    * so the physics body is centered on the Game CreateGameObject.
     * 
     * If you need a different result then adjust or re-create the Body shape offsets manually or reset the anchor after enabling physics.
     *
@@ -47847,7 +47847,7 @@ Phaser.Component.PhysicsBody.prototype = {
     body: null,
 
     /**
-    * The position of the Game GameObject on the x axis relative to the local coordinates of the parent.
+    * The position of the Game CreateGameObject on the x axis relative to the local coordinates of the parent.
     *
     * @property {number} x
     */
@@ -47873,7 +47873,7 @@ Phaser.Component.PhysicsBody.prototype = {
     },
 
     /**
-    * The position of the Game GameObject on the y axis relative to the local coordinates of the parent.
+    * The position of the Game CreateGameObject on the y axis relative to the local coordinates of the parent.
     *
     * @property {number} y
     */
@@ -47907,26 +47907,26 @@ Phaser.Component.PhysicsBody.prototype = {
 */
 
 /**
-* The Reset component allows a Game GameObject to be reset and repositioned to a new location.
+* The Reset component allows a Game CreateGameObject to be reset and repositioned to a new location.
 *
 * @class
 */
 Phaser.Component.Reset = function () {};
 
 /**
-* Resets the Game GameObject.
+* Resets the Game CreateGameObject.
 * 
-* This moves the Game GameObject to the given x/y world coordinates and sets `fresh`, `exists`,
+* This moves the Game CreateGameObject to the given x/y world coordinates and sets `fresh`, `exists`,
 * `visible` and `renderable` to true.
 *
-* If this Game GameObject has the LifeSpan component it will also set `alive` to true and `health` to the given value.
+* If this Game CreateGameObject has the LifeSpan component it will also set `alive` to true and `health` to the given value.
 *
-* If this Game GameObject has a Physics Body it will reset the Body.
+* If this Game CreateGameObject has a Physics Body it will reset the Body.
 *
 * @method
-* @param {number} x - The x coordinate (in world space) to position the Game GameObject at.
-* @param {number} y - The y coordinate (in world space) to position the Game GameObject at.
-* @param {number} [health=1] - The health to give the Game GameObject if it has the Health component.
+* @param {number} x - The x coordinate (in world space) to position the Game CreateGameObject at.
+* @param {number} y - The y coordinate (in world space) to position the Game CreateGameObject at.
+* @param {number} [health=1] - The health to give the Game CreateGameObject if it has the Health component.
 * @return {PIXI.DisplayObject} This instance.
 */
 Phaser.Component.Reset.prototype.reset = function (x, y, health) {
@@ -47971,7 +47971,7 @@ Phaser.Component.Reset.prototype.reset = function (x, y, health) {
 */
 
 /**
-* The ScaleMinMax component allows a Game GameObject to limit how far it can be scaled by its parent.
+* The ScaleMinMax component allows a Game CreateGameObject to limit how far it can be scaled by its parent.
 *
 * @class
 */
@@ -47992,9 +47992,9 @@ Phaser.Component.ScaleMinMax.prototype = {
     transformCallbackContext: this,
 
     /**
-    * The minimum scale this Game GameObject will scale down to.
+    * The minimum scale this Game CreateGameObject will scale down to.
     * 
-    * It allows you to prevent a parent from scaling this Game GameObject lower than the given value.
+    * It allows you to prevent a parent from scaling this Game CreateGameObject lower than the given value.
     * 
     * Set it to `null` to remove the limit.
     * @property {Phaser.Point} scaleMin
@@ -48002,9 +48002,9 @@ Phaser.Component.ScaleMinMax.prototype = {
     scaleMin: null,
 
     /**
-    * The maximum scale this Game GameObject will scale up to.
+    * The maximum scale this Game CreateGameObject will scale up to.
     * 
-    * It allows you to prevent a parent from scaling this Game GameObject higher than the given value.
+    * It allows you to prevent a parent from scaling this Game CreateGameObject higher than the given value.
     * 
     * Set it to `null` to remove the limit.
     * @property {Phaser.Point} scaleMax
@@ -48012,7 +48012,7 @@ Phaser.Component.ScaleMinMax.prototype = {
     scaleMax: null,
 
     /**
-     * Adjust scaling limits, if set, to this Game GameObject.
+     * Adjust scaling limits, if set, to this Game CreateGameObject.
      *
      * @method
      * @private
@@ -48049,10 +48049,10 @@ Phaser.Component.ScaleMinMax.prototype = {
     },
 
     /**
-     * Sets the scaleMin and scaleMax values. These values are used to limit how far this Game GameObject will scale based on its parent.
+     * Sets the scaleMin and scaleMax values. These values are used to limit how far this Game CreateGameObject will scale based on its parent.
      * 
-     * For example if this Game GameObject has a `minScale` value of 1 and its parent has a `scale` value of 0.5, the 0.5 will be ignored
-     * and the scale value of 1 will be used, as the parents scale is lower than the minimum scale this Game GameObject should adhere to.
+     * For example if this Game CreateGameObject has a `minScale` value of 1 and its parent has a `scale` value of 0.5, the 0.5 will be ignored
+     * and the scale value of 1 will be used, as the parents scale is lower than the minimum scale this Game CreateGameObject should adhere to.
      * 
      * By setting these values you can carefully control how Game Objects deal with responsive scaling.
      * 
@@ -48062,16 +48062,16 @@ Phaser.Component.ScaleMinMax.prototype = {
      * If only two parameters are given the first is set as scaleMin.x and y and the second as scaleMax.x and y:
      * `setScaleMinMax(0.5, 2)` = scaleMin.x and y = 0.5 and scaleMax.x and y = 2
      *
-     * If you wish to set `scaleMin` with different values for x and y then either modify Game GameObject.scaleMin directly,
+     * If you wish to set `scaleMin` with different values for x and y then either modify Game CreateGameObject.scaleMin directly,
      * or pass `null` for the `maxX` and `maxY` parameters.
      * 
      * Call `setScaleMinMax(null)` to clear all previously set values.
      *
      * @method
-     * @param {number|null} minX - The minimum horizontal scale value this Game GameObject can scale down to.
-     * @param {number|null} minY - The minimum vertical scale value this Game GameObject can scale down to.
-     * @param {number|null} maxX - The maximum horizontal scale value this Game GameObject can scale up to.
-     * @param {number|null} maxY - The maximum vertical scale value this Game GameObject can scale up to.
+     * @param {number|null} minX - The minimum horizontal scale value this Game CreateGameObject can scale down to.
+     * @param {number|null} minY - The minimum vertical scale value this Game CreateGameObject can scale down to.
+     * @param {number|null} maxX - The maximum horizontal scale value this Game CreateGameObject can scale up to.
+     * @param {number|null} maxY - The maximum vertical scale value this Game CreateGameObject can scale up to.
      */
     setScaleMinMax: function (minX, minY, maxX, maxY) {
 
@@ -48139,7 +48139,7 @@ Phaser.Component.ScaleMinMax.prototype = {
 */
 
 /**
-* The Smoothed component allows a Game GameObject to control anti-aliasing of an image based texture.
+* The Smoothed component allows a Game CreateGameObject to control anti-aliasing of an image based texture.
 *
 * @class
 */
@@ -48148,9 +48148,9 @@ Phaser.Component.Smoothed = function () {};
 Phaser.Component.Smoothed.prototype = {
 
     /**
-    * Enable or disable texture smoothing for this Game GameObject.
+    * Enable or disable texture smoothing for this Game CreateGameObject.
     * 
-    * It only takes effect if the Game GameObject is using an image based texture.
+    * It only takes effect if the Game CreateGameObject is using an image based texture.
     * 
     * Smoothing is enabled by default.
     *
@@ -48313,7 +48313,7 @@ Phaser.GameObjectFactory.prototype = {
     /**
     * Create a new Creature Animation object.
     *
-    * Creature is a custom Game GameObject used in conjunction with the Creature Runtime libraries by Kestrel Moon Studios.
+    * Creature is a custom Game CreateGameObject used in conjunction with the Creature Runtime libraries by Kestrel Moon Studios.
     * 
     * It allows you to display animated Game Objects that were created with the [Creature Automated Animation Tool](http://www.kestrelmoon.com/creature/).
     * 
@@ -48349,7 +48349,7 @@ Phaser.GameObjectFactory.prototype = {
     * The object can be any JavaScript object or Phaser object such as Sprite.
     *
     * @method Phaser.GameObjectFactory#tween
-    * @param {object} object - GameObject the tween will be run on.
+    * @param {object} object - CreateGameObject the tween will be run on.
     * @return {Phaser.Tween} The newly created Phaser.Tween object.
     */
     tween: function (object) {
@@ -48852,7 +48852,7 @@ Phaser.GameObjectCreator.prototype = {
     * The object can be any JavaScript object or Phaser object such as Sprite.
     *
     * @method Phaser.GameObjectCreator#tween
-    * @param {object} obj - GameObject the tween will be run on.
+    * @param {object} obj - CreateGameObject the tween will be run on.
     * @return {Phaser.Tween} The Tween object.
     */
     tween: function (obj) {
@@ -49466,7 +49466,7 @@ Phaser.Button = function (game, x, y, key, callback, callbackContext, overFrame,
     Phaser.Image.call(this, game, x, y, key, outFrame);
 
     /**
-    * The Phaser GameObject Type.
+    * The Phaser CreateGameObject Type.
     * @property {number} type
     * @readonly
     */
@@ -50481,7 +50481,7 @@ Phaser.BitmapData.prototype = {
     },
 
     /**
-    * Takes the given Game GameObject, resizes this BitmapData to match it and then draws it into this BitmapDatas canvas, ready for further processing.
+    * Takes the given Game CreateGameObject, resizes this BitmapData to match it and then draws it into this BitmapDatas canvas, ready for further processing.
     * The source game object is not modified by this operation.
     * If the source object uses a texture as part of a Texture Atlas or Sprite Sheet, only the current frame will be used for sizing.
     * If a string is given it will assume it's a cache key and look in Phaser.Cache for an image key matching the string.
@@ -51284,8 +51284,8 @@ Phaser.BitmapData.prototype = {
      * @param {number} [y=0] - The y coordinate representing the top-left of the region to copy from the source image.
      * @param {number} [width] - The width of the region to copy from the source image. If not specified it will use the full source image width.
      * @param {number} [height] - The height of the region to copy from the source image. If not specified it will use the full source image height.
-     * @param {number} [tx] - The x coordinate to translate to before drawing. If not specified it will default to the `x` parameter. If `null` and `source` is a Display GameObject, it will default to `source.x`.
-     * @param {number} [ty] - The y coordinate to translate to before drawing. If not specified it will default to the `y` parameter. If `null` and `source` is a Display GameObject, it will default to `source.y`.
+     * @param {number} [tx] - The x coordinate to translate to before drawing. If not specified it will default to the `x` parameter. If `null` and `source` is a Display CreateGameObject, it will default to `source.x`.
+     * @param {number} [ty] - The y coordinate to translate to before drawing. If not specified it will default to the `y` parameter. If `null` and `source` is a Display CreateGameObject, it will default to `source.y`.
      * @param {number} [newWidth] - The new width of the block being copied. If not specified it will default to the `width` parameter.
      * @param {number} [newHeight] - The new height of the block being copied. If not specified it will default to the `height` parameter.
      * @param {number} [rotate=0] - The angle in radians to rotate the block to before drawing. Rotation takes place around the center by default, but can be changed with the `anchor` parameters.
@@ -51485,14 +51485,14 @@ Phaser.BitmapData.prototype = {
     },
 
     /**
-    * Draws the given `source` Game GameObject to this BitmapData, using its `worldTransform` property to set the
+    * Draws the given `source` Game CreateGameObject to this BitmapData, using its `worldTransform` property to set the
     * position, scale and rotation of where it is drawn. This function is used internally by `drawGroup`.
     * It takes the objects tint and scale mode into consideration before drawing.
     *
     * You can optionally specify Blend Mode and Round Pixels arguments.
     * 
     * @method Phaser.BitmapData#copyTransform
-    * @param {Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapData|Phaser.BitmapText} [source] - The Game GameObject to draw.
+    * @param {Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapData|Phaser.BitmapText} [source] - The Game CreateGameObject to draw.
     * @param {string} [blendMode=null] - The composite blend mode that will be used when drawing. The default is no blend mode at all. This is a Canvas globalCompositeOperation value such as 'lighter' or 'xor'.
     * @param {boolean} [roundPx=false] - Should the x and y values be rounded to integers before drawing? This prevents anti-aliasing in some instances.
     * @return {Phaser.BitmapData} This BitmapData object for method chaining.
@@ -51707,13 +51707,13 @@ Phaser.BitmapData.prototype = {
     },
 
     /**
-    * Draws the Game GameObject or Group to this BitmapData and then recursively iterates through all of its children.
+    * Draws the Game CreateGameObject or Group to this BitmapData and then recursively iterates through all of its children.
     * 
     * If a child has an `exists` property then it (and its children) will be only be drawn if exists is `true`.
     * 
     * The children will be drawn at their `x` and `y` world space coordinates. If this is outside the bounds of the BitmapData 
     * they won't be drawn. Depending on your requirements you may need to resize the BitmapData in advance to match the 
-    * bounds of the top-level Game GameObject.
+    * bounds of the top-level Game CreateGameObject.
     * 
     * When drawing it will take into account the child's world rotation, scale and alpha values.
     *
@@ -51724,7 +51724,7 @@ Phaser.BitmapData.prototype = {
     * trigger an update yourself by calling `stage.updateTransform()` before calling `drawFull`.
     *
     * @method Phaser.BitmapData#drawFull
-    * @param {Phaser.World|Phaser.Group|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText} parent - The Game GameObject to draw onto this BitmapData and then recursively draw all of its children.
+    * @param {Phaser.World|Phaser.Group|Phaser.Sprite|Phaser.Image|Phaser.Text|Phaser.BitmapText} parent - The Game CreateGameObject to draw onto this BitmapData and then recursively draw all of its children.
     * @param {string} [blendMode=null] - The composite blend mode that will be used when drawing. The default is no blend mode at all. This is a Canvas globalCompositeOperation value such as 'lighter' or 'xor'.
     * @param {boolean} [roundPx=false] - Should the x and y values be rounded to integers before drawing? This prevents anti-aliasing in some instances.
     * @return {Phaser.BitmapData} This BitmapData object for method chaining.
@@ -56118,7 +56118,7 @@ Phaser.RenderTexture.prototype.renderRawXY = function (displayObject, x, y, clea
 * This function will draw the display object to the RenderTexture.
 *
 * In versions of Phaser prior to 2.4.0 the second parameter was a Phaser.Point object. 
-* This is now a Matrix allowing you much more control over how the Display GameObject is rendered.
+* This is now a Matrix allowing you much more control over how the Display CreateGameObject is rendered.
 * If you need to replicate the earlier behavior please use Phaser.RenderTexture.renderXY instead.
 *
 * If you wish for the displayObject to be rendered taking its current scale, rotation and translation into account then either
@@ -63646,7 +63646,7 @@ Phaser.QuadTree = function(x, y, width, height, maxObjects, maxLevels, level) {
     this.level = 0;
 
     /**
-    * @property {object} bounds - GameObject that contains the quadtree bounds.
+    * @property {object} bounds - CreateGameObject that contains the quadtree bounds.
     */
     this.bounds = {};
 
@@ -64330,7 +64330,7 @@ Phaser.TweenManager.prototype = {
     * Create a tween object for a specific object. The object can be any JavaScript object or Phaser object such as Sprite.
     *
     * @method Phaser.TweenManager#create
-    * @param {object} object - GameObject the tween will be run on.
+    * @param {object} object - CreateGameObject the tween will be run on.
     * @returns {Phaser.Tween} The newly created tween object.
     */
     create: function (object) {
@@ -68031,11 +68031,11 @@ Phaser.TimerEvent.prototype.constructor = Phaser.TimerEvent;
 
 /**
 * The Animation Manager is used to add, play and update Phaser Animations.
-* Any Game GameObject such as Phaser.Sprite that supports animation contains a single AnimationManager instance.
+* Any Game CreateGameObject such as Phaser.Sprite that supports animation contains a single AnimationManager instance.
 *
 * @class Phaser.AnimationManager
 * @constructor
-* @param {Phaser.Sprite} sprite - A reference to the Game GameObject that owns this AnimationManager.
+* @param {Phaser.Sprite} sprite - A reference to the Game CreateGameObject that owns this AnimationManager.
 */
 Phaser.AnimationManager = function (sprite) {
 
@@ -68598,7 +68598,7 @@ Object.defineProperty(Phaser.AnimationManager.prototype, 'frameName', {
 /**
 * An Animation instance contains a single animation and the controls to play it.
 *
-* It is created by the AnimationManager, consists of Animation.Frame objects and belongs to a single Game GameObject such as a Sprite.
+* It is created by the AnimationManager, consists of Animation.Frame objects and belongs to a single Game CreateGameObject such as a Sprite.
 *
 * @class Phaser.Animation
 * @constructor
@@ -79845,33 +79845,33 @@ Object.defineProperty(Phaser.ScaleManager.prototype, "boundingParent", {
 * 
 * <dl>
 *   <dt>{@link Phaser.ScaleManager.NO_SCALE}</dt>
-*   <dd>
+*   <serializedNetObject>
 *       The Game display area will not be scaled - even if it is too large for the canvas/screen.
 *       This mode _ignores_ any applied scaling factor and displays the canvas at the Game size.
-*   </dd>
+*   </serializedNetObject>
 *   <dt>{@link Phaser.ScaleManager.EXACT_FIT}</dt>
-*   <dd>
+*   <serializedNetObject>
 *       The Game display area will be _stretched_ to fill the entire size of the canvas's parent element and/or screen.
 *       Proportions are not maintained.
-*   </dd>
+*   </serializedNetObject>
 *   <dt>{@link Phaser.ScaleManager.SHOW_ALL}</dt>
-*   <dd>
+*   <serializedNetObject>
 *       Show the entire game display area while _maintaining_ the original aspect ratio.
-*   </dd>
+*   </serializedNetObject>
 *   <dt>{@link Phaser.ScaleManager.RESIZE}</dt>
-*   <dd>
+*   <serializedNetObject>
 *       The dimensions of the game display area are changed to match the size of the parent container.
 *       That is, this mode _changes the Game size_ to match the display size.
 *       <p>
 *       Any manually set Game size (see {@link #setGameSize}) is ignored while in effect.
-*   </dd>
+*   </serializedNetObject>
 *   <dt>{@link Phaser.ScaleManager.USER_SCALE}</dt>
-*   <dd>
+*   <serializedNetObject>
 *       The game Display is scaled according to the user-specified scale set by {@link Phaser.ScaleManager#setUserScale setUserScale}.
 *       <p>
 *       This scale can be adjusted in the {@link Phaser.ScaleManager#setResizeCallback resize callback}
 *       for flexible custom-sizing needs.
-*   </dd>
+*   </serializedNetObject>
 * </dl>
 *
 * @name Phaser.ScaleManager#scaleMode
@@ -83772,14 +83772,14 @@ Phaser.Color = {
     },
 
     /**
-    * Return the component parts of a color as an GameObject with the properties alpha, red, green, blue.
+    * Return the component parts of a color as an CreateGameObject with the properties alpha, red, green, blue.
     *
     * Alpha will only be set if it exist in the given color (0xAARRGGBB)
     *
     * @method Phaser.Color.getRGB
     * @static
     * @param {number} color - Color in RGB (0xRRGGBB) or ARGB format (0xAARRGGBB).
-    * @returns {object} An GameObject with properties: alpha, red, green, blue (also r, g, b and a). Alpha will only be present if a color value > 16777215 was given.
+    * @returns {object} An CreateGameObject with properties: alpha, red, green, blue (also r, g, b and a). Alpha will only be present if a color value > 16777215 was given.
     */
     getRGB: function (color) {
 
@@ -83818,7 +83818,7 @@ Phaser.Color = {
     *
     * @method Phaser.Color.getWebRGB
     * @static
-    * @param {number|Object} color - Color in RGB (0xRRGGBB), ARGB format (0xAARRGGBB) or an GameObject with r, g, b, a properties.
+    * @param {number|Object} color - Color in RGB (0xRRGGBB), ARGB format (0xAARRGGBB) or an CreateGameObject with r, g, b, a properties.
     * @returns {string} A string in the format: 'rgba(r,g,b,a)'
     */
     getWebRGB: function (color) {
@@ -86302,7 +86302,7 @@ Phaser.Physics.Arcade.prototype = {
     * @method Phaser.Physics.Arcade#getObjectsUnderPointer
     * @param {Phaser.Pointer} pointer - The Pointer to check.
     * @param {Phaser.Group} group - The Group to check.
-    * @param {function} [callback] - A callback function that is called if the object overlaps with the Pointer. The callback will be sent two parameters: the Pointer and the GameObject that overlapped with it.
+    * @param {function} [callback] - A callback function that is called if the object overlaps with the Pointer. The callback will be sent two parameters: the Pointer and the CreateGameObject that overlapped with it.
     * @param {object} [callbackContext] - The context in which to run the callback.
     * @return {PIXI.DisplayObject[]} An array of the Sprites from the Group that overlapped the Pointer coordinates.
     */
@@ -86326,7 +86326,7 @@ Phaser.Physics.Arcade.prototype = {
     * @param {number} x - The x coordinate to check.
     * @param {number} y - The y coordinate to check.
     * @param {Phaser.Group} group - The Group to check.
-    * @param {function} [callback] - A callback function that is called if the object overlaps the coordinates. The callback will be sent two parameters: the callbackArg and the GameObject that overlapped the location.
+    * @param {function} [callback] - A callback function that is called if the object overlaps the coordinates. The callback will be sent two parameters: the callbackArg and the CreateGameObject that overlapped the location.
     * @param {object} [callbackContext] - The context in which to run the callback.
     * @param {object} [callbackArg] - An argument to pass to the callback.
     * @return {PIXI.DisplayObject[]} An array of the Sprites from the Group that overlapped the coordinates.
@@ -86618,12 +86618,12 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#distanceBetween
-    * @param {any} source - The Display GameObject to test from.
-    * @param {any} target - The Display GameObject to test to.
-    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {any} source - The Display CreateGameObject to test from.
+    * @param {any} target - The Display CreateGameObject to test to.
+    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The distance between the source and target objects.
     */
     distanceBetween: function (source, target, world) {
@@ -86644,13 +86644,13 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#distanceToXY
-    * @param {any} displayObject - The Display GameObject to test from.
+    * @param {any} displayObject - The Display CreateGameObject to test from.
     * @param {number} x - The x coordinate to move towards.
     * @param {number} y - The y coordinate to move towards.
-    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The distance between the object and the x/y coordinates.
     */
     distanceToXY: function (displayObject, x, y, world) {
@@ -86671,12 +86671,12 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#distanceToPointer
-    * @param {any} displayObject - The Display GameObject to test from.
+    * @param {any} displayObject - The Display CreateGameObject to test from.
     * @param {Phaser.Pointer} [pointer] - The Phaser.Pointer to test to. If none is given then Input.activePointer is used.
-    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {boolean} [world=false] - Calculate the distance using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The distance between the object and the Pointer.
     */
     distanceToPointer: function (displayObject, pointer, world) {
@@ -86696,12 +86696,12 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#angleBetween
-    * @param {any} source - The Display GameObject to test from.
-    * @param {any} target - The Display GameObject to test to.
-    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {any} source - The Display CreateGameObject to test from.
+    * @param {any} target - The Display CreateGameObject to test to.
+    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The angle in radians between the source and target display objects.
     */
     angleBetween: function (source, target, world) {
@@ -86723,8 +86723,8 @@ Phaser.Physics.Arcade.prototype = {
     * Find the angle in radians between centers of two display objects (like Sprites).
     *
     * @method Phaser.Physics.Arcade#angleBetweenCenters
-    * @param {any} source - The Display GameObject to test from.
-    * @param {any} target - The Display GameObject to test to.
+    * @param {any} source - The Display CreateGameObject to test from.
+    * @param {any} target - The Display CreateGameObject to test to.
     * @return {number} The angle in radians between the source and target display objects.
     */
     angleBetweenCenters: function (source, target) {
@@ -86741,13 +86741,13 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#angleToXY
-    * @param {any} displayObject - The Display GameObject to test from.
+    * @param {any} displayObject - The Display CreateGameObject to test from.
     * @param {number} x - The x coordinate to get the angle to.
     * @param {number} y - The y coordinate to get the angle to.
-    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The angle in radians between displayObject.x/y to Pointer.x/y
     */
     angleToXY: function (displayObject, x, y, world) {
@@ -86770,12 +86770,12 @@ Phaser.Physics.Arcade.prototype = {
     *
     * The optional `world` argument allows you to return the result based on the Game Objects `world` property,
     * instead of its `x` and `y` values. This is useful of the object has been nested inside an offset Group,
-    * or parent Game GameObject.
+    * or parent Game CreateGameObject.
     *
     * @method Phaser.Physics.Arcade#angleToPointer
-    * @param {any} displayObject - The Display GameObject to test from.
+    * @param {any} displayObject - The Display CreateGameObject to test from.
     * @param {Phaser.Pointer} [pointer] - The Phaser.Pointer to test to. If none is given then Input.activePointer is used.
-    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or GameObject coordinates (false, the default)
+    * @param {boolean} [world=false] - Calculate the angle using World coordinates (true), or CreateGameObject coordinates (false, the default)
     * @return {number} The angle in radians between displayObject.x/y to Pointer.x/y
     */
     angleToPointer: function (displayObject, pointer, world) {
@@ -88118,7 +88118,7 @@ Phaser.Physics.Arcade.Body.prototype = {
     /**
     * Destroys this Body.
     * 
-    * First it calls Group.removeFromHash if the Game GameObject this Body belongs to is part of a Group.
+    * First it calls Group.removeFromHash if the Game CreateGameObject this Body belongs to is part of a Group.
     * Then it nulls the Game Objects body reference, and nulls this Body.sprite reference.
     *
     * @method Phaser.Physics.Arcade.Body#destroy
@@ -94804,7 +94804,7 @@ Phaser.Tilemap = function (game, key, tileWidth, tileHeight, width, height) {
     this.tiles = data.tiles;
 
     /**
-    * @property {array} objects - An array of Tiled GameObject Layers.
+    * @property {array} objects - An array of Tiled CreateGameObject Layers.
     */
     this.objects = data.objects;
 
@@ -95071,7 +95071,7 @@ Phaser.Tilemap.prototype = {
     * Sprite is created. You could also give it a value like: body.velocity.x: 100 to set it moving automatically.
     *
     * @method Phaser.Tilemap#createFromObjects
-    * @param {string} name - The name of the GameObject Group to create Sprites from.
+    * @param {string} name - The name of the CreateGameObject Group to create Sprites from.
     * @param {number} gid - The layer array index value, or if a string is given the layer name within the map data.
     * @param {string} key - The Game.cache key of the image that this Sprite will use.
     * @param {number|string} [frame] - If the Sprite image contains multiple frames you can specify which one to use here.
@@ -98510,7 +98510,7 @@ Phaser.TilemapParser = {
 
             for (var v = 0, len = curo.objects.length; v < len; v++)
             {
-                //  GameObject Tiles
+                //  CreateGameObject Tiles
                 if (curo.objects[v].gid)
                 {
                     var object = {
@@ -100845,7 +100845,7 @@ Phaser.Weapon.prototype.update = function () {
 };
 
 /**
-* Sets this Weapon to track the given Sprite, or any GameObject with a public `world` Point object.
+* Sets this Weapon to track the given Sprite, or any CreateGameObject with a public `world` Point object.
 * When a Weapon tracks a Sprite it will automatically update its `fireFrom` value to match the Sprites
 * position within the Game World, adjusting the coordinates based on the offset arguments.
 *

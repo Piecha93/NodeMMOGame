@@ -20,13 +20,18 @@ export abstract class GameObject implements Serializable<GameObject> {
         if(!input) {
             return this;
         }
-        if(input.position) {
-            if (this.position) {
-                this.position = this.position.deserialize(input.position);
+
+        for(let prop in input) {
+            if(this[prop] == null) {
+                continue;
+            }
+            if(this[prop].deserialize != null) {
+                this[prop].deserialize(input[prop]);
             } else {
-                this.position = new Position().deserialize(input.position);
+                this[prop] =  input[prop];
             }
         }
+
         return this;
     }
 }

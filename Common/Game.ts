@@ -23,7 +23,7 @@ export class Game {
             if(player.Destination != null) {
                 player.Position.X += (player.Destination.X - player.Position.X) / 10;
                 player.Position.Y += (player.Destination.Y - player.Position.Y) / 10;
-
+                player.hit(Math.floor(Math.random() * 100));
               //  player.Destination = null;
             }
         });

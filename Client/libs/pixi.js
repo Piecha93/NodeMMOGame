@@ -1794,7 +1794,7 @@ PIXI.Sprite.prototype.onTextureUpdate = function()
 * The bounds calculation takes the worldTransform into account.
 *
 * It is important to note that the transform is not updated when you call this method.
-* So if this Sprite is the child of a Display GameObject which has had its transform
+* So if this Sprite is the child of a Display CreateGameObject which has had its transform
 * updated since the last render pass, those changes will not yet have been applied
 * to this Sprites worldTransform. If you need to ensure that all parent transforms
 * are factored into this getBounds operation then you should call `updateTransform`
@@ -1940,7 +1940,7 @@ PIXI.Sprite.prototype.getLocalBounds = function () {
 *
 * @method _renderWebGL
 * @param renderSession {RenderSession}
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 * @private
 */
 PIXI.Sprite.prototype._renderWebGL = function(renderSession, matrix)
@@ -2010,7 +2010,7 @@ PIXI.Sprite.prototype._renderWebGL = function(renderSession, matrix)
 *
 * @method _renderCanvas
 * @param renderSession {RenderSession}
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 * @private
 */
 PIXI.Sprite.prototype._renderCanvas = function(renderSession, matrix)
@@ -3854,7 +3854,7 @@ PIXI.WebGLRenderer.prototype.render = function(stage)
 };
 
 /**
- * Renders a Display GameObject.
+ * Renders a Display CreateGameObject.
  *
  * @method renderDisplayObject
  * @param displayObject {DisplayObject} The DisplayObject to render
@@ -4846,7 +4846,7 @@ PIXI.WebGLSpriteBatch.prototype.end = function()
 /**
 * @method render
 * @param sprite {Sprite} the sprite to render when using this spritebatch
-* @param {Matrix} [matrix] - Optional matrix. If provided the Display GameObject will be rendered using this matrix, otherwise it will use its worldTransform.
+* @param {Matrix} [matrix] - Optional matrix. If provided the Display CreateGameObject will be rendered using this matrix, otherwise it will use its worldTransform.
 */
 PIXI.WebGLSpriteBatch.prototype.render = function(sprite, matrix)
 {
@@ -7485,7 +7485,7 @@ PIXI.TextureUvs = function()
  *
  * __Hint__: All DisplayObjects (i.e. Sprites) that render to a RenderTexture should be preloaded otherwise black rectangles will be drawn instead.
  *
- * A RenderTexture takes a snapshot of any Display GameObject given to its render method. The position and rotation of the given Display Objects is ignored. For example:
+ * A RenderTexture takes a snapshot of any Display CreateGameObject given to its render method. The position and rotation of the given Display Objects is ignored. For example:
  *
  *    var renderTexture = new PIXI.RenderTexture(800, 600);
  *    var sprite = PIXI.Sprite.fromImage("spinObj_01.png");

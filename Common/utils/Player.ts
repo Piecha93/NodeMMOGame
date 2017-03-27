@@ -30,16 +30,10 @@ export class Player extends GameObject {
         this.destination = destination;
     }
 
-    deserialize(input: any) {
-        if(!input) {
-            return this;
+    hit(power: number) {
+        this.hp += power;
+        if(this.hp < 0) {
+            this.hp = 0;
         }
-        super.deserialize(input);
-
-        if (input.hp) {
-            this.hp = input.hp;
-        }
-
-        return this;
     }
 }

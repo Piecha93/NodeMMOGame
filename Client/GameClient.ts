@@ -14,6 +14,7 @@ export class GameClient {
     private game: Game;
     private renderer: Renderer;
     private inputHandler: InputHandler;
+    private inputTtimeoutId: NodeJS.Timer;
 
     constructor() {
         this.game = new Game;
@@ -21,17 +22,6 @@ export class GameClient {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
             this.socket.emit('clientready');
         });
-
-        // TEST
-        setInterval(() => {
-            if (this.inputHandler.Changed) {
-                let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
-                let serializedSnapshot = JSON.stringify(snapshot);
-
-                this.socket.emit('inputsnapshot', serializedSnapshot);
-            }
-        }, 100);
-        // /TEST
     }
 
     connect() {
@@ -45,11 +35,23 @@ export class GameClient {
     private configureSocket() {
         this.socket.on('startgame', this.startGame.bind(this));
         this.socket.on('initializegame', this.initializeGame.bind(this));
+        this.startSendingInput();
     }
 
     private startGame() {
         this.game = new Game;
       //  this.game.startGameLoop();
+    }
+
+    private startSendingInput() {
+        console.log('dd');
+        this.inputTtimeoutId = setTimeout(() => this.startSendingInput() , 1 / 10 * 1000);
+            if (this.inputHandler.Changed) {
+                let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
+                let serializedSnapshot = JSON.stringify(snapshot);
+
+                this.socket.emit('inputsnapshot', serializedSnapshot);
+            }
     }
 
     private initializeGame(initData) {
@@ -62,10 +64,7 @@ export class GameClient {
                 }
             }
         }
-        console.log(initData);
             this.renderer.update();
-        // let player: Player = this.game.spawn(initData.name, new Position(initData.x, initData.y));
-        // this.renderer.addGameObject(player);
-        // this.renderer.update();
+
     }
 }

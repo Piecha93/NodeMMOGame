@@ -75,7 +75,7 @@ export class GameServer {
             this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
                 if(client.IsReady) {
                     client.Socket.emit('initializegame', { objects: setializedObjects });
-                    console.log(setializedObjects)
+                    //console.log(setializedObjects)
                 }
             });
         }, 100);
