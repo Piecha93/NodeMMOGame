@@ -47,13 +47,12 @@ export class GameServer {
 
                 let player: GameObject = this.game.spawnPlayer(clientName, new Position(x, y));
 
-                let netObject: NetObject = new NetObject(clientName, player);
-                NetObjectsManager.Instance.addObject(netObject);
+                NetObjectsManager.Instance.createObject(player);
 
 
-                let setializedObjects: string = NetObjectsManager.Instance.serializeNetObjects();
+                let objects: string = NetObjectsManager.Instance.collectUpdate();
 
-                socket.emit('initializegame', { objects: setializedObjects });
+                socket.emit('initializegame', { objects: objects });
                 serverClient.IsReady = true;
 
             });
@@ -70,12 +69,12 @@ export class GameServer {
         });
 
         setInterval(() => {
-            let setializedObjects: string = NetObjectsManager.Instance.serializeNetObjects();
+            //let objects: string = NetObjectsManager.Instance.serializeNetObjects();
+            let objects: string = NetObjectsManager.Instance.collectUpdate();
 
             this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
                 if(client.IsReady) {
-                    client.Socket.emit('initializegame', { objects: setializedObjects });
-                    //console.log(setializedObjects)
+                    client.Socket.emit('initializegame', { objects });
                 }
             });
         }, 100);

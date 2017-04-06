@@ -9,7 +9,7 @@ export class ObjectsFactory {
     static CreateGameObject(className: string, data?: any): GameObject {
         if(className.toLocaleLowerCase() == "player") {
             let player: Player = new Player();
-            return player.deserialize(data)
+            //return player.deserialize(data)
         }
 
         return null;

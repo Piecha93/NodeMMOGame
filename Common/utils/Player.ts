@@ -36,4 +36,24 @@ export class Player extends GameObject {
             this.hp = 0;
         }
     }
+
+    get Position(): Position {
+        return this.position;
+    }
+
+    serialize(): string {
+        let hp: string = '#H:' + this.hp.toString();
+        let name: string = '#N:' + this.name;
+
+        return super.serialize() + hp + name;
+    }
+
+    deserialize(update: string[]) {
+        super.deserialize(update);
+        for(let item of update) {
+            if(item.startsWith('H')) {
+                this.hp = parseInt(item.split(':')[1]);
+            }
+        }
+    }
 }

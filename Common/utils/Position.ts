@@ -1,6 +1,6 @@
 import {Serializable} from "../net/Serializable";
 
-export class Position implements Serializable<Position> {
+export class Position {
     private x: number;
     private y: number;
 

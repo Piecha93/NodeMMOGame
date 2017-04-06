@@ -2,10 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "sourceMap": true,
-    "experimentalDecorators": true,
-    "outDir": ".",
-    "declaration": false
+    "sourceMap": true
   },
   "exclude": [
     "node_modules"

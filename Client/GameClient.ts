@@ -8,6 +8,7 @@ import {Position} from "../Common/utils/Position";
 import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {GameObject} from "../Common/utils/GameObject";
+import {NetObject} from "../Common/net/NetObject";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -44,8 +45,8 @@ export class GameClient {
     }
 
     private startSendingInput() {
-        console.log('dd');
-        this.inputTtimeoutId = setTimeout(() => this.startSendingInput() , 1 / 10 * 1000);
+        this.inputTtimeoutId = setTimeout(() =>
+            this.startSendingInput() , 1 / 10 * 1000);
             if (this.inputHandler.Changed) {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
@@ -55,16 +56,26 @@ export class GameClient {
     }
 
     private initializeGame(initData) {
-        let deserializedObjects = JSON.parse(initData.objects);
-        for (let object in deserializedObjects) {
-            if (deserializedObjects.hasOwnProperty(object)) {
-                let gameObject: GameObject = NetObjectsManager.Instance.updateObject(deserializedObjects[object]);
-                if(gameObject) {
-                    this.renderer.addGameObject(gameObject);
-                }
-            }
+        if(initData['objects'] == null) {
+            return
         }
-            this.renderer.update();
+        let update = initData['objects'].split('$');
+        for (let object in update) {
+            let splitObject: string[] = update[object].split('-');
+            let id: number = parseInt(splitObject[0]);
+            let data: string = splitObject[1];
 
+            let netObject: NetObject = NetObjectsManager.Instance.getObject(id);
+            if(netObject == null) {
+                let gameObject = new Player();
+                netObject = NetObjectsManager.Instance.createObject(gameObject, id);
+
+                this.renderer.addGameObject(gameObject);
+            }
+            console.log(data);
+            netObject.GameObject.deserialize(data.split('#'))
+        }
+
+        this.renderer.update();
     }
 }
