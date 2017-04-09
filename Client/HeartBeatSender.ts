@@ -22,8 +22,7 @@ export class HeartBeatSender {
     private heartBeatResponse(id: number) {
         let ping: number =  new Date().getTime() - this.heartBeats.get(id);
         console.log('hbr ' + ping);
-
-
+        
     }
 
     public startSendingHeartbeats() {

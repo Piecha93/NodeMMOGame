@@ -100,7 +100,7 @@ class HeartBeatSender {
     }
     heartBeatResponse(id) {
         let ping = new Date().getTime() - this.heartBeats.get(id);
-        console.log('hbr ' + new Date().getTime());
+        console.log('hbr ' + ping);
     }
     startSendingHeartbeats() {
         this.timeoutId = setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
