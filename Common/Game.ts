@@ -2,7 +2,7 @@ import {Player} from "./utils/Player";
 import {Position} from "./utils/Position";
 
 export class Game {
-    private tickrate: number = 60;
+    private tickrate: number = 30;
     private timeoutId: NodeJS.Timer;
     private players: Map<string, Player>;
 

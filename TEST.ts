@@ -10,4 +10,12 @@ export enum GameObjectType {
 let id: string = "P123";
 let type: string =  id.substr(0, 1);
 
-console.log(type);
+function aa(chuj?: number) {
+    if(chuj == null) {
+        console.log("chuj");
+    } else {
+        console.log("cipa");
+    }
+}
+
+aa(123);

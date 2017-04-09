@@ -8,6 +8,7 @@ import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {NetObject} from "../Common/net/NetObject";
 import GameObjectFactory = Phaser.GameObjectFactory;
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
+import {HeartBeatSender} from "./HeartBeatSender";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -15,17 +16,21 @@ export class GameClient {
     private renderer: Renderer;
     private inputHandler: InputHandler;
     private inputTtimeoutId: NodeJS.Timer;
+    private heartBeatSender: HeartBeatSender;
 
     constructor() {
         this.game = new Game;
+
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
-            this.socket.emit('clientready');
+            this.socket.emit('cr');
+            this.heartBeatSender.startSendingHeartbeats();
         });
     }
 
     connect() {
         this.socket = io.connect();
+        this.heartBeatSender = new HeartBeatSender(this.socket);
 
         if(this.socket != null) {
             this.configureSocket();
@@ -33,14 +38,14 @@ export class GameClient {
     }
 
     private configureSocket() {
-        this.socket.on('startgame', this.startGame.bind(this));
-        this.socket.on('initializegame', this.initializeGame.bind(this));
-        this.socket.on('updategame', this.updateGame.bind(this));
+        this.socket.on('sg', this.startGame.bind(this));
+        this.socket.on('ig', this.initializeGame.bind(this));
+        this.socket.on('ug', this.updateGame.bind(this));
     }
 
     private startGame() {
         this.game = new Game;
-      //  this.game.startGameLoop();
+      //  this.game.startSendingHeartbeats();
     }
 
     private startSendingInput() {
@@ -50,7 +55,7 @@ export class GameClient {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
 
-                this.socket.emit('inputsnapshot', serializedSnapshot);
+                this.socket.emit('is', serializedSnapshot);
             }
     }
 

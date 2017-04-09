@@ -39,9 +39,9 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
-            socket.emit('startgame');
+            socket.emit('sg');
 
-            socket.on('clientready', () => {
+            socket.on('cr', () => {
                 let x: number = Math.floor(Math.random() * 800);
                 let y: number = Math.floor(Math.random() * 600);
 
@@ -52,11 +52,11 @@ export class GameServer {
 
                 let objects: string = NetObjectsManager.Instance.collectUpdate();
 
-                socket.emit('initializegame', { objects: objects });
+                socket.emit('ig', { objects: objects });
                 serverClient.IsReady = true;
             });
 
-            socket.on('inputsnapshot', (data) => {
+            socket.on('is', (data) => {
                 let deserializedData = JSON.parse(data);
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 
@@ -65,6 +65,11 @@ export class GameServer {
 
                 console.log(player.Destination);
             });
+
+            socket.on('hb', (data: number) => {
+                this.clientsMap.get(socket).LastHbInterval = 0;
+                socket.emit('hbr', data);
+            })
         });
 
         setInterval(() => {
@@ -73,7 +78,7 @@ export class GameServer {
 
             this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
                 if(client.IsReady) {
-                    client.Socket.emit('updategame', { objects });
+                    client.Socket.emit('ug', { objects });
                 }
             });
         }, 50);

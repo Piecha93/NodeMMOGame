@@ -1,9 +1,11 @@
 import Socket = SocketIOClient.Socket;
+import Timer = NodeJS.Timer;
 
 export class ServerClient {
     private name: string;
     private socket: Socket;
     private isReady: boolean;
+    private lastHbInterval: number = 0;
 
     constructor(name: string, socket: Socket) {
         this.name = name;
@@ -25,5 +27,13 @@ export class ServerClient {
 
     set IsReady(isReady: boolean) {
         this.isReady = isReady;
+    }
+
+    get LastHbInterval(): number {
+        return this.lastHbInterval;
+    }
+
+    set LastHbInterval(value: number) {
+        this.lastHbInterval = value;
     }
 }
