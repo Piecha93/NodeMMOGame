@@ -2,20 +2,21 @@ import {NetObject} from "./NetObject";
 import {GameObject} from "../utils/GameObject";
 
 export class NetObjectsManager {
-    private static NEXT_ID: number = 22;
-    private static GetNextId(): number {
-        return NetObjectsManager.NEXT_ID++;
+    private static NEXT_ID: number = 0;
+    private static GetNextId(type: string): string {
+        NetObjectsManager.NEXT_ID++;
+        return type + NetObjectsManager.NEXT_ID.toString();
     }
     private static instance: NetObjectsManager;
 
-    private netObjects: Map<number, NetObject>;
+    private netObjects: Map<string, NetObject>;
 
     constructor() {
         if (NetObjectsManager.instance) {
             return NetObjectsManager.instance;
         } else {
             NetObjectsManager.instance = this;
-            this.netObjects = new Map<number, NetObject>();
+            this.netObjects = new Map<string, NetObject>();
 
             return this;
         }
@@ -25,49 +26,31 @@ export class NetObjectsManager {
         return new NetObjectsManager;
     }
 
-    serializeNetObjects(): string {
-        let serializedObjects = {};
-        this.netObjects.forEach((value: NetObject, key: number) => {
-            serializedObjects[key] = this.netObjects.get(key);
-        });
-        return JSON.stringify(serializedObjects);
-    }
-
     collectUpdate(): string {
         let serializedObjects: string = '';
-        this.netObjects.forEach((value: NetObject, key: number) => {
+        this.netObjects.forEach((value: NetObject, key: string) => {
             let netObject: NetObject = this.netObjects.get(key);
-            serializedObjects += '$' + netObject.ID.toString() + '-' + netObject.GameObject.serialize().slice(1);
+            serializedObjects += '$' + netObject.ID + '-' + netObject.GameObject.serialize().slice(1);
         });
 
         serializedObjects = serializedObjects.slice(1);
         return serializedObjects;
     }
 
-    getObject(id: number) {
+    getObject(id: string) {
         return this.netObjects.get(id);
     }
 
-    updateObjects(update: string) {
-        let splitUpdate: string[] = update.split('-');
-        let id: number = parseInt(splitUpdate[0]);
-        let netObject: NetObject = this.netObjects.get(id);
-
-        if(netObject != null) {
-            netObject.deserialize(splitUpdate[1]);
-        }
-    }
-
-    createObject(gameObject: GameObject, id?: number): NetObject {
+    createObject(gameObject: GameObject, id?: string): NetObject {
         //TODO - sprawdzic czy dany gejmobject juz istnieje
-        let newObjectId: number;
+        let newObjectId: string;
         if(id != null) {
             if(this.netObjects.has(id)) {
                 throw new Error("NetObject id duplication: " + id);
             }
             newObjectId = id;
         } else {
-            newObjectId = NetObjectsManager.GetNextId();
+            newObjectId = NetObjectsManager.GetNextId(gameObject.Type);
         }
 
         let netObject: NetObject = new NetObject(newObjectId, gameObject);

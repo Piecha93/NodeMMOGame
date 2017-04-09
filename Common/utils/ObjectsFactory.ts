@@ -6,10 +6,11 @@ export class ObjectsFactory {
         throw new Error("Cannot instatiate this class");
     }
 
-    static CreateGameObject(className: string, data?: any): GameObject {
-        if(className.toLocaleLowerCase() == "player") {
+    static CreateGameObject(id: string): GameObject {
+        let type: string =  id.substr(0, 1);
+        if(type == "P") {
             let player: Player = new Player();
-            //return player.deserialize(data)
+            return player;
         }
 
         return null;

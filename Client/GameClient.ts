@@ -3,12 +3,11 @@
 import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./InputHandler";
-import {Player} from "../Common/utils/Player";
-import {Position} from "../Common/utils/Position";
 import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {GameObject} from "../Common/utils/GameObject";
 import {NetObject} from "../Common/net/NetObject";
+import GameObjectFactory = Phaser.GameObjectFactory;
+import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -36,7 +35,7 @@ export class GameClient {
     private configureSocket() {
         this.socket.on('startgame', this.startGame.bind(this));
         this.socket.on('initializegame', this.initializeGame.bind(this));
-        this.startSendingInput();
+        this.socket.on('updategame', this.updateGame.bind(this));
     }
 
     private startGame() {
@@ -59,23 +58,48 @@ export class GameClient {
         if(initData['objects'] == null) {
             return
         }
+
         let update = initData['objects'].split('$');
         for (let object in update) {
             let splitObject: string[] = update[object].split('-');
-            let id: number = parseInt(splitObject[0]);
+            let id: string = splitObject[0];
             let data: string = splitObject[1];
 
             let netObject: NetObject = NetObjectsManager.Instance.getObject(id);
             if(netObject == null) {
-                let gameObject = new Player();
+                let gameObject = ObjectsFactory.CreateGameObject(id);
                 netObject = NetObjectsManager.Instance.createObject(gameObject, id);
 
                 this.renderer.addGameObject(gameObject);
+            } else {
+                netObject.GameObject.deserialize(data.split('#'))
             }
-            console.log(data);
-            netObject.GameObject.deserialize(data.split('#'))
         }
 
+        this.startSendingInput();
+    }
+
+    private updateGame(data) {
+        if(data['objects'] == null) {
+            return
+        }
+
+        let update = data['objects'].split('$');
+        for (let object in update) {
+            let splitObject: string[] = update[object].split('-');
+            let id: string = splitObject[0];
+            let data: string = splitObject[1];
+
+            let netObject: NetObject = NetObjectsManager.Instance.getObject(id);
+            if(netObject == null) {
+                let gameObject = ObjectsFactory.CreateGameObject(id);
+                netObject = NetObjectsManager.Instance.createObject(gameObject, id);
+
+                this.renderer.addGameObject(gameObject);
+            } else {
+                netObject.GameObject.deserialize(data.split('#'))
+            }
+        }
         this.renderer.update();
     }
 }

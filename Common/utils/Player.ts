@@ -1,7 +1,12 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
+import {GameObjectType, TypeIdMap} from "./GameObjectTypes";
 
 export class Player extends GameObject {
+    get Type(): string {
+        return GameObjectType.Player.toString();
+    }
+
     readonly name: string;
     private hp: number;
     private destination: Position;

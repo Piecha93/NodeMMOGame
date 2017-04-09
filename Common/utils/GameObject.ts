@@ -1,6 +1,11 @@
 import {Position} from "./Position";
+import {GameObjectType, TypeIdMap} from "./GameObjectTypes";
 
 export abstract class GameObject {
+    get Type(): string {
+        return GameObjectType.GameObject.toString();
+    }
+
     protected position: Position;
 
     constructor(position?: Position) {
@@ -9,7 +14,6 @@ export abstract class GameObject {
         } else {
             this.position = new Position(0, 0);
         }
-
     }
 
     get Position(): Position {
@@ -25,7 +29,6 @@ export abstract class GameObject {
 
     deserialize(update: string[]) {
         for(let item of update) {
-            console.log(item);
             if(item.startsWith('P')) {
                 this.updatePosition(item.split(':')[1]);
             }
@@ -33,7 +36,6 @@ export abstract class GameObject {
     }
 
     private updatePosition(data: string) {
-        console.log(data);
         let x: string = data.split(',')[0];
         let y: string = data.split(',')[1];
 

@@ -1,12 +1,10 @@
-import {Serializable} from "./Serializable";
 import {GameObject} from "../utils/GameObject";
 import GameObjectFactory = Phaser.GameObjectFactory;
-import {ObjectsFactory} from "../utils/ObjectsFactory";
 
 export class NetObject {
-    private id: number;
+    private id: string;
     private gameObject: GameObject;
-    constructor(id: number, gameObject?: GameObject) {
+    constructor(id: string, gameObject?: GameObject) {
         this.id = id;
         this.gameObject = gameObject;
     }
@@ -15,7 +13,7 @@ export class NetObject {
         return this.gameObject;
     }
 
-    get ID(): number {
+    get ID(): string {
         return this.id;
     }
 

@@ -54,7 +54,6 @@ export class GameServer {
 
                 socket.emit('initializegame', { objects: objects });
                 serverClient.IsReady = true;
-
             });
 
             socket.on('inputsnapshot', (data) => {
@@ -74,10 +73,10 @@ export class GameServer {
 
             this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
                 if(client.IsReady) {
-                    client.Socket.emit('initializegame', { objects });
+                    client.Socket.emit('updategame', { objects });
                 }
             });
-        }, 100);
+        }, 50);
     }
 
 }
