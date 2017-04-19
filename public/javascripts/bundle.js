@@ -9,6 +9,7 @@ const ObjectsFactory_1 = require("../Common/utils/ObjectsFactory");
 const HeartBeatSender_1 = require("./HeartBeatSender");
 class GameClient {
     constructor() {
+        this.netObjectMenager = NetObjectsManager_1.NetObjectsManager.Instance;
         this.game = new Game_1.Game;
         this.renderer = new Renderer_1.Renderer(() => {
             this.inputHandler = new InputHandler_1.InputHandler(this.renderer.PhaserInput);
@@ -30,7 +31,6 @@ class GameClient {
     }
     startGame() {
         this.game = new Game_1.Game;
-        //  this.game.startSendingHeartbeats();
     }
     startSendingInput() {
         this.inputTtimeoutId = setTimeout(() => this.startSendingInput(), 1 / 10 * 1000);
@@ -49,10 +49,10 @@ class GameClient {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
             let data = splitObject[1];
-            let netObject = NetObjectsManager_1.NetObjectsManager.Instance.getObject(id);
+            let netObject = this.netObjectMenager.getObject(id);
             if (netObject == null) {
                 let gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
-                netObject = NetObjectsManager_1.NetObjectsManager.Instance.createObject(gameObject, id);
+                netObject = this.netObjectMenager.createObject(gameObject, id);
                 this.renderer.addGameObject(gameObject);
             }
             else {
@@ -62,18 +62,27 @@ class GameClient {
         this.startSendingInput();
     }
     updateGame(data) {
-        if (data['objects'] == null) {
+        if (data['update'] == null) {
             return;
         }
-        let update = data['objects'].split('$');
+        let update = data['update'].split('$');
         for (let object in update) {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
             let data = splitObject[1];
-            let netObject = NetObjectsManager_1.NetObjectsManager.Instance.getObject(id);
+            if (id[0] == '!') {
+                console.log('removed' + id);
+                id = id.slice(1);
+                let gameObject = this.netObjectMenager.getObject(id).GameObject;
+                this.renderer.removeGameObject(gameObject);
+                this.game.removeObject(gameObject.ID);
+                this.netObjectMenager.removeObject(object[0]);
+                continue;
+            }
+            let netObject = this.netObjectMenager.getObject(id);
             if (netObject == null) {
                 let gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
-                netObject = NetObjectsManager_1.NetObjectsManager.Instance.createObject(gameObject, id);
+                netObject = this.netObjectMenager.createObject(gameObject, id);
                 this.renderer.addGameObject(gameObject);
             }
             else {
@@ -101,9 +110,9 @@ class HeartBeatSender {
     heartBeatResponse(id) {
         let ping = new Date().getTime() - this.heartBeats.get(id);
         console.log('hbr ' + ping);
+        this.timeoutId = setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
     }
     startSendingHeartbeats() {
-        this.timeoutId = setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
         this.socket.emit('hb', this.hbId);
         this.heartBeats.set(this.hbId, new Date().getTime());
         this.hbId++;
@@ -171,6 +180,9 @@ class GameObjectRender {
             this.sprite.y = position.Y;
         }
     }
+    hide() {
+        this.sprite.destroy();
+    }
 }
 exports.GameObjectRender = GameObjectRender;
 
@@ -181,7 +193,7 @@ const GameObjectRender_1 = require("./GameObjectRender");
 class Renderer {
     constructor(afterCreateCallback) {
         this.phaserGame = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
-        this.objectList = new Array();
+        this.renderObjectMap = new Map();
     }
     preload() {
         this.phaserGame.load.image('bunny', 'resources/images/bunny.png');
@@ -192,14 +204,18 @@ class Renderer {
         afterCreateCallback();
     }
     update() {
-        for (let gameObjectRender of this.objectList) {
+        this.renderObjectMap.forEach((gameObjectRender) => {
             gameObjectRender.render();
-        }
+        });
     }
     addGameObject(gameObject) {
         let gameObjectRender = new GameObjectRender_1.GameObjectRender(this.phaserGame);
         gameObjectRender.GameObject = gameObject;
-        this.objectList.push(gameObjectRender);
+        this.renderObjectMap.set(gameObject, gameObjectRender);
+    }
+    removeGameObject(gameObject) {
+        this.renderObjectMap.get(gameObject).hide();
+        this.renderObjectMap.delete(gameObject);
     }
     get PhaserInput() {
         return this.phaserGame.input;
@@ -216,51 +232,39 @@ client.connect();
 },{"./GameClient":1}],7:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./utils/Player");
-const Position_1 = require("./utils/Position");
 class Game {
     constructor() {
         this.tickrate = 30;
-        this.players = new Map();
+        this.objects = new Map();
         console.log("create game instance");
     }
     startGameLoop() {
         this.timeoutId = setTimeout(() => this.startGameLoop(), 1 / this.tickrate * 1000);
-        // this.players.forEach((player: Player, key: string) => {
-        //     player.Position.X +=  Math.floor(Math.random() * 3) - 1;
-        //     player.Position.Y +=  Math.floor(Math.random() * 3) - 1;
-        // });
-        this.players.forEach((player, key) => {
-            if (player.Destination != null) {
-                player.Position.X += (player.Destination.X - player.Position.X) / 10;
-                player.Position.Y += (player.Destination.Y - player.Position.Y) / 10;
-                player.hit(Math.floor(Math.random() * 100));
-            }
+        this.objects.forEach((object) => {
+            object.update();
         });
     }
     stopGameLoop() {
         clearTimeout(this.timeoutId);
     }
     spawnPlayer(name, position) {
-        if (this.players.has(name)) {
-            return this.players.get(name);
-        }
         let player;
-        if (!position) {
-            position = new Position_1.Position(0, 0);
-        }
         player = new Player_1.Player(name, position);
-        this.players.set(name, player);
+        this.objects.set(player.ID, player);
         //console.log("New player " + name);
-        //console.log("Number of players " + this.players.size);
+        //console.log("Number of objects " + this.objects.size);
         return player;
     }
-    getPlayer(name) {
-        return this.players.get(name);
+    removeObject(id) {
+        this.objects.delete(id);
+    }
+    getObject(id) {
+        return this.objects.get(id);
     }
 }
 exports.Game = Game;
 
-},{"./utils/Player":14,"./utils/Position":15}],8:[function(require,module,exports){
+},{"./utils/Player":14}],8:[function(require,module,exports){
 "use strict";
 const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
@@ -367,28 +371,31 @@ class NetObjectsManager {
         this.netObjects.set(netObject.ID, netObject);
         return netObject;
     }
+    removeObject(id) {
+        return this.netObjects.delete(id);
+    }
 }
 NetObjectsManager.NEXT_ID = 0;
 exports.NetObjectsManager = NetObjectsManager;
 
 },{"./NetObject":9}],11:[function(require,module,exports){
 "use strict";
-const Position_1 = require("./Position");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 class GameObject {
     constructor(position) {
-        if (position) {
-            this.position = position;
-        }
-        else {
-            this.position = new Position_1.Position(0, 0);
-        }
+        this.id = GameObject.NEXT_ID++;
+        this.position = position;
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.GameObject.toString();
     }
     get Position() {
         return this.position;
+    }
+    get ID() {
+        return this.id;
+    }
+    update() {
     }
     serialize() {
         let position = '#P:' + this.position.X.toString() + ',' + this.position.Y.toString();
@@ -409,9 +416,10 @@ class GameObject {
         this.position.Y = parseFloat(y);
     }
 }
+GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
 
-},{"./GameObjectTypes":12,"./Position":15}],12:[function(require,module,exports){
+},{"./GameObjectTypes":12}],12:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -428,6 +436,7 @@ exports.TypeIdMap.set('P', GameObjectType.Player);
 },{}],13:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./Player");
+const Position_1 = require("./Position");
 class ObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
@@ -435,7 +444,7 @@ class ObjectsFactory {
     static CreateGameObject(id) {
         let type = id.substr(0, 1);
         if (type == "P") {
-            let player = new Player_1.Player();
+            let player = new Player_1.Player('DEFAULT', new Position_1.Position(0, 0));
             return player;
         }
         return null;
@@ -443,24 +452,27 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Player":14}],14:[function(require,module,exports){
+},{"./Player":14,"./Position":15}],14:[function(require,module,exports){
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
-        if (position) {
-            super(position);
-        }
-        else {
-            super();
-        }
-        this.name = name || "NoName";
+        super(position);
+        this.name = name;
         this.hp = 100;
         this.destination = null;
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
+    }
+    update() {
+        super.update();
+        if (this.destination) {
+            this.position.X += (this.destination.X - this.position.X) / 10;
+            this.position.Y += (this.destination.Y - this.position.Y) / 10;
+        }
+        this.hit(Math.floor(Math.random() * 100));
     }
     get Name() {
         return this.name;

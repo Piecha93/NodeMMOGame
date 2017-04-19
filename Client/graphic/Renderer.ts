@@ -6,11 +6,11 @@ import {GameObjectRender} from "./GameObjectRender";
 export class Renderer {
     private phaserGame: Phaser.Game;
 
-    private objectList: Array<GameObjectRender>;
+    private renderObjectMap: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
         this.phaserGame = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
-        this.objectList = new Array<GameObjectRender>();
+        this.renderObjectMap = new Map<GameObject, GameObjectRender>();
     }
 
     private preload() {
@@ -25,15 +25,20 @@ export class Renderer {
     }
 
     public update() {
-        for(let gameObjectRender of this.objectList) {
+        this.renderObjectMap.forEach((gameObjectRender: GameObjectRender) => {
             gameObjectRender.render();
-        }
+        });
     }
 
     public addGameObject(gameObject: GameObject) {
         let gameObjectRender: GameObjectRender = new GameObjectRender(this.phaserGame);
         gameObjectRender.GameObject = gameObject;
-        this.objectList.push(gameObjectRender);
+        this.renderObjectMap.set(gameObject, gameObjectRender);
+    }
+
+    public removeGameObject(gameObject: GameObject) {
+        this.renderObjectMap.get(gameObject).hide();
+        this.renderObjectMap.delete(gameObject);
     }
 
     get PhaserInput(): Phaser.Input {

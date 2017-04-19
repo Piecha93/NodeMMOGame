@@ -22,12 +22,10 @@ export class HeartBeatSender {
     private heartBeatResponse(id: number) {
         let ping: number =  new Date().getTime() - this.heartBeats.get(id);
         console.log('hbr ' + ping);
-        
+        this.timeoutId = setTimeout(() => this.startSendingHeartbeats() , 1 / this.rate * 1000);
     }
 
     public startSendingHeartbeats() {
-        this.timeoutId = setTimeout(() => this.startSendingHeartbeats() , 1 / this.rate * 1000);
-
         this.socket.emit('hb', this.hbId);
         this.heartBeats.set(this.hbId, new Date().getTime());
         this.hbId++;

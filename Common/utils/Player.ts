@@ -1,6 +1,6 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
-import {GameObjectType, TypeIdMap} from "./GameObjectTypes";
+import {GameObjectType} from "./GameObjectTypes";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -11,16 +11,21 @@ export class Player extends GameObject {
     private hp: number;
     private destination: Position;
 
-    constructor(name?: string, position?: Position) {
-        if(position) {
-            super(position);
-        } else {
-            super();
-        }
+    constructor(name: string, position: Position) {
+        super(position);
 
-        this.name = name || "NoName";
+        this.name = name;
         this.hp = 100;
         this.destination = null;
+    }
+
+    update() {
+        super.update();
+        if(this.destination) {
+            this.position.X += (this.destination.X - this.position.X) / 10;
+            this.position.Y += (this.destination.Y - this.position.Y) / 10;
+        }
+        this.hit(Math.floor(Math.random() * 100));
     }
 
     get Name(): string {

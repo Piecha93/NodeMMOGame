@@ -28,4 +28,8 @@ export class GameObjectRender {
            this.sprite.y = position.Y;
        }
     }
+
+    public hide() {
+        this.sprite.destroy();
+    }
 }

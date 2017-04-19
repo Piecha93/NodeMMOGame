@@ -8,14 +8,23 @@ import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {NetObject} from "../Common/net/NetObject";
 import {GameObject} from "../Common/utils/GameObject";
+import {ServerSettings} from "./ServerSettings";
+
+//cr - client ready
+//sg - start game
+//ig - initialize game
+//hb - heartbeat
+//hbr - heartbeat response
+//ug - update game
 
 export class GameServer {
     private socket: SocketIO.Server;
     private clientsMap: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
 
     private game: Game;
-
     private nameCounter: number = 0;
+
+    private disconnectedClients: string = '';
 
     constructor(sockets: any) {
         this.socket = sockets;
@@ -47,12 +56,12 @@ export class GameServer {
 
                 let player: GameObject = this.game.spawnPlayer(clientName, new Position(x, y));
 
-                NetObjectsManager.Instance.createObject(player);
-
+                serverClient.NetObjectId = NetObjectsManager.Instance.createObject(player).ID;
+                serverClient.PlayerId = player.ID;
 
                 let objects: string = NetObjectsManager.Instance.collectUpdate();
 
-                socket.emit('ig', { objects: objects });
+                socket.emit('ig', { objects });
                 serverClient.IsReady = true;
             });
 
@@ -60,28 +69,43 @@ export class GameServer {
                 let deserializedData = JSON.parse(data);
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 
-                let player: Player = this.game.getPlayer(clientName);
+                let player: Player = this.game.getObject(serverClient.PlayerId) as Player;
                 player.Destination = snapshot.ClickPosition;
 
                 console.log(player.Destination);
             });
 
             socket.on('hb', (data: number) => {
-                this.clientsMap.get(socket).LastHbInterval = 0;
+                this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
                 socket.emit('hbr', data);
             })
         });
 
         setInterval(() => {
-            //let objects: string = NetObjectsManager.Instance.serializeNetObjects();
-            let objects: string = NetObjectsManager.Instance.collectUpdate();
+            this.clientsMap.forEach((client: ServerClient, socket: Socket) => {
+                client.LastHbInterval -= 1000;
+                if (client.LastHbInterval <= 0) {
+                    console.log('player disconnected' + client.Name);
+                    this.disconnectedClients += '$' + '!' + client.NetObjectId;
 
-            this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
-                if(client.IsReady) {
-                    client.Socket.emit('ug', { objects });
+                    NetObjectsManager.Instance.removeObject(client.NetObjectId);
+                    this.game.removeObject(client.PlayerId);
+                    this.clientsMap.delete(socket);
                 }
             });
-        }, 50);
+        }, ServerSettings.DISCONNECT_CHECK_INTERVAL);
+
+        setInterval(() => {
+            let update: string = NetObjectsManager.Instance.collectUpdate();
+            update += this.disconnectedClients;
+            this.disconnectedClients = '';
+
+            this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
+                 if(client.IsReady) {
+                     socket.emit('ug', { update });
+                }
+            });
+        }, ServerSettings.UPDATE_INTERVAL);
     }
 
 }

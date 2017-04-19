@@ -1,16 +1,18 @@
 import Socket = SocketIOClient.Socket;
 import Timer = NodeJS.Timer;
+import {ServerSettings} from "./ServerSettings";
 
 export class ServerClient {
     private name: string;
     private socket: Socket;
-    private isReady: boolean;
-    private lastHbInterval: number = 0;
+    private isReady: boolean = false;
+    private lastHbInterval: number = ServerSettings.CLIENT_TIMEOUT;
+    private netObjectId: string = '';
+    private playerId: number;
 
     constructor(name: string, socket: Socket) {
         this.name = name;
         this.socket = socket;
-        this.isReady = false;
     }
 
     get Name(): string {
@@ -35,5 +37,21 @@ export class ServerClient {
 
     set LastHbInterval(value: number) {
         this.lastHbInterval = value;
+    }
+
+    get NetObjectId(): string {
+        return this.netObjectId;
+    }
+
+    set NetObjectId(value: string) {
+        this.netObjectId = value;
+    }
+
+    get PlayerId(): number {
+        return this.playerId;
+    }
+
+    set PlayerId(value: number) {
+        this.playerId = value;
     }
 }

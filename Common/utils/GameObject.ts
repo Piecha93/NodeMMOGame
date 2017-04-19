@@ -6,18 +6,25 @@ export abstract class GameObject {
         return GameObjectType.GameObject.toString();
     }
 
-    protected position: Position;
+    private static NEXT_ID: number = 0;
 
-    constructor(position?: Position) {
-        if (position) {
-            this.position = position;
-        } else {
-            this.position = new Position(0, 0);
-        }
+    protected position: Position;
+    protected id: number = GameObject.NEXT_ID++;
+
+    constructor(position: Position) {
+        this.position = position;
     }
 
     get Position(): Position {
         return this.position;
+    }
+
+    get ID(): number {
+        return this.id;
+    }
+
+    update() {
+
     }
 
     serialize(): string {

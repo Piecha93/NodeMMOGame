@@ -59,18 +59,7 @@ export class NetObjectsManager {
         return netObject;
     }
 
-    // updateObject(netObject): GameObject {
-    //     if (isUndefined(netObject.id) || isUndefined(netObject.gameObject)) {
-    //         return null;
-    //     }
-    //     if (this.netObjects.has(netObject.id)) {
-    //         this.netObjects.get(netObject.id).deserialize(netObject);
-    //     } else {
-    //         let newNetObject: NetObject = new NetObject(netObject.id).deserialize(netObject);
-    //         this.netObjects.set(netObject.id, newNetObject);
-    //         return newNetObject.GameObject;
-    //     }
-    //
-    //     return null;
-    // }
+    removeObject(id: string): boolean {
+        return this.netObjects.delete(id);
+    }
 }
