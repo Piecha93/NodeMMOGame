@@ -10,6 +10,7 @@ import GameObjectFactory = Phaser.GameObjectFactory;
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
 import {HeartBeatSender} from "./HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
+import {SocketMsgs} from "../Common/net/SocketMsgs";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -25,7 +26,7 @@ export class GameClient {
 
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
-            this.socket.emit('cr');
+            this.socket.emit(SocketMsgs.CLIENT_READY);
             this.heartBeatSender.startSendingHeartbeats();
         });
     }
@@ -40,9 +41,9 @@ export class GameClient {
     }
 
     private configureSocket() {
-        this.socket.on('sg', this.startGame.bind(this));
-        this.socket.on('ig', this.initializeGame.bind(this));
-        this.socket.on('ug', this.updateGame.bind(this));
+        this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
+        this.socket.on(SocketMsgs.INITIALIZE_GAME, this.initializeGame.bind(this));
+        this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
 
     private startGame() {
@@ -56,7 +57,7 @@ export class GameClient {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
 
-                this.socket.emit('is', serializedSnapshot);
+                this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
             }
     }
 

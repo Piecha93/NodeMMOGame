@@ -9,13 +9,7 @@ import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {NetObject} from "../Common/net/NetObject";
 import {GameObject} from "../Common/utils/GameObject";
 import {ServerSettings} from "./ServerSettings";
-
-//cr - client ready
-//sg - start game
-//ig - initialize game
-//hb - heartbeat
-//hbr - heartbeat response
-//ug - update game
+import {SocketMsgs} from "../Common/net/SocketMsgs";
 
 export class GameServer {
     private socket: SocketIO.Server;
@@ -48,9 +42,9 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
-            socket.emit('sg');
+            socket.emit(SocketMsgs.START_GAME);
 
-            socket.on('cr', () => {
+            socket.on(SocketMsgs.CLIENT_READY, () => {
                 let x: number = Math.floor(Math.random() * 800);
                 let y: number = Math.floor(Math.random() * 600);
 
@@ -61,11 +55,11 @@ export class GameServer {
 
                 let objects: string = NetObjectsManager.Instance.collectUpdate();
 
-                socket.emit('ig', { objects });
+                socket.emit(SocketMsgs.INITIALIZE_GAME, { objects });
                 serverClient.IsReady = true;
             });
 
-            socket.on('is', (data) => {
+            socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
                 let deserializedData = JSON.parse(data);
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 
@@ -75,9 +69,9 @@ export class GameServer {
                 console.log(player.Destination);
             });
 
-            socket.on('hb', (data: number) => {
+            socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
                 this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
-                socket.emit('hbr', data);
+                socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
             })
         });
 
@@ -102,7 +96,7 @@ export class GameServer {
 
             this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
                  if(client.IsReady) {
-                     socket.emit('ug', { update });
+                     socket.emit(SocketMsgs.UPDATE_GAME, { update });
                 }
             });
         }, ServerSettings.UPDATE_INTERVAL);
