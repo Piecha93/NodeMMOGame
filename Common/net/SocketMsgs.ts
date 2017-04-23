@@ -7,10 +7,3 @@ export class SocketMsgs {
     public static UPDATE_GAME = 'ug';
     public static INPUT_SNAPSHOT = 'is';
 }
-
-//cr - client ready
-//sg - start game
-//ig - initialize game
-//hb - heartbeat
-//hbr - heartbeat response
-//ug - update game

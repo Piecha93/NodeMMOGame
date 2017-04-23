@@ -26,11 +26,14 @@ export class NetObjectsManager {
         return new NetObjectsManager;
     }
 
-    collectUpdate(): string {
+    collectUpdate(complete: boolean = false): string {
         let serializedObjects: string = '';
         this.netObjects.forEach((value: NetObject, key: string) => {
             let netObject: NetObject = this.netObjects.get(key);
-            serializedObjects += '$' + netObject.ID + '-' + netObject.GameObject.serialize().slice(1);
+            let objectUpdate: string = netObject.GameObject.serialize(complete).slice(1);
+            if(objectUpdate != '') {
+                serializedObjects += '$' + netObject.ID + '-' + objectUpdate;
+            }
         });
 
         serializedObjects = serializedObjects.slice(1);

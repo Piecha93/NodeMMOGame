@@ -2,6 +2,11 @@ import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
 
+const changesMap: Map<string, Function> = new Map<string, Function>([
+    ['hp', serializeHp],
+    ['name', serializeName]
+]);
+
 export class Player extends GameObject {
     get Type(): string {
         return GameObjectType.Player.toString();
@@ -22,14 +27,16 @@ export class Player extends GameObject {
     update() {
         super.update();
         if(this.destination) {
-            this.position.X += (this.destination.X - this.position.X) / 10;
-            this.position.Y += (this.destination.Y - this.position.Y) / 10;
+            //this.position.X += (this.destination.X - this.position.X) / 10;
+            //this.position.Y += (this.destination.Y - this.position.Y) / 10;
+
+            this.position.X = this.destination.X;
+            this.position.Y = this.destination.Y;
+
+            this.destination = null;
+            this.changes.add('position');
         }
         this.hit(Math.floor(Math.random() * 100));
-    }
-
-    get Name(): string {
-        return this.name;
     }
 
     get Destination(): Position {
@@ -47,15 +54,27 @@ export class Player extends GameObject {
         }
     }
 
-    get Position(): Position {
-        return this.position;
+    get HP(): number {
+        return this.hp;
     }
 
-    serialize(): string {
-        let hp: string = '#H:' + this.hp.toString();
-        let name: string = '#N:' + this.name;
+    serialize(complete: boolean = false): string {
+        let update: string = "";
 
-        return super.serialize() + hp + name;
+        if(complete) {
+            changesMap.forEach((serializeFunc: Function) => {
+                    update += serializeFunc(this);
+            });
+        } else {
+            this.changes.forEach((field: string) => {
+                if (changesMap.has(field)) {
+                    update += changesMap[field](this);
+                    this.changes.delete(field);
+                }
+            });
+        }
+
+        return super.serialize(complete) + update;
     }
 
     deserialize(update: string[]) {
@@ -66,4 +85,12 @@ export class Player extends GameObject {
             }
         }
     }
+}
+
+function serializeHp(player: Player): string {
+    return '#H:' + player.HP.toString();
+}
+
+function serializeName(player: Player): string {
+    return '#N:' + player.name;
 }

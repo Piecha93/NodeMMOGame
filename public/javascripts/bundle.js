@@ -7,13 +7,14 @@ const InputHandler_1 = require("./InputHandler");
 const NetObjectsManager_1 = require("../Common/net/NetObjectsManager");
 const ObjectsFactory_1 = require("../Common/utils/ObjectsFactory");
 const HeartBeatSender_1 = require("./HeartBeatSender");
+const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class GameClient {
     constructor() {
         this.netObjectMenager = NetObjectsManager_1.NetObjectsManager.Instance;
         this.game = new Game_1.Game;
         this.renderer = new Renderer_1.Renderer(() => {
             this.inputHandler = new InputHandler_1.InputHandler(this.renderer.PhaserInput);
-            this.socket.emit('cr');
+            this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
             this.heartBeatSender.startSendingHeartbeats();
         });
     }
@@ -25,9 +26,9 @@ class GameClient {
         }
     }
     configureSocket() {
-        this.socket.on('sg', this.startGame.bind(this));
-        this.socket.on('ig', this.initializeGame.bind(this));
-        this.socket.on('ug', this.updateGame.bind(this));
+        this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
+        this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, this.initializeGame.bind(this));
+        this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
         this.game = new Game_1.Game;
@@ -37,13 +38,14 @@ class GameClient {
         if (this.inputHandler.Changed) {
             let snapshot = this.inputHandler.cloneInputSnapshot();
             let serializedSnapshot = JSON.stringify(snapshot);
-            this.socket.emit('is', serializedSnapshot);
+            this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
         }
     }
     initializeGame(initData) {
         if (initData['objects'] == null) {
             return;
         }
+        console.log(initData);
         let update = initData['objects'].split('$');
         for (let object in update) {
             let splitObject = update[object].split('-');
@@ -55,11 +57,10 @@ class GameClient {
                 netObject = this.netObjectMenager.createObject(gameObject, id);
                 this.renderer.addGameObject(gameObject);
             }
-            else {
-                netObject.GameObject.deserialize(data.split('#'));
-            }
+            netObject.GameObject.deserialize(data.split('#'));
         }
         this.startSendingInput();
+        this.renderer.update();
     }
     updateGame(data) {
         if (data['update'] == null) {
@@ -85,23 +86,23 @@ class GameClient {
                 netObject = this.netObjectMenager.createObject(gameObject, id);
                 this.renderer.addGameObject(gameObject);
             }
-            else {
-                netObject.GameObject.deserialize(data.split('#'));
-            }
+            netObject.GameObject.deserialize(data.split('#'));
         }
         this.renderer.update();
     }
 }
 exports.GameClient = GameClient;
 
-},{"../Common/Game":7,"../Common/net/NetObjectsManager":10,"../Common/utils/ObjectsFactory":13,"./HeartBeatSender":2,"./InputHandler":3,"./graphic/Renderer":5}],2:[function(require,module,exports){
+},{"../Common/Game":7,"../Common/net/NetObjectsManager":10,"../Common/net/SocketMsgs":11,"../Common/utils/ObjectsFactory":14,"./HeartBeatSender":2,"./InputHandler":3,"./graphic/Renderer":5}],2:[function(require,module,exports){
 "use strict";
+const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class HeartBeatSender {
     constructor(socket, rate) {
-        this.rate = 1;
         this.hbId = 0;
+        this.rate = 1;
+        this.isRunning = false;
         this.socket = socket;
-        this.socket.on('hbr', this.heartBeatResponse.bind(this));
+        this.socket.on(SocketMsgs_1.SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
         this.heartBeats = new Map();
         if (rate != null) {
             this.rate = rate;
@@ -110,20 +111,23 @@ class HeartBeatSender {
     heartBeatResponse(id) {
         let ping = new Date().getTime() - this.heartBeats.get(id);
         console.log('hbr ' + ping);
-        this.timeoutId = setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+        if (this.isRunning) {
+            setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+        }
     }
     startSendingHeartbeats() {
-        this.socket.emit('hb', this.hbId);
+        this.isRunning = true;
+        this.socket.emit(SocketMsgs_1.SocketMsgs.HEARTBEAT, this.hbId);
         this.heartBeats.set(this.hbId, new Date().getTime());
         this.hbId++;
     }
     stopSendingHeartbeats() {
-        clearTimeout(this.timeoutId);
+        this.isRunning = true;
     }
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{}],3:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":11}],3:[function(require,module,exports){
 /// <reference path="libs/@types/phaser.d.ts" />
 "use strict";
 const Position_1 = require("../Common/utils/Position");
@@ -160,7 +164,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../Common/InputSnapshot":8,"../Common/utils/Position":15}],4:[function(require,module,exports){
+},{"../Common/InputSnapshot":8,"../Common/utils/Position":16}],4:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 class GameObjectRender {
@@ -264,7 +268,7 @@ class Game {
 }
 exports.Game = Game;
 
-},{"./utils/Player":14}],8:[function(require,module,exports){
+},{"./utils/Player":15}],8:[function(require,module,exports){
 "use strict";
 const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
@@ -299,7 +303,7 @@ class InputSnapshot {
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{"../Common/utils/Position":15}],9:[function(require,module,exports){
+},{"../Common/utils/Position":16}],9:[function(require,module,exports){
 "use strict";
 class NetObject {
     constructor(id, gameObject) {
@@ -343,11 +347,14 @@ class NetObjectsManager {
     static get Instance() {
         return new NetObjectsManager;
     }
-    collectUpdate() {
+    collectUpdate(complete = false) {
         let serializedObjects = '';
         this.netObjects.forEach((value, key) => {
             let netObject = this.netObjects.get(key);
-            serializedObjects += '$' + netObject.ID + '-' + netObject.GameObject.serialize().slice(1);
+            let objectUpdate = netObject.GameObject.serialize(complete).slice(1);
+            if (objectUpdate != '') {
+                serializedObjects += '$' + netObject.ID + '-' + objectUpdate;
+            }
         });
         serializedObjects = serializedObjects.slice(1);
         return serializedObjects;
@@ -380,11 +387,28 @@ exports.NetObjectsManager = NetObjectsManager;
 
 },{"./NetObject":9}],11:[function(require,module,exports){
 "use strict";
+class SocketMsgs {
+}
+SocketMsgs.CLIENT_READY = 'cr';
+SocketMsgs.START_GAME = 'sg';
+SocketMsgs.INITIALIZE_GAME = 'ig';
+SocketMsgs.HEARTBEAT = 'hb';
+SocketMsgs.HEARTBEAT_RESPONSE = 'hbr';
+SocketMsgs.UPDATE_GAME = 'ug';
+SocketMsgs.INPUT_SNAPSHOT = 'is';
+exports.SocketMsgs = SocketMsgs;
+
+},{}],12:[function(require,module,exports){
+"use strict";
 const GameObjectTypes_1 = require("./GameObjectTypes");
+const changesMap = new Map([
+    ['position', serializePosition]
+]);
 class GameObject {
     constructor(position) {
         this.id = GameObject.NEXT_ID++;
         this.position = position;
+        this.changes = new Set();
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.GameObject.toString();
@@ -397,9 +421,21 @@ class GameObject {
     }
     update() {
     }
-    serialize() {
-        let position = '#P:' + this.position.X.toString() + ',' + this.position.Y.toString();
-        let update = position;
+    serialize(complete = false) {
+        let update = "";
+        if (complete) {
+            changesMap.forEach((serializeFunc) => {
+                update += serializeFunc(this);
+            });
+        }
+        else {
+            this.changes.forEach((field) => {
+                if (changesMap.has(field)) {
+                    update += changesMap.get(field)(this);
+                    this.changes.delete(field);
+                }
+            });
+        }
         return update;
     }
     deserialize(update) {
@@ -418,8 +454,11 @@ class GameObject {
 }
 GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
+function serializePosition(gameObject) {
+    return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
+}
 
-},{"./GameObjectTypes":12}],12:[function(require,module,exports){
+},{"./GameObjectTypes":13}],13:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -433,7 +472,7 @@ exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
@@ -452,10 +491,14 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Player":14,"./Position":15}],14:[function(require,module,exports){
+},{"./Player":15,"./Position":16}],15:[function(require,module,exports){
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
+const changesMap = new Map([
+    ['hp', serializeHp],
+    ['name', serializeName]
+]);
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
         super(position);
@@ -469,13 +512,14 @@ class Player extends GameObject_1.GameObject {
     update() {
         super.update();
         if (this.destination) {
-            this.position.X += (this.destination.X - this.position.X) / 10;
-            this.position.Y += (this.destination.Y - this.position.Y) / 10;
+            //this.position.X += (this.destination.X - this.position.X) / 10;
+            //this.position.Y += (this.destination.Y - this.position.Y) / 10;
+            this.position.X = this.destination.X;
+            this.position.Y = this.destination.Y;
+            this.destination = null;
+            this.changes.add('position');
         }
         this.hit(Math.floor(Math.random() * 100));
-    }
-    get Name() {
-        return this.name;
     }
     get Destination() {
         return this.destination;
@@ -489,13 +533,25 @@ class Player extends GameObject_1.GameObject {
             this.hp = 0;
         }
     }
-    get Position() {
-        return this.position;
+    get HP() {
+        return this.hp;
     }
-    serialize() {
-        let hp = '#H:' + this.hp.toString();
-        let name = '#N:' + this.name;
-        return super.serialize() + hp + name;
+    serialize(complete = false) {
+        let update = "";
+        if (complete) {
+            changesMap.forEach((serializeFunc) => {
+                update += serializeFunc(this);
+            });
+        }
+        else {
+            this.changes.forEach((field) => {
+                if (changesMap.has(field)) {
+                    update += changesMap[field](this);
+                    this.changes.delete(field);
+                }
+            });
+        }
+        return super.serialize(complete) + update;
     }
     deserialize(update) {
         super.deserialize(update);
@@ -507,8 +563,14 @@ class Player extends GameObject_1.GameObject {
     }
 }
 exports.Player = Player;
+function serializeHp(player) {
+    return '#H:' + player.HP.toString();
+}
+function serializeName(player) {
+    return '#N:' + player.name;
+}
 
-},{"./GameObject":11,"./GameObjectTypes":12}],15:[function(require,module,exports){
+},{"./GameObject":12,"./GameObjectTypes":13}],16:[function(require,module,exports){
 "use strict";
 class Position {
     constructor(x, y) {

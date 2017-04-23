@@ -1,6 +1,10 @@
 import {Position} from "./Position";
 import {GameObjectType, TypeIdMap} from "./GameObjectTypes";
 
+const changesMap: Map<string, Function> = new Map<string, Function>([
+    ['position', serializePosition]
+]);
+
 export abstract class GameObject {
     get Type(): string {
         return GameObjectType.GameObject.toString();
@@ -8,11 +12,13 @@ export abstract class GameObject {
 
     private static NEXT_ID: number = 0;
 
+    protected changes: Set<string>;
     protected position: Position;
     protected id: number = GameObject.NEXT_ID++;
 
     constructor(position: Position) {
         this.position = position;
+        this.changes = new Set<string>();
     }
 
     get Position(): Position {
@@ -27,10 +33,22 @@ export abstract class GameObject {
 
     }
 
-    serialize(): string {
-        let position: string = '#P:' + this.position.X.toString() + ',' + this.position.Y.toString();
+    serialize(complete: boolean = false): string {
+        let update: string = "";
 
-        let update: string = position;
+        if(complete) {
+            changesMap.forEach((serializeFunc: Function) => {
+                update += serializeFunc(this);
+            });
+        } else {
+            this.changes.forEach((field: string) => {
+                if (changesMap.has(field)) {
+                    update += changesMap.get(field)(this);
+                    this.changes.delete(field);
+                }
+            });
+        }
+
         return update;
     }
 
@@ -49,4 +67,8 @@ export abstract class GameObject {
         this.position.X = parseFloat(x);
         this.position.Y = parseFloat(y);
     }
+}
+
+function serializePosition(gameObject: GameObject): string {
+    return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
 }

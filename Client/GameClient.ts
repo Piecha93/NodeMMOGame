@@ -78,12 +78,12 @@ export class GameClient {
                 netObject = this.netObjectMenager.createObject(gameObject, id);
 
                 this.renderer.addGameObject(gameObject);
-            } else {
-                netObject.GameObject.deserialize(data.split('#'))
             }
+            netObject.GameObject.deserialize(data.split('#'))
         }
 
         this.startSendingInput();
+        this.renderer.update();
     }
 
     private updateGame(data) {
@@ -112,9 +112,8 @@ export class GameClient {
                 netObject = this.netObjectMenager.createObject(gameObject, id);
 
                 this.renderer.addGameObject(gameObject);
-            } else {
-                netObject.GameObject.deserialize(data.split('#'))
             }
+            netObject.GameObject.deserialize(data.split('#'))
         }
         this.renderer.update();
     }

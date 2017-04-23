@@ -6,7 +6,6 @@ import {Position} from "../Common/utils/Position";
 import {Player} from "../Common/utils/Player";
 import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {NetObject} from "../Common/net/NetObject";
 import {GameObject} from "../Common/utils/GameObject";
 import {ServerSettings} from "./ServerSettings";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
@@ -94,11 +93,17 @@ export class GameServer {
             update += this.disconnectedClients;
             this.disconnectedClients = '';
 
-            this.clientsMap.forEach( (client: ServerClient, socket: Socket) => {
-                 if(client.IsReady) {
-                     socket.emit(SocketMsgs.UPDATE_GAME, { update });
-                }
-            });
+            if(update[0] == "$") {
+                update = update.slice(1);
+            }
+
+            if(update != '') {
+                this.clientsMap.forEach((client: ServerClient, socket: Socket) => {
+                    if (client.IsReady) {
+                        socket.emit(SocketMsgs.UPDATE_GAME, {update});
+                    }
+                });
+            }
         }, ServerSettings.UPDATE_INTERVAL);
     }
 
