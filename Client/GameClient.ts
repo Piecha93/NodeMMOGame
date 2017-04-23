@@ -42,7 +42,10 @@ export class GameClient {
 
     private configureSocket() {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
-        this.socket.on(SocketMsgs.INITIALIZE_GAME, this.initializeGame.bind(this));
+        this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
+            this.updateGame(data);
+            this.startSendingInput();
+        });
         this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
 
@@ -61,35 +64,12 @@ export class GameClient {
             }
     }
 
-    private initializeGame(initData) {
-        if(initData['objects'] == null) {
-            return
-        }
-
-        let update = initData['objects'].split('$');
-        for (let object in update) {
-            let splitObject: string[] = update[object].split('-');
-            let id: string = splitObject[0];
-            let data: string = splitObject[1];
-
-            let netObject: NetObject = this.netObjectMenager.getObject(id);
-            if(netObject == null) {
-                let gameObject = ObjectsFactory.CreateGameObject(id);
-                netObject = this.netObjectMenager.createObject(gameObject, id);
-
-                this.renderer.addGameObject(gameObject);
-            }
-            netObject.GameObject.deserialize(data.split('#'))
-        }
-
-        this.startSendingInput();
-        this.renderer.update();
-    }
-
     private updateGame(data) {
         if(data['update'] == null) {
             return
         }
+
+        console.log(data['update']);
 
         let update = data['update'].split('$');
         for (let object in update) {
@@ -97,12 +77,13 @@ export class GameClient {
             let id: string = splitObject[0];
             let data: string = splitObject[1];
             if(id[0] == '!') {
-                console.log('removed' + id);
                 id = id.slice(1);
-                let gameObject: GameObject = this.netObjectMenager.getObject(id).GameObject;
-                this.renderer.removeGameObject(gameObject);
-                this.game.removeObject(gameObject.ID);
-                this.netObjectMenager.removeObject(id);
+                if(this.netObjectMenager.has(id)) {
+                    let gameObject: GameObject = this.netObjectMenager.getObject(id).GameObject;
+                    this.renderer.removeGameObject(gameObject);
+                    this.game.removeObject(gameObject.ID);
+                    this.netObjectMenager.removeObject(id);
+                }
                 continue;
             }
 

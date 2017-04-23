@@ -1,9 +1,8 @@
 import {Position} from "./Position";
-import {GameObjectType, TypeIdMap} from "./GameObjectTypes";
+import {GameObjectType} from "./GameObjectTypes";
+import {SerializeFunctionsMap} from "./SerializeFunctionsMap";
 
-const changesMap: Map<string, Function> = new Map<string, Function>([
-    ['position', serializePosition]
-]);
+SerializeFunctionsMap.set('position', serializePosition);
 
 export abstract class GameObject {
     get Type(): string {
@@ -12,6 +11,7 @@ export abstract class GameObject {
 
     private static NEXT_ID: number = 0;
 
+    private fCompleteUpdate: boolean = true;
     protected changes: Set<string>;
     protected position: Position;
     protected id: number = GameObject.NEXT_ID++;
@@ -21,12 +21,8 @@ export abstract class GameObject {
         this.changes = new Set<string>();
     }
 
-    get Position(): Position {
-        return this.position;
-    }
-
-    get ID(): number {
-        return this.id;
+    forceCompleteUpdate() {
+        this.fCompleteUpdate = true;
     }
 
     update() {
@@ -36,18 +32,25 @@ export abstract class GameObject {
     serialize(complete: boolean = false): string {
         let update: string = "";
 
+        if(this.fCompleteUpdate) {
+            this.fCompleteUpdate = false;
+            complete = true;
+        }
+
         if(complete) {
-            changesMap.forEach((serializeFunc: Function) => {
+            SerializeFunctionsMap.forEach((serializeFunc: Function) => {
                 update += serializeFunc(this);
             });
         } else {
             this.changes.forEach((field: string) => {
-                if (changesMap.has(field)) {
-                    update += changesMap.get(field)(this);
+                if (SerializeFunctionsMap.has(field)) {
+                    update += SerializeFunctionsMap.get(field)(this);
                     this.changes.delete(field);
                 }
             });
         }
+
+        this.changes.clear();
 
         return update;
     }
@@ -66,6 +69,14 @@ export abstract class GameObject {
 
         this.position.X = parseFloat(x);
         this.position.Y = parseFloat(y);
+    }
+
+    get Position(): Position {
+        return this.position;
+    }
+
+    get ID(): number {
+        return this.id;
     }
 }
 

@@ -62,6 +62,10 @@ export class NetObjectsManager {
         return netObject;
     }
 
+    has(id: string): boolean {
+        return this.netObjects.has(id);
+    }
+
     removeObject(id: string): boolean {
         return this.netObjects.delete(id);
     }

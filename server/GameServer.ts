@@ -6,6 +6,7 @@ import {Position} from "../Common/utils/Position";
 import {Player} from "../Common/utils/Player";
 import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
+import {NetObject} from "../Common/net/NetObject";
 import {GameObject} from "../Common/utils/GameObject";
 import {ServerSettings} from "./ServerSettings";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
@@ -41,6 +42,8 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
+            console.log(this.clientsMap.size);
+
             socket.emit(SocketMsgs.START_GAME);
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
@@ -52,9 +55,10 @@ export class GameServer {
                 serverClient.NetObjectId = NetObjectsManager.Instance.createObject(player).ID;
                 serverClient.PlayerId = player.ID;
 
-                let objects: string = NetObjectsManager.Instance.collectUpdate();
+                let update: string = NetObjectsManager.Instance.collectUpdate(true);
 
-                socket.emit(SocketMsgs.INITIALIZE_GAME, { objects });
+                socket.emit(SocketMsgs.INITIALIZE_GAME, { update });
+                player.forceCompleteUpdate();
                 serverClient.IsReady = true;
             });
 

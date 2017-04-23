@@ -1,11 +1,10 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
+import {SerializeFunctionsMap} from "./SerializeFunctionsMap";
 
-const changesMap: Map<string, Function> = new Map<string, Function>([
-    ['hp', serializeHp],
-    ['name', serializeName]
-]);
+SerializeFunctionsMap.set('hp', serializeHp);
+SerializeFunctionsMap.set('name', serializeName);
 
 export class Player extends GameObject {
     get Type(): string {
@@ -56,25 +55,6 @@ export class Player extends GameObject {
 
     get HP(): number {
         return this.hp;
-    }
-
-    serialize(complete: boolean = false): string {
-        let update: string = "";
-
-        if(complete) {
-            changesMap.forEach((serializeFunc: Function) => {
-                    update += serializeFunc(this);
-            });
-        } else {
-            this.changes.forEach((field: string) => {
-                if (changesMap.has(field)) {
-                    update += changesMap[field](this);
-                    this.changes.delete(field);
-                }
-            });
-        }
-
-        return super.serialize(complete) + update;
     }
 
     deserialize(update: string[]) {

@@ -27,7 +27,10 @@ class GameClient {
     }
     configureSocket() {
         this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
-        this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, this.initializeGame.bind(this));
+        this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
+            this.updateGame(data);
+            this.startSendingInput();
+        });
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
@@ -41,43 +44,24 @@ class GameClient {
             this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
         }
     }
-    initializeGame(initData) {
-        if (initData['objects'] == null) {
-            return;
-        }
-        console.log(initData);
-        let update = initData['objects'].split('$');
-        for (let object in update) {
-            let splitObject = update[object].split('-');
-            let id = splitObject[0];
-            let data = splitObject[1];
-            let netObject = this.netObjectMenager.getObject(id);
-            if (netObject == null) {
-                let gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
-                netObject = this.netObjectMenager.createObject(gameObject, id);
-                this.renderer.addGameObject(gameObject);
-            }
-            netObject.GameObject.deserialize(data.split('#'));
-        }
-        this.startSendingInput();
-        this.renderer.update();
-    }
     updateGame(data) {
         if (data['update'] == null) {
             return;
         }
+        console.log(data['update']);
         let update = data['update'].split('$');
         for (let object in update) {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
             let data = splitObject[1];
             if (id[0] == '!') {
-                console.log('removed' + id);
                 id = id.slice(1);
-                let gameObject = this.netObjectMenager.getObject(id).GameObject;
-                this.renderer.removeGameObject(gameObject);
-                this.game.removeObject(gameObject.ID);
-                this.netObjectMenager.removeObject(id);
+                if (this.netObjectMenager.has(id)) {
+                    let gameObject = this.netObjectMenager.getObject(id).GameObject;
+                    this.renderer.removeGameObject(gameObject);
+                    this.game.removeObject(gameObject.ID);
+                    this.netObjectMenager.removeObject(id);
+                }
                 continue;
             }
             let netObject = this.netObjectMenager.getObject(id);
@@ -378,6 +362,9 @@ class NetObjectsManager {
         this.netObjects.set(netObject.ID, netObject);
         return netObject;
     }
+    has(id) {
+        return this.netObjects.has(id);
+    }
     removeObject(id) {
         return this.netObjects.delete(id);
     }
@@ -401,11 +388,11 @@ exports.SocketMsgs = SocketMsgs;
 },{}],12:[function(require,module,exports){
 "use strict";
 const GameObjectTypes_1 = require("./GameObjectTypes");
-const changesMap = new Map([
-    ['position', serializePosition]
-]);
+const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('position', serializePosition);
 class GameObject {
     constructor(position) {
+        this.fCompleteUpdate = true;
         this.id = GameObject.NEXT_ID++;
         this.position = position;
         this.changes = new Set();
@@ -413,29 +400,31 @@ class GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.GameObject.toString();
     }
-    get Position() {
-        return this.position;
-    }
-    get ID() {
-        return this.id;
+    forceCompleteUpdate() {
+        this.fCompleteUpdate = true;
     }
     update() {
     }
     serialize(complete = false) {
         let update = "";
+        if (this.fCompleteUpdate) {
+            this.fCompleteUpdate = false;
+            complete = true;
+        }
         if (complete) {
-            changesMap.forEach((serializeFunc) => {
+            SerializeFunctionsMap_1.SerializeFunctionsMap.forEach((serializeFunc) => {
                 update += serializeFunc(this);
             });
         }
         else {
             this.changes.forEach((field) => {
-                if (changesMap.has(field)) {
-                    update += changesMap.get(field)(this);
+                if (SerializeFunctionsMap_1.SerializeFunctionsMap.has(field)) {
+                    update += SerializeFunctionsMap_1.SerializeFunctionsMap.get(field)(this);
                     this.changes.delete(field);
                 }
             });
         }
+        this.changes.clear();
         return update;
     }
     deserialize(update) {
@@ -451,6 +440,12 @@ class GameObject {
         this.position.X = parseFloat(x);
         this.position.Y = parseFloat(y);
     }
+    get Position() {
+        return this.position;
+    }
+    get ID() {
+        return this.id;
+    }
 }
 GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
@@ -458,7 +453,7 @@ function serializePosition(gameObject) {
     return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
 }
 
-},{"./GameObjectTypes":13}],13:[function(require,module,exports){
+},{"./GameObjectTypes":13,"./SerializeFunctionsMap":17}],13:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -495,10 +490,9 @@ exports.ObjectsFactory = ObjectsFactory;
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
-const changesMap = new Map([
-    ['hp', serializeHp],
-    ['name', serializeName]
-]);
+const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('hp', serializeHp);
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('name', serializeName);
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
         super(position);
@@ -536,23 +530,6 @@ class Player extends GameObject_1.GameObject {
     get HP() {
         return this.hp;
     }
-    serialize(complete = false) {
-        let update = "";
-        if (complete) {
-            changesMap.forEach((serializeFunc) => {
-                update += serializeFunc(this);
-            });
-        }
-        else {
-            this.changes.forEach((field) => {
-                if (changesMap.has(field)) {
-                    update += changesMap[field](this);
-                    this.changes.delete(field);
-                }
-            });
-        }
-        return super.serialize(complete) + update;
-    }
     deserialize(update) {
         super.deserialize(update);
         for (let item of update) {
@@ -570,7 +547,7 @@ function serializeName(player) {
     return '#N:' + player.name;
 }
 
-},{"./GameObject":12,"./GameObjectTypes":13}],16:[function(require,module,exports){
+},{"./GameObject":12,"./GameObjectTypes":13,"./SerializeFunctionsMap":17}],16:[function(require,module,exports){
 "use strict";
 class Position {
     constructor(x, y) {
@@ -601,5 +578,9 @@ class Position {
     }
 }
 exports.Position = Position;
+
+},{}],17:[function(require,module,exports){
+"use strict";
+exports.SerializeFunctionsMap = new Map();
 
 },{}]},{},[6]);
