@@ -102,7 +102,7 @@ export class GameClient {
                 let gameObject: GameObject = this.netObjectMenager.getObject(id).GameObject;
                 this.renderer.removeGameObject(gameObject);
                 this.game.removeObject(gameObject.ID);
-                this.netObjectMenager.removeObject(object[0]);
+                this.netObjectMenager.removeObject(id);
                 continue;
             }
 

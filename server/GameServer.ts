@@ -63,9 +63,10 @@ export class GameServer {
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 
                 let player: Player = this.game.getObject(serverClient.PlayerId) as Player;
-                player.Destination = snapshot.ClickPosition;
-
-                console.log(player.Destination);
+                if(player != null) {
+                    player.Destination = snapshot.ClickPosition;
+                    console.log(player.Destination);
+                }
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
