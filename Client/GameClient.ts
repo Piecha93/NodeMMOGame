@@ -32,7 +32,9 @@ export class GameClient {
     }
 
     connect() {
-        this.socket = io.connect();
+        this.socket = io.connect({
+            reconnection: false
+        });
         this.heartBeatSender = new HeartBeatSender(this.socket);
 
         if(this.socket != null) {

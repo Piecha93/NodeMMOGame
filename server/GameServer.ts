@@ -45,7 +45,7 @@ export class GameServer {
             console.log(this.clientsMap.size);
 
             socket.emit(SocketMsgs.START_GAME);
-
+            
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let x: number = Math.floor(Math.random() * 800);
                 let y: number = Math.floor(Math.random() * 600);
@@ -76,19 +76,20 @@ export class GameServer {
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
                 this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
                 socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
-            })
+            });
+
+            socket.on('disconnect', () => {
+                if(this.clientsMap.has(socket)) {
+                    this.clientDisconnected(this.clientsMap.get(socket));
+                }
+            });
         });
 
         setInterval(() => {
             this.clientsMap.forEach((client: ServerClient, socket: Socket) => {
                 client.LastHbInterval -= 1000;
                 if (client.LastHbInterval <= 0) {
-                    console.log('player disconnected' + client.Name);
-                    this.disconnectedClients += '$' + '!' + client.NetObjectId;
-
-                    NetObjectsManager.Instance.removeObject(client.NetObjectId);
-                    this.game.removeObject(client.PlayerId);
-                    this.clientsMap.delete(socket);
+                    this.clientDisconnected(client);
                 }
             });
         }, ServerSettings.DISCONNECT_CHECK_INTERVAL);
@@ -112,5 +113,13 @@ export class GameServer {
         }, ServerSettings.UPDATE_INTERVAL);
     }
 
+    private clientDisconnected(client: ServerClient) {
+        console.log('player disconnected' + client.Name);
+        this.disconnectedClients += '$' + '!' + client.NetObjectId;
+
+        NetObjectsManager.Instance.removeObject(client.NetObjectId);
+        this.game.removeObject(client.PlayerId);
+        this.clientsMap.delete(client.Socket);
+    }
 }
 

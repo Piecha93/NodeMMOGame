@@ -19,7 +19,9 @@ class GameClient {
         });
     }
     connect() {
-        this.socket = io.connect();
+        this.socket = io.connect({
+            reconnection: false
+        });
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         if (this.socket != null) {
             this.configureSocket();
