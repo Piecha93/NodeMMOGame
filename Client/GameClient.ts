@@ -9,7 +9,7 @@ import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
 import {HeartBeatSender} from "./HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {InputSnapshot} from "Common/InputSnapshot";
+import {InputSnapshot} from "../Common/InputSnapshot";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
