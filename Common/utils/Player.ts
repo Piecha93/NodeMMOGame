@@ -1,17 +1,14 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-import {SerializeFunctionsMap} from "./SerializeFunctionsMap";
-
-SerializeFunctionsMap.set('hp', serializeHp);
-SerializeFunctionsMap.set('name', serializeName);
+import {SerializeFunctionsMap, DeserializeFunctionsMap} from "./SerializeFunctionsMap";
 
 export class Player extends GameObject {
     get Type(): string {
         return GameObjectType.Player.toString();
     }
 
-    readonly name: string;
+    private name: string;
     private hp: number;
     private destination: Position;
 
@@ -57,20 +54,26 @@ export class Player extends GameObject {
         return this.hp;
     }
 
-    deserialize(update: string[]) {
-        super.deserialize(update);
-        for(let item of update) {
-            if(item.startsWith('H')) {
-                this.hp = parseInt(item.split(':')[1]);
-            }
-        }
+    static serializeHp(player: Player): string {
+        return '#H:' + player.HP.toString();
+    }
+
+    static deserializeHp(player: Player, data: string) {
+        player.hp = parseInt(data);
+    }
+
+    static serializeName(player: Player): string {
+        return '#N:' + player.name;
+    }
+
+    static deserializeName(player: Player, data: string) {
+        player.name = data;
     }
 }
 
-function serializeHp(player: Player): string {
-    return '#H:' + player.HP.toString();
-}
+SerializeFunctionsMap.set('hp', Player.serializeHp);
+SerializeFunctionsMap.set('name', Player.serializeName);
 
-function serializeName(player: Player): string {
-    return '#N:' + player.name;
-}
+DeserializeFunctionsMap.set('H', Player.deserializeHp);
+DeserializeFunctionsMap.set('N', Player.deserializeName);
+

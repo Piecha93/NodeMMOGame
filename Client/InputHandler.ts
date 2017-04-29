@@ -10,8 +10,8 @@ export class InputHandler {
     private changed: boolean;
 
     constructor(phaserInput: Phaser.Input) {
-        // document.addEventListener("keydown", this.keyPressed);
-        // document.addEventListener("keyup", this.keyReleased);
+         document.addEventListener("keydown", this.keyPressed);
+         document.addEventListener("keyup", this.keyReleased);
 
         this.inputSnapshot = new InputSnapshot;
         this.changed = false;
@@ -21,19 +21,26 @@ export class InputHandler {
         //this.phaserInput.addMoveCallback(this.mouseClick, this);
     }
 
-    // private keyPressed(event : KeyboardEvent) {
-    //     console.log(event.keyCode);
-    // }
+     private keyPressed(event : KeyboardEvent) {
+         console.log(event.keyCode);
+     }
 
-    // private keyReleased(event : KeyboardEvent) {
-    //     console.log(event.keyCode);
-    // }
+     private keyReleased(event : KeyboardEvent) {
+         console.log(event.keyCode);
+     }
 
     public mouseClick(mouseEvent: MouseEvent) {
         this.inputSnapshot.ClickPosition = new Position(mouseEvent.x, mouseEvent.y);
 
         this.changed = true;
     }
+
+    // public getSerializedSnapshot(): InputSnapshot {
+    //     this.changed = false;
+    //
+    //     this.inputSnapshot.clear();
+    //     return inputSnapshotCopy;
+    // }
 
     public cloneInputSnapshot(): InputSnapshot {
         this.changed = false;

@@ -1,6 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 "use strict";
+/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const Game_1 = require("../Common/Game");
 const Renderer_1 = require("./graphic/Renderer");
 const InputHandler_1 = require("./InputHandler");
@@ -81,6 +82,7 @@ exports.GameClient = GameClient;
 
 },{"../Common/Game":7,"../Common/net/NetObjectsManager":10,"../Common/net/SocketMsgs":11,"../Common/utils/ObjectsFactory":14,"./HeartBeatSender":2,"./InputHandler":3,"./graphic/Renderer":5}],2:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class HeartBeatSender {
     constructor(socket, rate) {
@@ -114,30 +116,37 @@ class HeartBeatSender {
 exports.HeartBeatSender = HeartBeatSender;
 
 },{"../Common/net/SocketMsgs":11}],3:[function(require,module,exports){
-/// <reference path="libs/@types/phaser.d.ts" />
 "use strict";
+/// <reference path="libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const Position_1 = require("../Common/utils/Position");
 const InputSnapshot_1 = require("../Common/InputSnapshot");
 class InputHandler {
     constructor(phaserInput) {
-        // document.addEventListener("keydown", this.keyPressed);
-        // document.addEventListener("keyup", this.keyReleased);
+        document.addEventListener("keydown", this.keyPressed);
+        document.addEventListener("keyup", this.keyReleased);
         this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
         this.changed = false;
         this.phaserInput = phaserInput;
         this.phaserInput.onDown.add(this.mouseClick, this);
         //this.phaserInput.addMoveCallback(this.mouseClick, this);
     }
-    // private keyPressed(event : KeyboardEvent) {
-    //     console.log(event.keyCode);
-    // }
-    // private keyReleased(event : KeyboardEvent) {
-    //     console.log(event.keyCode);
-    // }
+    keyPressed(event) {
+        console.log(event.keyCode);
+    }
+    keyReleased(event) {
+        console.log(event.keyCode);
+    }
     mouseClick(mouseEvent) {
         this.inputSnapshot.ClickPosition = new Position_1.Position(mouseEvent.x, mouseEvent.y);
         this.changed = true;
     }
+    // public getSerializedSnapshot(): InputSnapshot {
+    //     this.changed = false;
+    //
+    //     this.inputSnapshot.clear();
+    //     return inputSnapshotCopy;
+    // }
     cloneInputSnapshot() {
         this.changed = false;
         let inputSnapshotCopy = this.inputSnapshot.clone();
@@ -151,8 +160,9 @@ class InputHandler {
 exports.InputHandler = InputHandler;
 
 },{"../Common/InputSnapshot":8,"../Common/utils/Position":16}],4:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
+/// <reference path="../libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectRender {
     constructor(phaserGame) {
         this.phaserGame = phaserGame;
@@ -177,8 +187,9 @@ class GameObjectRender {
 exports.GameObjectRender = GameObjectRender;
 
 },{}],5:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
+/// <reference path="../libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
 class Renderer {
     constructor(afterCreateCallback) {
@@ -215,12 +226,14 @@ exports.Renderer = Renderer;
 
 },{"./GameObjectRender":4}],6:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameClient_1 = require("./GameClient");
 let client = new GameClient_1.GameClient();
 client.connect();
 
 },{"./GameClient":1}],7:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./utils/Player");
 class Game {
     constructor() {
@@ -256,6 +269,7 @@ exports.Game = Game;
 
 },{"./utils/Player":15}],8:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
     constructor() {
@@ -291,6 +305,7 @@ exports.InputSnapshot = InputSnapshot;
 
 },{"../Common/utils/Position":16}],9:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class NetObject {
     constructor(id, gameObject) {
         this.id = id;
@@ -314,6 +329,7 @@ exports.NetObject = NetObject;
 
 },{}],10:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const NetObject_1 = require("./NetObject");
 class NetObjectsManager {
     constructor() {
@@ -376,6 +392,7 @@ exports.NetObjectsManager = NetObjectsManager;
 
 },{"./NetObject":9}],11:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
 }
 SocketMsgs.CLIENT_READY = 'cr';
@@ -389,9 +406,9 @@ exports.SocketMsgs = SocketMsgs;
 
 },{}],12:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('position', serializePosition);
 class GameObject {
     constructor(position) {
         this.fCompleteUpdate = true;
@@ -431,16 +448,10 @@ class GameObject {
     }
     deserialize(update) {
         for (let item of update) {
-            if (item.startsWith('P')) {
-                this.updatePosition(item.split(':')[1]);
+            if (SerializeFunctionsMap_1.DeserializeFunctionsMap.has(item[0])) {
+                SerializeFunctionsMap_1.DeserializeFunctionsMap.get(item[0])(this, item.split(':')[1]);
             }
         }
-    }
-    updatePosition(data) {
-        let x = data.split(',')[0];
-        let y = data.split(',')[1];
-        this.position.X = parseFloat(x);
-        this.position.Y = parseFloat(y);
     }
     get Position() {
         return this.position;
@@ -448,29 +459,39 @@ class GameObject {
     get ID() {
         return this.id;
     }
+    static serializePosition(gameObject) {
+        return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
+    }
+    static deserializePosition(gameObject, data) {
+        let x = data.split(',')[0];
+        let y = data.split(',')[1];
+        gameObject.position.X = parseFloat(x);
+        gameObject.position.Y = parseFloat(y);
+    }
 }
 GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
-function serializePosition(gameObject) {
-    return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
-}
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('position', GameObject.serializePosition);
+SerializeFunctionsMap_1.DeserializeFunctionsMap.set('P', GameObject.deserializePosition);
 
 },{"./GameObjectTypes":13,"./SerializeFunctionsMap":17}],13:[function(require,module,exports){
+"use strict";
 /**
  * Created by Tomek on 2017-04-08.
  */
-"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var GameObjectType;
 (function (GameObjectType) {
     GameObjectType[GameObjectType["GameObject"] = 'G'] = "GameObject";
     GameObjectType[GameObjectType["Player"] = 'P'] = "Player";
-})(exports.GameObjectType || (exports.GameObjectType = {}));
-var GameObjectType = exports.GameObjectType;
+})(GameObjectType = exports.GameObjectType || (exports.GameObjectType = {}));
 exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 
 },{}],14:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
 class ObjectsFactory {
@@ -490,20 +511,19 @@ exports.ObjectsFactory = ObjectsFactory;
 
 },{"./Player":15,"./Position":16}],15:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('hp', serializeHp);
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('name', serializeName);
 class Player extends GameObject_1.GameObject {
+    get Type() {
+        return GameObjectTypes_1.GameObjectType.Player.toString();
+    }
     constructor(name, position) {
         super(position);
         this.name = name;
         this.hp = 100;
         this.destination = null;
-    }
-    get Type() {
-        return GameObjectTypes_1.GameObjectType.Player.toString();
     }
     update() {
         super.update();
@@ -532,25 +552,28 @@ class Player extends GameObject_1.GameObject {
     get HP() {
         return this.hp;
     }
-    deserialize(update) {
-        super.deserialize(update);
-        for (let item of update) {
-            if (item.startsWith('H')) {
-                this.hp = parseInt(item.split(':')[1]);
-            }
-        }
+    static serializeHp(player) {
+        return '#H:' + player.HP.toString();
+    }
+    static deserializeHp(player, data) {
+        player.hp = parseInt(data);
+    }
+    static serializeName(player) {
+        return '#N:' + player.name;
+    }
+    static deserializeName(player, data) {
+        player.name = data;
     }
 }
 exports.Player = Player;
-function serializeHp(player) {
-    return '#H:' + player.HP.toString();
-}
-function serializeName(player) {
-    return '#N:' + player.name;
-}
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('hp', Player.serializeHp);
+SerializeFunctionsMap_1.SerializeFunctionsMap.set('name', Player.serializeName);
+SerializeFunctionsMap_1.DeserializeFunctionsMap.set('H', Player.deserializeHp);
+SerializeFunctionsMap_1.DeserializeFunctionsMap.set('N', Player.deserializeName);
 
 },{"./GameObject":12,"./GameObjectTypes":13,"./SerializeFunctionsMap":17}],16:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Position {
     constructor(x, y) {
         this.x = x || 0;
@@ -583,6 +606,8 @@ exports.Position = Position;
 
 },{}],17:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.SerializeFunctionsMap = new Map();
+exports.DeserializeFunctionsMap = new Map();
 
 },{}]},{},[6]);

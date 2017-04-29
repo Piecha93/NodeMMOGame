@@ -3,14 +3,13 @@
 import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./InputHandler";
-import {InputSnapshot} from "../Common/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {NetObject} from "../Common/net/NetObject";
-import GameObjectFactory = Phaser.GameObjectFactory;
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
 import {HeartBeatSender} from "./HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
+import {InputSnapshot} from "Common/InputSnapshot";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
