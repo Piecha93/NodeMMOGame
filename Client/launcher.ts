@@ -1,8 +1,10 @@
 import {GameClient} from "./GameClient";
 
-let client: GameClient =  new GameClient();
+window.onload = () => {
+    let client: GameClient = new GameClient();
 
-client.connect();
+    client.connect();
+}
 
 
 

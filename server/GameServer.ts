@@ -19,7 +19,7 @@ export class GameServer {
 
     private disconnectedClients: string = '';
 
-    constructor(sockets: any) {
+    constructor(sockets: SocketIO.Server) {
         this.socket = sockets;
     }
 
@@ -62,19 +62,23 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
+                console.log(data);
                 let deserializedData = JSON.parse(data);
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 
                 let player: Player = this.game.getObject(serverClient.PlayerId) as Player;
                 if(player != null) {
                     player.Destination = snapshot.ClickPosition;
-                    console.log(player.Destination);
                 }
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
                 this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
                 socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
+            });
+
+            socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
+                this.socket.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
             });
 
             socket.on('disconnect', () => {

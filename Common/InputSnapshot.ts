@@ -6,23 +6,32 @@ export class InputSnapshot implements Serializable<InputSnapshot> {
         this.clear();
     }
 
-    private keysPressed: Array<number>;
-    private keysReleased: Array<number>;
+    private keysPressed: Set<number>;
+    private keysReleased: Set<number>;
 
     private moveTo: Position;
 
     public clear() {
-        this.keysPressed = [];
-        this.keysReleased = [];
-
-        this.keysPressed = null;
+        this.keysPressed = new Set<number>();
+        this.keysReleased = new Set<number>();
+        this.moveTo = new Position()
     }
 
     public clone(): InputSnapshot {
         let inputSnapshot: InputSnapshot = new InputSnapshot;
         inputSnapshot.ClickPosition = new Position(this.moveTo.X, this.moveTo.Y);
+        inputSnapshot.keysReleased = this.keysReleased;
+        inputSnapshot.keysPressed = this.keysPressed;
 
         return inputSnapshot;
+    }
+
+    PressKey(keyCode: number) {
+        this.keysPressed.add(keyCode);
+    }
+
+    ReleaseKey(keyCode: number) {
+        this.keysReleased.add(keyCode);
     }
 
     set ClickPosition(position: Position) {
@@ -34,11 +43,11 @@ export class InputSnapshot implements Serializable<InputSnapshot> {
     }
 
     deserialize(input) {
-        if(this.moveTo) {
-            this.moveTo = this.moveTo.deserialize(input.moveTo);
-        } else {
-            this.moveTo = new Position().deserialize(input.moveTo);
-        }
+        this.clear();
+        this.moveTo = this.moveTo.deserialize(input.moveTo);
+        this.keysReleased = input.keysReleased;
+        this.keysPressed = input.keysPressed;
+
         return this;
     }
 }

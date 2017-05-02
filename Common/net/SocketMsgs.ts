@@ -6,4 +6,5 @@ export class SocketMsgs {
     public static HEARTBEAT_RESPONSE = 'hbr';
     public static UPDATE_GAME = 'ug';
     public static INPUT_SNAPSHOT = 'is';
+    public static CHAT_MESSAGE = 'ch';
 }

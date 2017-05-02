@@ -10,10 +10,12 @@ import {HeartBeatSender} from "./HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {InputSnapshot} from "../Common/InputSnapshot";
+import {Chat} from "./Chat";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
     private game: Game;
+    private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
     private inputTtimeoutId: NodeJS.Timer;
@@ -22,6 +24,7 @@ export class GameClient {
 
     constructor() {
         this.game = new Game;
+
 
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
@@ -35,6 +38,7 @@ export class GameClient {
             reconnection: false
         });
         this.heartBeatSender = new HeartBeatSender(this.socket);
+        this.chat = new Chat(this.socket);
 
         if(this.socket != null) {
             this.configureSocket();
@@ -60,7 +64,7 @@ export class GameClient {
             if (this.inputHandler.Changed) {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
-
+                console.log(serializedSnapshot);
                 this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
             }
     }

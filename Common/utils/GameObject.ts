@@ -9,7 +9,7 @@ export abstract class GameObject {
 
     private static NEXT_ID: number = 0;
 
-    private fCompleteUpdate: boolean = true;
+    private forceComplete: boolean = true;
     protected changes: Set<string>;
     protected position: Position;
     protected id: number = GameObject.NEXT_ID++;
@@ -20,7 +20,7 @@ export abstract class GameObject {
     }
 
     forceCompleteUpdate() {
-        this.fCompleteUpdate = true;
+        this.forceComplete = true;
     }
 
     update() {
@@ -30,8 +30,8 @@ export abstract class GameObject {
     serialize(complete: boolean = false): string {
         let update: string = "";
 
-        if(this.fCompleteUpdate) {
-            this.fCompleteUpdate = false;
+        if(this.forceComplete) {
+            this.forceComplete = false;
             complete = true;
         }
 
