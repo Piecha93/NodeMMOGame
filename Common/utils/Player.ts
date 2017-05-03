@@ -1,7 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-import {SerializeFunctionsMap, DeserializeFunctionsMap} from "./SerializeFunctionsMap";
+import {SerializeFunctions, DeserializeFunctions} from "./SerializeFunctionsMap";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -75,9 +75,9 @@ export class Player extends GameObject {
     }
 }
 
-SerializeFunctionsMap.set('hp', Player.serializeHp);
-SerializeFunctionsMap.set('name', Player.serializeName);
+SerializeFunctions.set('hp', Player.serializeHp);
+SerializeFunctions.set('name', Player.serializeName);
 
-DeserializeFunctionsMap.set('H', Player.deserializeHp);
-DeserializeFunctionsMap.set('N', Player.deserializeName);
+DeserializeFunctions.set('H', Player.deserializeHp);
+DeserializeFunctions.set('N', Player.deserializeName);
 

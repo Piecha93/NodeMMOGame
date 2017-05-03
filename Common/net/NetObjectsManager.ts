@@ -11,19 +11,17 @@ export class NetObjectsManager {
 
     private netObjects: Map<string, NetObject>;
 
-    constructor() {
-        if (NetObjectsManager.instance) {
-            return NetObjectsManager.instance;
-        } else {
-            NetObjectsManager.instance = this;
-            this.netObjects = new Map<string, NetObject>();
-
-            return this;
-        }
+    private constructor() {
+        this.netObjects = new Map<string, NetObject>();
     }
 
     static get Instance(): NetObjectsManager {
-        return new NetObjectsManager;
+        if(NetObjectsManager.instance) {
+            return NetObjectsManager.instance;
+        } else {
+            NetObjectsManager.instance = new NetObjectsManager;
+            return NetObjectsManager.instance;
+        }
     }
 
     collectUpdate(complete: boolean = false): string {

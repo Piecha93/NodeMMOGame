@@ -1,4 +1,4 @@
-import {ChatHtmlHandler} from "./graphic/ChatHtmlHandler";
+import {ChatHtmlHandler} from "./graphic/HtmlHandlers/ChatHtmlHandler";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 
 export class Chat {
@@ -12,7 +12,8 @@ export class Chat {
             this.chatHtmlHandler.append(data['s'], data['m']);
         });
 
-        this.chatHtmlHandler = new ChatHtmlHandler((text: string) => {
+        this.chatHtmlHandler = ChatHtmlHandler.Instance;
+        this.chatHtmlHandler.setSubmitCallback((text: string) => {
             this.socket.emit(SocketMsgs.CHAT_MESSAGE, text);
         });
     }

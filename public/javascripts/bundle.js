@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
-const ChatHtmlHandler_1 = require("./graphic/ChatHtmlHandler");
+const ChatHtmlHandler_1 = require("./graphic/HtmlHandlers/ChatHtmlHandler");
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class Chat {
     constructor(socket) {
@@ -8,14 +8,15 @@ class Chat {
         this.socket.on(SocketMsgs_1.SocketMsgs.CHAT_MESSAGE, (data) => {
             this.chatHtmlHandler.append(data['s'], data['m']);
         });
-        this.chatHtmlHandler = new ChatHtmlHandler_1.ChatHtmlHandler((text) => {
+        this.chatHtmlHandler = ChatHtmlHandler_1.ChatHtmlHandler.Instance;
+        this.chatHtmlHandler.setSubmitCallback((text) => {
             this.socket.emit(SocketMsgs_1.SocketMsgs.CHAT_MESSAGE, text);
         });
     }
 }
 exports.Chat = Chat;
 
-},{"../Common/net/SocketMsgs":14,"./graphic/ChatHtmlHandler":5}],2:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":15,"./graphic/HtmlHandlers/ChatHtmlHandler":6}],2:[function(require,module,exports){
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 "use strict";
 const Game_1 = require("../Common/Game");
@@ -99,9 +100,10 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Common/Game":10,"../Common/net/NetObjectsManager":13,"../Common/net/SocketMsgs":14,"../Common/utils/ObjectsFactory":17,"./Chat":1,"./HeartBeatSender":3,"./InputHandler":4,"./graphic/Renderer":8}],3:[function(require,module,exports){
+},{"../Common/Game":11,"../Common/net/NetObjectsManager":14,"../Common/net/SocketMsgs":15,"../Common/utils/ObjectsFactory":18,"./Chat":1,"./HeartBeatSender":3,"./InputHandler":4,"./graphic/Renderer":9}],3:[function(require,module,exports){
 "use strict";
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
+const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtmlHandler");
 class HeartBeatSender {
     constructor(socket, rate) {
         this.hbId = 0;
@@ -117,6 +119,7 @@ class HeartBeatSender {
     heartBeatResponse(id) {
         let ping = new Date().getTime() - this.heartBeats.get(id);
         //console.log('hbr ' + ping);
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Ping = ping.toString();
         if (this.isRunning) {
             setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
         }
@@ -133,7 +136,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../Common/net/SocketMsgs":14}],4:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":15,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":7}],4:[function(require,module,exports){
 /// <reference path="libs/@types/phaser.d.ts" />
 "use strict";
 const Position_1 = require("../Common/utils/Position");
@@ -174,62 +177,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../Common/InputSnapshot":11,"../Common/utils/Position":19}],5:[function(require,module,exports){
-"use strict";
-class ChatHtmlHandler {
-    constructor(submitCallback) {
-        this.chatInput = document.getElementById("chat-input");
-        this.chatForm = document.getElementById("chat-form");
-        this.chatForm.onsubmit = () => {
-            if (this.chatInput.value != "") {
-                submitCallback(this.chatInput.value);
-                this.chatInput.value = "";
-            }
-            this.chatInput.blur();
-            return false;
-        };
-        document.addEventListener("keypress", (event) => {
-            if (event.keyCode == 13) {
-                event.stopPropagation();
-                this.chatInput.focus();
-            }
-        });
-        this.chatInput.addEventListener("focusin", () => {
-            //console.log("focusin" + this.chatForm.style);
-            this.chatInput.style.color = "rgba(85, 85, 85, 1)";
-        });
-        this.chatInput.addEventListener("focusout", () => {
-            //console.log("focusout" + this.chatForm.style);
-            this.chatInput.style.color = "rgba(85, 85, 85, 0.1)";
-        });
-        let chatZone = document.getElementById("chat-zone");
-        chatZone.addEventListener("mousedown", (event) => {
-            return false;
-        });
-    }
-    append(sender, message) {
-        let htmlMessageeSender = document.createElement("span");
-        htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
-        htmlMessageeSender.style.color = "rgb(50, 50, 85)";
-        let htmlMessageeContent = document.createElement("span");
-        htmlMessageeContent.textContent = message;
-        htmlMessageeContent.style.color = "rgb(85, 85, 85)";
-        let htmlMessagee = document.createElement("span");
-        htmlMessagee.id = "chat-msg";
-        htmlMessagee.appendChild(htmlMessageeSender);
-        htmlMessagee.appendChild(htmlMessageeContent);
-        htmlMessagee.appendChild(document.createElement("br"));
-        let messagesDiv = document.getElementById("chat-msgs");
-        messagesDiv.appendChild(htmlMessagee);
-        if (messagesDiv.childNodes.length > 100) {
-            messagesDiv.removeChild(messagesDiv.firstChild);
-        }
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-}
-exports.ChatHtmlHandler = ChatHtmlHandler;
-
-},{}],6:[function(require,module,exports){
+},{"../Common/InputSnapshot":12,"../Common/utils/Position":20}],5:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 const Renderer_1 = require("./Renderer");
@@ -255,7 +203,107 @@ class GameObjectRender {
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{"./Renderer":8}],7:[function(require,module,exports){
+},{"./Renderer":9}],6:[function(require,module,exports){
+"use strict";
+class ChatHtmlHandler {
+    constructor() {
+        this.create();
+    }
+    static get Instance() {
+        if (ChatHtmlHandler.instance) {
+            return ChatHtmlHandler.instance;
+        }
+        else {
+            ChatHtmlHandler.instance = new ChatHtmlHandler;
+            return ChatHtmlHandler.instance;
+        }
+    }
+    create() {
+        ChatHtmlHandler.instance = this;
+        this.chatInput = document.getElementById("chat-input");
+        this.chatForm = document.getElementById("chat-form");
+        this.chatForm.onsubmit = () => {
+            if (this.chatInput.value != "") {
+                this.callSubmitCallback(this.chatInput.value);
+                this.chatInput.value = "";
+            }
+            this.chatInput.blur();
+            return false;
+        };
+        document.addEventListener("keypress", (event) => {
+            if (event.keyCode == 13) {
+                event.stopPropagation();
+                this.chatInput.focus();
+            }
+        });
+        this.chatInput.addEventListener("focusin", () => {
+            //console.log("focusin" + this.chatForm.style);
+            this.chatInput.style.color = "rgba(85, 85, 85, 1)";
+        });
+        this.chatInput.addEventListener("focusout", () => {
+            //console.log("focusout" + this.chatForm.style);
+            this.chatInput.style.color = "rgba(85, 85, 85, 0.1)";
+        });
+        let chatZone = document.getElementById("chat-zone");
+        chatZone.addEventListener("mousedown", (event) => {
+            return false;
+        });
+    }
+    callSubmitCallback(text) {
+        if (this.submitCallback) {
+            this.submitCallback(text);
+        }
+    }
+    setSubmitCallback(submitCallback) {
+        this.submitCallback = submitCallback;
+    }
+    append(sender, message) {
+        let htmlMessageeSender = document.createElement("span");
+        htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
+        htmlMessageeSender.style.color = "rgb(50, 50, 85)";
+        let htmlMessageeContent = document.createElement("span");
+        htmlMessageeContent.textContent = message;
+        htmlMessageeContent.style.color = "rgb(85, 85, 85)";
+        let htmlMessagee = document.createElement("span");
+        htmlMessagee.id = "chat-msg";
+        htmlMessagee.appendChild(htmlMessageeSender);
+        htmlMessagee.appendChild(htmlMessageeContent);
+        htmlMessagee.appendChild(document.createElement("br"));
+        let messagesDiv = document.getElementById("chat-msgs");
+        messagesDiv.appendChild(htmlMessagee);
+        if (messagesDiv.childNodes.length > 100) {
+            messagesDiv.removeChild(messagesDiv.firstChild);
+        }
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+}
+exports.ChatHtmlHandler = ChatHtmlHandler;
+
+},{}],7:[function(require,module,exports){
+"use strict";
+class DebugWindowHtmlHandler {
+    constructor() {
+        this.debugWindowDiv = document.getElementById("debug-window");
+        this.pingSpan = document.createElement("span");
+        this.Ping = "";
+        this.debugWindowDiv.appendChild(this.pingSpan);
+    }
+    static get Instance() {
+        if (DebugWindowHtmlHandler.instance) {
+            return DebugWindowHtmlHandler.instance;
+        }
+        else {
+            DebugWindowHtmlHandler.instance = new DebugWindowHtmlHandler;
+            return DebugWindowHtmlHandler.instance;
+        }
+    }
+    set Ping(ping) {
+        this.pingSpan.textContent = "Ping(ms): " + ping;
+    }
+}
+exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
+
+},{}],8:[function(require,module,exports){
 "use strict";
 const GameObjectRender_1 = require("./GameObjectRender");
 const Renderer_1 = require("./Renderer");
@@ -282,7 +330,7 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
 }
 exports.PlayerRender = PlayerRender;
 
-},{"./GameObjectRender":6,"./Renderer":8}],8:[function(require,module,exports){
+},{"./GameObjectRender":5,"./Renderer":9}],9:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 const PlayerRender_1 = require("./PlayerRender");
@@ -322,7 +370,7 @@ class Renderer {
 }
 exports.Renderer = Renderer;
 
-},{"./PlayerRender":7}],9:[function(require,module,exports){
+},{"./PlayerRender":8}],10:[function(require,module,exports){
 "use strict";
 const GameClient_1 = require("./GameClient");
 window.onload = () => {
@@ -330,7 +378,7 @@ window.onload = () => {
     client.connect();
 };
 
-},{"./GameClient":2}],10:[function(require,module,exports){
+},{"./GameClient":2}],11:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./utils/Player");
 class Game {
@@ -365,7 +413,7 @@ class Game {
 }
 exports.Game = Game;
 
-},{"./utils/Player":18}],11:[function(require,module,exports){
+},{"./utils/Player":19}],12:[function(require,module,exports){
 "use strict";
 const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
@@ -406,7 +454,7 @@ class InputSnapshot {
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{"../Common/utils/Position":19}],12:[function(require,module,exports){
+},{"../Common/utils/Position":20}],13:[function(require,module,exports){
 "use strict";
 class NetObject {
     constructor(id, gameObject) {
@@ -429,26 +477,25 @@ class NetObject {
 }
 exports.NetObject = NetObject;
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 const NetObject_1 = require("./NetObject");
 class NetObjectsManager {
     constructor() {
-        if (NetObjectsManager.instance) {
-            return NetObjectsManager.instance;
-        }
-        else {
-            NetObjectsManager.instance = this;
-            this.netObjects = new Map();
-            return this;
-        }
+        this.netObjects = new Map();
     }
     static GetNextId(type) {
         NetObjectsManager.NEXT_ID++;
         return type + NetObjectsManager.NEXT_ID.toString();
     }
     static get Instance() {
-        return new NetObjectsManager;
+        if (NetObjectsManager.instance) {
+            return NetObjectsManager.instance;
+        }
+        else {
+            NetObjectsManager.instance = new NetObjectsManager;
+            return NetObjectsManager.instance;
+        }
     }
     collectUpdate(complete = false) {
         let serializedObjects = '';
@@ -491,7 +538,7 @@ class NetObjectsManager {
 NetObjectsManager.NEXT_ID = 0;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"./NetObject":12}],14:[function(require,module,exports){
+},{"./NetObject":13}],15:[function(require,module,exports){
 "use strict";
 class SocketMsgs {
 }
@@ -505,7 +552,7 @@ SocketMsgs.INPUT_SNAPSHOT = 'is';
 SocketMsgs.CHAT_MESSAGE = 'ch';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
@@ -531,14 +578,14 @@ class GameObject {
             complete = true;
         }
         if (complete) {
-            SerializeFunctionsMap_1.SerializeFunctionsMap.forEach((serializeFunc) => {
+            SerializeFunctionsMap_1.SerializeFunctions.forEach((serializeFunc) => {
                 update += serializeFunc(this);
             });
         }
         else {
             this.changes.forEach((field) => {
-                if (SerializeFunctionsMap_1.SerializeFunctionsMap.has(field)) {
-                    update += SerializeFunctionsMap_1.SerializeFunctionsMap.get(field)(this);
+                if (SerializeFunctionsMap_1.SerializeFunctions.has(field)) {
+                    update += SerializeFunctionsMap_1.SerializeFunctions.get(field)(this);
                     this.changes.delete(field);
                 }
             });
@@ -548,8 +595,8 @@ class GameObject {
     }
     deserialize(update) {
         for (let item of update) {
-            if (SerializeFunctionsMap_1.DeserializeFunctionsMap.has(item[0])) {
-                SerializeFunctionsMap_1.DeserializeFunctionsMap.get(item[0])(this, item.split(':')[1]);
+            if (SerializeFunctionsMap_1.DeserializeFunctions.has(item[0])) {
+                SerializeFunctionsMap_1.DeserializeFunctions.get(item[0])(this, item.split(':')[1]);
             }
         }
     }
@@ -571,10 +618,10 @@ class GameObject {
 }
 GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('position', GameObject.serializePosition);
-SerializeFunctionsMap_1.DeserializeFunctionsMap.set('P', GameObject.deserializePosition);
+SerializeFunctionsMap_1.SerializeFunctions.set('position', GameObject.serializePosition);
+SerializeFunctionsMap_1.DeserializeFunctions.set('P', GameObject.deserializePosition);
 
-},{"./GameObjectTypes":16,"./SerializeFunctionsMap":20}],16:[function(require,module,exports){
+},{"./GameObjectTypes":17,"./SerializeFunctionsMap":21}],17:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -588,7 +635,7 @@ exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
@@ -607,7 +654,7 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Player":18,"./Position":19}],18:[function(require,module,exports){
+},{"./Player":19,"./Position":20}],19:[function(require,module,exports){
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
@@ -666,12 +713,12 @@ class Player extends GameObject_1.GameObject {
     }
 }
 exports.Player = Player;
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('hp', Player.serializeHp);
-SerializeFunctionsMap_1.SerializeFunctionsMap.set('name', Player.serializeName);
-SerializeFunctionsMap_1.DeserializeFunctionsMap.set('H', Player.deserializeHp);
-SerializeFunctionsMap_1.DeserializeFunctionsMap.set('N', Player.deserializeName);
+SerializeFunctionsMap_1.SerializeFunctions.set('hp', Player.serializeHp);
+SerializeFunctionsMap_1.SerializeFunctions.set('name', Player.serializeName);
+SerializeFunctionsMap_1.DeserializeFunctions.set('H', Player.deserializeHp);
+SerializeFunctionsMap_1.DeserializeFunctions.set('N', Player.deserializeName);
 
-},{"./GameObject":15,"./GameObjectTypes":16,"./SerializeFunctionsMap":20}],19:[function(require,module,exports){
+},{"./GameObject":16,"./GameObjectTypes":17,"./SerializeFunctionsMap":21}],20:[function(require,module,exports){
 "use strict";
 class Position {
     constructor(x, y) {
@@ -703,9 +750,9 @@ class Position {
 }
 exports.Position = Position;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
-exports.SerializeFunctionsMap = new Map();
-exports.DeserializeFunctionsMap = new Map();
+exports.SerializeFunctions = new Map();
+exports.DeserializeFunctions = new Map();
 
-},{}]},{},[9]);
+},{}]},{},[10]);

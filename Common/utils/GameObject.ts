@@ -1,6 +1,6 @@
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-import {SerializeFunctionsMap, DeserializeFunctionsMap} from "./SerializeFunctionsMap";
+import {SerializeFunctions, DeserializeFunctions} from "./SerializeFunctionsMap";
 
 export abstract class GameObject {
     get Type(): string {
@@ -36,13 +36,13 @@ export abstract class GameObject {
         }
 
         if(complete) {
-            SerializeFunctionsMap.forEach((serializeFunc: Function) => {
+            SerializeFunctions.forEach((serializeFunc: Function) => {
                 update += serializeFunc(this);
             });
         } else {
             this.changes.forEach((field: string) => {
-                if (SerializeFunctionsMap.has(field)) {
-                    update += SerializeFunctionsMap.get(field)(this);
+                if (SerializeFunctions.has(field)) {
+                    update += SerializeFunctions.get(field)(this);
                     this.changes.delete(field);
                 }
             });
@@ -55,8 +55,8 @@ export abstract class GameObject {
 
     deserialize(update: string[]) {
         for(let item of update) {
-            if(DeserializeFunctionsMap.has(item[0])) {
-                DeserializeFunctionsMap.get(item[0])(this, item.split(':')[1]);
+            if(DeserializeFunctions.has(item[0])) {
+                DeserializeFunctions.get(item[0])(this, item.split(':')[1]);
             }
         }
     }
@@ -82,7 +82,7 @@ export abstract class GameObject {
     }
 }
 
-SerializeFunctionsMap.set('position', GameObject.serializePosition);
-DeserializeFunctionsMap.set('P', GameObject.deserializePosition);
+SerializeFunctions.set('position', GameObject.serializePosition);
+DeserializeFunctions.set('P', GameObject.deserializePosition);
 
 

@@ -1,6 +1,7 @@
 
 
 import {SocketMsgs} from "../Common/net/SocketMsgs";
+import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 export class HeartBeatSender {
     private socket: SocketIOClient.Socket;
     private heartBeats: Map<number, number>;
@@ -23,6 +24,9 @@ export class HeartBeatSender {
     private heartBeatResponse(id: number) {
         let ping: number =  new Date().getTime() - this.heartBeats.get(id);
         //console.log('hbr ' + ping);
+
+        DebugWindowHtmlHandler.Instance.Ping = ping.toString();
+
         if(this.isRunning) {
             setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
         }

@@ -37,5 +37,8 @@ let gameServer: GameServer = new GameServer(sockets);
 
 gameServer.start();
 
+/*this.socket.use((socket: SocketIO.Socket, next: Function) => {
+    next();
+});*/
 
 //TODO find express-socket.io-session @types (sharedsession)

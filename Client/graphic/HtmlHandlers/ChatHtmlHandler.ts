@@ -1,14 +1,32 @@
 export class ChatHtmlHandler {
+    private static instance: ChatHtmlHandler;
+
     chatInput: HTMLInputElement;
     chatForm: HTMLFormElement;
 
-    constructor(submitCallback: Function) {
+    submitCallback: Function;
+
+    private constructor() {
+        this.create();
+    }
+
+    static get Instance(): ChatHtmlHandler {
+        if(ChatHtmlHandler.instance) {
+            return ChatHtmlHandler.instance;
+        } else {
+            ChatHtmlHandler.instance = new ChatHtmlHandler;
+            return ChatHtmlHandler.instance;
+        }
+    }
+
+    private create() {
+        ChatHtmlHandler.instance = this;
         this.chatInput = document.getElementById("chat-input") as HTMLInputElement;
         this.chatForm = document.getElementById("chat-form") as HTMLFormElement;
 
         this.chatForm.onsubmit = () => {
             if(this.chatInput.value != "") {
-                submitCallback(this.chatInput.value);
+                this.callSubmitCallback(this.chatInput.value);
                 this.chatInput.value = "";
             }
             this.chatInput.blur();
@@ -36,6 +54,16 @@ export class ChatHtmlHandler {
         chatZone.addEventListener("mousedown", (event: MouseEvent) => {
             return false;
         });
+    }
+
+    private callSubmitCallback(text: string) {
+        if(this.submitCallback) {
+            this.submitCallback(text);
+        }
+    }
+
+    public setSubmitCallback(submitCallback: Function) {
+        this.submitCallback = submitCallback;
     }
 
     public append(sender: string, message: string) {
