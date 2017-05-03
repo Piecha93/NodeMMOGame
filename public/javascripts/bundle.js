@@ -178,34 +178,53 @@ exports.InputHandler = InputHandler;
 "use strict";
 class ChatHtmlHandler {
     constructor(submitCallback) {
-        let chatInput = document.getElementById("chat-input");
-        let chatForm = document.getElementById("chat-form");
-        let stopNextSubmit = false;
-        chatInput.style.display = 'none';
-        chatForm.onsubmit = () => {
-            if (chatInput.value != "") {
-                submitCallback(chatInput.value);
-                chatInput.value = "";
+        this.chatInput = document.getElementById("chat-input");
+        this.chatForm = document.getElementById("chat-form");
+        this.chatForm.onsubmit = () => {
+            if (this.chatInput.value != "") {
+                submitCallback(this.chatInput.value);
+                this.chatInput.value = "";
             }
-            chatInput.style.display = 'none';
+            this.chatInput.blur();
             return false;
         };
         document.addEventListener("keypress", (event) => {
             if (event.keyCode == 13) {
                 event.stopPropagation();
-                stopNextSubmit = true;
-                chatInput.style.display = '';
-                chatInput.focus();
+                this.chatInput.focus();
             }
+        });
+        this.chatInput.addEventListener("focusin", () => {
+            console.log("focusin" + this.chatForm.style);
+            this.chatInput.style.color = "rgba(85, 85, 85, 1)";
+        });
+        this.chatInput.addEventListener("focusout", () => {
+            console.log("focusout" + this.chatForm.style);
+            this.chatInput.style.color = "rgba(85, 85, 85, 0.1)";
+        });
+        let chatZone = document.getElementById("chat-zone");
+        chatZone.addEventListener("mousedown", (event) => {
+            return false;
         });
     }
     append(sender, message) {
         //let htmlMessage = "<div class='chatmsg'>" + message + "</div>";
-        let htmlMessagee = document.createElement("div");
-        htmlMessagee.innerHTML = "<b>" + sender + "</b>: " + message; //TODO prevent user from append html tags in message
+        let htmlMessageeSender = document.createElement("span");
+        htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
+        htmlMessageeSender.style.color = "rgb(50, 50, 85)";
+        let htmlMessageeContent = document.createElement("span");
+        htmlMessageeContent.textContent = message;
+        htmlMessageeContent.style.color = "rgb(85, 85, 85)";
+        let htmlMessagee = document.createElement("span");
         htmlMessagee.id = "chat-msg";
+        htmlMessagee.appendChild(htmlMessageeSender);
+        htmlMessagee.appendChild(htmlMessageeContent);
+        htmlMessagee.appendChild(document.createElement("br"));
         let messagesDiv = document.getElementById("chat-msgs");
         messagesDiv.appendChild(htmlMessagee);
+        if (messagesDiv.childNodes.length > 100) {
+            messagesDiv.removeChild(messagesDiv.firstChild);
+        }
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 }
@@ -243,7 +262,7 @@ exports.GameObjectRender = GameObjectRender;
 const GameObjectRender_1 = require("./GameObjectRender");
 class Renderer {
     constructor(afterCreateCallback) {
-        this.phaserGame = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        this.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
         this.renderObjectMap = new Map();
     }
     preload() {
