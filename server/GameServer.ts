@@ -73,8 +73,10 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
-                this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
-                socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
+                if(this.clientsMap.has(socket)) {
+                    this.clientsMap.get(socket).LastHbInterval = ServerSettings.CLIENT_TIMEOUT;
+                    socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
+                }
             });
 
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
