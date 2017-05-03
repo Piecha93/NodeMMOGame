@@ -2,19 +2,20 @@
 
 import {GameObject} from "../../Common/utils/GameObject";
 import {GameObjectRender} from "./GameObjectRender";
+import {PlayerRender} from "./PlayerRender";
 
 export class Renderer {
-    private phaserGame: Phaser.Game;
+    static phaserGame: Phaser.Game;
 
     private renderObjectMap: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
-        this.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
         this.renderObjectMap = new Map<GameObject, GameObjectRender>();
     }
 
     private preload() {
-        this.phaserGame.load.image('bunny', 'resources/images/bunny.png');
+        Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
 
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
@@ -30,9 +31,14 @@ export class Renderer {
         });
     }
 
-    public addGameObject(gameObject: GameObject) {
-        let gameObjectRender: GameObjectRender = new GameObjectRender(this.phaserGame);
-        gameObjectRender.GameObject = gameObject;
+    public addGameObject(gameObject: GameObject, type: string) {
+        let gameObjectRender: GameObjectRender;
+
+        if(type == "P") {
+            gameObjectRender = new PlayerRender();
+        }
+
+        gameObjectRender.setObject(gameObject);
         this.renderObjectMap.set(gameObject, gameObjectRender);
     }
 
@@ -42,6 +48,6 @@ export class Renderer {
     }
 
     get PhaserInput(): Phaser.Input {
-        return this.phaserGame.input;
+        return Renderer.phaserGame.input;
     }
 }

@@ -54,6 +54,10 @@ export class Player extends GameObject {
         return this.hp;
     }
 
+    get Name(): string {
+        return this.name;
+    }
+
     static serializeHp(player: Player): string {
         return '#H:' + player.HP.toString();
     }

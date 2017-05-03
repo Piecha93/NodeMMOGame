@@ -41,7 +41,7 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
-            console.log(this.clientsMap.size);
+            //console.log(this.clientsMap.size);
 
             socket.emit(SocketMsgs.START_GAME);
             
@@ -62,7 +62,7 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
-                console.log(data);
+                //console.log(data);
                 let deserializedData = JSON.parse(data);
                 let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
 

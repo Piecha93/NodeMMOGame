@@ -23,12 +23,12 @@ export class ChatHtmlHandler {
         });
 
         this.chatInput.addEventListener("focusin", () => {
-            console.log("focusin" + this.chatForm.style);
+            //console.log("focusin" + this.chatForm.style);
             this.chatInput.style.color = "rgba(85, 85, 85, 1)"
         });
 
         this.chatInput.addEventListener("focusout", () => {
-            console.log("focusout" + this.chatForm.style);
+            //console.log("focusout" + this.chatForm.style);
             this.chatInput.style.color = "rgba(85, 85, 85, 0.1)"
         });
 
@@ -39,8 +39,6 @@ export class ChatHtmlHandler {
     }
 
     public append(sender: string, message: string) {
-        //let htmlMessage = "<div class='chatmsg'>" + message + "</div>";
-
         let htmlMessageeSender: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
         htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
         htmlMessageeSender.style.color = "rgb(50, 50, 85)";

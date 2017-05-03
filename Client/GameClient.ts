@@ -64,7 +64,7 @@ export class GameClient {
             if (this.inputHandler.Changed) {
                 let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
                 let serializedSnapshot = JSON.stringify(snapshot);
-                console.log(serializedSnapshot);
+                //console.log(serializedSnapshot);
                 this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
             }
     }
@@ -74,7 +74,7 @@ export class GameClient {
             return
         }
 
-        console.log(data['update']);
+        //console.log(data['update']);
 
         let update = data['update'].split('$');
         for (let object in update) {
@@ -97,7 +97,7 @@ export class GameClient {
                 let gameObject = ObjectsFactory.CreateGameObject(id);
                 netObject = this.netObjectMenager.createObject(gameObject, id);
 
-                this.renderer.addGameObject(gameObject);
+                this.renderer.addGameObject(gameObject, id[0]);
             }
             netObject.GameObject.deserialize(data.split('#'))
         }

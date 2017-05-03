@@ -2,22 +2,20 @@
 
 import {GameObject} from "../../Common/utils/GameObject";
 import {Position} from "../../Common/utils/Position";
+import {Renderer} from "./Renderer";
 
 export class GameObjectRender {
-    private phaserGame: Phaser.Game;
-    private sprite: Phaser.Sprite;
-    private objectReference: GameObject;
+    protected sprite: Phaser.Sprite;
+    protected objectReference: GameObject;
 
-
-    constructor(phaserGame: Phaser.Game) {
-        this.phaserGame = phaserGame;
+    constructor() {
     }
 
-    set GameObject(gameObjectReference: GameObject) {
+    public setObject(gameObjectReference: GameObject) {
         this.objectReference = gameObjectReference;
 
         let position: Position = this.objectReference.Position;
-        this.sprite = this.phaserGame.add.sprite(position.X, position.Y, 'bunny');
+        this.sprite = Renderer.phaserGame.add.sprite(position.X, position.Y, 'bunny');
         this.sprite.anchor.setTo(0.5, 0.5);
     }
 

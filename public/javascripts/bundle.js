@@ -15,7 +15,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../Common/net/SocketMsgs":13,"./graphic/ChatHtmlHandler":5}],2:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":14,"./graphic/ChatHtmlHandler":5}],2:[function(require,module,exports){
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 "use strict";
 const Game_1 = require("../Common/Game");
@@ -62,7 +62,7 @@ class GameClient {
         if (this.inputHandler.Changed) {
             let snapshot = this.inputHandler.cloneInputSnapshot();
             let serializedSnapshot = JSON.stringify(snapshot);
-            console.log(serializedSnapshot);
+            //console.log(serializedSnapshot);
             this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
         }
     }
@@ -70,7 +70,7 @@ class GameClient {
         if (data['update'] == null) {
             return;
         }
-        console.log(data['update']);
+        //console.log(data['update']);
         let update = data['update'].split('$');
         for (let object in update) {
             let splitObject = update[object].split('-');
@@ -90,7 +90,7 @@ class GameClient {
             if (netObject == null) {
                 let gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
                 netObject = this.netObjectMenager.createObject(gameObject, id);
-                this.renderer.addGameObject(gameObject);
+                this.renderer.addGameObject(gameObject, id[0]);
             }
             netObject.GameObject.deserialize(data.split('#'));
         }
@@ -99,7 +99,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Common/Game":9,"../Common/net/NetObjectsManager":12,"../Common/net/SocketMsgs":13,"../Common/utils/ObjectsFactory":16,"./Chat":1,"./HeartBeatSender":3,"./InputHandler":4,"./graphic/Renderer":7}],3:[function(require,module,exports){
+},{"../Common/Game":10,"../Common/net/NetObjectsManager":13,"../Common/net/SocketMsgs":14,"../Common/utils/ObjectsFactory":17,"./Chat":1,"./HeartBeatSender":3,"./InputHandler":4,"./graphic/Renderer":8}],3:[function(require,module,exports){
 "use strict";
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class HeartBeatSender {
@@ -116,7 +116,7 @@ class HeartBeatSender {
     }
     heartBeatResponse(id) {
         let ping = new Date().getTime() - this.heartBeats.get(id);
-        console.log('hbr ' + ping);
+        //console.log('hbr ' + ping);
         if (this.isRunning) {
             setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
         }
@@ -133,7 +133,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../Common/net/SocketMsgs":13}],4:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":14}],4:[function(require,module,exports){
 /// <reference path="libs/@types/phaser.d.ts" />
 "use strict";
 const Position_1 = require("../Common/utils/Position");
@@ -174,7 +174,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../Common/InputSnapshot":10,"../Common/utils/Position":18}],5:[function(require,module,exports){
+},{"../Common/InputSnapshot":11,"../Common/utils/Position":19}],5:[function(require,module,exports){
 "use strict";
 class ChatHtmlHandler {
     constructor(submitCallback) {
@@ -195,11 +195,11 @@ class ChatHtmlHandler {
             }
         });
         this.chatInput.addEventListener("focusin", () => {
-            console.log("focusin" + this.chatForm.style);
+            //console.log("focusin" + this.chatForm.style);
             this.chatInput.style.color = "rgba(85, 85, 85, 1)";
         });
         this.chatInput.addEventListener("focusout", () => {
-            console.log("focusout" + this.chatForm.style);
+            //console.log("focusout" + this.chatForm.style);
             this.chatInput.style.color = "rgba(85, 85, 85, 0.1)";
         });
         let chatZone = document.getElementById("chat-zone");
@@ -208,7 +208,6 @@ class ChatHtmlHandler {
         });
     }
     append(sender, message) {
-        //let htmlMessage = "<div class='chatmsg'>" + message + "</div>";
         let htmlMessageeSender = document.createElement("span");
         htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
         htmlMessageeSender.style.color = "rgb(50, 50, 85)";
@@ -233,14 +232,14 @@ exports.ChatHtmlHandler = ChatHtmlHandler;
 },{}],6:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
+const Renderer_1 = require("./Renderer");
 class GameObjectRender {
-    constructor(phaserGame) {
-        this.phaserGame = phaserGame;
+    constructor() {
     }
-    set GameObject(gameObjectReference) {
+    setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
         let position = this.objectReference.Position;
-        this.sprite = this.phaserGame.add.sprite(position.X, position.Y, 'bunny');
+        this.sprite = Renderer_1.Renderer.phaserGame.add.sprite(position.X, position.Y, 'bunny');
         this.sprite.anchor.setTo(0.5, 0.5);
     }
     render() {
@@ -256,17 +255,44 @@ class GameObjectRender {
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{}],7:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
+},{"./Renderer":8}],7:[function(require,module,exports){
 "use strict";
 const GameObjectRender_1 = require("./GameObjectRender");
+const Renderer_1 = require("./Renderer");
+class PlayerRender extends GameObjectRender_1.GameObjectRender {
+    constructor() {
+        super();
+    }
+    setObject(player) {
+        super.setObject(player);
+        this.playerReference = player;
+        this.nameText = Renderer_1.Renderer.phaserGame.add.text(0, 0, this.playerReference.Name, {
+            font: "bold 11px Arial",
+            fill: "#ffffff"
+        });
+        this.nameText.anchor.setTo(0.5, 2);
+        this.sprite.addChild(this.nameText);
+    }
+    render() {
+        super.render();
+        if (this.sprite) {
+            this.nameText.text = this.playerReference.Name;
+        }
+    }
+}
+exports.PlayerRender = PlayerRender;
+
+},{"./GameObjectRender":6,"./Renderer":8}],8:[function(require,module,exports){
+/// <reference path="../libs/@types/phaser.d.ts" />
+"use strict";
+const PlayerRender_1 = require("./PlayerRender");
 class Renderer {
     constructor(afterCreateCallback) {
-        this.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
         this.renderObjectMap = new Map();
     }
     preload() {
-        this.phaserGame.load.image('bunny', 'resources/images/bunny.png');
+        Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
     create(afterCreateCallback) {
@@ -278,9 +304,12 @@ class Renderer {
             gameObjectRender.render();
         });
     }
-    addGameObject(gameObject) {
-        let gameObjectRender = new GameObjectRender_1.GameObjectRender(this.phaserGame);
-        gameObjectRender.GameObject = gameObject;
+    addGameObject(gameObject, type) {
+        let gameObjectRender;
+        if (type == "P") {
+            gameObjectRender = new PlayerRender_1.PlayerRender();
+        }
+        gameObjectRender.setObject(gameObject);
         this.renderObjectMap.set(gameObject, gameObjectRender);
     }
     removeGameObject(gameObject) {
@@ -288,12 +317,12 @@ class Renderer {
         this.renderObjectMap.delete(gameObject);
     }
     get PhaserInput() {
-        return this.phaserGame.input;
+        return Renderer.phaserGame.input;
     }
 }
 exports.Renderer = Renderer;
 
-},{"./GameObjectRender":6}],8:[function(require,module,exports){
+},{"./PlayerRender":7}],9:[function(require,module,exports){
 "use strict";
 const GameClient_1 = require("./GameClient");
 window.onload = () => {
@@ -301,7 +330,7 @@ window.onload = () => {
     client.connect();
 };
 
-},{"./GameClient":2}],9:[function(require,module,exports){
+},{"./GameClient":2}],10:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./utils/Player");
 class Game {
@@ -336,7 +365,7 @@ class Game {
 }
 exports.Game = Game;
 
-},{"./utils/Player":17}],10:[function(require,module,exports){
+},{"./utils/Player":18}],11:[function(require,module,exports){
 "use strict";
 const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
@@ -377,7 +406,7 @@ class InputSnapshot {
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{"../Common/utils/Position":18}],11:[function(require,module,exports){
+},{"../Common/utils/Position":19}],12:[function(require,module,exports){
 "use strict";
 class NetObject {
     constructor(id, gameObject) {
@@ -400,7 +429,7 @@ class NetObject {
 }
 exports.NetObject = NetObject;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 "use strict";
 const NetObject_1 = require("./NetObject");
 class NetObjectsManager {
@@ -462,7 +491,7 @@ class NetObjectsManager {
 NetObjectsManager.NEXT_ID = 0;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"./NetObject":11}],13:[function(require,module,exports){
+},{"./NetObject":12}],14:[function(require,module,exports){
 "use strict";
 class SocketMsgs {
 }
@@ -476,7 +505,7 @@ SocketMsgs.INPUT_SNAPSHOT = 'is';
 SocketMsgs.CHAT_MESSAGE = 'ch';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
@@ -545,7 +574,7 @@ exports.GameObject = GameObject;
 SerializeFunctionsMap_1.SerializeFunctionsMap.set('position', GameObject.serializePosition);
 SerializeFunctionsMap_1.DeserializeFunctionsMap.set('P', GameObject.deserializePosition);
 
-},{"./GameObjectTypes":15,"./SerializeFunctionsMap":19}],15:[function(require,module,exports){
+},{"./GameObjectTypes":16,"./SerializeFunctionsMap":20}],16:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -559,7 +588,7 @@ exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
@@ -578,7 +607,7 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Player":17,"./Position":18}],17:[function(require,module,exports){
+},{"./Player":18,"./Position":19}],18:[function(require,module,exports){
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
@@ -620,6 +649,9 @@ class Player extends GameObject_1.GameObject {
     get HP() {
         return this.hp;
     }
+    get Name() {
+        return this.name;
+    }
     static serializeHp(player) {
         return '#H:' + player.HP.toString();
     }
@@ -639,7 +671,7 @@ SerializeFunctionsMap_1.SerializeFunctionsMap.set('name', Player.serializeName);
 SerializeFunctionsMap_1.DeserializeFunctionsMap.set('H', Player.deserializeHp);
 SerializeFunctionsMap_1.DeserializeFunctionsMap.set('N', Player.deserializeName);
 
-},{"./GameObject":14,"./GameObjectTypes":15,"./SerializeFunctionsMap":19}],18:[function(require,module,exports){
+},{"./GameObject":15,"./GameObjectTypes":16,"./SerializeFunctionsMap":20}],19:[function(require,module,exports){
 "use strict";
 class Position {
     constructor(x, y) {
@@ -671,9 +703,9 @@ class Position {
 }
 exports.Position = Position;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 exports.SerializeFunctionsMap = new Map();
 exports.DeserializeFunctionsMap = new Map();
 
-},{}]},{},[8]);
+},{}]},{},[9]);
