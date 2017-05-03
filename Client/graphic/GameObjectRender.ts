@@ -15,16 +15,22 @@ export class GameObjectRender {
         this.objectReference = gameObjectReference;
 
         let position: Position = this.objectReference.Position;
-        this.sprite = Renderer.phaserGame.add.sprite(position.X, position.Y, 'bunny');
+        this.sprite = Renderer.phaserGame.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
         this.sprite.anchor.setTo(0.5, 0.5);
+
+
     }
 
     public render() {
-       if(this.sprite) {
-           let position: Position = this.objectReference.Position;
-           this.sprite.x = position.X;
-           this.sprite.y = position.Y;
+       if(!this.sprite) {
+           return;
        }
+       let position: Position = this.objectReference.Position;
+       this.sprite.x = position.X;
+       this.sprite.y = position.Y;
+
+       this.sprite.loadTexture(this.objectReference.SpriteName);
+
     }
 
     public hide() {

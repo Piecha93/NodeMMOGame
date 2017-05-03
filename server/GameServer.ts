@@ -80,6 +80,9 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
+                if(msg == "rudycwel") {
+                    this.game.getObject(serverClient.PlayerId).SpriteName = "dyzma";
+                }
                 this.socket.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
             });
 

@@ -187,15 +187,17 @@ class GameObjectRender {
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
         let position = this.objectReference.Position;
-        this.sprite = Renderer_1.Renderer.phaserGame.add.sprite(position.X, position.Y, 'bunny');
+        this.sprite = Renderer_1.Renderer.phaserGame.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
         this.sprite.anchor.setTo(0.5, 0.5);
     }
     render() {
-        if (this.sprite) {
-            let position = this.objectReference.Position;
-            this.sprite.x = position.X;
-            this.sprite.y = position.Y;
+        if (!this.sprite) {
+            return;
         }
+        let position = this.objectReference.Position;
+        this.sprite.x = position.X;
+        this.sprite.y = position.Y;
+        this.sprite.loadTexture(this.objectReference.SpriteName);
     }
     hide() {
         this.sprite.destroy();
@@ -341,6 +343,7 @@ class Renderer {
     }
     preload() {
         Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
+        Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
     create(afterCreateCallback) {
@@ -562,6 +565,7 @@ class GameObject {
         this.id = GameObject.NEXT_ID++;
         this.position = position;
         this.changes = new Set();
+        this.spriteName = "bunny";
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.GameObject.toString();
@@ -606,6 +610,13 @@ class GameObject {
     get ID() {
         return this.id;
     }
+    get SpriteName() {
+        return this.spriteName;
+    }
+    set SpriteName(spriteName) {
+        this.spriteName = spriteName;
+        this.changes.add("spriteName");
+    }
     static serializePosition(gameObject) {
         return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
     }
@@ -615,11 +626,19 @@ class GameObject {
         gameObject.position.X = parseFloat(x);
         gameObject.position.Y = parseFloat(y);
     }
+    static serializeSpriteName(gameObject) {
+        return '#S:' + gameObject.spriteName;
+    }
+    static deserializeSpriteName(gameObject, data) {
+        gameObject.spriteName = data;
+    }
 }
 GameObject.NEXT_ID = 0;
 exports.GameObject = GameObject;
 SerializeFunctionsMap_1.SerializeFunctions.set('position', GameObject.serializePosition);
 SerializeFunctionsMap_1.DeserializeFunctions.set('P', GameObject.deserializePosition);
+SerializeFunctionsMap_1.SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
+SerializeFunctionsMap_1.DeserializeFunctions.set('S', GameObject.deserializeSpriteName);
 
 },{"./GameObjectTypes":17,"./SerializeFunctionsMap":21}],17:[function(require,module,exports){
 /**

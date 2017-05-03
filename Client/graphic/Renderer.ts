@@ -16,6 +16,7 @@ export class Renderer {
 
     private preload() {
         Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
+        Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
 
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }

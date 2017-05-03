@@ -13,10 +13,13 @@ export abstract class GameObject {
     protected changes: Set<string>;
     protected position: Position;
     protected id: number = GameObject.NEXT_ID++;
+    protected spriteName: string;
 
     constructor(position: Position) {
         this.position = position;
         this.changes = new Set<string>();
+
+        this.spriteName = "bunny";
     }
 
     forceCompleteUpdate() {
@@ -69,6 +72,15 @@ export abstract class GameObject {
         return this.id;
     }
 
+    get SpriteName(): string {
+        return this.spriteName;
+    }
+
+    set SpriteName(spriteName: string) {
+        this.spriteName = spriteName;
+        this.changes.add("spriteName");
+    }
+
     static serializePosition(gameObject: GameObject): string {
         return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
     }
@@ -80,9 +92,20 @@ export abstract class GameObject {
         gameObject.position.X = parseFloat(x);
         gameObject.position.Y = parseFloat(y);
     }
+
+    static serializeSpriteName(gameObject: GameObject): string {
+        return '#S:' + gameObject.spriteName;
+    }
+
+    static deserializeSpriteName(gameObject: GameObject, data: string) {
+        gameObject.spriteName = data;
+    }
 }
 
 SerializeFunctions.set('position', GameObject.serializePosition);
 DeserializeFunctions.set('P', GameObject.deserializePosition);
+
+SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
+DeserializeFunctions.set('S', GameObject.deserializeSpriteName);
 
 
