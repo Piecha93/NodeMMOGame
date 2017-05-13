@@ -11,6 +11,8 @@ export class Player extends GameObject {
     private name: string;
     private hp: number;
     private destination: Position;
+    private direction: number;
+    private speed = 10;
 
     constructor(name: string, position: Position) {
         super(position);
@@ -20,19 +22,43 @@ export class Player extends GameObject {
         this.destination = null;
     }
 
-    update() {
+    public setInput(commands: Map<string, string> ) {
+        commands.forEach((value: string, key: string) => {
+            if(key == "D") {
+                this.direction = parseInt(value);
+            }
+        });
+    }
+
+    public update() {
         super.update();
-        if(this.destination) {
-            //this.position.X += (this.destination.X - this.position.X) / 10;
-            //this.position.Y += (this.destination.Y - this.position.Y) / 10;
 
-            this.position.X = this.destination.X;
-            this.position.Y = this.destination.Y;
-
-            this.destination = null;
-            this.changes.add('position');
+        let xFactor: number = 0;
+        let yFactor: number = 0;
+        if(this.direction == 1) {
+            yFactor = -1;
+        } else if(this.direction == 2) {
+            xFactor = 0.7071;
+            yFactor = -0.7071;
+        } else if(this.direction == 3) {
+            xFactor = 1;
+        } else if(this.direction == 4) {
+            xFactor = 0.7071;
+            yFactor = 0.7071;
+        } else if(this.direction == 5) {
+            yFactor = 1;
+        } else if(this.direction == 6) {
+            xFactor = -0.7071;
+            yFactor = 0.7071;
+        } else if(this.direction == 7) {
+            xFactor = -1;
+        } else if(this.direction == 8) {
+            xFactor = -0.7071;
+            yFactor = -0.7071;
         }
-        this.hit(Math.floor(Math.random() * 100));
+        this.position.X += xFactor * this.speed;
+        this.position.Y += yFactor * this.speed;
+        this.changes.add('position');
     }
 
     get Destination(): Position {
@@ -41,6 +67,12 @@ export class Player extends GameObject {
 
     set Destination(destination: Position) {
         this.destination = destination;
+    }
+
+    set Direction(direction: number) {
+        if(direction >= 0 && direction <= 8) {
+            this.direction = direction;
+        }
     }
 
     hit(power: number) {
@@ -56,6 +88,10 @@ export class Player extends GameObject {
 
     get Name(): string {
         return this.name;
+    }
+
+    get Direction(): number {
+        return this.direction;
     }
 
     static serializeHp(player: Player): string {

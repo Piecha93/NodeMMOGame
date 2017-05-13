@@ -16,24 +16,38 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../Common/net/SocketMsgs":15,"./graphic/HtmlHandlers/ChatHtmlHandler":6}],2:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":18,"./graphic/HtmlHandlers/ChatHtmlHandler":5}],2:[function(require,module,exports){
+"use strict";
+class ClientSettings {
+}
+ClientSettings.INPUT_SNAPSHOT_TIMER = 1 / 10 * 1000;
+exports.ClientSettings = ClientSettings;
+
+},{}],3:[function(require,module,exports){
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 "use strict";
 const Game_1 = require("../Common/Game");
 const Renderer_1 = require("./graphic/Renderer");
-const InputHandler_1 = require("./InputHandler");
+const InputHandler_1 = require("./input/InputHandler");
 const NetObjectsManager_1 = require("../Common/net/NetObjectsManager");
 const ObjectsFactory_1 = require("../Common/utils/ObjectsFactory");
-const HeartBeatSender_1 = require("./HeartBeatSender");
+const HeartBeatSender_1 = require("./net/HeartBeatSender");
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 const Chat_1 = require("./Chat");
+const InputSender_1 = require("../Client/net/InputSender");
 class GameClient {
     constructor() {
         this.netObjectMenager = NetObjectsManager_1.NetObjectsManager.Instance;
+        this.connect();
         this.game = new Game_1.Game;
+        this.inputSender = new InputSender_1.InputSender(this.socket);
+        this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
+        this.chat = new Chat_1.Chat(this.socket);
         this.renderer = new Renderer_1.Renderer(() => {
             this.inputHandler = new InputHandler_1.InputHandler(this.renderer.PhaserInput);
+            this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
+            this.inputHandler.startInputSnapshotTimer();
             this.heartBeatSender.startSendingHeartbeats();
         });
     }
@@ -41,31 +55,23 @@ class GameClient {
         this.socket = io.connect({
             reconnection: false
         });
-        this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
-        this.chat = new Chat_1.Chat(this.socket);
         if (this.socket != null) {
             this.configureSocket();
+        }
+        else {
+            throw new Error("Cannot connect to server");
         }
     }
     configureSocket() {
         this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
-            this.startSendingInput();
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
         this.game = new Game_1.Game;
-    }
-    startSendingInput() {
-        this.inputTtimeoutId = setTimeout(() => this.startSendingInput(), 1 / 10 * 1000);
-        if (this.inputHandler.Changed) {
-            let snapshot = this.inputHandler.cloneInputSnapshot();
-            let serializedSnapshot = JSON.stringify(snapshot);
-            //console.log(serializedSnapshot);
-            this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
-        }
+        this.game.startGameLoop();
     }
     updateGame(data) {
         if (data['update'] == null) {
@@ -100,84 +106,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Common/Game":11,"../Common/net/NetObjectsManager":14,"../Common/net/SocketMsgs":15,"../Common/utils/ObjectsFactory":18,"./Chat":1,"./HeartBeatSender":3,"./InputHandler":4,"./graphic/Renderer":9}],3:[function(require,module,exports){
-"use strict";
-const SocketMsgs_1 = require("../Common/net/SocketMsgs");
-const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtmlHandler");
-class HeartBeatSender {
-    constructor(socket, rate) {
-        this.hbId = 0;
-        this.rate = 1;
-        this.isRunning = false;
-        this.socket = socket;
-        this.socket.on(SocketMsgs_1.SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
-        this.heartBeats = new Map();
-        if (rate != null) {
-            this.rate = rate;
-        }
-    }
-    heartBeatResponse(id) {
-        let ping = new Date().getTime() - this.heartBeats.get(id);
-        //console.log('hbr ' + ping);
-        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Ping = ping.toString();
-        if (this.isRunning) {
-            setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
-        }
-    }
-    startSendingHeartbeats() {
-        this.isRunning = true;
-        this.socket.emit(SocketMsgs_1.SocketMsgs.HEARTBEAT, this.hbId);
-        this.heartBeats.set(this.hbId, new Date().getTime());
-        this.hbId++;
-    }
-    stopSendingHeartbeats() {
-        this.isRunning = true;
-    }
-}
-exports.HeartBeatSender = HeartBeatSender;
-
-},{"../Common/net/SocketMsgs":15,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":7}],4:[function(require,module,exports){
-/// <reference path="libs/@types/phaser.d.ts" />
-"use strict";
-const Position_1 = require("../Common/utils/Position");
-const InputSnapshot_1 = require("../Common/InputSnapshot");
-class InputHandler {
-    constructor(phaserInput) {
-        document.addEventListener("keydown", this.keyPressed.bind(this));
-        document.addEventListener("keyup", this.keyReleased.bind(this));
-        this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
-        this.changed = false;
-        this.phaserInput = phaserInput;
-        this.phaserInput.onDown.add(this.mouseClick, this);
-        //this.phaserInput.addMoveCallback(this.mouseClick, this);
-    }
-    keyPressed(event) {
-        //console.log("keyPressed " + event.keyCode);
-        this.inputSnapshot.PressKey(event.keyCode);
-        //this.changed = true;
-    }
-    keyReleased(event) {
-        //console.log("keyReleased " + event.keyCode);
-        this.inputSnapshot.ReleaseKey(event.keyCode);
-        //this.changed = true;
-    }
-    mouseClick(mouseEvent) {
-        this.inputSnapshot.ClickPosition = new Position_1.Position(mouseEvent.x, mouseEvent.y);
-        this.changed = true;
-    }
-    cloneInputSnapshot() {
-        this.changed = false;
-        let inputSnapshotCopy = this.inputSnapshot.clone();
-        this.inputSnapshot.clear();
-        return inputSnapshotCopy;
-    }
-    get Changed() {
-        return this.changed;
-    }
-}
-exports.InputHandler = InputHandler;
-
-},{"../Common/InputSnapshot":12,"../Common/utils/Position":20}],5:[function(require,module,exports){
+},{"../Client/net/InputSender":13,"../Common/Game":14,"../Common/net/NetObjectsManager":17,"../Common/net/SocketMsgs":18,"../Common/utils/ObjectsFactory":21,"./Chat":1,"./graphic/Renderer":8,"./input/InputHandler":9,"./net/HeartBeatSender":12}],4:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 const Renderer_1 = require("./Renderer");
@@ -197,7 +126,9 @@ class GameObjectRender {
         let position = this.objectReference.Position;
         this.sprite.x = position.X;
         this.sprite.y = position.Y;
-        this.sprite.loadTexture(this.objectReference.SpriteName);
+        if (this.sprite.texture.baseTexture.source.name != this.objectReference.SpriteName) {
+            this.sprite.loadTexture(this.objectReference.SpriteName);
+        }
     }
     hide() {
         this.sprite.destroy();
@@ -205,7 +136,7 @@ class GameObjectRender {
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{"./Renderer":9}],6:[function(require,module,exports){
+},{"./Renderer":8}],5:[function(require,module,exports){
 "use strict";
 class ChatHtmlHandler {
     constructor() {
@@ -281,7 +212,7 @@ class ChatHtmlHandler {
 }
 exports.ChatHtmlHandler = ChatHtmlHandler;
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 "use strict";
 class DebugWindowHtmlHandler {
     constructor() {
@@ -305,7 +236,7 @@ class DebugWindowHtmlHandler {
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 "use strict";
 const GameObjectRender_1 = require("./GameObjectRender");
 const Renderer_1 = require("./Renderer");
@@ -332,13 +263,13 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
 }
 exports.PlayerRender = PlayerRender;
 
-},{"./GameObjectRender":5,"./Renderer":9}],9:[function(require,module,exports){
+},{"./GameObjectRender":4,"./Renderer":8}],8:[function(require,module,exports){
 /// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
 const PlayerRender_1 = require("./PlayerRender");
 class Renderer {
     constructor(afterCreateCallback) {
-        Renderer.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
         this.renderObjectMap = new Map();
     }
     preload() {
@@ -373,15 +304,204 @@ class Renderer {
 }
 exports.Renderer = Renderer;
 
-},{"./PlayerRender":8}],10:[function(require,module,exports){
+},{"./PlayerRender":7}],9:[function(require,module,exports){
+/// <reference path="../libs/@types/phaser.d.ts" />
+"use strict";
+const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
+const InputMap_1 = require("./InputMap");
+const Position_1 = require("../../Common/utils/Position");
+const ClientSettings_1 = require("../ClientSettings");
+class InputHandler {
+    constructor(phaserInput) {
+        this.lastDirection = 0;
+        this.pressedKeys = new Set();
+        this.releasedKeys = new Set();
+        this.clickPosition = null;
+        this.snapshotCallbacks = new Array();
+        document.addEventListener("keydown", this.keyPressed.bind(this));
+        document.addEventListener("keyup", this.keyReleased.bind(this));
+        this.changed = false;
+        this.phaserInput = phaserInput;
+        this.phaserInput.onDown.add(this.mouseClick, this);
+        //this.phaserInput.addMoveCallback(this.mouseClick, this);
+    }
+    addSnapshotCallback(callback) {
+        this.snapshotCallbacks.push(callback);
+    }
+    startInputSnapshotTimer() {
+        if (this.changed) {
+            let snapshot = this.createInputSnapshot();
+            let serializedSnapshot = JSON.stringify(snapshot);
+            if (serializedSnapshot.length == 0) {
+                return;
+            }
+            let id = InputHandler.SnapshotId++;
+            this.snapshotCallbacks.forEach((callback) => {
+                callback(id, snapshot);
+            });
+        }
+        this.timeoutId = setTimeout(() => this.startInputSnapshotTimer(), ClientSettings_1.ClientSettings.INPUT_SNAPSHOT_TIMER);
+    }
+    stopInputSnapshotTimer() {
+        clearTimeout(this.timeoutId);
+    }
+    keyPressed(event) {
+        if (InputMap_1.InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
+            this.changed = true;
+            this.releasedKeys.delete(event.keyCode);
+            this.pressedKeys.add(event.keyCode);
+        }
+    }
+    keyReleased(event) {
+        if (InputMap_1.InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
+            this.pressedKeys.delete(event.keyCode);
+            this.releasedKeys.add(event.keyCode);
+            this.changed = true;
+        }
+    }
+    mouseClick(mouseEvent) {
+        this.clickPosition = new Position_1.Position(mouseEvent.x, mouseEvent.y);
+        this.changed = true;
+    }
+    createInputSnapshot() {
+        this.changed = false;
+        let inputSnapshot = new InputSnapshot_1.InputSnapshot;
+        let directionBuffor = new Array(4);
+        let inputPressed = new Set();
+        this.pressedKeys.forEach((key) => {
+            let input = InputMap_1.InputMap.get(key);
+            if (input == InputMap_1.INPUT.UP || input == InputMap_1.INPUT.DOWN || input == InputMap_1.INPUT.LEFT || input == InputMap_1.INPUT.RIGHT) {
+                directionBuffor.push(input);
+            }
+            else {
+                inputPressed.add(input);
+            }
+        });
+        let newDirection = this.parseDirection(directionBuffor);
+        if (newDirection != this.lastDirection) {
+            this.lastDirection = newDirection;
+            inputSnapshot.append("D", newDirection.toString());
+        }
+        if (this.clickPosition != null) {
+            inputSnapshot.append("C", this.clickPosition.X.toString() + ";" + this.clickPosition.Y.toString());
+            this.clickPosition = null;
+        }
+        this.releasedKeys.clear();
+        return inputSnapshot;
+    }
+    parseDirection(directionBuffor) {
+        let direction = 0;
+        if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
+            direction = 2;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
+            direction = 4;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
+            direction = 6;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
+            direction = 8;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1) {
+            direction = 1;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
+            direction = 3;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
+            direction = 7;
+        }
+        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1) {
+            direction = 5;
+        }
+        return direction;
+    }
+    get Changed() {
+        return this.changed;
+    }
+}
+InputHandler.SnapshotId = 0;
+exports.InputHandler = InputHandler;
+
+},{"../../Common/input/InputSnapshot":15,"../../Common/utils/Position":23,"../ClientSettings":2,"./InputMap":10}],10:[function(require,module,exports){
+"use strict";
+(function (INPUT) {
+    INPUT[INPUT["NONE"] = 0] = "NONE";
+    INPUT[INPUT["UP"] = 1] = "UP";
+    INPUT[INPUT["DOWN"] = 2] = "DOWN";
+    INPUT[INPUT["LEFT"] = 3] = "LEFT";
+    INPUT[INPUT["RIGHT"] = 4] = "RIGHT";
+})(exports.INPUT || (exports.INPUT = {}));
+var INPUT = exports.INPUT;
+exports.InputMap = new Map([
+    [87, INPUT.UP],
+    [83, INPUT.DOWN],
+    [65, INPUT.LEFT],
+    [68, INPUT.RIGHT],
+]);
+
+},{}],11:[function(require,module,exports){
 "use strict";
 const GameClient_1 = require("./GameClient");
 window.onload = () => {
     let client = new GameClient_1.GameClient();
-    client.connect();
 };
 
-},{"./GameClient":2}],11:[function(require,module,exports){
+},{"./GameClient":3}],12:[function(require,module,exports){
+"use strict";
+const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
+const DebugWindowHtmlHandler_1 = require("../graphic/HtmlHandlers/DebugWindowHtmlHandler");
+class HeartBeatSender {
+    constructor(socket, rate) {
+        this.hbId = 0;
+        this.rate = 1;
+        this.isRunning = false;
+        this.socket = socket;
+        this.socket.on(SocketMsgs_1.SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
+        this.heartBeats = new Map();
+        if (rate != null) {
+            this.rate = rate;
+        }
+    }
+    heartBeatResponse(id) {
+        let ping = new Date().getTime() - this.heartBeats.get(id);
+        //console.log('hbr ' + ping);
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Ping = ping.toString();
+        if (this.isRunning) {
+            setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+        }
+    }
+    startSendingHeartbeats() {
+        this.isRunning = true;
+        this.socket.emit(SocketMsgs_1.SocketMsgs.HEARTBEAT, this.hbId);
+        this.heartBeats.set(this.hbId, new Date().getTime());
+        this.hbId++;
+    }
+    stopSendingHeartbeats() {
+        this.isRunning = false;
+    }
+}
+exports.HeartBeatSender = HeartBeatSender;
+
+},{"../../Common/net/SocketMsgs":18,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":6}],13:[function(require,module,exports){
+"use strict";
+const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
+class InputSender {
+    constructor(socket) {
+        this.socket = socket;
+    }
+    sendInput(id, snapshot) {
+        let serializedSnapshot = snapshot.serializeSnapshot();
+        //console.log(serializedSnapshot);
+        if (serializedSnapshot.length > 0) {
+            this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, { id, serializedSnapshot });
+        }
+    }
+}
+exports.InputSender = InputSender;
+
+},{"../../Common/net/SocketMsgs":18}],14:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./utils/Player");
 class Game {
@@ -416,48 +536,42 @@ class Game {
 }
 exports.Game = Game;
 
-},{"./utils/Player":19}],12:[function(require,module,exports){
+},{"./utils/Player":22}],15:[function(require,module,exports){
 "use strict";
-const Position_1 = require("../Common/utils/Position");
 class InputSnapshot {
-    constructor() {
-        this.clear();
+    constructor(serializedSnapshot) {
+        if (serializedSnapshot) {
+            this.deserialize(serializedSnapshot);
+        }
+        else {
+            this.commandList = new Map();
+        }
     }
-    clear() {
-        this.keysPressed = new Set();
-        this.keysReleased = new Set();
-        this.moveTo = new Position_1.Position();
+    get Commands() {
+        return this.commandList;
     }
-    clone() {
-        let inputSnapshot = new InputSnapshot;
-        inputSnapshot.ClickPosition = new Position_1.Position(this.moveTo.X, this.moveTo.Y);
-        inputSnapshot.keysReleased = this.keysReleased;
-        inputSnapshot.keysPressed = this.keysPressed;
-        return inputSnapshot;
+    append(command, value) {
+        this.commandList.set(command, value);
     }
-    PressKey(keyCode) {
-        this.keysPressed.add(keyCode);
+    serializeSnapshot() {
+        let serializedSnapshot = '';
+        this.commandList.forEach((value, key) => {
+            serializedSnapshot += '#' + key + ':' + value;
+        });
+        return serializedSnapshot.slice(1);
     }
-    ReleaseKey(keyCode) {
-        this.keysReleased.add(keyCode);
-    }
-    set ClickPosition(position) {
-        this.moveTo = position;
-    }
-    get ClickPosition() {
-        return this.moveTo;
-    }
-    deserialize(input) {
-        this.clear();
-        this.moveTo = this.moveTo.deserialize(input.moveTo);
-        this.keysReleased = input.keysReleased;
-        this.keysPressed = input.keysPressed;
-        return this;
+    deserialize(serializedSnapshot) {
+        this.commandList = new Map();
+        let commands = serializedSnapshot.split('#');
+        commands.forEach((command) => {
+            let splited = command.split(':');
+            this.commandList.set(splited[0], splited[1]);
+        });
     }
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{"../Common/utils/Position":20}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 class NetObject {
     constructor(id, gameObject) {
@@ -480,7 +594,7 @@ class NetObject {
 }
 exports.NetObject = NetObject;
 
-},{}],14:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 const NetObject_1 = require("./NetObject");
 class NetObjectsManager {
@@ -541,7 +655,7 @@ class NetObjectsManager {
 NetObjectsManager.NEXT_ID = 0;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"./NetObject":13}],15:[function(require,module,exports){
+},{"./NetObject":16}],18:[function(require,module,exports){
 "use strict";
 class SocketMsgs {
 }
@@ -555,7 +669,7 @@ SocketMsgs.INPUT_SNAPSHOT = 'is';
 SocketMsgs.CHAT_MESSAGE = 'ch';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],16:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
@@ -640,7 +754,7 @@ SerializeFunctionsMap_1.DeserializeFunctions.set('P', GameObject.deserializePosi
 SerializeFunctionsMap_1.SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
 SerializeFunctionsMap_1.DeserializeFunctions.set('S', GameObject.deserializeSpriteName);
 
-},{"./GameObjectTypes":17,"./SerializeFunctionsMap":21}],17:[function(require,module,exports){
+},{"./GameObjectTypes":20,"./SerializeFunctionsMap":24}],20:[function(require,module,exports){
 /**
  * Created by Tomek on 2017-04-08.
  */
@@ -654,7 +768,7 @@ exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 
-},{}],18:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
@@ -673,7 +787,7 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Player":19,"./Position":20}],19:[function(require,module,exports){
+},{"./Player":22,"./Position":23}],22:[function(require,module,exports){
 "use strict";
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
@@ -681,6 +795,7 @@ const SerializeFunctionsMap_1 = require("./SerializeFunctionsMap");
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
         super(position);
+        this.speed = 10;
         this.name = name;
         this.hp = 100;
         this.destination = null;
@@ -688,23 +803,59 @@ class Player extends GameObject_1.GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
     }
+    setInput(commands) {
+        commands.forEach((value, key) => {
+            if (key == "D") {
+                this.direction = parseInt(value);
+            }
+        });
+    }
     update() {
         super.update();
-        if (this.destination) {
-            //this.position.X += (this.destination.X - this.position.X) / 10;
-            //this.position.Y += (this.destination.Y - this.position.Y) / 10;
-            this.position.X = this.destination.X;
-            this.position.Y = this.destination.Y;
-            this.destination = null;
-            this.changes.add('position');
+        let xFactor = 0;
+        let yFactor = 0;
+        if (this.direction == 1) {
+            yFactor = -1;
         }
-        this.hit(Math.floor(Math.random() * 100));
+        else if (this.direction == 2) {
+            xFactor = 0.7071;
+            yFactor = -0.7071;
+        }
+        else if (this.direction == 3) {
+            xFactor = 1;
+        }
+        else if (this.direction == 4) {
+            xFactor = 0.7071;
+            yFactor = 0.7071;
+        }
+        else if (this.direction == 5) {
+            yFactor = 1;
+        }
+        else if (this.direction == 6) {
+            xFactor = -0.7071;
+            yFactor = 0.7071;
+        }
+        else if (this.direction == 7) {
+            xFactor = -1;
+        }
+        else if (this.direction == 8) {
+            xFactor = -0.7071;
+            yFactor = -0.7071;
+        }
+        this.position.X += xFactor * this.speed;
+        this.position.Y += yFactor * this.speed;
+        this.changes.add('position');
     }
     get Destination() {
         return this.destination;
     }
     set Destination(destination) {
         this.destination = destination;
+    }
+    set Direction(direction) {
+        if (direction >= 0 && direction <= 8) {
+            this.direction = direction;
+        }
     }
     hit(power) {
         this.hp += power;
@@ -717,6 +868,9 @@ class Player extends GameObject_1.GameObject {
     }
     get Name() {
         return this.name;
+    }
+    get Direction() {
+        return this.direction;
     }
     static serializeHp(player) {
         return '#H:' + player.HP.toString();
@@ -737,7 +891,7 @@ SerializeFunctionsMap_1.SerializeFunctions.set('name', Player.serializeName);
 SerializeFunctionsMap_1.DeserializeFunctions.set('H', Player.deserializeHp);
 SerializeFunctionsMap_1.DeserializeFunctions.set('N', Player.deserializeName);
 
-},{"./GameObject":16,"./GameObjectTypes":17,"./SerializeFunctionsMap":21}],20:[function(require,module,exports){
+},{"./GameObject":19,"./GameObjectTypes":20,"./SerializeFunctionsMap":24}],23:[function(require,module,exports){
 "use strict";
 class Position {
     constructor(x, y) {
@@ -769,9 +923,9 @@ class Position {
 }
 exports.Position = Position;
 
-},{}],21:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 exports.SerializeFunctions = new Map();
 exports.DeserializeFunctions = new Map();
 
-},{}]},{},[10]);
+},{}]},{},[11]);

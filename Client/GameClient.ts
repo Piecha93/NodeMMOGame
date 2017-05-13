@@ -2,15 +2,16 @@
 
 import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
-import {InputHandler} from "./InputHandler";
+import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {NetObject} from "../Common/net/NetObject";
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
-import {HeartBeatSender} from "./HeartBeatSender";
+import {HeartBeatSender} from "./net/HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {InputSnapshot} from "../Common/InputSnapshot";
+import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {Chat} from "./Chat";
+import {InputSender} from "../Client/net/InputSender";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -18,30 +19,38 @@ export class GameClient {
     private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
-    private inputTtimeoutId: NodeJS.Timer;
     private heartBeatSender: HeartBeatSender;
+    private inputSender: InputSender;
     private netObjectMenager: NetObjectsManager = NetObjectsManager.Instance;
 
     constructor() {
+        this.connect();
         this.game = new Game;
-
-
-        this.renderer = new Renderer(() => {
-            this.inputHandler = new InputHandler(this.renderer.PhaserInput);
-            this.socket.emit(SocketMsgs.CLIENT_READY);
-            this.heartBeatSender.startSendingHeartbeats();
-        });
-    }
-
-    connect() {
-        this.socket = io.connect({
-            reconnection: false
-        });
+        this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
 
+        this.renderer = new Renderer(() => {
+            this.inputHandler = new InputHandler(this.renderer.PhaserInput);
+            this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
+
+            this.socket.emit(SocketMsgs.CLIENT_READY);
+
+            this.inputHandler.startInputSnapshotTimer();
+            this.heartBeatSender.startSendingHeartbeats();
+
+        });
+    }
+
+    private connect() {
+        this.socket = io.connect({
+            reconnection: false
+        });
+
         if(this.socket != null) {
             this.configureSocket();
+        } else {
+            throw new Error("Cannot connect to server")
         }
     }
 
@@ -49,24 +58,13 @@ export class GameClient {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
-            this.startSendingInput();
         });
         this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
 
     private startGame() {
         this.game = new Game;
-    }
-
-    private startSendingInput() {
-        this.inputTtimeoutId = setTimeout(() =>
-            this.startSendingInput() , 1 / 10 * 1000);
-            if (this.inputHandler.Changed) {
-                let snapshot: InputSnapshot = this.inputHandler.cloneInputSnapshot();
-                let serializedSnapshot = JSON.stringify(snapshot);
-                //console.log(serializedSnapshot);
-                this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
-            }
+        this.game.startGameLoop();
     }
 
     private updateGame(data) {

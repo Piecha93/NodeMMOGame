@@ -1,7 +1,7 @@
 
 
-import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import {SocketMsgs} from "../../Common/net/SocketMsgs";
+import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 export class HeartBeatSender {
     private socket: SocketIOClient.Socket;
     private heartBeats: Map<number, number>;
@@ -11,7 +11,6 @@ export class HeartBeatSender {
 
     constructor(socket: SocketIOClient.Socket, rate?: number) {
         this.socket = socket;
-
         this.socket.on(SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
 
         this.heartBeats = new Map<number, number>();
@@ -40,6 +39,6 @@ export class HeartBeatSender {
     }
 
     public stopSendingHeartbeats() {
-        this.isRunning = true;
+        this.isRunning = false;
     }
 }

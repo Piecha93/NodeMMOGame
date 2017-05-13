@@ -17,8 +17,6 @@ export class GameObjectRender {
         let position: Position = this.objectReference.Position;
         this.sprite = Renderer.phaserGame.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
         this.sprite.anchor.setTo(0.5, 0.5);
-
-
     }
 
     public render() {
@@ -29,7 +27,9 @@ export class GameObjectRender {
        this.sprite.x = position.X;
        this.sprite.y = position.Y;
 
-       this.sprite.loadTexture(this.objectReference.SpriteName);
+       if(this.sprite.texture.baseTexture.source.name != this.objectReference.SpriteName) {
+           this.sprite.loadTexture(this.objectReference.SpriteName);
+       }
 
     }
 

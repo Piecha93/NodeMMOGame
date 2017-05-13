@@ -4,7 +4,7 @@ import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
 import {Position} from "../Common/utils/Position";
 import {Player} from "../Common/utils/Player";
-import {InputSnapshot} from "../Common/InputSnapshot";
+import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {GameObject} from "../Common/utils/GameObject";
 import {ServerSettings} from "./ServerSettings";
@@ -62,14 +62,13 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
-                //console.log(data);
-                let deserializedData = JSON.parse(data);
-                let snapshot: InputSnapshot = new InputSnapshot().deserialize(deserializedData);
+                console.log(data);
+                let snapshotId: number = parseInt(data['id']);
+                let snapshot: InputSnapshot = new InputSnapshot();
+                snapshot.deserialize(data['serializedSnapshot']);
 
                 let player: Player = this.game.getObject(serverClient.PlayerId) as Player;
-                if(player != null) {
-                    player.Destination = snapshot.ClickPosition;
-                }
+                player.setInput(snapshot.Commands);
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {

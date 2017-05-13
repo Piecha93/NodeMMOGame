@@ -10,7 +10,7 @@ export class Renderer {
     private renderObjectMap: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
-        Renderer.phaserGame = new Phaser.Game(1280, 720, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
         this.renderObjectMap = new Map<GameObject, GameObjectRender>();
     }
 
