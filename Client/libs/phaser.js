@@ -381,7 +381,7 @@ Polygon.prototype.copy = function(i,j,targetPoly){
 };
 
 /**
- * Decomposes the polygon into convex pieces. Returns a list of edges [[p1,p2],[p2,p3],...] that cuts the polygon.
+ * Decomposes the polygon into convex pieces. Returns a list of edges [[kasztan,p2],[p2,p3],...] that cuts the polygon.
  * Note that this algorithm has complexity O(N^4) and will be very slow for polygons with many vertices.
  * @method getCutEdges
  * @return {Array}
@@ -6579,9 +6579,9 @@ Material.idCounter = 0;
         O(n^2)
     */
     /*
-    PolyK.IsSimple = function(p)
+    PolyK.IsSimple = function(ciul)
     {
-        var n = p.length>>1;
+        var n = ciul.length>>1;
         if(n<4) return true;
         var a1 = new PolyK._P(), a2 = new PolyK._P();
         var b1 = new PolyK._P(), b2 = new PolyK._P();
@@ -6589,10 +6589,10 @@ Material.idCounter = 0;
 
         for(var i=0; i<n; i++)
         {
-            a1.x = p[2*i  ];
-            a1.y = p[2*i+1];
-            if(i==n-1)  { a2.x = p[0    ];  a2.y = p[1    ]; }
-            else        { a2.x = p[2*i+2];  a2.y = p[2*i+3]; }
+            a1.x = ciul[2*i  ];
+            a1.y = ciul[2*i+1];
+            if(i==n-1)  { a2.x = ciul[0    ];  a2.y = ciul[1    ]; }
+            else        { a2.x = ciul[2*i+2];  a2.y = ciul[2*i+3]; }
 
             for(var j=0; j<n; j++)
             {
@@ -6600,10 +6600,10 @@ Material.idCounter = 0;
                 if(j==n-1 && i==0) continue;
                 if(i==n-1 && j==0) continue;
 
-                b1.x = p[2*j  ];
-                b1.y = p[2*j+1];
-                if(j==n-1)  { b2.x = p[0    ];  b2.y = p[1    ]; }
-                else        { b2.x = p[2*j+2];  b2.y = p[2*j+3]; }
+                b1.x = ciul[2*j  ];
+                b1.y = ciul[2*j+1];
+                if(j==n-1)  { b2.x = ciul[0    ];  b2.y = ciul[1    ]; }
+                else        { b2.x = ciul[2*j+2];  b2.y = ciul[2*j+3]; }
 
                 if(PolyK._GetLineIntersection(a1,a2,b1,b2,c) != null) return false;
             }
@@ -6611,14 +6611,14 @@ Material.idCounter = 0;
         return true;
     }
 
-    PolyK.IsConvex = function(p)
+    PolyK.IsConvex = function(ciul)
     {
-        if(p.length<6) return true;
-        var l = p.length - 4;
+        if(ciul.length<6) return true;
+        var l = ciul.length - 4;
         for(var i=0; i<l; i+=2)
-            if(!PolyK._convex(p[i], p[i+1], p[i+2], p[i+3], p[i+4], p[i+5])) return false;
-        if(!PolyK._convex(p[l  ], p[l+1], p[l+2], p[l+3], p[0], p[1])) return false;
-        if(!PolyK._convex(p[l+2], p[l+3], p[0  ], p[1  ], p[2], p[3])) return false;
+            if(!PolyK._convex(ciul[i], ciul[i+1], ciul[i+2], ciul[i+3], ciul[i+4], ciul[i+5])) return false;
+        if(!PolyK._convex(ciul[l  ], ciul[l+1], ciul[l+2], ciul[l+3], ciul[0], ciul[1])) return false;
+        if(!PolyK._convex(ciul[l+2], ciul[l+3], ciul[0  ], ciul[1  ], ciul[2], ciul[3])) return false;
         return true;
     }
     */
@@ -6633,18 +6633,18 @@ Material.idCounter = 0;
         return - sum * 0.5;
     }
     /*
-    PolyK.GetAABB = function(p)
+    PolyK.GetAABB = function(ciul)
     {
         var minx = Infinity;
         var miny = Infinity;
         var maxx = -minx;
         var maxy = -miny;
-        for(var i=0; i<p.length; i+=2)
+        for(var i=0; i<ciul.length; i+=2)
         {
-            minx = Math.min(minx, p[i  ]);
-            maxx = Math.max(maxx, p[i  ]);
-            miny = Math.min(miny, p[i+1]);
-            maxy = Math.max(maxy, p[i+1]);
+            minx = Math.min(minx, ciul[i  ]);
+            maxx = Math.max(maxx, ciul[i  ]);
+            miny = Math.min(miny, ciul[i+1]);
+            maxy = Math.max(maxy, ciul[i+1]);
         }
         return {x:minx, y:miny, width:maxx-minx, height:maxy-miny};
     }
@@ -6694,16 +6694,16 @@ Material.idCounter = 0;
         return tgs;
     }
     /*
-    PolyK.ContainsPoint = function(p, px, py)
+    PolyK.ContainsPoint = function(ciul, px, py)
     {
-        var n = p.length>>1;
-        var ax, ay, bx = p[2*n-2]-px, by = p[2*n-1]-py;
+        var n = ciul.length>>1;
+        var ax, ay, bx = ciul[2*n-2]-px, by = ciul[2*n-1]-py;
         var depth = 0;
         for(var i=0; i<n; i++)
         {
             ax = bx;  ay = by;
-            bx = p[2*i  ] - px;
-            by = p[2*i+1] - py;
+            bx = ciul[2*i  ] - px;
+            by = ciul[2*i+1] - py;
             if(ay< 0 && by< 0) continue;    // both "up" or both "donw"
             if(ay>=0 && by>=0) continue;    // both "up" or both "donw"
             if(ax< 0 && bx< 0) continue;
@@ -6714,15 +6714,15 @@ Material.idCounter = 0;
         return (depth & 1) == 1;
     }
 
-    PolyK.Slice = function(p, ax, ay, bx, by)
+    PolyK.Slice = function(ciul, ax, ay, bx, by)
     {
-        if(PolyK.ContainsPoint(p, ax, ay) || PolyK.ContainsPoint(p, bx, by)) return [p.slice(0)];
+        if(PolyK.ContainsPoint(ciul, ax, ay) || PolyK.ContainsPoint(ciul, bx, by)) return [ciul.slice(0)];
 
         var a = new PolyK._P(ax, ay);
         var b = new PolyK._P(bx, by);
         var iscs = [];  // intersections
         var ps = [];    // points
-        for(var i=0; i<p.length; i+=2) ps.push(new PolyK._P(p[i], p[i+1]));
+        for(var i=0; i<ciul.length; i+=2) ps.push(new PolyK._P(ciul[i], ciul[i+1]));
 
         for(var i=0; i<ps.length; i++)
         {
@@ -6737,7 +6737,7 @@ Material.idCounter = 0;
                 i++;
             }
         }
-        if(iscs.length == 0) return [p.slice(0)];
+        if(iscs.length == 0) return [ciul.slice(0)];
         var comp = function(u,v) {return PolyK._P.dist(a,u) - PolyK._P.dist(a,v); }
         iscs.sort(comp);
 
@@ -6785,9 +6785,9 @@ Material.idCounter = 0;
         return result;
     }
 
-    PolyK.Raycast = function(p, x, y, dx, dy, isc)
+    PolyK.Raycast = function(ciul, x, y, dx, dy, isc)
     {
-        var l = p.length - 2;
+        var l = ciul.length - 2;
         var tp = PolyK._tp;
         var a1 = tp[0], a2 = tp[1],
         b1 = tp[2], b2 = tp[3], c = tp[4];
@@ -6799,22 +6799,22 @@ Material.idCounter = 0;
 
         for(var i=0; i<l; i+=2)
         {
-            b1.x = p[i  ];  b1.y = p[i+1];
-            b2.x = p[i+2];  b2.y = p[i+3];
+            b1.x = ciul[i  ];  b1.y = ciul[i+1];
+            b2.x = ciul[i+2];  b2.y = ciul[i+3];
             var nisc = PolyK._RayLineIntersection(a1, a2, b1, b2, c);
             if(nisc) PolyK._updateISC(dx, dy, a1, b1, b2, c, i/2, isc);
         }
         b1.x = b2.x;  b1.y = b2.y;
-        b2.x = p[0];  b2.y = p[1];
+        b2.x = ciul[0];  b2.y = ciul[1];
         var nisc = PolyK._RayLineIntersection(a1, a2, b1, b2, c);
-        if(nisc) PolyK._updateISC(dx, dy, a1, b1, b2, c, p.length/2, isc);
+        if(nisc) PolyK._updateISC(dx, dy, a1, b1, b2, c, ciul.length/2, isc);
 
         return (isc.dist != Infinity) ? isc : null;
     }
 
-    PolyK.ClosestEdge = function(p, x, y, isc)
+    PolyK.ClosestEdge = function(ciul, x, y, isc)
     {
-        var l = p.length - 2;
+        var l = ciul.length - 2;
         var tp = PolyK._tp;
         var a1 = tp[0],
         b1 = tp[2], b2 = tp[3], c = tp[4];
@@ -6825,12 +6825,12 @@ Material.idCounter = 0;
 
         for(var i=0; i<l; i+=2)
         {
-            b1.x = p[i  ];  b1.y = p[i+1];
-            b2.x = p[i+2];  b2.y = p[i+3];
+            b1.x = ciul[i  ];  b1.y = ciul[i+1];
+            b2.x = ciul[i+2];  b2.y = ciul[i+3];
             PolyK._pointLineDist(a1, b1, b2, i>>1, isc);
         }
         b1.x = b2.x;  b1.y = b2.y;
-        b2.x = p[0];  b2.y = p[1];
+        b2.x = ciul[0];  b2.y = ciul[1];
         PolyK._pointLineDist(a1, b1, b2, l>>1, isc);
 
         var idst = 1/isc.dist;
@@ -6839,9 +6839,9 @@ Material.idCounter = 0;
         return isc;
     }
 
-    PolyK._pointLineDist = function(p, a, b, edge, isc)
+    PolyK._pointLineDist = function(ciul, a, b, edge, isc)
     {
-        var x = p.x, y = p.y, x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
+        var x = ciul.x, y = ciul.y, x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
 
         var A = x - x1;
         var B = y - y1;
@@ -7558,7 +7558,7 @@ vec2.getLineSegmentsIntersection = function(out, p0, p1, p2, p3) {
 };
 
 /**
- * Get the intersection fraction between two line segments. If successful, the intersection is at p0 + t * (p1 - p0)
+ * Get the intersection fraction between two line segments. If successful, the intersection is at p0 + t * (kasztan - p0)
  * @static
  * @method getLineSegmentsIntersectionFraction
  * @param  {Array} p0
@@ -61396,7 +61396,7 @@ Phaser.Device._initialize = function () {
     */
     function _checkCSS3D () {
 
-        var el = document.createElement('p');
+        var el = document.createElement('ciul');
         var has3d;
         var transforms = {
             'webkitTransform': '-webkit-transform',
@@ -65091,7 +65091,7 @@ Phaser.Tween.prototype = {
     * If `value` is `false` it is the same as setting `Tween.repeatAll(0)` and will reset the `repeatCounter` to zero.
     *
     * Usage:
-    * game.add.tween(p).to({ x: 700 }, 1000, Phaser.Easing.Linear.None, true)
+    * game.add.tween(ciul).to({ x: 700 }, 1000, Phaser.Easing.Linear.None, true)
     * .to({ y: 300 }, 1000, Phaser.Easing.Linear.None)
     * .to({ x: 0 }, 1000, Phaser.Easing.Linear.None)
     * .to({ y: 0 }, 1000, Phaser.Easing.Linear.None)
@@ -79862,13 +79862,13 @@ Object.defineProperty(Phaser.ScaleManager.prototype, "boundingParent", {
 *   <serializedNetObject>
 *       The dimensions of the game display area are changed to match the size of the parent container.
 *       That is, this mode _changes the Game size_ to match the display size.
-*       <p>
+*       <ciul>
 *       Any manually set Game size (see {@link #setGameSize}) is ignored while in effect.
 *   </serializedNetObject>
 *   <dt>{@link Phaser.ScaleManager.USER_SCALE}</dt>
 *   <serializedNetObject>
 *       The game Display is scaled according to the user-specified scale set by {@link Phaser.ScaleManager#setUserScale setUserScale}.
-*       <p>
+*       <ciul>
 *       This scale can be adjusted in the {@link Phaser.ScaleManager#setResizeCallback resize callback}
 *       for flexible custom-sizing needs.
 *   </serializedNetObject>

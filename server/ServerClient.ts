@@ -1,12 +1,12 @@
 import Socket = SocketIOClient.Socket;
 import Timer = NodeJS.Timer;
-import {ServerSettings} from "./ServerSettings";
+import {ServerConfig} from "./ServerConfig";
 
 export class ServerClient {
     private name: string;
     private socket: Socket;
     private isReady: boolean = false;
-    private lastHbInterval: number = ServerSettings.CLIENT_TIMEOUT;
+    private lastHbInterval: number = ServerConfig.CLIENT_TIMEOUT;
     private netObjectId: string = '';
     private playerId: number;
 

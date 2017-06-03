@@ -17,6 +17,7 @@ export class Renderer {
     private preload() {
         Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
         Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
+        Renderer.phaserGame.load.image('bullet', 'resources/images/bullet.png');
 
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
@@ -32,11 +33,14 @@ export class Renderer {
         });
     }
 
-    public addGameObject(gameObject: GameObject, type: string) {
+    public addGameObject(gameObject: GameObject) {
         let gameObjectRender: GameObjectRender;
 
+        let type: string = gameObject.ID[0];
         if(type == "P") {
             gameObjectRender = new PlayerRender();
+        } else {
+            gameObjectRender = new GameObjectRender();
         }
 
         gameObjectRender.setObject(gameObject);

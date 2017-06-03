@@ -3,7 +3,7 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
 import {InputMap, INPUT} from "./InputMap";
 import {Position} from "../../Common/utils/Position";
-import {ClientSettings} from "../ClientSettings";
+import {ClientConfig} from "../ClientConfig";
 
 export class InputHandler {
     private phaserInput: Phaser.Input;
@@ -55,7 +55,7 @@ export class InputHandler {
                 callback(id, snapshot);
             });
         }
-        this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientSettings.INPUT_SNAPSHOT_TIMER);
+        this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientConfig.INPUT_SNAPSHOT_TIMER);
     }
 
     public stopInputSnapshotTimer() {

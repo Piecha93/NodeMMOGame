@@ -4,14 +4,16 @@ import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {NetObject} from "../Common/net/NetObject";
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {GameObject} from "../Common/utils/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {Chat} from "./Chat";
 import {InputSender} from "../Client/net/InputSender";
+import {DeltaTimer} from "../Common/DeltaTimer";
+import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import {InputSnapshot} from "../Common/input/InputSnapshot";
+import {Player} from "../Common/utils/Player";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -23,6 +25,8 @@ export class GameClient {
     private inputSender: InputSender;
     private netObjectMenager: NetObjectsManager = NetObjectsManager.Instance;
 
+    private player: Player = null;
+
     constructor() {
         this.connect();
         this.game = new Game;
@@ -33,12 +37,13 @@ export class GameClient {
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler(this.renderer.PhaserInput);
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
+            this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
+                if(this.player) {
+                    this.player.setInput(snapshot.Commands);
+                }
+            });
 
             this.socket.emit(SocketMsgs.CLIENT_READY);
-
-            this.inputHandler.startInputSnapshotTimer();
-            this.heartBeatSender.startSendingHeartbeats();
-
         });
     }
 
@@ -58,6 +63,12 @@ export class GameClient {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
+            this.player = this.game.getObject(parseInt(data['id'])) as Player;
+
+            console.log(this.player);
+
+            this.inputHandler.startInputSnapshotTimer();
+            this.heartBeatSender.startSendingHeartbeats();
         });
         this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
@@ -65,6 +76,12 @@ export class GameClient {
     private startGame() {
         this.game = new Game;
         this.game.startGameLoop();
+
+        let timer: DeltaTimer = new DeltaTimer;
+        setInterval(() => {
+            DebugWindowHtmlHandler.Instance.Fps = (1000 / timer.getDelta()).toPrecision(2).toString();
+            this.renderer.update();
+        }, 33.33);
     }
 
     private updateGame(data) {
@@ -72,33 +89,33 @@ export class GameClient {
             return
         }
 
-        //console.log(data['update']);
-
         let update = data['update'].split('$');
+        console.log(update);
         for (let object in update) {
             let splitObject: string[] = update[object].split('-');
             let id: string = splitObject[0];
             let data: string = splitObject[1];
+
+            let gameObject: GameObject = this.netObjectMenager.getObject(id);
             if(id[0] == '!') {
                 id = id.slice(1);
                 if(this.netObjectMenager.has(id)) {
-                    let gameObject: GameObject = this.netObjectMenager.getObject(id).GameObject;
+
                     this.renderer.removeGameObject(gameObject);
-                    this.game.removeObject(gameObject.ID);
-                    this.netObjectMenager.removeObject(id);
+                    this.game.removeGameObject(gameObject.ID);
+                    this.netObjectMenager.removeGameObject(id);
                 }
                 continue;
             }
 
-            let netObject: NetObject = this.netObjectMenager.getObject(id);
-            if(netObject == null) {
-                let gameObject = ObjectsFactory.CreateGameObject(id);
-                netObject = this.netObjectMenager.createObject(gameObject, id);
+            if(gameObject == null) {
+                gameObject = ObjectsFactory.CreateGameObject(id);
+                this.netObjectMenager.addGameObject(gameObject, id);
+                this.game.addGameObject(gameObject);
 
-                this.renderer.addGameObject(gameObject, id[0]);
+                this.renderer.addGameObject(gameObject);
             }
-            netObject.GameObject.deserialize(data.split('#'))
+            gameObject.deserialize(data.split('#'));
         }
-        this.renderer.update();
     }
 }

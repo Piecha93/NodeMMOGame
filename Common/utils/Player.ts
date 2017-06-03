@@ -11,12 +11,14 @@ export class Player extends GameObject {
     private name: string;
     private hp: number;
     private destination: Position;
-    private direction: number;
+    private direction: number = 0;
     private speed = 10;
 
     constructor(name: string, position: Position) {
         super(position);
 
+        this.sFunc = new Map<string, Function>(function*() { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
+        this.dFunc = new Map<string, Function>(function*() { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
         this.hp = 100;
         this.destination = null;
@@ -58,7 +60,10 @@ export class Player extends GameObject {
         }
         this.position.X += xFactor * this.speed;
         this.position.Y += yFactor * this.speed;
-        this.changes.add('position');
+
+        if(this.direction != 0) {
+            this.changes.add('position');
+        }
     }
 
     get Destination(): Position {
@@ -95,7 +100,11 @@ export class Player extends GameObject {
     }
 
     static serializeHp(player: Player): string {
-        return '#H:' + player.HP.toString();
+        if(player instanceof Player) {
+            return '#H:' + player.HP.toString();
+        } else {
+            return "";
+        }
     }
 
     static deserializeHp(player: Player, data: string) {
@@ -103,17 +112,30 @@ export class Player extends GameObject {
     }
 
     static serializeName(player: Player): string {
-        return '#N:' + player.name;
+        if(player instanceof Player) {
+            return '#N:' + player.name;
+        } else {
+            return "";
+        }
     }
 
     static deserializeName(player: Player, data: string) {
         player.name = data;
     }
+
+    static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
+        ['hp', Player.serializeHp],
+        ['name', Player.serializeName],
+    ]);
+    static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
+        ['H', Player.deserializeHp],
+        ['N', Player.deserializeName],
+    ]);
 }
 
-SerializeFunctions.set('hp', Player.serializeHp);
-SerializeFunctions.set('name', Player.serializeName);
-
-DeserializeFunctions.set('H', Player.deserializeHp);
-DeserializeFunctions.set('N', Player.deserializeName);
+// SerializeFunctions.set('hp', Player.serializeHp);
+// SerializeFunctions.set('name', Player.serializeName);
+//1
+// DeserializeFunctions.set('H', Player.deserializeHp);
+// DeserializeFunctions.set('N', Player.deserializeName);
 

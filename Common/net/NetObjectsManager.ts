@@ -1,4 +1,3 @@
-import {NetObject} from "./NetObject";
 import {GameObject} from "../utils/GameObject";
 
 export class NetObjectsManager {
@@ -9,10 +8,10 @@ export class NetObjectsManager {
     }
     private static instance: NetObjectsManager;
 
-    private netObjects: Map<string, NetObject>;
+    private gameObjects: Map<string, GameObject>;
 
     private constructor() {
-        this.netObjects = new Map<string, NetObject>();
+        this.gameObjects = new Map<string, GameObject>();
     }
 
     static get Instance(): NetObjectsManager {
@@ -26,11 +25,10 @@ export class NetObjectsManager {
 
     collectUpdate(complete: boolean = false): string {
         let serializedObjects: string = '';
-        this.netObjects.forEach((value: NetObject, key: string) => {
-            let netObject: NetObject = this.netObjects.get(key);
-            let objectUpdate: string = netObject.GameObject.serialize(complete).slice(1);
+        this.gameObjects.forEach((gameObject: GameObject, id: string) => {
+            let objectUpdate: string = gameObject.serialize(complete).slice(1);
             if(objectUpdate != '') {
-                serializedObjects += '$' + netObject.ID + '-' + objectUpdate;
+                serializedObjects += '$' + id + '-' + objectUpdate;
             }
         });
 
@@ -39,32 +37,31 @@ export class NetObjectsManager {
     }
 
     getObject(id: string) {
-        return this.netObjects.get(id);
+        return this.gameObjects.get(id);
     }
 
-    createObject(gameObject: GameObject, id?: string): NetObject {
+    addGameObject(gameObject: GameObject, id?: string): string {
         //TODO - sprawdzic czy dany gejmobject juz istnieje
         let newObjectId: string;
         if(id != null) {
-            if(this.netObjects.has(id)) {
+            if(this.gameObjects.has(id)) {
                 throw new Error("NetObject id duplication: " + id);
             }
             newObjectId = id;
         } else {
             newObjectId = NetObjectsManager.GetNextId(gameObject.Type);
+            console.log("new " + gameObject.Type);
         }
+        this.gameObjects.set(newObjectId, gameObject);
 
-        let netObject: NetObject = new NetObject(newObjectId, gameObject);
-        this.netObjects.set(netObject.ID, netObject);
+        return id;
+    }
 
-        return netObject;
+    removeGameObject(id: string): boolean {
+        return this.gameObjects.delete(id);
     }
 
     has(id: string): boolean {
-        return this.netObjects.has(id);
-    }
-
-    removeObject(id: string): boolean {
-        return this.netObjects.delete(id);
+        return this.gameObjects.has(id);
     }
 }

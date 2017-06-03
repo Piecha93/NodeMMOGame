@@ -15,7 +15,6 @@ export class Game {
     public startGameLoop() {
         this.timeoutId = setTimeout(() => this.startGameLoop() , 1 / this.tickrate * 1000);
 
-
         this.objects.forEach((object: GameObject) => {
             object.update();
         });
@@ -30,6 +29,7 @@ export class Game {
 
         player = new Player(name, position);
 
+        console.log("player id " + player.ID);
         this.objects.set(player.ID, player);
 
         //console.log("New player " + name);
@@ -38,7 +38,11 @@ export class Game {
         return player;
     }
 
-    public removeObject(id: number) {
+    public addGameObject(gameObject: GameObject) {
+        this.objects.set(gameObject.ID, gameObject);
+    }
+
+    public removeGameObject(id: number) {
         this.objects.delete(id);
     }
 
