@@ -17,15 +17,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../Common/net/SocketMsgs":19,"./graphic/HtmlHandlers/ChatHtmlHandler":5}],2:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ClientConfig {
-}
-ClientConfig.INPUT_SNAPSHOT_TIMER = 1 / 5 * 1000;
-exports.ClientConfig = ClientConfig;
-
-},{}],3:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":18,"./graphic/HtmlHandlers/ChatHtmlHandler":4}],2:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -124,7 +116,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":13,"../Common/DeltaTimer":15,"../Common/Game":16,"../Common/net/NetObjectsManager":18,"../Common/net/SocketMsgs":19,"../Common/utils/ObjectsFactory":24,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":6,"./graphic/Renderer":8,"./input/InputHandler":9,"./net/HeartBeatSender":12}],4:[function(require,module,exports){
+},{"../Client/net/InputSender":12,"../Common/DeltaTimer":14,"../Common/Game":15,"../Common/net/NetObjectsManager":17,"../Common/net/SocketMsgs":18,"../Common/utils/ObjectsFactory":23,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":5,"./graphic/Renderer":7,"./input/InputHandler":8,"./net/HeartBeatSender":11}],3:[function(require,module,exports){
 "use strict";
 /// <reference path="../libs/@types/phaser.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -155,7 +147,7 @@ class GameObjectRender {
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{"./Renderer":8}],5:[function(require,module,exports){
+},{"./Renderer":7}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChatHtmlHandler {
@@ -232,7 +224,7 @@ class ChatHtmlHandler {
 }
 exports.ChatHtmlHandler = ChatHtmlHandler;
 
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DebugWindowHtmlHandler {
@@ -263,7 +255,7 @@ class DebugWindowHtmlHandler {
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
@@ -291,7 +283,7 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
 }
 exports.PlayerRender = PlayerRender;
 
-},{"./GameObjectRender":4,"./Renderer":8}],8:[function(require,module,exports){
+},{"./GameObjectRender":3,"./Renderer":7}],7:[function(require,module,exports){
 "use strict";
 /// <reference path="../libs/@types/phaser.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -344,14 +336,13 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.Renderer = Renderer;
 
-},{"../../Common/utils/GameObjectsHolder":23,"./GameObjectRender":4,"./PlayerRender":7}],9:[function(require,module,exports){
+},{"../../Common/utils/GameObjectsHolder":22,"./GameObjectRender":3,"./PlayerRender":6}],8:[function(require,module,exports){
 "use strict";
 /// <reference path="../libs/@types/phaser.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
 const InputMap_1 = require("./InputMap");
 const Position_1 = require("../../Common/utils/Position");
-const ClientConfig_1 = require("../ClientConfig");
 class InputHandler {
     constructor(phaserInput) {
         this.lastDirection = 0;
@@ -370,6 +361,22 @@ class InputHandler {
         this.snapshotCallbacks.push(callback);
     }
     startInputSnapshotTimer() {
+        // if (this.changed) {
+        //     let snapshot: InputSnapshot = this.createInputSnapshot();
+        //     let serializedSnapshot = JSON.stringify(snapshot);
+        //     if(serializedSnapshot.length == 0) {
+        //         return;
+        //     }
+        //
+        //     let id: number = InputHandler.SnapshotId++;
+        //
+        //     this.snapshotCallbacks.forEach((callback: Function) => {
+        //         callback(id, snapshot);
+        //     });
+        // }
+        // this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientConfig.INPUT_SNAPSHOT_TIMER);
+    }
+    asd() {
         if (this.changed) {
             let snapshot = this.createInputSnapshot();
             let serializedSnapshot = JSON.stringify(snapshot);
@@ -381,17 +388,17 @@ class InputHandler {
                 callback(id, snapshot);
             });
         }
-        this.timeoutId = setTimeout(() => this.startInputSnapshotTimer(), ClientConfig_1.ClientConfig.INPUT_SNAPSHOT_TIMER);
     }
     stopInputSnapshotTimer() {
         clearTimeout(this.timeoutId);
     }
     keyPressed(event) {
         if (InputMap_1.InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
-            this.changed = true;
             this.releasedKeys.delete(event.keyCode);
             this.pressedKeys.add(event.keyCode);
+            this.changed = true;
         }
+        this.asd();
     }
     keyReleased(event) {
         if (InputMap_1.InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
@@ -399,10 +406,12 @@ class InputHandler {
             this.releasedKeys.add(event.keyCode);
             this.changed = true;
         }
+        this.asd();
     }
     mouseClick(mouseEvent) {
         this.clickPosition = new Position_1.Position(mouseEvent.x, mouseEvent.y);
         this.changed = true;
+        this.asd();
     }
     createInputSnapshot() {
         this.changed = false;
@@ -465,7 +474,7 @@ class InputHandler {
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputSnapshot":17,"../../Common/utils/Position":26,"../ClientConfig":2,"./InputMap":10}],10:[function(require,module,exports){
+},{"../../Common/input/InputSnapshot":16,"../../Common/utils/Position":25,"./InputMap":9}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -483,7 +492,7 @@ exports.InputMap = new Map([
     [68, INPUT.RIGHT],
 ]);
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameClient_1 = require("./GameClient");
@@ -493,7 +502,7 @@ window.onload = () => {
     let client = new GameClient_1.GameClient();
 };
 
-},{"../Common/CommonConfig":14,"./GameClient":3}],12:[function(require,module,exports){
+},{"../Common/CommonConfig":13,"./GameClient":2}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -530,7 +539,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../Common/net/SocketMsgs":19,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":6}],13:[function(require,module,exports){
+},{"../../Common/net/SocketMsgs":18,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":5}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -548,7 +557,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../Common/net/SocketMsgs":19}],14:[function(require,module,exports){
+},{"../../Common/net/SocketMsgs":18}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -562,7 +571,7 @@ class CommonConfig {
 CommonConfig.ORIGIN = Origin.UNKNOWN;
 exports.CommonConfig = CommonConfig;
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -579,7 +588,7 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("./utils/GameObjectsHolder");
@@ -601,7 +610,7 @@ class Game extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.Game = Game;
 
-},{"./utils/GameObjectsHolder":23}],17:[function(require,module,exports){
+},{"./utils/GameObjectsHolder":22}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class InputSnapshot {
@@ -637,7 +646,7 @@ class InputSnapshot {
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../utils/GameObjectsHolder");
@@ -671,7 +680,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../utils/GameObjectsHolder":23}],19:[function(require,module,exports){
+},{"../utils/GameObjectsHolder":22}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -686,7 +695,7 @@ SocketMsgs.INPUT_SNAPSHOT = 'is';
 SocketMsgs.CHAT_MESSAGE = 'ch';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -694,14 +703,13 @@ const GameObjectTypes_1 = require("./GameObjectTypes");
 class Bullet extends GameObject_1.GameObject {
     constructor(position) {
         super(position);
-        this.velocity = 10;
-        this.direction = 0;
         this.lifeSpan = 300;
         this.asd = 0;
         this.id = this.Type + this.id;
         this.spriteName = "bullet";
         this.lifeSpan = Math.floor(Math.random() * 150);
         this.velocity = Math.floor(Math.random() * 15) + 1;
+        this.directionAngle = Math.floor(Math.random() * 360);
         this.changes.add("velocity");
         this.changes.add("lifeSpan");
         this.sFunc = new Map(function* () { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
@@ -715,39 +723,47 @@ class Bullet extends GameObject_1.GameObject {
         if (this.asd > this.lifeSpan) {
             this.destroy();
         }
-        this.position.X = this.position.X + this.velocity;
+        let sinAngle = Math.sin(this.directionAngle);
+        let cosAngle = Math.cos(this.directionAngle);
+        this.position.X += cosAngle * this.velocity;
+        this.position.Y += sinAngle * this.velocity;
         //this.changes.add('position');
     }
-    static serializeVelocity(bullet) {
-        return '#V:' + bullet.velocity;
-    }
-    static deserializeVelocity(bullet, data) {
-        bullet.velocity = parseFloat(data);
+    set DirectionAngle(angle) {
+        this.directionAngle = angle;
+        this.changes.add("A");
     }
     static serializeLifeSpan(bullet) {
         return '#L:' + bullet.lifeSpan;
     }
-    static deserializeLifeSpan(bullet, data) {
+    static deserializeDirectionAngle(bullet, data) {
         bullet.lifeSpan = parseFloat(data);
+    }
+    static serializeDirectionAngle(bullet) {
+        return '#A:' + bullet.lifeSpan;
+    }
+    static deserializeLifeSpan(bullet, data) {
+        bullet.directionAngle = parseInt(data);
     }
 }
 Bullet.SerializeFunctions = new Map([
-    ['velocity', Bullet.serializeVelocity],
     ['lifeSpan', Bullet.serializeLifeSpan],
+    ['directionAngle', Bullet.serializeDirectionAngle],
 ]);
 Bullet.DeserializeFunctions = new Map([
-    ['V', Bullet.deserializeVelocity],
     ['L', Bullet.deserializeLifeSpan],
+    ['A', Bullet.deserializeDirectionAngle],
 ]);
 exports.Bullet = Bullet;
 
-},{"./GameObject":21,"./GameObjectTypes":22}],21:[function(require,module,exports){
+},{"./GameObject":20,"./GameObjectTypes":21}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class GameObject {
     constructor(position) {
         this.forceComplete = true;
         this.id = (GameObject.NEXT_ID++).toString();
+        this.velocity = 10;
         this.position = position;
         this.changes = new Set();
         this.sFunc = GameObject.SerializeFunctions;
@@ -831,15 +847,23 @@ class GameObject {
     static deserializeSpriteName(gameObject, data) {
         gameObject.spriteName = data;
     }
+    static serializeVelocity(bullet) {
+        return '#V:' + bullet.velocity;
+    }
+    static deserializeVelocity(bullet, data) {
+        bullet.velocity = parseFloat(data);
+    }
 }
 GameObject.NEXT_ID = 0;
 GameObject.SerializeFunctions = new Map([
     ['position', GameObject.serializePosition],
     ['spriteName', GameObject.serializeSpriteName],
+    ['velocity', GameObject.serializeVelocity],
 ]);
 GameObject.DeserializeFunctions = new Map([
     ['P', GameObject.deserializePosition],
     ['S', GameObject.deserializeSpriteName],
+    ['V', GameObject.deserializeVelocity],
 ]);
 exports.GameObject = GameObject;
 // SerializeFunctions.set('position', GameObject.serializePosition);
@@ -848,7 +872,7 @@ exports.GameObject = GameObject;
 // SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
 // DeserializeFunctions.set('S', GameObject.deserializeSpriteName); 
 
-},{}],22:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
 /**
  * Created by Tomek on 2017-04-08.
@@ -865,7 +889,7 @@ exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
 exports.TypeIdMap.set('B', GameObjectType.Bullet);
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectsHolder {
@@ -897,7 +921,7 @@ class GameObjectsHolder {
 }
 exports.GameObjectsHolder = GameObjectsHolder;
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
@@ -923,7 +947,7 @@ class ObjectsFactory {
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Bullet":20,"./Player":25,"./Position":26}],25:[function(require,module,exports){
+},{"./Bullet":19,"./Player":24,"./Position":25}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -931,14 +955,14 @@ const GameObjectTypes_1 = require("./GameObjectTypes");
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
         super(position);
-        this.direction = 0;
-        this.speed = 10;
+        this.moveDirection = 0;
         this.id = this.Type + this.id;
         this.sFunc = new Map(function* () { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map(function* () { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
         this.hp = 100;
         this.destination = null;
+        this.velocity = 10;
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
@@ -946,7 +970,7 @@ class Player extends GameObject_1.GameObject {
     setInput(commands) {
         commands.forEach((value, key) => {
             if (key == "D") {
-                this.direction = parseInt(value);
+                this.moveDirection = parseInt(value);
             }
         });
     }
@@ -954,37 +978,37 @@ class Player extends GameObject_1.GameObject {
         super.update();
         let xFactor = 0;
         let yFactor = 0;
-        if (this.direction == 1) {
+        if (this.moveDirection == 1) {
             yFactor = -1;
         }
-        else if (this.direction == 2) {
+        else if (this.moveDirection == 2) {
             xFactor = 0.7071;
             yFactor = -0.7071;
         }
-        else if (this.direction == 3) {
+        else if (this.moveDirection == 3) {
             xFactor = 1;
         }
-        else if (this.direction == 4) {
+        else if (this.moveDirection == 4) {
             xFactor = 0.7071;
             yFactor = 0.7071;
         }
-        else if (this.direction == 5) {
+        else if (this.moveDirection == 5) {
             yFactor = 1;
         }
-        else if (this.direction == 6) {
+        else if (this.moveDirection == 6) {
             xFactor = -0.7071;
             yFactor = 0.7071;
         }
-        else if (this.direction == 7) {
+        else if (this.moveDirection == 7) {
             xFactor = -1;
         }
-        else if (this.direction == 8) {
+        else if (this.moveDirection == 8) {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.position.X += xFactor * this.speed;
-        this.position.Y += yFactor * this.speed;
-        if (this.direction != 0) {
+        this.position.X += xFactor * this.velocity;
+        this.position.Y += yFactor * this.velocity;
+        if (this.moveDirection != 0) {
             this.changes.add('position');
         }
     }
@@ -996,7 +1020,7 @@ class Player extends GameObject_1.GameObject {
     }
     set Direction(direction) {
         if (direction >= 0 && direction <= 8) {
-            this.direction = direction;
+            this.moveDirection = direction;
         }
     }
     hit(power) {
@@ -1012,7 +1036,7 @@ class Player extends GameObject_1.GameObject {
         return this.name;
     }
     get Direction() {
-        return this.direction;
+        return this.moveDirection;
     }
     static serializeHp(player) {
         if (player instanceof Player) {
@@ -1047,7 +1071,7 @@ exports.Player = Player;
 // DeserializeFunctions.set('H', Player.deserializeHp);
 // DeserializeFunctions.set('N', Player.deserializeName);
 
-},{"./GameObject":21,"./GameObjectTypes":22}],26:[function(require,module,exports){
+},{"./GameObject":20,"./GameObjectTypes":21}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Position {
@@ -1080,4 +1104,4 @@ class Position {
 }
 exports.Position = Position;
 
-},{}]},{},[11]);
+},{}]},{},[10]);

@@ -42,6 +42,23 @@ export class InputHandler {
     }
 
     public startInputSnapshotTimer() {
+        // if (this.changed) {
+        //     let snapshot: InputSnapshot = this.createInputSnapshot();
+        //     let serializedSnapshot = JSON.stringify(snapshot);
+        //     if(serializedSnapshot.length == 0) {
+        //         return;
+        //     }
+        //
+        //     let id: number = InputHandler.SnapshotId++;
+        //
+        //     this.snapshotCallbacks.forEach((callback: Function) => {
+        //         callback(id, snapshot);
+        //     });
+        // }
+        // this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientConfig.INPUT_SNAPSHOT_TIMER);
+    }
+
+    public asd() {
         if (this.changed) {
             let snapshot: InputSnapshot = this.createInputSnapshot();
             let serializedSnapshot = JSON.stringify(snapshot);
@@ -55,7 +72,6 @@ export class InputHandler {
                 callback(id, snapshot);
             });
         }
-        this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientConfig.INPUT_SNAPSHOT_TIMER);
     }
 
     public stopInputSnapshotTimer() {
@@ -64,10 +80,11 @@ export class InputHandler {
 
     private keyPressed(event : KeyboardEvent) {
         if(InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
-            this.changed = true;
             this.releasedKeys.delete(event.keyCode);
             this.pressedKeys.add(event.keyCode);
+            this.changed = true;
         }
+        this.asd();
     }
 
     private keyReleased(event : KeyboardEvent) {
@@ -76,11 +93,13 @@ export class InputHandler {
             this.releasedKeys.add(event.keyCode);
             this.changed = true;
         }
+        this.asd();
     }
 
     private mouseClick(mouseEvent: MouseEvent) {
         this.clickPosition = new Position(mouseEvent.x, mouseEvent.y);
         this.changed = true;
+        this.asd();
     }
 
     private createInputSnapshot(): InputSnapshot {

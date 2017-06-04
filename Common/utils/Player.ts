@@ -11,8 +11,7 @@ export class Player extends GameObject {
     private name: string;
     private hp: number;
     private destination: Position;
-    private direction: number = 0;
-    private speed = 10;
+    private moveDirection: number = 0;
 
     constructor(name: string, position: Position) {
         super(position);
@@ -23,12 +22,13 @@ export class Player extends GameObject {
         this.name = name;
         this.hp = 100;
         this.destination = null;
+        this.velocity = 10;
     }
 
     public setInput(commands: Map<string, string> ) {
         commands.forEach((value: string, key: string) => {
             if(key == "D") {
-                this.direction = parseInt(value);
+                this.moveDirection = parseInt(value);
             }
         });
     }
@@ -38,31 +38,31 @@ export class Player extends GameObject {
 
         let xFactor: number = 0;
         let yFactor: number = 0;
-        if(this.direction == 1) {
+        if(this.moveDirection == 1) {
             yFactor = -1;
-        } else if(this.direction == 2) {
+        } else if(this.moveDirection == 2) {
             xFactor = 0.7071;
             yFactor = -0.7071;
-        } else if(this.direction == 3) {
+        } else if(this.moveDirection == 3) {
             xFactor = 1;
-        } else if(this.direction == 4) {
+        } else if(this.moveDirection == 4) {
             xFactor = 0.7071;
             yFactor = 0.7071;
-        } else if(this.direction == 5) {
+        } else if(this.moveDirection == 5) {
             yFactor = 1;
-        } else if(this.direction == 6) {
+        } else if(this.moveDirection == 6) {
             xFactor = -0.7071;
             yFactor = 0.7071;
-        } else if(this.direction == 7) {
+        } else if(this.moveDirection == 7) {
             xFactor = -1;
-        } else if(this.direction == 8) {
+        } else if(this.moveDirection == 8) {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.position.X += xFactor * this.speed;
-        this.position.Y += yFactor * this.speed;
+        this.position.X += xFactor * this.velocity;
+        this.position.Y += yFactor * this.velocity;
 
-        if(this.direction != 0) {
+        if(this.moveDirection != 0) {
             this.changes.add('position');
         }
     }
@@ -77,7 +77,7 @@ export class Player extends GameObject {
 
     set Direction(direction: number) {
         if(direction >= 0 && direction <= 8) {
-            this.direction = direction;
+            this.moveDirection = direction;
         }
     }
 
@@ -97,7 +97,7 @@ export class Player extends GameObject {
     }
 
     get Direction(): number {
-        return this.direction;
+        return this.moveDirection;
     }
 
     static serializeHp(player: Player): string {

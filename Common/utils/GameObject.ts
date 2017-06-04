@@ -15,6 +15,7 @@ export abstract class GameObject {
     protected position: Position;
     protected sFunc: Map<string, Function>;
     protected dFunc: Map<string, Function>;
+    protected velocity: number = 10;
 
     constructor(position: Position) {
         this.position = position;
@@ -124,13 +125,24 @@ export abstract class GameObject {
         gameObject.spriteName = data;
     }
 
+    static serializeVelocity(bullet: GameObject): string {
+        return '#V:' + bullet.velocity;
+    }
+
+    static deserializeVelocity(bullet: GameObject, data: string) {
+        bullet.velocity = parseFloat(data);
+    }
+
+
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
         ['position', GameObject.serializePosition],
         ['spriteName', GameObject.serializeSpriteName],
+        ['velocity', GameObject.serializeVelocity],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
         ['P', GameObject.deserializePosition],
         ['S', GameObject.deserializeSpriteName],
+        ['V', GameObject.deserializeVelocity],
     ]);
 }
 

@@ -142,7 +142,10 @@ export class GameServer {
         console.log('player disconnected' + client.Name);
         this.removedObjects += '$' + '!' + client.PlayerId;
 
-        NetObjectsManager.Instance.getGameObject(client.PlayerId).destroy();
+        let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(client.PlayerId);
+        if(gameObject != null) {
+            gameObject.destroy();
+        }
         this.clientsMap.delete(client.Socket);
     }
 }

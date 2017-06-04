@@ -7,9 +7,7 @@ export class Bullet extends GameObject {
         return GameObjectType.Bullet.toString();
     }
 
-    private velocity: number = 10;
-    private direction: number = 0;
-
+    private directionAngle: number;
     private lifeSpan = 300;
 
     constructor(position: Position) {
@@ -20,6 +18,7 @@ export class Bullet extends GameObject {
 
         this.lifeSpan = Math.floor(Math.random() * 150);
         this.velocity = Math.floor(Math.random() * 15) + 1;
+        this.directionAngle = Math.floor(Math.random() * 360);
 
         this.changes.add("velocity");
         this.changes.add("lifeSpan");
@@ -35,32 +34,42 @@ export class Bullet extends GameObject {
         if(this.asd > this.lifeSpan) {
             this.destroy();
         }
-        this.position.X = this.position.X + this.velocity;
+
+        let sinAngle: number = Math.sin(this.directionAngle);
+        let cosAngle: number = Math.cos(this.directionAngle);
+
+        this.position.X += cosAngle * this.velocity;
+        this.position.Y += sinAngle * this.velocity;
         //this.changes.add('position');
     }
 
-    static serializeVelocity(bullet: Bullet): string {
-        return '#V:' + bullet.velocity;
-    }
-
-    static deserializeVelocity(bullet: Bullet, data: string) {
-        bullet.velocity = parseFloat(data);
+    set DirectionAngle(angle: number) {
+        this.directionAngle = angle;
+        this.changes.add("A");
     }
 
     static serializeLifeSpan(bullet: Bullet): string {
         return '#L:' + bullet.lifeSpan;
     }
 
-    static deserializeLifeSpan(bullet: Bullet, data: string) {
+    static deserializeDirectionAngle(bullet: Bullet, data: string) {
         bullet.lifeSpan = parseFloat(data);
     }
 
+    static serializeDirectionAngle(bullet: Bullet): string {
+        return '#A:' + bullet.lifeSpan;
+    }
+
+    static deserializeLifeSpan(bullet: Bullet, data: string) {
+        bullet.directionAngle = parseInt(data);
+    }
+
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['velocity', Bullet.serializeVelocity],
         ['lifeSpan', Bullet.serializeLifeSpan],
+        ['directionAngle', Bullet.serializeDirectionAngle],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['V', Bullet.deserializeVelocity],
         ['L', Bullet.deserializeLifeSpan],
+        ['A', Bullet.deserializeDirectionAngle],
     ]);
 }
