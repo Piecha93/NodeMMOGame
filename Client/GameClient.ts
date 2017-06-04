@@ -63,7 +63,7 @@ export class GameClient {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
-            this.player = this.game.getObject(parseInt(data['id'])) as Player;
+            this.player = this.game.getGameObject(data['id']) as Player;
 
             console.log(this.player);
 
@@ -97,22 +97,24 @@ export class GameClient {
             let data: string = splitObject[1];
 
             let gameObject: GameObject = this.netObjectMenager.getObject(id);
+
             if(id[0] == '!') {
                 id = id.slice(1);
                 if(this.netObjectMenager.has(id)) {
 
                     this.renderer.removeGameObject(gameObject);
-                    this.game.removeGameObject(gameObject.ID);
-                    this.netObjectMenager.removeGameObject(id);
+                    gameObject.destroy();
                 }
                 continue;
             }
 
             if(gameObject == null) {
+                console.log("create ");
                 gameObject = ObjectsFactory.CreateGameObject(id);
-                this.netObjectMenager.addGameObject(gameObject, id);
+                gameObject.ID = id;
+                
+                this.netObjectMenager.addGameObject(gameObject);
                 this.game.addGameObject(gameObject);
-
                 this.renderer.addGameObject(gameObject);
             }
             gameObject.deserialize(data.split('#'));

@@ -10,6 +10,7 @@ import {GameObject} from "../Common/utils/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
+import GameObjectFactory = Phaser.GameObjectFactory;
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -42,7 +43,7 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
-            //console.log(this.clientsMap.size);
+            //  console.log(this.clientsMap.size);
 
             socket.emit(SocketMsgs.START_GAME);
             
@@ -50,9 +51,10 @@ export class GameServer {
                 let x: number = Math.floor(Math.random() * 800);
                 let y: number = Math.floor(Math.random() * 600);
 
-                let player: GameObject = this.game.spawnPlayer(clientName, new Position(x, y));
+                let player: GameObject = ObjectsFactory.CreateGameObject("P", new Position(x, y));
+                this.game.addGameObject(player);
+                NetObjectsManager.Instance.addGameObject(player);
 
-                serverClient.NetObjectId = NetObjectsManager.Instance.addGameObject(player);
                 serverClient.PlayerId = player.ID;
 
                 let update: string = NetObjectsManager.Instance.collectUpdate(true);
@@ -63,7 +65,7 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
-                let player: Player = this.game.getObject(serverClient.PlayerId) as Player;
+                let player: Player = this.game.getGameObject(serverClient.PlayerId) as Player;
                 if(player == null) {
                     return;
                 }
@@ -80,8 +82,8 @@ export class GameServer {
                     let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
                     bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
                     bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
-                    serverClient.NetObjectId = NetObjectsManager.Instance.addGameObject(bullet);
                     this.game.addGameObject(bullet);
+                    NetObjectsManager.Instance.addGameObject(bullet);
                 }
             });
 
@@ -95,7 +97,7 @@ export class GameServer {
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
                 if(this.clientsMap.has(socket)) {
                     if (msg == "rudycwel") {
-                        this.game.getObject(serverClient.PlayerId).SpriteName = "dyzma";
+                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
                     }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
                 }
@@ -138,10 +140,9 @@ export class GameServer {
 
     private clientDisconnected(client: ServerClient) {
         console.log('player disconnected' + client.Name);
-        this.removedObjects += '$' + '!' + client.NetObjectId;
+        this.removedObjects += '$' + '!' + client.PlayerId;
 
-        NetObjectsManager.Instance.removeGameObject(client.NetObjectId);
-        this.game.removeGameObject(client.PlayerId);
+        NetObjectsManager.Instance.getGameObject(client.PlayerId).destroy();
         this.clientsMap.delete(client.Socket);
     }
 }

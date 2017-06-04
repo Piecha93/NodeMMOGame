@@ -16,6 +16,7 @@ export class Player extends GameObject {
 
     constructor(name: string, position: Position) {
         super(position);
+        this.id = this.Type + this.id;
 
         this.sFunc = new Map<string, Function>(function*() { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
@@ -112,11 +113,7 @@ export class Player extends GameObject {
     }
 
     static serializeName(player: Player): string {
-        if(player instanceof Player) {
             return '#N:' + player.name;
-        } else {
-            return "";
-        }
     }
 
     static deserializeName(player: Player, data: string) {

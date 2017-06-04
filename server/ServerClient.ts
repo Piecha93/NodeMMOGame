@@ -7,8 +7,7 @@ export class ServerClient {
     private socket: Socket;
     private isReady: boolean = false;
     private lastHbInterval: number = ServerConfig.CLIENT_TIMEOUT;
-    private netObjectId: string = '';
-    private playerId: number;
+    private playerId: string;
 
     constructor(name: string, socket: Socket) {
         this.name = name;
@@ -39,19 +38,11 @@ export class ServerClient {
         this.lastHbInterval = value;
     }
 
-    get NetObjectId(): string {
-        return this.netObjectId;
-    }
-
-    set NetObjectId(value: string) {
-        this.netObjectId = value;
-    }
-
-    get PlayerId(): number {
+    get PlayerId(): string {
         return this.playerId;
     }
 
-    set PlayerId(value: number) {
+    set PlayerId(value: string) {
         this.playerId = value;
     }
 }

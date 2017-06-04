@@ -33,7 +33,7 @@ export class GameObjectRender {
 
     }
 
-    public hide() {
+    public destroy() {
         this.sprite.destroy();
     }
 }

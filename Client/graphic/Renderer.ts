@@ -1,17 +1,19 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
 import {GameObject} from "../../Common/utils/GameObject";
+import {GameObjectsHolder} from "../../Common/utils/GameObjectsHolder";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 
-export class Renderer {
+export class Renderer extends GameObjectsHolder {
     static phaserGame: Phaser.Game;
 
-    private renderObjectMap: Map<GameObject, GameObjectRender>;
+    private renderObjects: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
+        super();
         Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
-        this.renderObjectMap = new Map<GameObject, GameObjectRender>();
+        this.renderObjects = new Map<GameObject, GameObjectRender>();
     }
 
     private preload() {
@@ -27,13 +29,16 @@ export class Renderer {
         afterCreateCallback();
     }
 
-    public update() {
-        this.renderObjectMap.forEach((gameObjectRender: GameObjectRender) => {
+    public update(){
+        this.renderObjects.forEach((gameObjectRender: GameObjectRender) => {
             gameObjectRender.render();
         });
     }
 
-    public addGameObject(gameObject: GameObject) {
+    addGameObject(gameObject: GameObject) {
+        super.addGameObject(gameObject);
+
+        console.log("chujdupoa");
         let gameObjectRender: GameObjectRender;
 
         let type: string = gameObject.ID[0];
@@ -44,12 +49,13 @@ export class Renderer {
         }
 
         gameObjectRender.setObject(gameObject);
-        this.renderObjectMap.set(gameObject, gameObjectRender);
+        this.renderObjects.set(gameObject, gameObjectRender);
     }
 
     public removeGameObject(gameObject: GameObject) {
-        this.renderObjectMap.get(gameObject).hide();
-        this.renderObjectMap.delete(gameObject);
+        super.removeGameObject(gameObject);
+        this.renderObjects.get(gameObject).destroy();
+        this.renderObjects.delete(gameObject);
     }
 
     get PhaserInput(): Phaser.Input {

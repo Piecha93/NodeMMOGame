@@ -35742,7 +35742,7 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     this.onResume = null;
 
     /**
-    * @property {Phaser.Signal} onBlur - This event is fired when the game no longer has focus (typically on page hide).
+    * @property {Phaser.Signal} onBlur - This event is fired when the game no longer has focus (typically on page destroy).
     */
     this.onBlur = null;
 

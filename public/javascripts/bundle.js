@@ -1,5 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const ChatHtmlHandler_1 = require("./graphic/HtmlHandlers/ChatHtmlHandler");
 const SocketMsgs_1 = require("../Common/net/SocketMsgs");
 class Chat {
@@ -18,14 +19,16 @@ exports.Chat = Chat;
 
 },{"../Common/net/SocketMsgs":19,"./graphic/HtmlHandlers/ChatHtmlHandler":5}],2:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class ClientConfig {
 }
 ClientConfig.INPUT_SNAPSHOT_TIMER = 1 / 5 * 1000;
 exports.ClientConfig = ClientConfig;
 
 },{}],3:[function(require,module,exports){
-/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 "use strict";
+/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const Game_1 = require("../Common/Game");
 const Renderer_1 = require("./graphic/Renderer");
 const InputHandler_1 = require("./input/InputHandler");
@@ -72,7 +75,7 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
-            this.player = this.game.getObject(parseInt(data['id']));
+            this.player = this.game.getGameObject(data['id']);
             console.log(this.player);
             this.inputHandler.startInputSnapshotTimer();
             this.heartBeatSender.startSendingHeartbeats();
@@ -99,20 +102,21 @@ class GameClient {
             let id = splitObject[0];
             let data = splitObject[1];
             let gameObject = this.netObjectMenager.getObject(id);
-            if (gameObject == null) {
-                gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
-                this.netObjectMenager.addGameObject(gameObject, id);
-                this.game.addGameObject(gameObject);
-                this.renderer.addGameObject(gameObject, id[0]);
-            }
             if (id[0] == '!') {
                 id = id.slice(1);
                 if (this.netObjectMenager.has(id)) {
                     this.renderer.removeGameObject(gameObject);
-                    this.game.removeGameObject(gameObject.ID);
-                    this.netObjectMenager.removeGameObject(id);
+                    gameObject.destroy();
                 }
                 continue;
+            }
+            if (gameObject == null) {
+                console.log("create ");
+                gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
+                gameObject.ID = id;
+                this.netObjectMenager.addGameObject(gameObject);
+                this.game.addGameObject(gameObject);
+                this.renderer.addGameObject(gameObject);
             }
             gameObject.deserialize(data.split('#'));
         }
@@ -120,9 +124,10 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":13,"../Common/DeltaTimer":15,"../Common/Game":16,"../Common/net/NetObjectsManager":18,"../Common/net/SocketMsgs":19,"../Common/utils/ObjectsFactory":23,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":6,"./graphic/Renderer":8,"./input/InputHandler":9,"./net/HeartBeatSender":12}],4:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
+},{"../Client/net/InputSender":13,"../Common/DeltaTimer":15,"../Common/Game":16,"../Common/net/NetObjectsManager":18,"../Common/net/SocketMsgs":19,"../Common/utils/ObjectsFactory":24,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":6,"./graphic/Renderer":8,"./input/InputHandler":9,"./net/HeartBeatSender":12}],4:[function(require,module,exports){
 "use strict";
+/// <reference path="../libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const Renderer_1 = require("./Renderer");
 class GameObjectRender {
     constructor() {
@@ -144,7 +149,7 @@ class GameObjectRender {
             this.sprite.loadTexture(this.objectReference.SpriteName);
         }
     }
-    hide() {
+    destroy() {
         this.sprite.destroy();
     }
 }
@@ -152,6 +157,7 @@ exports.GameObjectRender = GameObjectRender;
 
 },{"./Renderer":8}],5:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class ChatHtmlHandler {
     constructor() {
         this.create();
@@ -228,6 +234,7 @@ exports.ChatHtmlHandler = ChatHtmlHandler;
 
 },{}],6:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class DebugWindowHtmlHandler {
     constructor() {
         this.debugWindowDiv = document.getElementById("debug-window");
@@ -258,6 +265,7 @@ exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
 },{}],7:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
 const Renderer_1 = require("./Renderer");
 class PlayerRender extends GameObjectRender_1.GameObjectRender {
@@ -284,14 +292,17 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
 exports.PlayerRender = PlayerRender;
 
 },{"./GameObjectRender":4,"./Renderer":8}],8:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
 "use strict";
+/// <reference path="../libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectsHolder_1 = require("../../Common/utils/GameObjectsHolder");
 const GameObjectRender_1 = require("./GameObjectRender");
 const PlayerRender_1 = require("./PlayerRender");
-class Renderer {
+class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
+        super();
         Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
-        this.renderObjectMap = new Map();
+        this.renderObjects = new Map();
     }
     preload() {
         Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
@@ -304,12 +315,15 @@ class Renderer {
         afterCreateCallback();
     }
     update() {
-        this.renderObjectMap.forEach((gameObjectRender) => {
+        this.renderObjects.forEach((gameObjectRender) => {
             gameObjectRender.render();
         });
     }
-    addGameObject(gameObject, type) {
+    addGameObject(gameObject) {
+        super.addGameObject(gameObject);
+        console.log("chujdupoa");
         let gameObjectRender;
+        let type = gameObject.ID[0];
         if (type == "P") {
             gameObjectRender = new PlayerRender_1.PlayerRender();
         }
@@ -317,11 +331,12 @@ class Renderer {
             gameObjectRender = new GameObjectRender_1.GameObjectRender();
         }
         gameObjectRender.setObject(gameObject);
-        this.renderObjectMap.set(gameObject, gameObjectRender);
+        this.renderObjects.set(gameObject, gameObjectRender);
     }
     removeGameObject(gameObject) {
-        this.renderObjectMap.get(gameObject).hide();
-        this.renderObjectMap.delete(gameObject);
+        super.removeGameObject(gameObject);
+        this.renderObjects.get(gameObject).destroy();
+        this.renderObjects.delete(gameObject);
     }
     get PhaserInput() {
         return Renderer.phaserGame.input;
@@ -329,9 +344,10 @@ class Renderer {
 }
 exports.Renderer = Renderer;
 
-},{"./GameObjectRender":4,"./PlayerRender":7}],9:[function(require,module,exports){
-/// <reference path="../libs/@types/phaser.d.ts" />
+},{"../../Common/utils/GameObjectsHolder":23,"./GameObjectRender":4,"./PlayerRender":7}],9:[function(require,module,exports){
 "use strict";
+/// <reference path="../libs/@types/phaser.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
 const InputMap_1 = require("./InputMap");
 const Position_1 = require("../../Common/utils/Position");
@@ -449,16 +465,17 @@ class InputHandler {
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputSnapshot":17,"../../Common/utils/Position":25,"../ClientConfig":2,"./InputMap":10}],10:[function(require,module,exports){
+},{"../../Common/input/InputSnapshot":17,"../../Common/utils/Position":26,"../ClientConfig":2,"./InputMap":10}],10:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var INPUT;
 (function (INPUT) {
     INPUT[INPUT["NONE"] = 0] = "NONE";
     INPUT[INPUT["UP"] = 1] = "UP";
     INPUT[INPUT["DOWN"] = 2] = "DOWN";
     INPUT[INPUT["LEFT"] = 3] = "LEFT";
     INPUT[INPUT["RIGHT"] = 4] = "RIGHT";
-})(exports.INPUT || (exports.INPUT = {}));
-var INPUT = exports.INPUT;
+})(INPUT = exports.INPUT || (exports.INPUT = {}));
 exports.InputMap = new Map([
     [87, INPUT.UP],
     [83, INPUT.DOWN],
@@ -468,6 +485,7 @@ exports.InputMap = new Map([
 
 },{}],11:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameClient_1 = require("./GameClient");
 const CommonConfig_1 = require("../Common/CommonConfig");
 CommonConfig_1.CommonConfig.ORIGIN = CommonConfig_1.Origin.CLIENT;
@@ -477,6 +495,7 @@ window.onload = () => {
 
 },{"../Common/CommonConfig":14,"./GameClient":3}],12:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
 const DebugWindowHtmlHandler_1 = require("../graphic/HtmlHandlers/DebugWindowHtmlHandler");
 class HeartBeatSender {
@@ -513,6 +532,7 @@ exports.HeartBeatSender = HeartBeatSender;
 
 },{"../../Common/net/SocketMsgs":19,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":6}],13:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
 class InputSender {
     constructor(socket) {
@@ -530,12 +550,13 @@ exports.InputSender = InputSender;
 
 },{"../../Common/net/SocketMsgs":19}],14:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var Origin;
 (function (Origin) {
     Origin[Origin["CLIENT"] = 0] = "CLIENT";
     Origin[Origin["SERVER"] = 1] = "SERVER";
     Origin[Origin["UNKNOWN"] = 2] = "UNKNOWN";
-})(exports.Origin || (exports.Origin = {}));
-var Origin = exports.Origin;
+})(Origin = exports.Origin || (exports.Origin = {}));
 class CommonConfig {
 }
 CommonConfig.ORIGIN = Origin.UNKNOWN;
@@ -543,6 +564,7 @@ exports.CommonConfig = CommonConfig;
 
 },{}],15:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
     constructor() {
         this.lastUpdate = new Date().getTime();
@@ -559,45 +581,29 @@ exports.DeltaTimer = DeltaTimer;
 
 },{}],16:[function(require,module,exports){
 "use strict";
-const Player_1 = require("./utils/Player");
-class Game {
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectsHolder_1 = require("./utils/GameObjectsHolder");
+class Game extends GameObjectsHolder_1.GameObjectsHolder {
     constructor() {
+        super();
         this.tickrate = 30;
-        this.objects = new Map();
         console.log("create game instance");
     }
     startGameLoop() {
         this.timeoutId = setTimeout(() => this.startGameLoop(), 1 / this.tickrate * 1000);
-        this.objects.forEach((object) => {
+        this.gameObjects.forEach((object) => {
             object.update();
         });
     }
     stopGameLoop() {
         clearTimeout(this.timeoutId);
     }
-    spawnPlayer(name, position) {
-        let player;
-        player = new Player_1.Player(name, position);
-        console.log("player id " + player.ID);
-        this.objects.set(player.ID, player);
-        //console.log("New player " + name);
-        //console.log("Number of objects " + this.objects.size);
-        return player;
-    }
-    addGameObject(gameObject) {
-        this.objects.set(gameObject.ID, gameObject);
-    }
-    removeObject(id) {
-        this.objects.delete(id);
-    }
-    getObject(id) {
-        return this.objects.get(id);
-    }
 }
 exports.Game = Game;
 
-},{"./utils/Player":24}],17:[function(require,module,exports){
+},{"./utils/GameObjectsHolder":23}],17:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class InputSnapshot {
     constructor(serializedSnapshot) {
         if (serializedSnapshot) {
@@ -633,13 +639,11 @@ exports.InputSnapshot = InputSnapshot;
 
 },{}],18:[function(require,module,exports){
 "use strict";
-class NetObjectsManager {
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectsHolder_1 = require("../utils/GameObjectsHolder");
+class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
     constructor() {
-        this.gameObjects = new Map();
-    }
-    static GetNextId(type) {
-        NetObjectsManager.NEXT_ID++;
-        return type + NetObjectsManager.NEXT_ID.toString();
+        super();
     }
     static get Instance() {
         if (NetObjectsManager.instance) {
@@ -664,34 +668,12 @@ class NetObjectsManager {
     getObject(id) {
         return this.gameObjects.get(id);
     }
-    addGameObject(gameObject, id) {
-        //TODO - sprawdzic czy dany gejmobject juz istnieje
-        let newObjectId;
-        if (id != null) {
-            if (this.gameObjects.has(id)) {
-                throw new Error("NetObject id duplication: " + id);
-            }
-            newObjectId = id;
-        }
-        else {
-            newObjectId = NetObjectsManager.GetNextId(gameObject.Type);
-            console.log("new " + gameObject.Type);
-        }
-        this.gameObjects.set(newObjectId, gameObject);
-        return id;
-    }
-    removeGameObject(id) {
-        return this.gameObjects.delete(id);
-    }
-    has(id) {
-        return this.gameObjects.has(id);
-    }
 }
-NetObjectsManager.NEXT_ID = 0;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{}],19:[function(require,module,exports){
+},{"../utils/GameObjectsHolder":23}],19:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
 }
 SocketMsgs.CLIENT_READY = 'cr';
@@ -706,43 +688,72 @@ exports.SocketMsgs = SocketMsgs;
 
 },{}],20:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const Position_1 = require("../../Common/utils/Position");
-const GameObjectTypes_1 = require("../../Common/utils/GameObjectTypes");
+const GameObjectTypes_1 = require("./GameObjectTypes");
 class Bullet extends GameObject_1.GameObject {
-    constructor() {
-        super(new Position_1.Position(200, 200));
+    constructor(position) {
+        super(position);
         this.velocity = 10;
         this.direction = 0;
-        this.lifeSpan = 3;
+        this.lifeSpan = 300;
+        this.asd = 0;
+        this.id = this.Type + this.id;
         this.spriteName = "bullet";
+        this.lifeSpan = Math.floor(Math.random() * 150);
+        this.velocity = Math.floor(Math.random() * 15) + 1;
+        this.changes.add("velocity");
+        this.changes.add("lifeSpan");
+        this.sFunc = new Map(function* () { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
+        this.dFunc = new Map(function* () { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Bullet.toString();
     }
     update() {
-        this.position.X = this.position.X + 1;
-        this.changes.add('position');
+        this.asd++;
+        if (this.asd > this.lifeSpan) {
+            this.destroy();
+        }
+        this.position.X = this.position.X + this.velocity;
+        //this.changes.add('position');
+    }
+    static serializeVelocity(bullet) {
+        return '#V:' + bullet.velocity;
+    }
+    static deserializeVelocity(bullet, data) {
+        bullet.velocity = parseFloat(data);
+    }
+    static serializeLifeSpan(bullet) {
+        return '#L:' + bullet.lifeSpan;
+    }
+    static deserializeLifeSpan(bullet, data) {
+        bullet.lifeSpan = parseFloat(data);
     }
 }
+Bullet.SerializeFunctions = new Map([
+    ['velocity', Bullet.serializeVelocity],
+    ['lifeSpan', Bullet.serializeLifeSpan],
+]);
+Bullet.DeserializeFunctions = new Map([
+    ['V', Bullet.deserializeVelocity],
+    ['L', Bullet.deserializeLifeSpan],
+]);
 exports.Bullet = Bullet;
 
-},{"../../Common/utils/GameObjectTypes":22,"../../Common/utils/Position":25,"./GameObject":21}],21:[function(require,module,exports){
+},{"./GameObject":21,"./GameObjectTypes":22}],21:[function(require,module,exports){
 "use strict";
-const GameObjectTypes_1 = require("./GameObjectTypes");
-//import {SerializeFunctions, DeserializeFunctions} from "./SerializeFunctionsMap";
+Object.defineProperty(exports, "__esModule", { value: true });
 class GameObject {
     constructor(position) {
         this.forceComplete = true;
-        this.id = GameObject.NEXT_ID++;
+        this.id = (GameObject.NEXT_ID++).toString();
         this.position = position;
         this.changes = new Set();
         this.sFunc = GameObject.SerializeFunctions;
         this.dFunc = GameObject.DeserializeFunctions;
         this.spriteName = "bunny";
-    }
-    get Type() {
-        return GameObjectTypes_1.GameObjectType.GameObject.toString();
+        this.holders = new Set();
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -778,11 +789,25 @@ class GameObject {
             }
         }
     }
+    addHolder(holder) {
+        this.holders.add(holder);
+    }
+    removeHolder(holder) {
+        this.holders.delete(holder);
+    }
+    destroy() {
+        for (let holder of this.holders) {
+            holder.onDestroy(this.id.toString());
+        }
+    }
     get Position() {
         return this.position;
     }
     get ID() {
         return this.id;
+    }
+    set ID(id) {
+        this.id = id;
     }
     get SpriteName() {
         return this.spriteName;
@@ -823,17 +848,18 @@ exports.GameObject = GameObject;
 // SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
 // DeserializeFunctions.set('S', GameObject.deserializeSpriteName); 
 
-},{"./GameObjectTypes":22}],22:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
+"use strict";
 /**
  * Created by Tomek on 2017-04-08.
  */
-"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var GameObjectType;
 (function (GameObjectType) {
     GameObjectType[GameObjectType["GameObject"] = 'G'] = "GameObject";
     GameObjectType[GameObjectType["Player"] = 'P'] = "Player";
     GameObjectType[GameObjectType["Bullet"] = 'B'] = "Bullet";
-})(exports.GameObjectType || (exports.GameObjectType = {}));
-var GameObjectType = exports.GameObjectType;
+})(GameObjectType = exports.GameObjectType || (exports.GameObjectType = {}));
 exports.TypeIdMap = new Map();
 exports.TypeIdMap.set('G', GameObjectType.GameObject);
 exports.TypeIdMap.set('P', GameObjectType.Player);
@@ -841,28 +867,65 @@ exports.TypeIdMap.set('B', GameObjectType.Bullet);
 
 },{}],23:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class GameObjectsHolder {
+    constructor() {
+        this.gameObjects = new Map();
+    }
+    onDestroy(id) {
+        this.removeGameObjectById(id);
+    }
+    addGameObject(gameObject) {
+        this.gameObjects.set(gameObject.ID, gameObject);
+        gameObject.addHolder(this);
+    }
+    removeGameObject(gameObject) {
+        gameObject.removeHolder(this);
+        this.gameObjects.delete(gameObject.ID);
+    }
+    removeGameObjectById(id) {
+        if (this.gameObjects.has(id)) {
+            this.removeGameObject(this.gameObjects.get(id));
+        }
+    }
+    getGameObject(id) {
+        return this.gameObjects.get(id);
+    }
+    has(id) {
+        return this.gameObjects.has(id);
+    }
+}
+exports.GameObjectsHolder = GameObjectsHolder;
+
+},{}],24:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
 const Position_1 = require("./Position");
-const Bullet_1 = require("../../Common/utils/Bullet");
+const Bullet_1 = require("./Bullet");
 class ObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
     }
-    static CreateGameObject(id) {
+    static CreateGameObject(id, position) {
         let type = id.substr(0, 1);
+        if (position == null) {
+            position = new Position_1.Position(0, 0);
+        }
         if (type == "P") {
-            return new Player_1.Player('DEFAULT', new Position_1.Position(0, 0));
+            return new Player_1.Player('DEFAULT', position);
         }
         else if (type == "B") {
-            return new Bullet_1.Bullet();
+            return new Bullet_1.Bullet(position);
         }
         return null;
     }
 }
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"../../Common/utils/Bullet":20,"./Player":24,"./Position":25}],24:[function(require,module,exports){
+},{"./Bullet":20,"./Player":25,"./Position":26}],25:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 class Player extends GameObject_1.GameObject {
@@ -870,6 +933,7 @@ class Player extends GameObject_1.GameObject {
         super(position);
         this.direction = 0;
         this.speed = 10;
+        this.id = this.Type + this.id;
         this.sFunc = new Map(function* () { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map(function* () { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
@@ -962,12 +1026,7 @@ class Player extends GameObject_1.GameObject {
         player.hp = parseInt(data);
     }
     static serializeName(player) {
-        if (player instanceof Player) {
-            return '#N:' + player.name;
-        }
-        else {
-            return "";
-        }
+        return '#N:' + player.name;
     }
     static deserializeName(player, data) {
         player.name = data;
@@ -988,8 +1047,9 @@ exports.Player = Player;
 // DeserializeFunctions.set('H', Player.deserializeHp);
 // DeserializeFunctions.set('N', Player.deserializeName);
 
-},{"./GameObject":21,"./GameObjectTypes":22}],25:[function(require,module,exports){
+},{"./GameObject":21,"./GameObjectTypes":22}],26:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Position {
     constructor(x, y) {
         this.x = x || 0;

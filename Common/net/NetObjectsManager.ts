@@ -1,17 +1,17 @@
 import {GameObject} from "../utils/GameObject";
+import {GameObjectsHolder} from "../utils/GameObjectsHolder";
 
-export class NetObjectsManager {
-    private static NEXT_ID: number = 0;
-    private static GetNextId(type: string): string {
-        NetObjectsManager.NEXT_ID++;
-        return type + NetObjectsManager.NEXT_ID.toString();
-    }
+export class NetObjectsManager extends GameObjectsHolder{
+    //private static NEXT_ID: number = 0;
+    // private static GetNextId(type: string): string {
+    //     NetObjectsManager.NEXT_ID++;
+    //     return type + NetObjectsManager.NEXT_ID.toString();
+    // }
     private static instance: NetObjectsManager;
 
-    private gameObjects: Map<string, GameObject>;
 
     private constructor() {
-        this.gameObjects = new Map<string, GameObject>();
+        super();
     }
 
     static get Instance(): NetObjectsManager {
@@ -40,28 +40,20 @@ export class NetObjectsManager {
         return this.gameObjects.get(id);
     }
 
-    addGameObject(gameObject: GameObject, id?: string): string {
-        //TODO - sprawdzic czy dany gejmobject juz istnieje
-        let newObjectId: string;
-        if(id != null) {
-            if(this.gameObjects.has(id)) {
-                throw new Error("NetObject id duplication: " + id);
-            }
-            newObjectId = id;
-        } else {
-            newObjectId = NetObjectsManager.GetNextId(gameObject.Type);
-            console.log("new " + gameObject.Type);
-        }
-        this.gameObjects.set(newObjectId, gameObject);
-
-        return id;
-    }
-
-    removeGameObject(id: string): boolean {
-        return this.gameObjects.delete(id);
-    }
-
-    has(id: string): boolean {
-        return this.gameObjects.has(id);
-    }
+    // addGameObject(gameObject: GameObject, id?: string): string {
+    //     //TODO - sprawdzic czy dany gejmobject juz istnieje
+    //     let newObjectId: string;
+    //     if(id != null) {
+    //         if(this.gameObjects.has(id)) {
+    //             throw new Error("NetObject id duplication: " + id);
+    //         }
+    //         newObjectId = id;
+    //     } else {
+    //         newObjectId = NetObjectsManager.GetNextId(gameObject.Type);
+    //         console.log("new " + gameObject.Type);
+    //     }
+    //     this.gameObjects.set(newObjectId, gameObject);
+    //
+    //     return id;
+    // }
 }

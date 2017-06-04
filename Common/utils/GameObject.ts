@@ -1,17 +1,16 @@
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-//import {SerializeFunctions, DeserializeFunctions} from "./SerializeFunctionsMap";
+import {GameObjectsHolder} from "./GameObjectsHolder";
 
 export abstract class GameObject {
-    get Type(): string {
-        return GameObjectType.GameObject.toString();
-    }
+    abstract get Type(): string;
 
     private static NEXT_ID: number = 0;
 
     private forceComplete: boolean = true;
+    private holders: Set<GameObjectsHolder>;
     protected changes: Set<string>;
-    protected id: number = GameObject.NEXT_ID++;
+    protected id: string = (GameObject.NEXT_ID++).toString();
     protected spriteName: string;
     protected position: Position;
     protected sFunc: Map<string, Function>;
@@ -25,6 +24,7 @@ export abstract class GameObject {
         this.dFunc = GameObject.DeserializeFunctions;
 
         this.spriteName = "bunny";
+        this.holders = new Set<GameObjectsHolder>();
     }
 
     forceCompleteUpdate() {
@@ -69,12 +69,30 @@ export abstract class GameObject {
         }
     }
 
+    addHolder(holder: GameObjectsHolder) {
+        this.holders.add(holder)
+    }
+
+    removeHolder(holder: GameObjectsHolder) {
+        this.holders.delete(holder);
+    }
+
+    destroy() {
+        for(let holder of this.holders) {
+            holder.onDestroy(this.id.toString());
+        }
+    }
+
     get Position(): Position {
         return this.position;
     }
 
-    get ID(): number {
+    get ID(): string {
         return this.id;
+    }
+
+    set ID(id: string) {
+        this.id = id;
     }
 
     get SpriteName(): string {
