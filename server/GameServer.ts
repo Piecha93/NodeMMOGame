@@ -79,11 +79,14 @@ export class GameServer {
 
                 if(snapshot.Commands.has("C")) {
 
-                    let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
-                    bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
-                    bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
-                    this.game.addGameObject(bullet);
-                    NetObjectsManager.Instance.addGameObject(bullet);
+                    for(let i = 0; i < 100; i++) {
+                        let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
+                        bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
+                        bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
+
+                        this.game.addGameObject(bullet);
+                        NetObjectsManager.Instance.addGameObject(bullet);
+                    }
                 }
             });
 
