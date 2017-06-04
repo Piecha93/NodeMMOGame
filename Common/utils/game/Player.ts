@@ -1,7 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-import {SerializeFunctions, DeserializeFunctions} from "./SerializeFunctionsMap";
+import {ChangesDict} from "./ChangesDict";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -63,7 +63,7 @@ export class Player extends GameObject {
         this.position.Y += yFactor * this.velocity;
 
         if(this.moveDirection != 0) {
-            this.changes.add('position');
+            this.changes.add(ChangesDict.POSITION);
         }
     }
 
@@ -101,11 +101,7 @@ export class Player extends GameObject {
     }
 
     static serializeHp(player: Player): string {
-        if(player instanceof Player) {
-            return '#H:' + player.HP.toString();
-        } else {
-            return "";
-        }
+        return ChangesDict.buildTag(ChangesDict.HP) + player.HP.toString();
     }
 
     static deserializeHp(player: Player, data: string) {
@@ -113,7 +109,7 @@ export class Player extends GameObject {
     }
 
     static serializeName(player: Player): string {
-            return '#N:' + player.name;
+            return ChangesDict.buildTag(ChangesDict.NAME) +  player.name;
     }
 
     static deserializeName(player: Player, data: string) {
@@ -121,18 +117,12 @@ export class Player extends GameObject {
     }
 
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['hp', Player.serializeHp],
-        ['name', Player.serializeName],
+        [ChangesDict.HP, Player.serializeHp],
+        [ChangesDict.NAME, Player.serializeName],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['H', Player.deserializeHp],
-        ['N', Player.deserializeName],
+        [ChangesDict.HP, Player.deserializeHp],
+        [ChangesDict.NAME, Player.deserializeName],
     ]);
 }
-
-// SerializeFunctions.set('hp', Player.serializeHp);
-// SerializeFunctions.set('name', Player.serializeName);
-//1
-// DeserializeFunctions.set('H', Player.deserializeHp);
-// DeserializeFunctions.set('N', Player.deserializeName);
 

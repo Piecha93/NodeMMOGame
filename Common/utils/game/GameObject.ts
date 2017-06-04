@@ -1,21 +1,23 @@
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
-import {GameObjectsHolder} from "./GameObjectsHolder";
+import {ChangesDict} from "./ChangesDict";
 
 export abstract class GameObject {
     abstract get Type(): string;
 
     private static NEXT_ID: number = 0;
 
-    private forceComplete: boolean = true;
-    private holders: Set<GameObjectsHolder>;
-    protected changes: Set<string>;
     protected id: string = (GameObject.NEXT_ID++).toString();
     protected spriteName: string;
     protected position: Position;
+    protected velocity: number = 10;
+
     protected sFunc: Map<string, Function>;
     protected dFunc: Map<string, Function>;
-    protected velocity: number = 10;
+    protected changes: Set<string>;
+    private forceComplete: boolean = true;
+
+    private destroyListeners: Set<Function>;
 
     constructor(position: Position) {
         this.position = position;
@@ -25,7 +27,7 @@ export abstract class GameObject {
         this.dFunc = GameObject.DeserializeFunctions;
 
         this.spriteName = "bunny";
-        this.holders = new Set<GameObjectsHolder>();
+        this.destroyListeners = new Set<Function>();
     }
 
     forceCompleteUpdate() {
@@ -56,7 +58,6 @@ export abstract class GameObject {
                 }
             });
         }
-
         this.changes.clear();
 
         return update;
@@ -70,18 +71,19 @@ export abstract class GameObject {
         }
     }
 
-    addHolder(holder: GameObjectsHolder) {
-        this.holders.add(holder)
+    addDestroyListener(listener: Function) {
+        this.destroyListeners.add(listener)
     }
 
-    removeHolder(holder: GameObjectsHolder) {
-        this.holders.delete(holder);
+    removeDestroyListener(listener: Function) {
+        this.destroyListeners.delete(listener);
     }
 
     destroy() {
-        for(let holder of this.holders) {
-            holder.onDestroy(this.id.toString());
+        for(let listener of this.destroyListeners) {
+            listener(this.id);
         }
+        this.destroyListeners.clear()
     }
 
     get Position(): Position {
@@ -102,11 +104,11 @@ export abstract class GameObject {
 
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
-        this.changes.add("spriteName");
+        this.changes.add(ChangesDict.SPRITE);
     }
 
     static serializePosition(gameObject: GameObject): string {
-        return '#P:' + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
+        return ChangesDict.buildTag(ChangesDict.POSITION) + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
     }
 
     static deserializePosition(gameObject: GameObject, data: string) {
@@ -118,7 +120,7 @@ export abstract class GameObject {
     }
 
     static serializeSpriteName(gameObject: GameObject): string {
-        return '#S:' + gameObject.spriteName;
+        return ChangesDict.buildTag(ChangesDict.SPRITE) + gameObject.spriteName;
     }
 
     static deserializeSpriteName(gameObject: GameObject, data: string) {
@@ -126,23 +128,22 @@ export abstract class GameObject {
     }
 
     static serializeVelocity(bullet: GameObject): string {
-        return '#V:' + bullet.velocity;
+        return ChangesDict.buildTag(ChangesDict.VELOCITY) + bullet.velocity;
     }
 
     static deserializeVelocity(bullet: GameObject, data: string) {
         bullet.velocity = parseFloat(data);
     }
 
-
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['position', GameObject.serializePosition],
-        ['spriteName', GameObject.serializeSpriteName],
-        ['velocity', GameObject.serializeVelocity],
+        [ChangesDict.POSITION, GameObject.serializePosition],
+        [ChangesDict.SPRITE, GameObject.serializeSpriteName],
+        [ChangesDict.VELOCITY, GameObject.serializeVelocity],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['P', GameObject.deserializePosition],
-        ['S', GameObject.deserializeSpriteName],
-        ['V', GameObject.deserializeVelocity],
+        [ChangesDict.POSITION, GameObject.deserializePosition],
+        [ChangesDict.SPRITE, GameObject.deserializeSpriteName],
+        [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
     ]);
 }
 

@@ -2,7 +2,7 @@
 
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
 import {InputMap, INPUT} from "./InputMap";
-import {Position} from "../../Common/utils/Position";
+import {Position} from "../../Common/utils/game/Position";
 import {ClientConfig} from "../ClientConfig";
 
 export class InputHandler {
@@ -30,7 +30,7 @@ export class InputHandler {
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
 
-        this.changed = false;
+        //this.changed = false;
 
         this.phaserInput = phaserInput;
         this.phaserInput.onDown.add(this.mouseClick, this);
@@ -41,25 +41,29 @@ export class InputHandler {
         this.snapshotCallbacks.push(callback);
     }
 
-    public startInputSnapshotTimer() {
-        // if (this.changed) {
-        //     let snapshot: InputSnapshot = this.createInputSnapshot();
-        //     let serializedSnapshot = JSON.stringify(snapshot);
-        //     if(serializedSnapshot.length == 0) {
-        //         return;
-        //     }
-        //
-        //     let id: number = InputHandler.SnapshotId++;
-        //
-        //     this.snapshotCallbacks.forEach((callback: Function) => {
-        //         callback(id, snapshot);
-        //     });
-        // }
-        // this.timeoutId = setTimeout(() => this.startInputSnapshotTimer() , ClientConfig.INPUT_SNAPSHOT_TIMER);
+
+    private keyPressed(event : KeyboardEvent) {
+        if(InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
+            this.releasedKeys.delete(event.keyCode);
+            this.pressedKeys.add(event.keyCode);
+            this.serializeSnapshot();
+        }
     }
 
-    public asd() {
-        if (this.changed) {
+    private keyReleased(event : KeyboardEvent) {
+        if(InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
+            this.pressedKeys.delete(event.keyCode);
+            this.releasedKeys.add(event.keyCode);
+            this.serializeSnapshot();
+        }
+    }
+
+    private mouseClick(mouseEvent: MouseEvent) {
+        this.clickPosition = new Position(mouseEvent.x, mouseEvent.y);
+        this.serializeSnapshot();
+    }
+
+    public serializeSnapshot() {
             let snapshot: InputSnapshot = this.createInputSnapshot();
             let serializedSnapshot = JSON.stringify(snapshot);
             if(serializedSnapshot.length == 0) {
@@ -71,39 +75,9 @@ export class InputHandler {
             this.snapshotCallbacks.forEach((callback: Function) => {
                 callback(id, snapshot);
             });
-        }
-    }
-
-    public stopInputSnapshotTimer() {
-        clearTimeout(this.timeoutId);
-    }
-
-    private keyPressed(event : KeyboardEvent) {
-        if(InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
-            this.releasedKeys.delete(event.keyCode);
-            this.pressedKeys.add(event.keyCode);
-            this.changed = true;
-        }
-        this.asd();
-    }
-
-    private keyReleased(event : KeyboardEvent) {
-        if(InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
-            this.pressedKeys.delete(event.keyCode);
-            this.releasedKeys.add(event.keyCode);
-            this.changed = true;
-        }
-        this.asd();
-    }
-
-    private mouseClick(mouseEvent: MouseEvent) {
-        this.clickPosition = new Position(mouseEvent.x, mouseEvent.y);
-        this.changed = true;
-        this.asd();
     }
 
     private createInputSnapshot(): InputSnapshot {
-        this.changed = false;
         let inputSnapshot: InputSnapshot = new InputSnapshot;
 
         let directionBuffor: Array<INPUT> = new Array<INPUT>(4);
@@ -155,9 +129,5 @@ export class InputHandler {
         }
 
         return direction
-    }
-
-    get Changed(): boolean {
-        return this.changed;
     }
 }

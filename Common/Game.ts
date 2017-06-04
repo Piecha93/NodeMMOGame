@@ -1,5 +1,5 @@
-import {GameObject} from "./utils/GameObject";
-import {GameObjectsHolder} from "./utils/GameObjectsHolder";
+import {GameObject} from "./utils/game/GameObject";
+import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
 
 export class Game extends GameObjectsHolder{
     private tickrate: number = 30;

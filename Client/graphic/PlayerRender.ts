@@ -1,7 +1,7 @@
 import {GameObjectRender} from "./GameObjectRender";
 import {Renderer} from "./Renderer";
-import {Player} from "../../Common/utils/Player";
-import {GameObject} from "../../Common/utils/GameObject";
+import {Player} from "../../Common/utils/game/Player";
+import {GameObject} from "../../Common/utils/game/GameObject";
 
 export class PlayerRender extends GameObjectRender {
     private nameText: Phaser.Text;

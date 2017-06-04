@@ -1,7 +1,7 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
-import {GameObject} from "../../Common/utils/GameObject";
-import {Position} from "../../Common/utils/Position";
+import {GameObject} from "../../Common/utils/game/GameObject";
+import {Position} from "../../Common/utils/game/Position";
 import {Renderer} from "./Renderer";
 
 export class GameObjectRender {

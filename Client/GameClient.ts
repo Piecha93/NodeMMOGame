@@ -4,16 +4,16 @@ import {Game} from "../Common/Game";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
+import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
-import {GameObject} from "../Common/utils/GameObject";
+import {GameObject} from "../Common/utils/game/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {Chat} from "./Chat";
 import {InputSender} from "../Client/net/InputSender";
 import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
-import {Player} from "../Common/utils/Player";
+import {Player} from "../Common/utils/game/Player";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -43,6 +43,10 @@ export class GameClient {
                 }
             });
 
+            ObjectsFactory.HolderSubscribers.push(this.renderer);
+            ObjectsFactory.HolderSubscribers.push(this.game);
+            ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
+
             this.socket.emit(SocketMsgs.CLIENT_READY);
         });
     }
@@ -65,9 +69,6 @@ export class GameClient {
             this.updateGame(data);
             this.player = this.game.getGameObject(data['id']) as Player;
 
-            console.log(this.player);
-
-            this.inputHandler.startInputSnapshotTimer();
             this.heartBeatSender.startSendingHeartbeats();
         });
         this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
@@ -97,25 +98,15 @@ export class GameClient {
             let data: string = splitObject[1];
 
             let gameObject: GameObject = this.netObjectMenager.getObject(id);
-
             if(id[0] == '!') {
                 id = id.slice(1);
-                if(this.netObjectMenager.has(id)) {
-
-                    this.renderer.removeGameObject(gameObject);
-                    gameObject.destroy();
-                }
+                gameObject = this.netObjectMenager.getObject(id);
+                gameObject.destroy();
                 continue;
             }
 
             if(gameObject == null) {
-                console.log("create ");
                 gameObject = ObjectsFactory.CreateGameObject(id);
-                gameObject.ID = id;
-                
-                this.netObjectMenager.addGameObject(gameObject);
-                this.game.addGameObject(gameObject);
-                this.renderer.addGameObject(gameObject);
             }
             gameObject.deserialize(data.split('#'));
         }

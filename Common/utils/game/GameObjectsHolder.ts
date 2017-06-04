@@ -8,12 +8,11 @@ export abstract class GameObjectsHolder {
     }
 
     public addGameObject(gameObject: GameObject) {
+        gameObject.addDestroyListener(this.onDestroy.bind(this));
         this.gameObjects.set(gameObject.ID, gameObject);
-        gameObject.addHolder(this)
     }
 
     public removeGameObject(gameObject: GameObject) {
-        gameObject.removeHolder(this);
         this.gameObjects.delete(gameObject.ID);
     }
 

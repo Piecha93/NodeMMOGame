@@ -2,14 +2,14 @@ import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
-import {Position} from "../Common/utils/Position";
-import {Player} from "../Common/utils/Player";
+import {Position} from "../Common/utils/game/Position";
+import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {GameObject} from "../Common/utils/GameObject";
+import {GameObject} from "../Common/utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {ObjectsFactory} from "../Common/utils/ObjectsFactory";
+import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import GameObjectFactory = Phaser.GameObjectFactory;
 
 export class GameServer {
@@ -19,7 +19,7 @@ export class GameServer {
     private game: Game;
     private nameCounter: number = 0;
 
-    private removedObjects: string = '';
+    private destroyedObjects: string = '';
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -32,6 +32,13 @@ export class GameServer {
 
     private startGame() {
         this.game = new Game;
+
+        ObjectsFactory.HolderSubscribers.push(this.game);
+        ObjectsFactory.HolderSubscribers.push(NetObjectsManager.Instance);
+        ObjectsFactory.DestroySubscribers.push((id: string) => {
+            this.destroyedObjects += '$' + '!' + id;
+        });
+
         this.game.startGameLoop();
     }
 
@@ -52,8 +59,6 @@ export class GameServer {
                 let y: number = Math.floor(Math.random() * 600);
 
                 let player: GameObject = ObjectsFactory.CreateGameObject("P", new Position(x, y));
-                this.game.addGameObject(player);
-                NetObjectsManager.Instance.addGameObject(player);
 
                 serverClient.PlayerId = player.ID;
 
@@ -74,18 +79,13 @@ export class GameServer {
                 let snapshot: InputSnapshot = new InputSnapshot();
                 snapshot.deserialize(data['serializedSnapshot']);
 
-
                 player.setInput(snapshot.Commands);
 
                 if(snapshot.Commands.has("C")) {
-
-                    for(let i = 0; i < 100; i++) {
+                    for(let i = 0; i < 200; i++) {
                         let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
                         bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
                         bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
-
-                        this.game.addGameObject(bullet);
-                        NetObjectsManager.Instance.addGameObject(bullet);
                     }
                 }
             });
@@ -124,8 +124,8 @@ export class GameServer {
 
         setInterval(() => {
             let update: string = NetObjectsManager.Instance.collectUpdate();
-            update += this.removedObjects;
-            this.removedObjects = '';
+            update += this.destroyedObjects;
+            this.destroyedObjects = '';
 
             if(update[0] == "$") {
                 update = update.slice(1);
@@ -143,7 +143,6 @@ export class GameServer {
 
     private clientDisconnected(client: ServerClient) {
         console.log('player disconnected' + client.Name);
-        this.removedObjects += '$' + '!' + client.PlayerId;
 
         let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(client.PlayerId);
         if(gameObject != null) {

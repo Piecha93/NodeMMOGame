@@ -1,6 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
+import {ChangesDict} from "./ChangesDict";
 
 export class Bullet extends GameObject {
     get Type(): string {
@@ -16,12 +17,12 @@ export class Bullet extends GameObject {
 
         this.spriteName = "bullet";
 
-        this.lifeSpan = Math.floor(Math.random() * 150);
-        this.velocity = Math.floor(Math.random() * 15) + 1;
+        this.lifeSpan = Math.floor(Math.random() * 20) + 100;
+        this.velocity = Math.floor(Math.random() * 50) + 1;
         this.directionAngle = Math.floor(Math.random() * 360);
 
-        this.changes.add("velocity");
-        this.changes.add("lifeSpan");
+        this.changes.add(ChangesDict.VELOCITY);
+        this.changes.add(ChangesDict.LIFE_SPAN);
 
         this.sFunc = new Map<string, Function>(function*() { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
@@ -40,36 +41,36 @@ export class Bullet extends GameObject {
 
         this.position.X += cosAngle * this.velocity;
         this.position.Y += sinAngle * this.velocity;
-        //this.changes.add('position');
+        //this.changes.add(ChangesDict.POSITION);
     }
 
     set DirectionAngle(angle: number) {
         this.directionAngle = angle;
-        this.changes.add("A");
-    }
-
-    static serializeLifeSpan(bullet: Bullet): string {
-        return '#L:' + bullet.lifeSpan;
-    }
-
-    static deserializeDirectionAngle(bullet: Bullet, data: string) {
-        bullet.lifeSpan = parseFloat(data);
+        this.changes.add(ChangesDict.DIRECTION_ANGLE);
     }
 
     static serializeDirectionAngle(bullet: Bullet): string {
-        return '#A:' + bullet.lifeSpan;
+        return ChangesDict.buildTag(ChangesDict.DIRECTION_ANGLE) + bullet.directionAngle;
+    }
+
+    static deserializeDirectionAngle(bullet: Bullet, data: string) {
+        bullet.directionAngle = parseFloat(data);
+    }
+
+    static serializeLifeSpan(bullet: Bullet): string {
+        return ChangesDict.buildTag(ChangesDict.LIFE_SPAN) + bullet.lifeSpan;
     }
 
     static deserializeLifeSpan(bullet: Bullet, data: string) {
-        bullet.directionAngle = parseInt(data);
+        bullet.lifeSpan = parseInt(data);
     }
 
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['lifeSpan', Bullet.serializeLifeSpan],
-        ['directionAngle', Bullet.serializeDirectionAngle],
+        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
+        [ChangesDict.DIRECTION_ANGLE, Bullet.serializeDirectionAngle],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        ['L', Bullet.deserializeLifeSpan],
-        ['A', Bullet.deserializeDirectionAngle],
+        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
+        [ChangesDict.DIRECTION_ANGLE, Bullet.deserializeDirectionAngle],
     ]);
 }

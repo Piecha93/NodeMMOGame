@@ -1,7 +1,7 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
-import {GameObject} from "../../Common/utils/GameObject";
-import {GameObjectsHolder} from "../../Common/utils/GameObjectsHolder";
+import {GameObject} from "../../Common/utils/game/GameObject";
+import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 
@@ -38,7 +38,6 @@ export class Renderer extends GameObjectsHolder {
     addGameObject(gameObject: GameObject) {
         super.addGameObject(gameObject);
 
-        console.log("chujdupoa");
         let gameObjectRender: GameObjectRender;
 
         let type: string = gameObject.ID[0];
