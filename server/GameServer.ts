@@ -10,7 +10,7 @@ import {GameObject} from "../Common/utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
-import GameObjectFactory = Phaser.GameObjectFactory;
+import {DeltaTimer} from "../Common/DeltaTimer";
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -39,7 +39,12 @@ export class GameServer {
             this.destroyedObjects += '$' + '!' + id;
         });
 
-        this.game.startGameLoop();
+
+        let timer: DeltaTimer = new DeltaTimer;
+        setInterval(() => {
+            let delta: number = timer.getDelta();
+            this.game.update(delta)
+        }, 33.33);
     }
 
     private configureSockets() {
@@ -58,7 +63,9 @@ export class GameServer {
                 let x: number = Math.floor(Math.random() * 800);
                 let y: number = Math.floor(Math.random() * 600);
 
-                let player: GameObject = ObjectsFactory.CreateGameObject("P", new Position(x, y));
+                let player: Player = ObjectsFactory.CreateGameObject("P", new Position(x, y)) as Player;
+
+                player.Name = clientName;
 
                 serverClient.PlayerId = player.ID;
 
@@ -82,7 +89,7 @@ export class GameServer {
                 player.setInput(snapshot.Commands);
 
                 if(snapshot.Commands.has("C")) {
-                    for(let i = 0; i < 200; i++) {
+                    for(let i = 0; i < 100; i++) {
                         let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
                         bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
                         bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);

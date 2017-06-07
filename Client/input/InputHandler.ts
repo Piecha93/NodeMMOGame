@@ -1,13 +1,11 @@
 /// <reference path="../libs/@types/phaser.d.ts" />
 
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
-import {InputMap, INPUT} from "./InputMap";
 import {Position} from "../../Common/utils/game/Position";
-import {ClientConfig} from "../ClientConfig";
+import {InputMap, INPUT} from "./InputMap";
 
 export class InputHandler {
     private phaserInput: Phaser.Input;
-    private changed: boolean;
 
     private releasedKeys: Set<number>;
     private clickPosition: Position;
@@ -15,8 +13,6 @@ export class InputHandler {
 
     private snapshotCallbacks: Array<Function>;
     private pressedKeys: Set<number>;
-
-    private timeoutId: NodeJS.Timer;
 
     private static SnapshotId: number = 0;
 
@@ -30,11 +26,8 @@ export class InputHandler {
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
 
-        //this.changed = false;
-
         this.phaserInput = phaserInput;
         this.phaserInput.onDown.add(this.mouseClick, this);
-        //this.phaserInput.addMoveCallback(this.mouseClick, this);
     }
 
     public addSnapshotCallback(callback: Function) {

@@ -76,11 +76,13 @@ export class GameClient {
 
     private startGame() {
         this.game = new Game;
-        this.game.startGameLoop();
+        //this.game.startGameLoop();
 
         let timer: DeltaTimer = new DeltaTimer;
         setInterval(() => {
-            DebugWindowHtmlHandler.Instance.Fps = (1000 / timer.getDelta()).toPrecision(2).toString();
+            let delta: number = timer.getDelta();
+            DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
+            this.game.update(delta);
             this.renderer.update();
         }, 33.33);
     }
@@ -97,13 +99,17 @@ export class GameClient {
             let id: string = splitObject[0];
             let data: string = splitObject[1];
 
-            let gameObject: GameObject = this.netObjectMenager.getObject(id);
+            let gameObject: GameObject = null;
             if(id[0] == '!') {
                 id = id.slice(1);
                 gameObject = this.netObjectMenager.getObject(id);
-                gameObject.destroy();
+                if(gameObject) {
+                    gameObject.destroy();
+                }
                 continue;
             }
+
+            gameObject = this.netObjectMenager.getObject(id);
 
             if(gameObject == null) {
                 gameObject = ObjectsFactory.CreateGameObject(id);

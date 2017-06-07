@@ -22,7 +22,7 @@ export class Player extends GameObject {
         this.name = name;
         this.hp = 100;
         this.destination = null;
-        this.velocity = 10;
+        this.velocity = 1;
     }
 
     public setInput(commands: Map<string, string> ) {
@@ -33,8 +33,8 @@ export class Player extends GameObject {
         });
     }
 
-    public update() {
-        super.update();
+    public update(delta: number) {
+        super.update(delta);
 
         let xFactor: number = 0;
         let yFactor: number = 0;
@@ -59,8 +59,8 @@ export class Player extends GameObject {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.position.X += xFactor * this.velocity;
-        this.position.Y += yFactor * this.velocity;
+        this.position.X += xFactor * this.velocity * delta;
+        this.position.Y += yFactor * this.velocity * delta;
 
         if(this.moveDirection != 0) {
             this.changes.add(ChangesDict.POSITION);
@@ -94,6 +94,10 @@ export class Player extends GameObject {
 
     get Name(): string {
         return this.name;
+    }
+
+    set Name(name: string) {
+        this.name = name;
     }
 
     get Direction(): number {

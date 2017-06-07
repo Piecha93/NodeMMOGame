@@ -15,12 +15,11 @@ export class Bullet extends GameObject {
         super(position);
         this.id = this.Type + this.id;
 
-        this.spriteName = "bullet";
+        this.spriteName = "fireball";
 
-        this.lifeSpan = Math.floor(Math.random() * 20) + 100;
-        this.velocity = Math.floor(Math.random() * 50) + 1;
+        this.lifeSpan = Math.floor(Math.random() * 2000) + 1000;
+        this.velocity = Math.floor(Math.random() * 100) / 10 + 1;
         this.directionAngle = Math.floor(Math.random() * 360);
-
         this.changes.add(ChangesDict.VELOCITY);
         this.changes.add(ChangesDict.LIFE_SPAN);
 
@@ -28,20 +27,25 @@ export class Bullet extends GameObject {
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
 
-    private asd = 0;
+    public update(delta: number) {
+        super.update(delta);
+        this.lifeSpan -= delta;
 
-    public update() {
-        this.asd++;
-        if(this.asd > this.lifeSpan) {
+        if(this.lifeSpan <= 0) {
             this.destroy();
         }
 
-        let sinAngle: number = Math.sin(this.directionAngle);
-        let cosAngle: number = Math.cos(this.directionAngle);
+        let sinAngle: number = Math.sin(this.directionAngle / 57.2958);
+        let cosAngle: number = Math.cos(this.directionAngle / 57.2958);
 
         this.position.X += cosAngle * this.velocity;
         this.position.Y += sinAngle * this.velocity;
+
         //this.changes.add(ChangesDict.POSITION);
+    }
+
+    get DirectionAngle(): number {
+        return this.directionAngle;
     }
 
     set DirectionAngle(angle: number) {

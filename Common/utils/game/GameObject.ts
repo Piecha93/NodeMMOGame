@@ -1,5 +1,4 @@
 import {Position} from "./Position";
-import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 
 export abstract class GameObject {
@@ -34,7 +33,7 @@ export abstract class GameObject {
         this.forceComplete = true;
     }
 
-    update() {
+    update(delta: number) {
 
     }
 

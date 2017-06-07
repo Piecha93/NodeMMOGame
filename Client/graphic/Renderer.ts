@@ -4,6 +4,7 @@ import {GameObject} from "../../Common/utils/game/GameObject";
 import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
+import {BulletRender} from "./BulletRender";
 
 export class Renderer extends GameObjectsHolder {
     static phaserGame: Phaser.Game;
@@ -20,6 +21,7 @@ export class Renderer extends GameObjectsHolder {
         Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
         Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
         Renderer.phaserGame.load.image('bullet', 'resources/images/bullet.png');
+        Renderer.phaserGame.load.image('fireball', 'resources/images/fireball.png');
 
         //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
     }
@@ -43,6 +45,8 @@ export class Renderer extends GameObjectsHolder {
         let type: string = gameObject.ID[0];
         if(type == "P") {
             gameObjectRender = new PlayerRender();
+        } else if(type == "B") {
+            gameObjectRender = new BulletRender();
         } else {
             gameObjectRender = new GameObjectRender();
         }
