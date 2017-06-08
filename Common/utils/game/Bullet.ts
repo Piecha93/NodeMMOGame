@@ -15,11 +15,13 @@ export class Bullet extends GameObject {
         super(position);
         this.id = this.Type + this.id;
 
+        //this.spriteName = "bluebolt";
         this.spriteName = "fireball";
 
         this.lifeSpan = Math.floor(Math.random() * 2000) + 1000;
         this.velocity = Math.floor(Math.random() * 100) / 10 + 1;
         this.directionAngle = Math.floor(Math.random() * 360);
+        this.directionAngle /= 57.2958; //to radians
         this.changes.add(ChangesDict.VELOCITY);
         this.changes.add(ChangesDict.LIFE_SPAN);
 
@@ -35,8 +37,8 @@ export class Bullet extends GameObject {
             this.destroy();
         }
 
-        let sinAngle: number = Math.sin(this.directionAngle / 57.2958);
-        let cosAngle: number = Math.cos(this.directionAngle / 57.2958);
+        let sinAngle: number = Math.sin(this.directionAngle);
+        let cosAngle: number = Math.cos(this.directionAngle);
 
         this.position.X += cosAngle * this.velocity;
         this.position.Y += sinAngle * this.velocity;

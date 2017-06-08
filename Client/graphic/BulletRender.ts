@@ -17,8 +17,8 @@ export class BulletRender extends GameObjectRender {
 
     }
 
-    public render() {
-        super.render();
-            this.sprite.angle = this.bulletReference.DirectionAngle;
+    public update() {
+        super.update();
+            this.sprite.rotation = this.bulletReference.DirectionAngle;
     }
 }

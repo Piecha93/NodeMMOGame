@@ -1,12 +1,8 @@
-/// <reference path="../libs/@types/phaser.d.ts" />
-
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
 import {Position} from "../../Common/utils/game/Position";
 import {InputMap, INPUT} from "./InputMap";
 
 export class InputHandler {
-    private phaserInput: Phaser.Input;
-
     private releasedKeys: Set<number>;
     private clickPosition: Position;
     private lastDirection: number = 0;
@@ -16,7 +12,7 @@ export class InputHandler {
 
     private static SnapshotId: number = 0;
 
-    constructor(phaserInput: Phaser.Input) {
+    constructor() {
         this.pressedKeys =  new Set<number>();
         this.releasedKeys =  new Set<number>();
         this.clickPosition = null;
@@ -26,8 +22,9 @@ export class InputHandler {
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
 
-        this.phaserInput = phaserInput;
-        this.phaserInput.onDown.add(this.mouseClick, this);
+        window.addEventListener("mousedown", this.mouseClick.bind(this));
+
+        //this.phaserInput.onDown.add(this.mouseClick, this);
     }
 
     public addSnapshotCallback(callback: Function) {
@@ -52,7 +49,11 @@ export class InputHandler {
     }
 
     private mouseClick(mouseEvent: MouseEvent) {
-        this.clickPosition = new Position(mouseEvent.x, mouseEvent.y);
+        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
+        let rect: ClientRect = canvas.getBoundingClientRect();
+        this.clickPosition = new Position(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
+
+
         this.serializeSnapshot();
     }
 

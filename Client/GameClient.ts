@@ -35,13 +35,14 @@ export class GameClient {
         this.chat = new Chat(this.socket);
 
         this.renderer = new Renderer(() => {
-            this.inputHandler = new InputHandler(this.renderer.PhaserInput);
+            console.log("XDDDDDDDDDDDDD");
+            this.inputHandler = new InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
-                if(this.player) {
-                    this.player.setInput(snapshot.Commands);
-                }
-            });
+            // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
+            //     if(this.player) {
+            //         this.player.setInput(snapshot.Commands);
+            //     }
+            // });
 
             ObjectsFactory.HolderSubscribers.push(this.renderer);
             ObjectsFactory.HolderSubscribers.push(this.game);
@@ -75,16 +76,15 @@ export class GameClient {
     }
 
     private startGame() {
-        this.game = new Game;
-        //this.game.startGameLoop();
+            this.game.startGameLoop();
 
-        let timer: DeltaTimer = new DeltaTimer;
-        setInterval(() => {
-            let delta: number = timer.getDelta();
-            DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
-            this.game.update(delta);
-            this.renderer.update();
-        }, 33.33);
+            let timer: DeltaTimer = new DeltaTimer;
+            setInterval(() => {
+                let delta: number = timer.getDelta();
+                DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
+                this.game.update(delta);
+                this.renderer.update();
+            }, 15);
     }
 
     private updateGame(data) {
@@ -93,7 +93,7 @@ export class GameClient {
         }
 
         let update = data['update'].split('$');
-        console.log(update);
+        //console.log(update);
         for (let object in update) {
             let splitObject: string[] = update[object].split('-');
             let id: string = splitObject[0];

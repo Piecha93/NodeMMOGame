@@ -42,13 +42,14 @@ class GameClient {
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         this.chat = new Chat_1.Chat(this.socket);
         this.renderer = new Renderer_1.Renderer(() => {
-            this.inputHandler = new InputHandler_1.InputHandler(this.renderer.PhaserInput);
+            console.log("XDDDDDDDDDDDDD");
+            this.inputHandler = new InputHandler_1.InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            this.inputHandler.addSnapshotCallback((id, snapshot) => {
-                if (this.player) {
-                    this.player.setInput(snapshot.Commands);
-                }
-            });
+            // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
+            //     if(this.player) {
+            //         this.player.setInput(snapshot.Commands);
+            //     }
+            // });
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.game);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
@@ -76,22 +77,21 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
-        this.game = new Game_1.Game;
-        //this.game.startGameLoop();
+        this.game.startGameLoop();
         let timer = new DeltaTimer_1.DeltaTimer;
         setInterval(() => {
             let delta = timer.getDelta();
             DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
             this.game.update(delta);
             this.renderer.update();
-        }, 33.33);
+        }, 15);
     }
     updateGame(data) {
         if (data['update'] == null) {
             return;
         }
         let update = data['update'].split('$');
-        console.log(update);
+        //console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
@@ -127,16 +127,16 @@ class BulletRender extends GameObjectRender_1.GameObjectRender {
         super.setObject(bullet);
         this.bulletReference = bullet;
     }
-    render() {
-        super.render();
-        this.sprite.angle = this.bulletReference.DirectionAngle;
+    update() {
+        super.update();
+        this.sprite.rotation = this.bulletReference.DirectionAngle;
     }
 }
 exports.BulletRender = BulletRender;
 
 },{"./GameObjectRender":4}],4:[function(require,module,exports){
 "use strict";
-/// <reference path="../libs/@types/phaser.d.ts" />
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const Renderer_1 = require("./Renderer");
 class GameObjectRender {
@@ -145,22 +145,24 @@ class GameObjectRender {
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
         let position = this.objectReference.Position;
-        this.sprite = Renderer_1.Renderer.phaserGame.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
-        this.sprite.anchor.setTo(0.5, 0.5);
+        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
+        Renderer_1.Renderer.rootContainer.addChild(this.sprite);
+        //this.sprite = Renderer.renderer.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
+        this.sprite.anchor.set(0.5, 0.5);
     }
-    render() {
+    update() {
         if (!this.sprite) {
             return;
         }
         let position = this.objectReference.Position;
         this.sprite.x = position.X;
         this.sprite.y = position.Y;
-        if (this.sprite.texture.baseTexture.source.name != this.objectReference.SpriteName) {
-            this.sprite.loadTexture(this.objectReference.SpriteName);
-        }
+        // if(this.sprite.texture.baseTexture.source.tagName != this.objectReference.SpriteName) {
+        //     this.sprite.setTexture(PIXI.utils.TextureCache(this.objectReference.SpriteName))
+        // }
     }
     destroy() {
-        this.sprite.destroy();
+        Renderer_1.Renderer.rootContainer.removeChild(this.sprite);
     }
 }
 exports.GameObjectRender = GameObjectRender;
@@ -277,7 +279,6 @@ exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
-const Renderer_1 = require("./Renderer");
 class PlayerRender extends GameObjectRender_1.GameObjectRender {
     constructor() {
         super();
@@ -285,15 +286,16 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
     setObject(player) {
         super.setObject(player);
         this.playerReference = player;
-        this.nameText = Renderer_1.Renderer.phaserGame.add.text(0, 0, this.playerReference.Name, {
-            font: "bold 11px Arial",
+        this.nameText = new PIXI.Text(this.playerReference.Name, {
+            fontFamily: "Arial",
+            fontSize: "12px",
             fill: "#ffffff"
         });
-        this.nameText.anchor.setTo(0.5, 2);
+        this.nameText.anchor.set(0.5, 2.75);
         this.sprite.addChild(this.nameText);
     }
-    render() {
-        super.render();
+    update() {
+        super.update();
         if (this.sprite) {
             this.nameText.text = this.playerReference.Name;
         }
@@ -301,9 +303,9 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
 }
 exports.PlayerRender = PlayerRender;
 
-},{"./GameObjectRender":4,"./Renderer":8}],8:[function(require,module,exports){
+},{"./GameObjectRender":4}],8:[function(require,module,exports){
 "use strict";
-/// <reference path="../libs/@types/phaser.d.ts" />
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../../Common/utils/game/GameObjectsHolder");
 const GameObjectRender_1 = require("./GameObjectRender");
@@ -312,24 +314,23 @@ const BulletRender_1 = require("./BulletRender");
 class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
         super();
-        Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.renderer = PIXI.autoDetectRenderer(1024, 576, { view: document.getElementById("game-canvas") });
+        Renderer.rootContainer = new PIXI.Container();
+        Renderer.renderer.render(Renderer.rootContainer);
         this.renderObjects = new Map();
-    }
-    preload() {
-        Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
-        Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
-        Renderer.phaserGame.load.image('bullet', 'resources/images/bullet.png');
-        Renderer.phaserGame.load.image('fireball', 'resources/images/fireball.png');
-        //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
-    }
-    create(afterCreateCallback) {
-        //console.log("PHASER CREATE");
-        afterCreateCallback();
+        PIXI.loader
+            .add('bunny', 'resources/images/bunny.png')
+            .add('dyzma', 'resources/images/dyzma.jpg')
+            .add('bullet', 'resources/images/bullet.png')
+            .add('fireball', 'resources/images/fireball.png')
+            .add('bluebolt', 'resources/images/bluebolt.png')
+            .load(afterCreateCallback);
     }
     update() {
         this.renderObjects.forEach((gameObjectRender) => {
-            gameObjectRender.render();
+            gameObjectRender.update();
         });
+        Renderer.renderer.render(Renderer.rootContainer);
     }
     addGameObject(gameObject) {
         super.addGameObject(gameObject);
@@ -352,21 +353,17 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects.get(gameObject).destroy();
         this.renderObjects.delete(gameObject);
     }
-    get PhaserInput() {
-        return Renderer.phaserGame.input;
-    }
 }
 exports.Renderer = Renderer;
 
 },{"../../Common/utils/game/GameObjectsHolder":24,"./BulletRender":3,"./GameObjectRender":4,"./PlayerRender":7}],9:[function(require,module,exports){
 "use strict";
-/// <reference path="../libs/@types/phaser.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
 const Position_1 = require("../../Common/utils/game/Position");
 const InputMap_1 = require("./InputMap");
 class InputHandler {
-    constructor(phaserInput) {
+    constructor() {
         this.lastDirection = 0;
         this.pressedKeys = new Set();
         this.releasedKeys = new Set();
@@ -374,8 +371,8 @@ class InputHandler {
         this.snapshotCallbacks = new Array();
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
-        this.phaserInput = phaserInput;
-        this.phaserInput.onDown.add(this.mouseClick, this);
+        window.addEventListener("mousedown", this.mouseClick.bind(this));
+        //this.phaserInput.onDown.add(this.mouseClick, this);
     }
     addSnapshotCallback(callback) {
         this.snapshotCallbacks.push(callback);
@@ -395,7 +392,9 @@ class InputHandler {
         }
     }
     mouseClick(mouseEvent) {
-        this.clickPosition = new Position_1.Position(mouseEvent.x, mouseEvent.y);
+        let canvas = document.getElementById("game-canvas");
+        let rect = canvas.getBoundingClientRect();
+        this.clickPosition = new Position_1.Position(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
         this.serializeSnapshot();
     }
     serializeSnapshot() {
@@ -703,10 +702,12 @@ class Bullet extends GameObject_1.GameObject {
         super(position);
         this.lifeSpan = 300;
         this.id = this.Type + this.id;
+        //this.spriteName = "bluebolt";
         this.spriteName = "fireball";
         this.lifeSpan = Math.floor(Math.random() * 2000) + 1000;
         this.velocity = Math.floor(Math.random() * 100) / 10 + 1;
         this.directionAngle = Math.floor(Math.random() * 360);
+        this.directionAngle /= 57.2958; //to radians
         this.changes.add(ChangesDict_1.ChangesDict.VELOCITY);
         this.changes.add(ChangesDict_1.ChangesDict.LIFE_SPAN);
         this.sFunc = new Map(function* () { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
@@ -721,8 +722,8 @@ class Bullet extends GameObject_1.GameObject {
         if (this.lifeSpan <= 0) {
             this.destroy();
         }
-        let sinAngle = Math.sin(this.directionAngle / 57.2958);
-        let cosAngle = Math.cos(this.directionAngle / 57.2958);
+        let sinAngle = Math.sin(this.directionAngle);
+        let cosAngle = Math.cos(this.directionAngle);
         this.position.X += cosAngle * this.velocity;
         this.position.Y += sinAngle * this.velocity;
         //this.changes.add(ChangesDict.POSITION);
@@ -1000,7 +1001,7 @@ class Player extends GameObject_1.GameObject {
         this.name = name;
         this.hp = 100;
         this.destination = null;
-        this.velocity = 1;
+        this.velocity = 0.5;
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();

@@ -22,7 +22,7 @@ export class Player extends GameObject {
         this.name = name;
         this.hp = 100;
         this.destination = null;
-        this.velocity = 1;
+        this.velocity = 0.5;
     }
 
     public setInput(commands: Map<string, string> ) {

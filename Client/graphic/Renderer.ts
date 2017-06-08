@@ -1,4 +1,4 @@
-/// <reference path="../libs/@types/phaser.d.ts" />
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {GameObject} from "../../Common/utils/game/GameObject";
 import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
@@ -6,35 +6,37 @@ import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {BulletRender} from "./BulletRender";
 
+
 export class Renderer extends GameObjectsHolder {
-    static phaserGame: Phaser.Game;
+    static renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
+    static rootContainer: PIXI.Container;
 
     private renderObjects: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
         super();
-        Renderer.phaserGame = new Phaser.Game(1024, 576, Phaser.AUTO, 'content', { preload: this.preload.bind(this), create: this.create.bind(this, afterCreateCallback) });
+        Renderer.renderer = PIXI.autoDetectRenderer(1024, 576, {view:  document.getElementById("game-canvas") as HTMLCanvasElement});
+        Renderer.rootContainer = new PIXI.Container();
+
+        Renderer.renderer.render(Renderer.rootContainer);
+
         this.renderObjects = new Map<GameObject, GameObjectRender>();
-    }
 
-    private preload() {
-        Renderer.phaserGame.load.image('bunny', 'resources/images/bunny.png');
-        Renderer.phaserGame.load.image('dyzma', 'resources/images/dyzma.jpg');
-        Renderer.phaserGame.load.image('bullet', 'resources/images/bullet.png');
-        Renderer.phaserGame.load.image('fireball', 'resources/images/fireball.png');
-
-        //this.phaserGame.load.onLoadComplete.addOnce(() => { console.log("ASSETS LOAD COMPLETE"); });
-    }
-
-    private create(afterCreateCallback: Function) {
-        //console.log("PHASER CREATE");
-        afterCreateCallback();
+        PIXI.loader
+            .add('bunny', 'resources/images/bunny.png')
+            .add('dyzma', 'resources/images/dyzma.jpg')
+            .add('bullet', 'resources/images/bullet.png')
+            .add('fireball', 'resources/images/fireball.png')
+            .add('bluebolt', 'resources/images/bluebolt.png')
+            .load(afterCreateCallback);
     }
 
     public update(){
         this.renderObjects.forEach((gameObjectRender: GameObjectRender) => {
-            gameObjectRender.render();
+            gameObjectRender.update();
         });
+
+        Renderer.renderer.render(Renderer.rootContainer);
     }
 
     addGameObject(gameObject: GameObject) {
@@ -59,9 +61,5 @@ export class Renderer extends GameObjectsHolder {
         super.removeGameObject(gameObject);
         this.renderObjects.get(gameObject).destroy();
         this.renderObjects.delete(gameObject);
-    }
-
-    get PhaserInput(): Phaser.Input {
-        return Renderer.phaserGame.input;
     }
 }

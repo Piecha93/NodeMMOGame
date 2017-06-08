@@ -44,7 +44,7 @@ export class GameServer {
         setInterval(() => {
             let delta: number = timer.getDelta();
             this.game.update(delta)
-        }, 33.33);
+        }, 15);
     }
 
     private configureSockets() {
@@ -89,7 +89,7 @@ export class GameServer {
                 player.setInput(snapshot.Commands);
 
                 if(snapshot.Commands.has("C")) {
-                    for(let i = 0; i < 100; i++) {
+                    for(let i = 0; i < 200; i++) {
                         let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
                         bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
                         bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
