@@ -3,6 +3,7 @@ import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
+import {Bullet} from "./Bullet";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -31,10 +32,24 @@ export class Player extends GameObject {
             if(command == "D") {
                 this.moveDirection = parseInt(value);
             } else if(command == "C") {
-                for(let i = 0; i < 1000; i++) {
-                    let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
-                    bullet.Position.X = parseFloat(value.split(';')[0]);
-                    bullet.Position.Y = parseFloat(value.split(';')[1]);
+                for(let i = 0; i < 1; i++) {
+                    let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
+
+                    let clickX: number = parseFloat(value.split(';')[0]);
+                    let clickY: number = parseFloat(value.split(';')[1]);
+
+                    let deltaX = clickX - this.position.X;
+                    let deltaY = clickY - this.position.Y;
+
+                    let angle: number = Math.atan2(deltaY, deltaX);
+
+                     if (angle < 0)
+                         angle = angle + 2*Math.PI;
+
+                    bullet.DirectionAngle = angle;
+
+                    bullet.Position.X = this.position.X;
+                    bullet.Position.Y = this.position.Y;
                 }
             }
         });

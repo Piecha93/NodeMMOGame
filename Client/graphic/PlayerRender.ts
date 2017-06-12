@@ -1,5 +1,4 @@
 import {GameObjectRender} from "./GameObjectRender";
-import {Renderer} from "./Renderer";
 import {Player} from "../../Common/utils/game/Player";
 import {GameObject} from "../../Common/utils/game/GameObject";
 
@@ -27,8 +26,6 @@ export class PlayerRender extends GameObjectRender {
 
     public update() {
         super.update();
-        if(this.sprite) {
-            this.nameText.text = this.playerReference.Name;
-        }
+        this.nameText.text = this.playerReference.Name;
     }
 }

@@ -77,7 +77,6 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
-        this.game.startGameLoop();
         let timer = new DeltaTimer_1.DeltaTimer;
         setInterval(() => {
             let delta = timer.getDelta();
@@ -91,7 +90,7 @@ class GameClient {
             return;
         }
         let update = data['update'].split('$');
-        console.log(update);
+        //console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
@@ -126,6 +125,8 @@ class BulletRender extends GameObjectRender_1.GameObjectRender {
     setObject(bullet) {
         super.setObject(bullet);
         this.bulletReference = bullet;
+        this.sprite.width = 32;
+        this.sprite.height = 32;
     }
     update() {
         super.update();
@@ -294,9 +295,7 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
     }
     update() {
         super.update();
-        if (this.sprite) {
-            this.nameText.text = this.playerReference.Name;
-        }
+        this.nameText.text = this.playerReference.Name;
     }
 }
 exports.PlayerRender = PlayerRender;
@@ -312,7 +311,13 @@ const BulletRender_1 = require("./BulletRender");
 class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
         super();
-        this.renderer = PIXI.autoDetectRenderer(1024, 576, { view: document.getElementById("game-canvas") });
+        this.renderer =
+            PIXI.autoDetectRenderer(1024, 576, {
+                view: document.getElementById("game-canvas"),
+                antialias: false,
+                transparent: false,
+                resolution: 1
+            });
         this.rootContainer = new PIXI.Container();
         this.renderer.render(this.rootContainer);
         this.renderObjects = new Map();
@@ -588,12 +593,6 @@ class Game extends GameObjectsHolder_1.GameObjectsHolder {
         this.tickrate = 30;
         console.log("create game instance");
     }
-    startGameLoop() {
-        this.timeoutId = setTimeout(() => this.startGameLoop(), 1 / this.tickrate * 1000);
-        this.gameObjects.forEach((object) => {
-            object.update(33);
-        });
-    }
     update(delta) {
         this.gameObjects.forEach((object) => {
             object.update(delta);
@@ -699,14 +698,18 @@ const ChangesDict_1 = require("./ChangesDict");
 class Bullet extends GameObject_1.GameObject {
     constructor(position) {
         super(position);
+        this.directionAngle = 0;
         this.lifeSpan = 300;
         this.id = this.Type + this.id;
-        //this.spriteName = "bluebolt";
-        this.spriteName = "fireball";
-        this.lifeSpan = Math.floor(Math.random() * 2000) + 1000;
-        this.velocity = Math.floor(Math.random() * 100) / 10 + 1;
-        this.directionAngle = Math.floor(Math.random() * 360);
-        this.directionAngle /= 57.2958; //to radians
+        if (Math.floor(Math.random() * 2)) {
+            this.spriteName = "bluebolt";
+            this.velocity = 1.5;
+        }
+        else {
+            this.spriteName = "fireball";
+            this.velocity = 0.75;
+        }
+        this.lifeSpan = 500;
         this.changes.add(ChangesDict_1.ChangesDict.VELOCITY);
         this.changes.add(ChangesDict_1.ChangesDict.LIFE_SPAN);
         this.sFunc = new Map(function* () { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
@@ -723,9 +726,9 @@ class Bullet extends GameObject_1.GameObject {
         }
         let sinAngle = Math.sin(this.directionAngle);
         let cosAngle = Math.cos(this.directionAngle);
-        this.position.X += cosAngle * this.velocity;
-        this.position.Y += sinAngle * this.velocity;
-        //this.changes.add(ChangesDict.POSITION);
+        this.position.X += cosAngle * this.velocity * delta;
+        this.position.Y += sinAngle * this.velocity * delta;
+        this.changes.add(ChangesDict_1.ChangesDict.POSITION);
     }
     get DirectionAngle() {
         return this.directionAngle;
@@ -1012,10 +1015,18 @@ class Player extends GameObject_1.GameObject {
                 this.moveDirection = parseInt(value);
             }
             else if (command == "C") {
-                for (let i = 0; i < 1000; i++) {
+                for (let i = 0; i < 1; i++) {
                     let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
-                    bullet.Position.X = parseFloat(value.split(';')[0]);
-                    bullet.Position.Y = parseFloat(value.split(';')[1]);
+                    let clickX = parseFloat(value.split(';')[0]);
+                    let clickY = parseFloat(value.split(';')[1]);
+                    let deltaX = clickX - this.position.X;
+                    let deltaY = clickY - this.position.Y;
+                    let angle = Math.atan2(deltaY, deltaX);
+                    if (angle < 0)
+                        angle = angle + 2 * Math.PI;
+                    bullet.DirectionAngle = angle;
+                    bullet.Position.X = this.position.X;
+                    bullet.Position.Y = this.position.Y;
                 }
             }
         });

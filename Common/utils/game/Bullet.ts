@@ -8,20 +8,23 @@ export class Bullet extends GameObject {
         return GameObjectType.Bullet.toString();
     }
 
-    private directionAngle: number;
+    private directionAngle: number = 0;
     private lifeSpan = 300;
 
     constructor(position: Position) {
         super(position);
         this.id = this.Type + this.id;
 
-        //this.spriteName = "bluebolt";
-        this.spriteName = "fireball";
 
-        this.lifeSpan = Math.floor(Math.random() * 2000) + 1000;
-        this.velocity = Math.floor(Math.random() * 100) / 10 + 1;
-        this.directionAngle = Math.floor(Math.random() * 360);
-        this.directionAngle /= 57.2958; //to radians
+        if(Math.floor(Math.random() * 2)) {
+            this.spriteName = "bluebolt";
+            this.velocity = 1.5;
+        } else {
+            this.spriteName = "fireball";
+            this.velocity = 0.75;
+        }
+
+        this.lifeSpan = 500;
         this.changes.add(ChangesDict.VELOCITY);
         this.changes.add(ChangesDict.LIFE_SPAN);
 
@@ -40,10 +43,10 @@ export class Bullet extends GameObject {
         let sinAngle: number = Math.sin(this.directionAngle);
         let cosAngle: number = Math.cos(this.directionAngle);
 
-        this.position.X += cosAngle * this.velocity;
-        this.position.Y += sinAngle * this.velocity;
+        this.position.X += cosAngle * this.velocity * delta;
+        this.position.Y += sinAngle * this.velocity * delta;
 
-        //this.changes.add(ChangesDict.POSITION);
+        this.changes.add(ChangesDict.POSITION);
     }
 
     get DirectionAngle(): number {

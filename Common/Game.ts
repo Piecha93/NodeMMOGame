@@ -10,14 +10,6 @@ export class Game extends GameObjectsHolder{
         console.log("create game instance");
     }
 
-    public startGameLoop() {
-        this.timeoutId = setTimeout(() => this.startGameLoop() , 1 / this.tickrate * 1000);
-
-        this.gameObjects.forEach((object: GameObject) => {
-            object.update(33);
-        });
-    }
-
     public update(delta: number) {
         this.gameObjects.forEach((object: GameObject) => {
             object.update(delta);

@@ -76,8 +76,6 @@ export class GameClient {
     }
 
     private startGame() {
-            this.game.startGameLoop();
-
             let timer: DeltaTimer = new DeltaTimer;
             setInterval(() => {
                 let delta: number = timer.getDelta();
