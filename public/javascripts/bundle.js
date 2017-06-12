@@ -292,10 +292,15 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
         });
         this.nameText.anchor.set(0.5, 2.75);
         this.sprite.addChild(this.nameText);
+        this.hpBar = new PIXI.Graphics;
+        this.hpBar.beginFill(0xFF0000);
+        this.hpBar.drawRect(-20, -50, 40, 8);
+        this.sprite.addChild(this.hpBar);
     }
     update() {
         super.update();
         this.nameText.text = this.playerReference.Name;
+        this.hpBar.scale.x = this.playerReference.HP / 100;
     }
 }
 exports.PlayerRender = PlayerRender;
@@ -1028,6 +1033,9 @@ class Player extends GameObject_1.GameObject {
                     bullet.Position.X = this.position.X;
                     bullet.Position.Y = this.position.Y;
                 }
+                this.hp = Math.floor(Math.random() * 100);
+                this.changes.add(ChangesDict_1.ChangesDict.HP);
+                console.log(this.hp);
             }
         });
     }
