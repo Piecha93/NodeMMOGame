@@ -19,9 +19,8 @@ export class PlayerRender extends GameObjectRender {
              fontFamily: "Arial",
              fontSize: "12px",
              fill: "#ffffff"
-
         });
-         this.nameText.anchor.set(0.5, 2.75);
+        this.nameText.anchor.set(0.5, 2.75);
 
         this.sprite.addChild(this.nameText);
     }

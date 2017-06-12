@@ -87,14 +87,6 @@ export class GameServer {
                 snapshot.deserialize(data['serializedSnapshot']);
 
                 player.setInput(snapshot.Commands);
-
-                if(snapshot.Commands.has("C")) {
-                    for(let i = 0; i < 200; i++) {
-                        let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
-                        bullet.Position.X = parseFloat(snapshot.Commands.get("C").split(';')[0]);
-                        bullet.Position.Y = parseFloat(snapshot.Commands.get("C").split(';')[1]);
-                    }
-                }
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {

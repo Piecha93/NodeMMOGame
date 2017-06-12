@@ -2,6 +2,7 @@ import {GameObject} from "./GameObject";
 import {Position} from "./Position";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
+import {ObjectsFactory} from "./ObjectsFactory";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -26,9 +27,15 @@ export class Player extends GameObject {
     }
 
     public setInput(commands: Map<string, string> ) {
-        commands.forEach((value: string, key: string) => {
-            if(key == "D") {
+        commands.forEach((value: string, command: string) => {
+            if(command == "D") {
                 this.moveDirection = parseInt(value);
+            } else if(command == "C") {
+                for(let i = 0; i < 1000; i++) {
+                    let bullet: GameObject = ObjectsFactory.CreateGameObject("B");
+                    bullet.Position.X = parseFloat(value.split(';')[0]);
+                    bullet.Position.Y = parseFloat(value.split(';')[1]);
+                }
             }
         });
     }

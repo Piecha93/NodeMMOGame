@@ -12,9 +12,6 @@ export class BulletRender extends GameObjectRender {
     public setObject(bullet: Bullet) {
         super.setObject(bullet as GameObject);
         this.bulletReference = bullet;
-
-
-
     }
 
     public update() {

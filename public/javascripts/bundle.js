@@ -91,7 +91,7 @@ class GameClient {
             return;
         }
         let update = data['update'].split('$');
-        //console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('-');
             let id = splitObject[0];
@@ -138,16 +138,14 @@ exports.BulletRender = BulletRender;
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
-const Renderer_1 = require("./Renderer");
-class GameObjectRender {
+class GameObjectRender extends PIXI.Container {
     constructor() {
+        super();
     }
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
-        let position = this.objectReference.Position;
         this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
-        Renderer_1.Renderer.rootContainer.addChild(this.sprite);
-        //this.sprite = Renderer.renderer.add.sprite(position.X, position.Y, this.objectReference.SpriteName);
+        this.addChild(this.sprite);
         this.sprite.anchor.set(0.5, 0.5);
     }
     update() {
@@ -155,19 +153,19 @@ class GameObjectRender {
             return;
         }
         let position = this.objectReference.Position;
-        this.sprite.x = position.X;
-        this.sprite.y = position.Y;
-        // if(this.sprite.texture.baseTexture.source.tagName != this.objectReference.SpriteName) {
-        //     this.sprite.setTexture(PIXI.utils.TextureCache(this.objectReference.SpriteName))
-        // }
+        this.x = position.X;
+        this.y = position.Y;
+        if (this.sprite.texture != PIXI.utils.TextureCache[this.objectReference.SpriteName]) {
+            this.sprite.texture = PIXI.utils.TextureCache[this.objectReference.SpriteName];
+        }
     }
     destroy() {
-        Renderer_1.Renderer.rootContainer.removeChild(this.sprite);
+        this.sprite.destroy();
     }
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{"./Renderer":8}],5:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChatHtmlHandler {
@@ -314,9 +312,9 @@ const BulletRender_1 = require("./BulletRender");
 class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
         super();
-        Renderer.renderer = PIXI.autoDetectRenderer(1024, 576, { view: document.getElementById("game-canvas") });
-        Renderer.rootContainer = new PIXI.Container();
-        Renderer.renderer.render(Renderer.rootContainer);
+        this.renderer = PIXI.autoDetectRenderer(1024, 576, { view: document.getElementById("game-canvas") });
+        this.rootContainer = new PIXI.Container();
+        this.renderer.render(this.rootContainer);
         this.renderObjects = new Map();
         PIXI.loader
             .add('bunny', 'resources/images/bunny.png')
@@ -330,7 +328,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects.forEach((gameObjectRender) => {
             gameObjectRender.update();
         });
-        Renderer.renderer.render(Renderer.rootContainer);
+        this.renderer.render(this.rootContainer);
     }
     addGameObject(gameObject) {
         super.addGameObject(gameObject);
@@ -347,6 +345,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         }
         gameObjectRender.setObject(gameObject);
         this.renderObjects.set(gameObject, gameObjectRender);
+        this.rootContainer.addChild(gameObjectRender);
     }
     removeGameObject(gameObject) {
         super.removeGameObject(gameObject);
@@ -991,6 +990,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const ChangesDict_1 = require("./ChangesDict");
+const ObjectsFactory_1 = require("./ObjectsFactory");
 class Player extends GameObject_1.GameObject {
     constructor(name, position) {
         super(position);
@@ -1007,9 +1007,16 @@ class Player extends GameObject_1.GameObject {
         return GameObjectTypes_1.GameObjectType.Player.toString();
     }
     setInput(commands) {
-        commands.forEach((value, key) => {
-            if (key == "D") {
+        commands.forEach((value, command) => {
+            if (command == "D") {
                 this.moveDirection = parseInt(value);
+            }
+            else if (command == "C") {
+                for (let i = 0; i < 1000; i++) {
+                    let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
+                    bullet.Position.X = parseFloat(value.split(';')[0]);
+                    bullet.Position.Y = parseFloat(value.split(';')[1]);
+                }
             }
         });
     }
@@ -1103,7 +1110,7 @@ Player.DeserializeFunctions = new Map([
 ]);
 exports.Player = Player;
 
-},{"./ChangesDict":21,"./GameObject":22,"./GameObjectTypes":23}],27:[function(require,module,exports){
+},{"./ChangesDict":21,"./GameObject":22,"./GameObjectTypes":23,"./ObjectsFactory":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Position {

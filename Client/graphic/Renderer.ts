@@ -8,17 +8,17 @@ import {BulletRender} from "./BulletRender";
 
 
 export class Renderer extends GameObjectsHolder {
-    static renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
-    static rootContainer: PIXI.Container;
+    private renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
+    private rootContainer: PIXI.Container;
 
     private renderObjects: Map<GameObject, GameObjectRender>;
 
     constructor(afterCreateCallback: Function) {
         super();
-        Renderer.renderer = PIXI.autoDetectRenderer(1024, 576, {view:  document.getElementById("game-canvas") as HTMLCanvasElement});
-        Renderer.rootContainer = new PIXI.Container();
+        this.renderer = PIXI.autoDetectRenderer(1024, 576, {view:  document.getElementById("game-canvas") as HTMLCanvasElement});
+        this.rootContainer = new PIXI.Container();
 
-        Renderer.renderer.render(Renderer.rootContainer);
+        this.renderer.render(this.rootContainer);
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
@@ -36,7 +36,7 @@ export class Renderer extends GameObjectsHolder {
             gameObjectRender.update();
         });
 
-        Renderer.renderer.render(Renderer.rootContainer);
+        this.renderer.render(this.rootContainer);
     }
 
     addGameObject(gameObject: GameObject) {
@@ -55,6 +55,7 @@ export class Renderer extends GameObjectsHolder {
 
         gameObjectRender.setObject(gameObject);
         this.renderObjects.set(gameObject, gameObjectRender);
+        this.rootContainer.addChild(gameObjectRender);
     }
 
     public removeGameObject(gameObject: GameObject) {
