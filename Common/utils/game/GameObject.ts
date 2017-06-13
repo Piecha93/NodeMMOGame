@@ -1,5 +1,6 @@
 import {Position} from "./Position";
 import {ChangesDict} from "./ChangesDict";
+import {CommonConfig, Origin} from "../../CommonConfig";
 
 export abstract class GameObject {
     abstract get Type(): string;
@@ -29,15 +30,26 @@ export abstract class GameObject {
         this.destroyListeners = new Set<Function>();
     }
 
-    forceCompleteUpdate() {
+    public forceCompleteUpdate() {
         this.forceComplete = true;
     }
 
-    update(delta: number) {
+    public update(delta: number) {
+        if(CommonConfig.ORIGIN == Origin.SERVER) {
+            this.serverUpdate(delta);
+        }
+        this.commonUpdate(delta);
+    }
+
+    protected commonUpdate(delta: number)  {
 
     }
 
-    serialize(complete: boolean = false): string {
+    protected serverUpdate(delta: number)  {
+
+    }
+
+    public serialize(complete: boolean = false): string {
         let update: string = "";
 
         if(this.forceComplete) {
@@ -62,7 +74,7 @@ export abstract class GameObject {
         return update;
     }
 
-    deserialize(update: string[]) {
+    public deserialize(update: string[]) {
         for(let item of update) {
             if(this.dFunc.has(item[0])) {
                 this.dFunc.get(item[0])(this, item.split(':')[1]);
@@ -145,9 +157,3 @@ export abstract class GameObject {
         [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
     ]);
 }
-
-// SerializeFunctions.set('position', GameObject.serializePosition);
-// DeserializeFunctions.set('P', GameObject.deserializePosition);
-//
-// SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
-// DeserializeFunctions.set('S', GameObject.deserializeSpriteName);

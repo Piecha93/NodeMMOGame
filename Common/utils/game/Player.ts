@@ -55,8 +55,8 @@ export class Player extends GameObject {
         });
     }
 
-    public update(delta: number) {
-        super.update(delta);
+    public commonUpdate(delta: number) {
+        super.commonUpdate(delta);
 
         let xFactor: number = 0;
         let yFactor: number = 0;

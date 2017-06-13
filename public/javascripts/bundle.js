@@ -724,12 +724,15 @@ class Bullet extends GameObject_1.GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.Bullet.toString();
     }
-    update(delta) {
-        super.update(delta);
+    serverUpdate(delta) {
+        super.serverUpdate(delta);
         this.lifeSpan -= delta;
         if (this.lifeSpan <= 0) {
             this.destroy();
         }
+    }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
         let sinAngle = Math.sin(this.directionAngle);
         let cosAngle = Math.cos(this.directionAngle);
         this.position.X += cosAngle * this.velocity * delta;
@@ -790,6 +793,7 @@ exports.ChangesDict = ChangesDict;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("./ChangesDict");
+const CommonConfig_1 = require("../../CommonConfig");
 class GameObject {
     constructor(position) {
         this.id = (GameObject.NEXT_ID++).toString();
@@ -806,6 +810,14 @@ class GameObject {
         this.forceComplete = true;
     }
     update(delta) {
+        if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
+            this.serverUpdate(delta);
+        }
+        this.commonUpdate(delta);
+    }
+    commonUpdate(delta) {
+    }
+    serverUpdate(delta) {
     }
     serialize(complete = false) {
         let update = "";
@@ -898,13 +910,8 @@ GameObject.DeserializeFunctions = new Map([
     [ChangesDict_1.ChangesDict.VELOCITY, GameObject.deserializeVelocity],
 ]);
 exports.GameObject = GameObject;
-// SerializeFunctions.set('position', GameObject.serializePosition);
-// DeserializeFunctions.set('P', GameObject.deserializePosition);
-//
-// SerializeFunctions.set('spriteName', GameObject.serializeSpriteName);
-// DeserializeFunctions.set('S', GameObject.deserializeSpriteName); 
 
-},{"./ChangesDict":21}],23:[function(require,module,exports){
+},{"../../CommonConfig":14,"./ChangesDict":21}],23:[function(require,module,exports){
 "use strict";
 /**
  * Created by Tomek on 2017-04-08.
@@ -1037,8 +1044,8 @@ class Player extends GameObject_1.GameObject {
             }
         });
     }
-    update(delta) {
-        super.update(delta);
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
         let xFactor = 0;
         let yFactor = 0;
         if (this.moveDirection == 1) {

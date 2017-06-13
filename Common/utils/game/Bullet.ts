@@ -33,13 +33,18 @@ export class Bullet extends GameObject {
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
 
-    public update(delta: number) {
-        super.update(delta);
+    protected serverUpdate(delta: number) {
+        super.serverUpdate(delta);
+
         this.lifeSpan -= delta;
 
         if(this.lifeSpan <= 0) {
             this.destroy();
         }
+    }
+
+    protected commonUpdate(delta: number) {
+        super.commonUpdate(delta);
 
         let sinAngle: number = Math.sin(this.directionAngle);
         let cosAngle: number = Math.cos(this.directionAngle);
