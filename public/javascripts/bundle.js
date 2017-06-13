@@ -706,6 +706,7 @@ class Bullet extends GameObject_1.GameObject {
         this.directionAngle = 0;
         this.lifeSpan = 300;
         this.id = this.Type + this.id;
+        console.log("asd");
         if (Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
             this.velocity = 1.5;
@@ -733,7 +734,7 @@ class Bullet extends GameObject_1.GameObject {
         let cosAngle = Math.cos(this.directionAngle);
         this.position.X += cosAngle * this.velocity * delta;
         this.position.Y += sinAngle * this.velocity * delta;
-        this.changes.add(ChangesDict_1.ChangesDict.POSITION);
+        //this.changes.add(ChangesDict.POSITION);
     }
     get DirectionAngle() {
         return this.directionAngle;
@@ -1033,9 +1034,6 @@ class Player extends GameObject_1.GameObject {
                     bullet.Position.X = this.position.X;
                     bullet.Position.Y = this.position.Y;
                 }
-                this.hp = Math.floor(Math.random() * 100);
-                this.changes.add(ChangesDict_1.ChangesDict.HP);
-                console.log(this.hp);
             }
         });
     }

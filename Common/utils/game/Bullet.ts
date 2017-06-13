@@ -14,6 +14,7 @@ export class Bullet extends GameObject {
     constructor(position: Position) {
         super(position);
         this.id = this.Type + this.id;
+        console.log("asd");
 
 
         if(Math.floor(Math.random() * 2)) {
@@ -46,7 +47,7 @@ export class Bullet extends GameObject {
         this.position.X += cosAngle * this.velocity * delta;
         this.position.Y += sinAngle * this.velocity * delta;
 
-        this.changes.add(ChangesDict.POSITION);
+        //this.changes.add(ChangesDict.POSITION);
     }
 
     get DirectionAngle(): number {
