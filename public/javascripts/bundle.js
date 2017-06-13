@@ -734,7 +734,7 @@ class Bullet extends GameObject_1.GameObject {
         let cosAngle = Math.cos(this.directionAngle);
         this.position.X += cosAngle * this.velocity * delta;
         this.position.Y += sinAngle * this.velocity * delta;
-        //this.changes.add(ChangesDict.POSITION);
+        this.changes.add(ChangesDict_1.ChangesDict.POSITION);
     }
     get DirectionAngle() {
         return this.directionAngle;
