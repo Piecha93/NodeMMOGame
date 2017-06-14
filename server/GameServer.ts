@@ -100,6 +100,10 @@ export class GameServer {
                 if(this.clientsMap.has(socket)) {
                     if (msg == "rudycwel") {
                         this.game.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
+                        return;
+                    } else if (msg == "pandaxd") {
+                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "panda";
+                        return;
                     }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
                 }

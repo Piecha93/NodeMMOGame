@@ -329,6 +329,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         PIXI.loader
             .add('bunny', 'resources/images/bunny.png')
             .add('dyzma', 'resources/images/dyzma.jpg')
+            .add('panda', 'resources/images/panda.png')
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
@@ -706,7 +707,6 @@ class Bullet extends GameObject_1.GameObject {
         this.directionAngle = 0;
         this.lifeSpan = 300;
         this.id = this.Type + this.id;
-        console.log("asd");
         if (Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
             this.velocity = 1.5;

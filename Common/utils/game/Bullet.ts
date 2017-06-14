@@ -14,8 +14,6 @@ export class Bullet extends GameObject {
     constructor(position: Position) {
         super(position);
         this.id = this.Type + this.id;
-        console.log("asd");
-
 
         if(Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
