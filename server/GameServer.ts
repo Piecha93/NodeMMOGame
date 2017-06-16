@@ -60,10 +60,9 @@ export class GameServer {
             socket.emit(SocketMsgs.START_GAME);
             
             socket.on(SocketMsgs.CLIENT_READY, () => {
-                let x: number = Math.floor(Math.random() * 800);
-                let y: number = Math.floor(Math.random() * 600);
-
-                let player: Player = ObjectsFactory.CreateGameObject("P", new Position(x, y)) as Player;
+                let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
+                player.Position.X = Math.floor(Math.random() * 800);
+                player.Position.Y = Math.floor(Math.random() * 600);
 
                 player.Name = clientName;
 

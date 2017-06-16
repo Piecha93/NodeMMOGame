@@ -35,7 +35,6 @@ export class GameClient {
         this.chat = new Chat(this.socket);
 
         this.renderer = new Renderer(() => {
-            console.log("XDDDDDDDDDDDDD");
             this.inputHandler = new InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
@@ -77,11 +76,21 @@ export class GameClient {
 
     private startGame() {
             let timer: DeltaTimer = new DeltaTimer;
+            let deltaHistory: Array<number> = new Array<number>();
             setInterval(() => {
                 let delta: number = timer.getDelta();
-                DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
                 this.game.update(delta);
                 this.renderer.update();
+
+                deltaHistory.push(delta);
+                if(deltaHistory.length > 30) deltaHistory.splice(0, 1);
+                let deltaAvg: number = 0;
+                deltaHistory.forEach((delta: number) => {
+                    deltaAvg += delta;
+                });
+                deltaAvg /= deltaHistory.length;
+
+                DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
             }, 15);
     }
 
@@ -110,7 +119,9 @@ export class GameClient {
             gameObject = this.netObjectMenager.getObject(id);
 
             if(gameObject == null) {
-                gameObject = ObjectsFactory.CreateGameObject(id);
+                gameObject = ObjectsFactory.CreateGameObject(id, data);
+            } else {
+                gameObject.deserialize(data.split('#'))
             }
             gameObject.deserialize(data.split('#'));
         }

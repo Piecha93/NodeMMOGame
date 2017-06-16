@@ -13,11 +13,9 @@ export class ObjectsFactory {
     static HolderSubscribers: Array<GameObjectsHolder> = new Array<GameObjectsHolder>();
     static DestroySubscribers: Array<Function> = new Array<Function>();
 
-    static CreateGameObject(id: string, position?: Position): GameObject {
+    static CreateGameObject(id: string, data?: string): GameObject {
         let type: string =  id.substr(0, 1);
-        if(position == null) {
-            position = new Position(0,0);
-        }
+        let position: Position = new Position(0,0);
 
         let gameObject: GameObject = null;
 
@@ -25,9 +23,15 @@ export class ObjectsFactory {
             gameObject = new Player('DEFAULT', position);
         } else if(type == "B") {
             gameObject = new Bullet(position);
+        } else {
+            throw "Unknown object type";
         }
 
         if(gameObject) {
+            if(data) {
+                gameObject.deserialize(data.split('#'));
+            }
+
             if(id.length > 1) {
                 gameObject.ID = id;
             }

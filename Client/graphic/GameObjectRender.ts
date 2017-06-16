@@ -17,6 +17,12 @@ export class GameObjectRender extends PIXI.Container {
         this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
         this.addChild(this.sprite);
         this.sprite.anchor.set(0.5, 0.5);
+
+        let rect1: PIXI.Graphics = new PIXI.Graphics();
+        rect1.lineStyle(1, 0xff0000, 1);
+        rect1.drawRect(this.sprite.x - this.sprite.width / 2, this.sprite.y - this.sprite.height / 2, this.sprite.width, this.sprite.height);
+        rect1.endFill();
+        this.sprite.addChild(rect1);
     }
 
     public update() {

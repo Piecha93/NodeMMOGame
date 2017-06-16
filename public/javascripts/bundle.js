@@ -42,7 +42,6 @@ class GameClient {
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         this.chat = new Chat_1.Chat(this.socket);
         this.renderer = new Renderer_1.Renderer(() => {
-            console.log("XDDDDDDDDDDDDD");
             this.inputHandler = new InputHandler_1.InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
@@ -78,11 +77,20 @@ class GameClient {
     }
     startGame() {
         let timer = new DeltaTimer_1.DeltaTimer;
+        let deltaHistory = new Array();
         setInterval(() => {
             let delta = timer.getDelta();
-            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / delta).toPrecision(2).toString();
             this.game.update(delta);
             this.renderer.update();
+            deltaHistory.push(delta);
+            if (deltaHistory.length > 30)
+                deltaHistory.splice(0, 1);
+            let deltaAvg = 0;
+            deltaHistory.forEach((delta) => {
+                deltaAvg += delta;
+            });
+            deltaAvg /= deltaHistory.length;
+            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
         }, 15);
     }
     updateGame(data) {
@@ -106,7 +114,10 @@ class GameClient {
             }
             gameObject = this.netObjectMenager.getObject(id);
             if (gameObject == null) {
-                gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id);
+                gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(id, data);
+            }
+            else {
+                gameObject.deserialize(data.split('#'));
             }
             gameObject.deserialize(data.split('#'));
         }
@@ -148,6 +159,11 @@ class GameObjectRender extends PIXI.Container {
         this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
         this.addChild(this.sprite);
         this.sprite.anchor.set(0.5, 0.5);
+        let rect1 = new PIXI.Graphics();
+        rect1.lineStyle(1, 0xff0000, 1);
+        rect1.drawRect(this.sprite.x - this.sprite.width / 2, this.sprite.y - this.sprite.height / 2, this.sprite.width, this.sprite.height);
+        rect1.endFill();
+        this.sprite.addChild(rect1);
     }
     update() {
         if (!this.sprite) {
@@ -970,11 +986,9 @@ class ObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
     }
-    static CreateGameObject(id, position) {
+    static CreateGameObject(id, data) {
         let type = id.substr(0, 1);
-        if (position == null) {
-            position = new Position_1.Position(0, 0);
-        }
+        let position = new Position_1.Position(0, 0);
         let gameObject = null;
         if (type == "P") {
             gameObject = new Player_1.Player('DEFAULT', position);
@@ -982,7 +996,13 @@ class ObjectsFactory {
         else if (type == "B") {
             gameObject = new Bullet_1.Bullet(position);
         }
+        else {
+            throw "Unknown object type";
+        }
         if (gameObject) {
+            if (data) {
+                gameObject.deserialize(data.split('#'));
+            }
             if (id.length > 1) {
                 gameObject.ID = id;
             }
