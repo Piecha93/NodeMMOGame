@@ -10,7 +10,7 @@ export class ChangesDict {
 
     //Bullet
     public static LIFE_SPAN = 'L';
-    public static DIRECTION_ANGLE = 'A';
+    public static ROTATION = 'R';
 
 
     public static buildTag(char: string) {

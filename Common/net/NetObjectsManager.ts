@@ -19,7 +19,7 @@ export class NetObjectsManager extends GameObjectsHolder{
 
     collectUpdate(complete: boolean = false): string {
         let serializedObjects: string = '';
-        this.gameObjects.forEach((gameObject: GameObject, id: string) => {
+        this.gameObjectsMapById.forEach((gameObject: GameObject, id: string) => {
             let objectUpdate: string = gameObject.serialize(complete).slice(1);
             if(objectUpdate != '') {
                 serializedObjects += '$' + id + '-' + objectUpdate;
@@ -31,6 +31,6 @@ export class NetObjectsManager extends GameObjectsHolder{
     }
 
     getObject(id: string) {
-        return this.gameObjects.get(id);
+        return this.gameObjectsMapById.get(id);
     }
 }

@@ -12,13 +12,9 @@ export class BulletRender extends GameObjectRender {
     public setObject(bullet: Bullet) {
         super.setObject(bullet as GameObject);
         this.bulletReference = bullet;
-
-        this.sprite.width = 32;
-        this.sprite.height = 32;
     }
 
     public update() {
         super.update();
-        this.sprite.rotation = this.bulletReference.DirectionAngle;
     }
 }

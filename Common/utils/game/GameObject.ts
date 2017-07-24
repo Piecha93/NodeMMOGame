@@ -1,15 +1,16 @@
-import {Position} from "./Position";
+import {Transform} from "./Transform";
 import {ChangesDict} from "./ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
+import {Collidable} from "../physics/Collidable";
 
-export abstract class GameObject {
+export abstract class GameObject implements Collidable {
     abstract get Type(): string;
 
     private static NEXT_ID: number = 0;
 
     protected id: string = (GameObject.NEXT_ID++).toString();
     protected spriteName: string;
-    protected position: Position;
+    protected transform: Transform;
     protected velocity: number = 10;
 
     protected sFunc: Map<string, Function>;
@@ -19,8 +20,8 @@ export abstract class GameObject {
 
     private destroyListeners: Set<Function>;
 
-    constructor(position: Position) {
-        this.position = position;
+    constructor(transform: Transform) {
+        this.transform = transform;
         this.changes = new Set<string>();
 
         this.sFunc = GameObject.SerializeFunctions;
@@ -30,11 +31,14 @@ export abstract class GameObject {
         this.destroyListeners = new Set<Function>();
     }
 
+    abstract onCollisionEnter(gameObject: GameObject);
+
     public forceCompleteUpdate() {
         this.forceComplete = true;
     }
 
     public update(delta: number) {
+        this.Transform.Moved = false;
         if(CommonConfig.ORIGIN == Origin.SERVER) {
             this.serverUpdate(delta);
         }
@@ -42,7 +46,6 @@ export abstract class GameObject {
     }
 
     protected commonUpdate(delta: number)  {
-
     }
 
     protected serverUpdate(delta: number)  {
@@ -97,8 +100,8 @@ export abstract class GameObject {
         this.destroyListeners.clear()
     }
 
-    get Position(): Position {
-        return this.position;
+    get Transform(): Transform {
+        return this.transform;
     }
 
     get ID(): string {
@@ -119,15 +122,15 @@ export abstract class GameObject {
     }
 
     static serializePosition(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.POSITION) + gameObject.Position.X.toString() + ',' + gameObject.Position.Y.toString();
+        return ChangesDict.buildTag(ChangesDict.POSITION) + gameObject.Transform.X.toString() + ',' + gameObject.Transform.Y.toString();
     }
 
     static deserializePosition(gameObject: GameObject, data: string) {
         let x: string = data.split(',')[0];
         let y: string = data.split(',')[1];
 
-        gameObject.position.X = parseFloat(x);
-        gameObject.position.Y = parseFloat(y);
+        gameObject.transform.X = parseFloat(x);
+        gameObject.transform.Y = parseFloat(y);
     }
 
     static serializeSpriteName(gameObject: GameObject): string {
@@ -146,14 +149,24 @@ export abstract class GameObject {
         bullet.velocity = parseFloat(data);
     }
 
+    static serializeRotation(gameObject: GameObject): string {
+        return ChangesDict.buildTag(ChangesDict.ROTATION) + gameObject.Transform.Rotation;
+    }
+
+    static deserializeRotation(gameObject: GameObject, data: string) {
+        gameObject.Transform.Rotation = parseFloat(data);
+    }
+
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
         [ChangesDict.POSITION, GameObject.serializePosition],
         [ChangesDict.SPRITE, GameObject.serializeSpriteName],
         [ChangesDict.VELOCITY, GameObject.serializeVelocity],
+        [ChangesDict.ROTATION, GameObject.serializeRotation],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
         [ChangesDict.POSITION, GameObject.deserializePosition],
         [ChangesDict.SPRITE, GameObject.deserializeSpriteName],
         [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
+        [ChangesDict.ROTATION, GameObject.deserializeRotation],
     ]);
 }

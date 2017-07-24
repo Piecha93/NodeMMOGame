@@ -1,34 +1,52 @@
 import {GameObject} from "./GameObject";
-import {Position} from "./Position";
+import {Transform} from "./Transform";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
+import {Player} from "./Player";
 
 export class Bullet extends GameObject {
     get Type(): string {
         return GameObjectType.Bullet.toString();
     }
 
-    private directionAngle: number = 0;
-    private lifeSpan = 300;
+    private lifeSpan: number = 300;
 
-    constructor(position: Position) {
-        super(position);
+    private owner: string;
+
+    constructor(transform: Transform) {
+        super(transform);
         this.id = this.Type + this.id;
 
         if(Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
-            this.velocity = 1.5;
+            this.velocity = 1.4;
         } else {
             this.spriteName = "fireball";
-            this.velocity = 0.75;
+            this.velocity = 0.7;
         }
 
-        this.lifeSpan = 500;
+        this.lifeSpan = 5000;
         this.changes.add(ChangesDict.VELOCITY);
         this.changes.add(ChangesDict.LIFE_SPAN);
 
         this.sFunc = new Map<string, Function>(function*() { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
+    }
+
+    onCollisionEnter(gameObject: GameObject) {
+        if(gameObject.ID != this.owner) {
+            if(!(gameObject.Type == "B" && (gameObject as Bullet).owner == this.owner)) {
+                this.destroy();
+            }
+        }
+    }
+
+    get Owner(): string {
+        return this.owner;
+    }
+
+    set Owner(value: string) {
+        this.owner = value;
     }
 
     protected serverUpdate(delta: number) {
@@ -44,30 +62,13 @@ export class Bullet extends GameObject {
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-        let sinAngle: number = Math.sin(this.directionAngle);
-        let cosAngle: number = Math.cos(this.directionAngle);
+        let sinAngle: number = Math.sin(this.transform.Rotation);
+        let cosAngle: number = Math.cos(this.transform.Rotation);
 
-        this.position.X += cosAngle * this.velocity * delta;
-        this.position.Y += sinAngle * this.velocity * delta;
+        this.transform.X += cosAngle * this.velocity * delta;
+        this.transform.Y += sinAngle * this.velocity * delta;
 
-        this.changes.add(ChangesDict.POSITION);
-    }
-
-    get DirectionAngle(): number {
-        return this.directionAngle;
-    }
-
-    set DirectionAngle(angle: number) {
-        this.directionAngle = angle;
-        this.changes.add(ChangesDict.DIRECTION_ANGLE);
-    }
-
-    static serializeDirectionAngle(bullet: Bullet): string {
-        return ChangesDict.buildTag(ChangesDict.DIRECTION_ANGLE) + bullet.directionAngle;
-    }
-
-    static deserializeDirectionAngle(bullet: Bullet, data: string) {
-        bullet.directionAngle = parseFloat(data);
+        //this.changes.add(ChangesDict.POSITION);
     }
 
     static serializeLifeSpan(bullet: Bullet): string {
@@ -79,11 +80,9 @@ export class Bullet extends GameObject {
     }
 
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
-        [ChangesDict.DIRECTION_ANGLE, Bullet.serializeDirectionAngle],
+        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan]
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
-        [ChangesDict.DIRECTION_ANGLE, Bullet.deserializeDirectionAngle],
+        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan]
     ]);
 }

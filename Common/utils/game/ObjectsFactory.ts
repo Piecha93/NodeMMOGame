@@ -1,6 +1,6 @@
 import {GameObject} from "./GameObject";
 import {Player} from "./Player";
-import {Position} from "./Position";
+import {Transform} from "./Transform";
 import {Bullet} from "./Bullet";
 import {GameObjectsHolder} from "./GameObjectsHolder";
 
@@ -15,7 +15,7 @@ export class ObjectsFactory {
 
     static CreateGameObject(id: string, data?: string): GameObject {
         let type: string =  id.substr(0, 1);
-        let position: Position = new Position(0,0);
+        let position: Transform = new Transform(0,0);
 
         let gameObject: GameObject = null;
 

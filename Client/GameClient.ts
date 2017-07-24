@@ -14,6 +14,7 @@ import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {Player} from "../Common/utils/game/Player";
+import {Cell} from "../Common/utils/physics/SpacialGrid";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -29,7 +30,7 @@ export class GameClient {
 
     constructor() {
         this.connect();
-        this.game = new Game;
+        this.game = new Game();
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
@@ -48,6 +49,10 @@ export class GameClient {
             ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
 
             this.socket.emit(SocketMsgs.CLIENT_READY);
+
+            // this.game.Cells.forEach((cell: Cell) => {
+            //     this.renderer.addCell(cell);
+            // });
         });
     }
 
@@ -120,8 +125,6 @@ export class GameClient {
 
             if(gameObject == null) {
                 gameObject = ObjectsFactory.CreateGameObject(id, data);
-            } else {
-                gameObject.deserialize(data.split('#'))
             }
             gameObject.deserialize(data.split('#'));
         }

@@ -1,10 +1,10 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
-import {Position} from "../../Common/utils/game/Position";
+import {Transform} from "../../Common/utils/game/Transform";
 import {InputMap, INPUT} from "./InputMap";
 
 export class InputHandler {
     private releasedKeys: Set<number>;
-    private clickPosition: Position;
+    private clickPosition: Transform;
     private lastDirection: number = 0;
 
     private snapshotCallbacks: Array<Function>;
@@ -51,7 +51,7 @@ export class InputHandler {
     private mouseClick(mouseEvent: MouseEvent) {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
-        this.clickPosition = new Position(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
+        this.clickPosition = new Transform(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
 
 
         this.serializeSnapshot();

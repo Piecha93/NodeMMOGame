@@ -1,7 +1,12 @@
 import {GameObject} from "./GameObject";
 
 export abstract class GameObjectsHolder {
-    protected gameObjects: Map<string, GameObject> = new Map<string, GameObject>();
+    protected gameObjectsMapById;
+    //protected gameObjectsArray: Array<GameObject> = new Array<GameObject>();
+
+    constructor() {
+        this.gameObjectsMapById = new Map<string, GameObject>();
+    }
 
     onDestroy(id: string) {
         this.removeGameObjectById(id);
@@ -9,24 +14,29 @@ export abstract class GameObjectsHolder {
 
     public addGameObject(gameObject: GameObject) {
         gameObject.addDestroyListener(this.onDestroy.bind(this));
-        this.gameObjects.set(gameObject.ID, gameObject);
+        this.gameObjectsMapById.set(gameObject.ID, gameObject);
+        //this.gameObjectsArray.push(gameObject);
     }
 
     public removeGameObject(gameObject: GameObject) {
-        this.gameObjects.delete(gameObject.ID);
+        this.gameObjectsMapById.delete(gameObject.ID);
+
+        // for (let idx; (idx = this.gameObjectsArray.indexOf(gameObject)) != -1;) {
+        //     this.gameObjectsArray.splice(idx, 1);
+        // }
     }
 
     public removeGameObjectById(id: string) {
-        if(this.gameObjects.has(id)) {
-            this.removeGameObject(this.gameObjects.get(id));
+        if(this.gameObjectsMapById.has(id)) {
+            this.removeGameObject(this.gameObjectsMapById.get(id));
         }
     }
 
     public getGameObject(id: string): GameObject {
-        return this.gameObjects.get(id);
+        return this.gameObjectsMapById.get(id);
     }
 
     public has(id: string): boolean {
-        return this.gameObjects.has(id);
+        return this.gameObjectsMapById.has(id);
     }
 }

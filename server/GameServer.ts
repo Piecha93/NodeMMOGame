@@ -2,7 +2,7 @@ import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
-import {Position} from "../Common/utils/game/Position";
+import {Transform} from "../Common/utils/game/Transform";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
@@ -61,8 +61,8 @@ export class GameServer {
             
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
-                player.Position.X = Math.floor(Math.random() * 800);
-                player.Position.Y = Math.floor(Math.random() * 600);
+                player.Transform.X = Math.floor(Math.random() * 800);
+                player.Transform.Y = Math.floor(Math.random() * 600);
 
                 player.Name = clientName;
 

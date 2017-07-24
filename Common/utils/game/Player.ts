@@ -1,5 +1,5 @@
 import {GameObject} from "./GameObject";
-import {Position} from "./Position";
+import {Transform} from "./Transform";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
@@ -12,19 +12,30 @@ export class Player extends GameObject {
 
     private name: string;
     private hp: number;
-    private destination: Position;
     private moveDirection: number = 0;
 
-    constructor(name: string, position: Position) {
-        super(position);
+    constructor(name: string, transform: Transform) {
+        super(transform);
         this.id = this.Type + this.id;
 
         this.sFunc = new Map<string, Function>(function*() { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
         this.hp = 100;
-        this.destination = null;
-        this.velocity = 0.5;
+        this.velocity = 0.3;
+
+        this.transform.Width = 40;
+        this.transform.Height = 64;
+    }
+
+    public onCollisionEnter(gameObject: GameObject) {
+        if(gameObject.Type == GameObjectType.Bullet.toString()) {
+            if((gameObject as Bullet).Owner == this.ID) {
+                return;
+            }
+            this.hp -= 10;
+            this.changes.add(ChangesDict.HP);
+        }
     }
 
     public setInput(commands: Map<string, string> ) {
@@ -34,22 +45,29 @@ export class Player extends GameObject {
             } else if(command == "C") {
                 for(let i = 0; i < 1; i++) {
                     let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
+                    bullet.Owner = this.ID;
+
+                    let centerX = this.transform.X + this.transform.Width / 2;
+                    let centerY = this.transform.Y + this.transform.Height / 2;
 
                     let clickX: number = parseFloat(value.split(';')[0]);
                     let clickY: number = parseFloat(value.split(';')[1]);
 
-                    let deltaX = clickX - this.position.X;
-                    let deltaY = clickY - this.position.Y;
+                    let deltaX = clickX - centerX;
+                    let deltaY = clickY - centerY;
 
                     let angle: number = Math.atan2(deltaY, deltaX);
 
                      if (angle < 0)
                          angle = angle + 2*Math.PI;
 
-                    bullet.DirectionAngle = angle;
+                    bullet.Transform.Rotation = angle;
+                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
-                    bullet.Position.X = this.position.X;
-                    bullet.Position.Y = this.position.Y;
+                    console.log(Math.sin(deltaY));
+
+                    bullet.Transform.X = centerX;
+                    bullet.Transform.Y = centerY;
                 }
             }
         });
@@ -81,20 +99,12 @@ export class Player extends GameObject {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.position.X += xFactor * this.velocity * delta;
-        this.position.Y += yFactor * this.velocity * delta;
+        this.transform.X += xFactor * this.velocity * delta;
+        this.transform.Y += yFactor * this.velocity * delta;
 
         if(this.moveDirection != 0) {
             this.changes.add(ChangesDict.POSITION);
         }
-    }
-
-    get Destination(): Position {
-        return this.destination;
-    }
-
-    set Destination(destination: Position) {
-        this.destination = destination;
     }
 
     set Direction(direction: number) {
