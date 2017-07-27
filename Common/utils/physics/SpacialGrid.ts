@@ -1,5 +1,6 @@
 import {GameObject} from "../game/GameObject";
 import {Transform} from "../game/Transform";
+import {CommonConfig, Origin} from "../../CommonConfig";
 
 let collisions = 0;
 
@@ -48,7 +49,6 @@ export class Cell {
             for(let j = i + 1; j < this.objects.length; j++) {
                 let o1: GameObject = this.objects[i];
                 let o2: GameObject = this.objects[j];
-
                 if (o1 != o2 && rectOverlap(o1.Transform, o2.Transform)) {
                     o1.onCollisionEnter(o2);
                     o2.onCollisionEnter(o1);
@@ -118,23 +118,24 @@ export class SpacialGrid {
     }
 
     checkCollisions() {
-        this.cells.forEach((cell: Cell) => {
-            cell.checkCollisions();
-        });
-        if(collisions > 0) {
-            //console.log(collisions);
+        if(CommonConfig.ORIGIN == Origin.SERVER) {
+            this.cells.forEach((cell: Cell) => {
+                cell.checkCollisions();
+            });
+            if (collisions > 0) {
+             //   console.log(collisions);
+            }
+            collisions = 0;
         }
-        collisions = 0;
     }
 
     addObject(gameObject: GameObject) {
-
         this.gameObjects.push(gameObject);
     }
 
     removeObject(gameObject: GameObject) {
         if(this.gameObjects.indexOf(gameObject) != -1) {
-            this.gameObjects.splice(this.gameObjects.indexOf(gameObject));
+            this.gameObjects.splice(this.gameObjects.indexOf(gameObject), 1);
         }
     }
 

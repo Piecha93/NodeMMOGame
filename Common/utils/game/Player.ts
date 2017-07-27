@@ -34,6 +34,7 @@ export class Player extends GameObject {
                 return;
             }
             this.hp -= 10;
+            if (this.hp <= 0) this.hp = 250;
             this.changes.add(ChangesDict.HP);
         }
     }
