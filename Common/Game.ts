@@ -12,7 +12,7 @@ export class Game extends GameObjectsHolder {
 
     constructor() {
         super();
-        this.spacialGrid = new SpacialGrid(1024, 576, 60);
+        this.spacialGrid = new SpacialGrid(1024, 576, 90);
         console.log("create game instance");
     }
 
@@ -21,10 +21,10 @@ export class Game extends GameObjectsHolder {
             object.update(delta);
         });
 
-        if(CommonConfig.ORIGIN == Origin.SERVER) {
+        //if(CommonConfig.ORIGIN == Origin.SERVER) {
             this.spacialGrid.rebuildGrid();
             this.spacialGrid.checkCollisions();
-        }
+        //}
     }
 
     public addGameObject(gameObject: GameObject) {

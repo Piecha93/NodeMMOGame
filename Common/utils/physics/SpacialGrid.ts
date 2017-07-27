@@ -123,7 +123,6 @@ export class SpacialGrid {
                 cell.checkCollisions();
             });
             if (collisions > 0) {
-             //   console.log(collisions);
             }
             collisions = 0;
         }

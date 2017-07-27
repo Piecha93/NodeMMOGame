@@ -50,9 +50,9 @@ export class GameClient {
 
             this.socket.emit(SocketMsgs.CLIENT_READY);
 
-            // this.game.Cells.forEach((cell: Cell) => {
-            //     this.renderer.addCell(cell);
-            // });
+            this.game.Cells.forEach((cell: Cell) => {
+                this.renderer.addCell(cell);
+            });
         });
     }
 

@@ -65,8 +65,6 @@ export class Player extends GameObject {
                     bullet.Transform.Rotation = angle;
                     //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
-                    console.log(Math.sin(deltaY));
-
                     bullet.Transform.X = centerX;
                     bullet.Transform.Y = centerY;
                 }
