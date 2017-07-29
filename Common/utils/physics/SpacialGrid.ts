@@ -49,7 +49,7 @@ export class Cell {
             for(let j = i + 1; j < this.objects.length; j++) {
                 let o1: GameObject = this.objects[i];
                 let o2: GameObject = this.objects[j];
-                if (o1 != o2 && rectOverlap(o1.Transform, o2.Transform)) {
+                if (o1 != o2 && Transform.testCollision(o1.Transform, o2.Transform)) {
                     o1.onCollisionEnter(o2);
                     o2.onCollisionEnter(o1);
                 }
@@ -95,25 +95,30 @@ export class SpacialGrid {
             cell.clear();
         });
         this.gameObjects.forEach((gameObject: GameObject) => {
-            let xs: number = gameObject.Transform.X / this.cellSize;
-            let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize));
-            xs = Math.floor(xs);
-
-            let ys: number = gameObject.Transform.Y / this.cellSize;
-            let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize));
-            ys = Math.floor(ys);
-
-            for(let i = xs; i <= xe; i++) {
-                if(i >= this.cellsX || i < 0) continue;
-                for(let j = ys; j <= ye; j++) {
-                    if(j >= this.cellsY || j < 0) continue;
-                    
-                    let idx = (j * this.cellsX) + i;
-                    if(this.cells[idx]) {
-                        this.cells[idx].addObject(gameObject);
-                    }
+            this.cells.forEach((cell: Cell) => {
+                if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
+                    cell.addObject(gameObject);
                 }
-            }
+            });
+            // let xs: number = gameObject.Transform.X / this.cellSize;
+            // let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize));
+            // xs = Math.floor(xs);
+            //
+            // let ys: number = gameObject.Transform.Y / this.cellSize;
+            // let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize));
+            // ys = Math.floor(ys);
+            //
+            // for(let i = xs; i <= xe; i++) {
+            //     if(i >= this.cellsX || i < 0) continue;
+            //     for(let j = ys; j <= ye; j++) {
+            //         if(j >= this.cellsY || j < 0) continue;
+            //
+            //         let idx = (j * this.cellsX) + i;
+            //         if(this.cells[idx]) {
+            //             this.cells[idx].addObject(gameObject);
+            //         }
+            //     }
+            // }
         });
     }
 

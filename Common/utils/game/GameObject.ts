@@ -38,7 +38,6 @@ export abstract class GameObject implements Collidable {
     }
 
     public update(delta: number) {
-        this.Transform.Moved = false;
         if(CommonConfig.ORIGIN == Origin.SERVER) {
             this.serverUpdate(delta);
         }

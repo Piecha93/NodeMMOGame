@@ -2,7 +2,6 @@ import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
 import {Game} from "../Common/Game";
-import {Transform} from "../Common/utils/game/Transform";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";

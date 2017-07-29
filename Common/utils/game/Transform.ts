@@ -1,52 +1,50 @@
+import * as SAT from 'sat';
+
 export class Transform {
-    private x: number;
-    private y: number;
+    private vector: SAT.Vector;
+    private polygon: SAT.Polygon;
 
     private width: number;
     private height: number;
 
-    private moved: boolean;
-
-    private rotation: number = 0;
-
     constructor(x?: number, y?: number, width?: number, height?: number) {
-        this.x = x || 0;
-        this.y = y || 0;
+        x = x || 0;
+        y = y || 0;
 
         this.width = width || 32;
         this.height = height || 32;
 
-        this.moved = false;
+        this.vector = new SAT.Vector(x, y);
+        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
     }
 
-    get Moved(): boolean {
-        return this.moved;
+    static testCollision(t1: Transform, t2: Transform) {
+        return SAT.testPolygonPolygon(t1.polygon, t2.Polygon);
     }
 
-    set Moved(moved: boolean) {
-        this.moved = moved;
+    get Polygon(): SAT.Polygon {
+        return this.polygon;
     }
 
     get X(): number {
-        return this.x;
+        return this.polygon.pos.x;
     }
 
     set X(x: number) {
-        this.moved = true;
-        this.x = x;
+        this.polygon.pos.x = x;
     }
 
     get Y(): number {
-        return this.y;
+        return this.polygon.pos.y;
     }
 
     set Y(y: number) {
-        this.moved = true;
-        this.y = y;
+        this.polygon.pos.y = y;
     }
 
     set Width(width: number) {
         this.width = width;
+        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
     }
 
     get Width(): number {
@@ -54,32 +52,19 @@ export class Transform {
     }
 
     set Height(height: number) {
-        this.height = height;
+        this.height  = height;
+        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
     }
 
     get Height(): number {
         return this.height;
     }
 
-    set Rotation(rotation: number) {
-        this.rotation = rotation;
+    set Rotation(angle: number) {
+        this.polygon.setAngle(angle);
     }
 
     get Rotation(): number {
-        return this.rotation;
-    }
-
-    deserialize(input) {
-        this.x = input.x;
-        this.y = input.y;
-
-        return this;
-    }
-
-    clone(position: Transform) {
-        this.x = position.x;
-        this.y = position.y;
-
-        return new Transform(position.x, position.y);
+        return this.polygon.angle;
     }
 }

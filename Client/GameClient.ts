@@ -12,7 +12,6 @@ import {Chat} from "./Chat";
 import {InputSender} from "../Client/net/InputSender";
 import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
-import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {Player} from "../Common/utils/game/Player";
 import {Cell} from "../Common/utils/physics/SpacialGrid";
 
