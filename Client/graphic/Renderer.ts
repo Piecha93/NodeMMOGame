@@ -2,7 +2,6 @@
 
 import {GameObject} from "../../Common/utils/game/GameObject";
 import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
-import {Transform} from "../../Common/utils/game/Transform";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {BulletRender} from "./BulletRender";

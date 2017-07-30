@@ -4,7 +4,7 @@ import {Renderer} from "../../Client/graphic/Renderer";
 
 export class Camera extends PIXI.Container {
 
-    private follower: PIXI.Point;
+    private follower: PIXI.Point | PIXI.ObservablePoint;
     private dt = 0.1;
 
     constructor(follower: PIXI.Point) {
@@ -14,7 +14,7 @@ export class Camera extends PIXI.Container {
         this.position.set(Renderer.WIDTH / 2, Renderer.HEIGHT / 2);
     }
 
-    set Follower(follower: PIXI.Point) {
+    set Follower(follower: PIXI.Point | PIXI.ObservablePoint) {
             this.follower = follower;
             this.pivot = new PIXI.Point(follower.x, follower.y);
             this.update();
