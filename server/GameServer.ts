@@ -102,6 +102,9 @@ export class GameServer {
                     } else if (msg == "pandaxd") {
                         this.game.getGameObject(serverClient.PlayerId).SpriteName = "panda";
                         return;
+                    } else if (msg == "kamis :*") {
+                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
+                        return;
                     }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
                 }
