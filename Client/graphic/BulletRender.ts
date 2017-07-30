@@ -1,8 +1,8 @@
-import {GameObjectRender} from "./GameObjectRender";
 import {GameObject} from "../../Common/utils/game/GameObject";
 import {Bullet} from "../../Common/utils/game/Bullet";
+import {GameObjectAnimationRender} from "../../Client/graphic/GameObjectAnimationRender";
 
-export class BulletRender extends GameObjectRender {
+export class BulletRender extends GameObjectAnimationRender {
     private bulletReference: Bullet;
 
     constructor() {
@@ -16,5 +16,9 @@ export class BulletRender extends GameObjectRender {
 
     public update() {
         super.update();
+    }
+
+    public destroy() {
+        super.destroy();
     }
 }

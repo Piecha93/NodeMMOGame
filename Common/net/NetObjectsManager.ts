@@ -22,7 +22,7 @@ export class NetObjectsManager extends GameObjectsHolder{
         this.gameObjectsMapById.forEach((gameObject: GameObject, id: string) => {
             let objectUpdate: string = gameObject.serialize(complete).slice(1);
             if(objectUpdate != '') {
-                serializedObjects += '$' + id + '-' + objectUpdate;
+                serializedObjects += '$' + id + '=' + objectUpdate;
             }
         });
 

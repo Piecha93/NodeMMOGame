@@ -33,7 +33,7 @@ export class Player extends GameObject {
             if((gameObject as Bullet).Owner == this.ID) {
                 return;
             }
-            this.hp -= 10;
+            this.hit(10);
             if (this.hp <= 0) this.hp = 250;
             this.changes.add(ChangesDict.HP);
         }
@@ -44,7 +44,8 @@ export class Player extends GameObject {
             if(command == "D") {
                 this.moveDirection = parseInt(value);
             } else if(command == "C") {
-                for(let i = 0; i < 1; i++) {
+                for(let i = 0; i < 50; i++) {
+                    //TODO fix click position after camera add
                     let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
                     bullet.Owner = this.ID;
 
@@ -62,8 +63,8 @@ export class Player extends GameObject {
                      if (angle < 0)
                          angle = angle + 2*Math.PI;
 
-                    bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    //bullet.Transform.Rotation = angle;
+                    bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
                     bullet.Transform.X = centerX;
                     bullet.Transform.Y = centerY;
@@ -113,7 +114,7 @@ export class Player extends GameObject {
     }
 
     hit(power: number) {
-        this.hp += power;
+        this.hp -= power;
         if(this.hp < 0) {
             this.hp = 0;
         }

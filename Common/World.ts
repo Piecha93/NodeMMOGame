@@ -4,15 +4,20 @@ import {Transform} from "./utils/game/Transform";
 import {CommonConfig, Origin} from "./CommonConfig";
 import {Cell, SpacialGrid} from "./utils/physics/SpacialGrid";
 
-export class Game extends GameObjectsHolder {
+export class World extends GameObjectsHolder {
     private tickrate: number = 30;
     private timeoutId: NodeJS.Timer;
     private spacialGrid: SpacialGrid;
 
+    static HEIGHT: number = 1152 * 2;
+    static WIDTH: number = 2048 * 2;
+
+    // static HEIGHT: number = 576;
+    // static WIDTH: number = 1024;
 
     constructor() {
         super();
-        this.spacialGrid = new SpacialGrid(1024, 576, 90);
+        this.spacialGrid = new SpacialGrid(World.WIDTH, World.HEIGHT, 90);
         console.log("create game instance");
     }
 
@@ -21,10 +26,10 @@ export class Game extends GameObjectsHolder {
             object.update(delta);
         });
 
-        //if(CommonConfig.ORIGIN == Origin.SERVER) {
-            this.spacialGrid.rebuildGrid();
+        this.spacialGrid.rebuildGrid();
+        if(CommonConfig.ORIGIN == Origin.SERVER) {
             this.spacialGrid.checkCollisions();
-        //}
+        }
     }
 
     public addGameObject(gameObject: GameObject) {

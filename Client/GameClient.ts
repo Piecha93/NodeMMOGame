@@ -1,6 +1,6 @@
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 
-import {Game} from "../Common/Game";
+import {World} from "../Common/World";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
@@ -17,7 +17,7 @@ import {Cell} from "../Common/utils/physics/SpacialGrid";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
-    private game: Game;
+    private game: World;
     private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
@@ -29,7 +29,7 @@ export class GameClient {
 
     constructor() {
         this.connect();
-        this.game = new Game();
+        this.game = new World();
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
@@ -72,6 +72,7 @@ export class GameClient {
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
             this.player = this.game.getGameObject(data['id']) as Player;
+            this.renderer.CameraFollower = this.player;
 
             this.heartBeatSender.startSendingHeartbeats();
         });
@@ -106,7 +107,7 @@ export class GameClient {
         let update = data['update'].split('$');
         //console.log(update);
         for (let object in update) {
-            let splitObject: string[] = update[object].split('-');
+            let splitObject: string[] = update[object].split('=');
             let id: string = splitObject[0];
             let data: string = splitObject[1];
 

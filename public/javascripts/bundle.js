@@ -17,11 +17,11 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../Common/net/SocketMsgs":20,"./graphic/HtmlHandlers/ChatHtmlHandler":6}],2:[function(require,module,exports){
+},{"../Common/net/SocketMsgs":23,"./graphic/HtmlHandlers/ChatHtmlHandler":8}],2:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
-const Game_1 = require("../Common/Game");
+const World_1 = require("../Common/World");
 const Renderer_1 = require("./graphic/Renderer");
 const InputHandler_1 = require("./input/InputHandler");
 const NetObjectsManager_1 = require("../Common/net/NetObjectsManager");
@@ -37,7 +37,7 @@ class GameClient {
         this.netObjectMenager = NetObjectsManager_1.NetObjectsManager.Instance;
         this.player = null;
         this.connect();
-        this.game = new Game_1.Game();
+        this.game = new World_1.World();
         this.inputSender = new InputSender_1.InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         this.chat = new Chat_1.Chat(this.socket);
@@ -74,6 +74,7 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
             this.updateGame(data);
             this.player = this.game.getGameObject(data['id']);
+            this.renderer.CameraFollower = this.player;
             this.heartBeatSender.startSendingHeartbeats();
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
@@ -103,7 +104,7 @@ class GameClient {
         let update = data['update'].split('$');
         //console.log(update);
         for (let object in update) {
-            let splitObject = update[object].split('-');
+            let splitObject = update[object].split('=');
             let id = splitObject[0];
             let data = splitObject[1];
             let gameObject = null;
@@ -125,54 +126,11 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":14,"../Common/DeltaTimer":16,"../Common/Game":17,"../Common/net/NetObjectsManager":19,"../Common/net/SocketMsgs":20,"../Common/utils/game/ObjectsFactory":26,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":7,"./graphic/Renderer":9,"./input/InputHandler":10,"./net/HeartBeatSender":13}],3:[function(require,module,exports){
-"use strict";
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-Object.defineProperty(exports, "__esModule", { value: true });
-class BoxRenderer extends PIXI.Container {
-    constructor() {
-        super();
-        this.red = false;
-    }
-    setObject(cell) {
-        this.cell = cell;
-        this.trans = cell.Transform;
-        this.rect1 = new PIXI.Graphics();
-        this.x = this.trans.X;
-        this.y = this.trans.Y;
-        this.addChild(this.rect1);
-    }
-    update() {
-        if (this.cell.isEmpty()) {
-            if (!this.red) {
-                this.drawRectl(0xff0000);
-                this.red = true;
-            }
-        }
-        else {
-            if (this.red) {
-                this.red = false;
-                this.drawRectl(0x0000ff);
-            }
-        }
-    }
-    destroy() {
-        this.rect1.destroy();
-    }
-    drawRectl(color) {
-        this.rect1.clear();
-        this.rect1.lineStyle(1, color, 1);
-        this.rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
-        this.rect1.endFill();
-    }
-}
-exports.BoxRenderer = BoxRenderer;
-
-},{}],4:[function(require,module,exports){
+},{"../Client/net/InputSender":17,"../Common/DeltaTimer":19,"../Common/World":20,"../Common/net/NetObjectsManager":22,"../Common/net/SocketMsgs":23,"../Common/utils/game/ObjectsFactory":29,"./Chat":1,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":9,"./graphic/Renderer":12,"./input/InputHandler":13,"./net/HeartBeatSender":16}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectRender_1 = require("./GameObjectRender");
-class BulletRender extends GameObjectRender_1.GameObjectRender {
+const GameObjectAnimationRender_1 = require("../../Client/graphic/GameObjectAnimationRender");
+class BulletRender extends GameObjectAnimationRender_1.GameObjectAnimationRender {
     constructor() {
         super();
     }
@@ -183,10 +141,68 @@ class BulletRender extends GameObjectRender_1.GameObjectRender {
     update() {
         super.update();
     }
+    destroy() {
+        super.destroy();
+    }
 }
 exports.BulletRender = BulletRender;
 
-},{"./GameObjectRender":5}],5:[function(require,module,exports){
+},{"../../Client/graphic/GameObjectAnimationRender":5}],4:[function(require,module,exports){
+"use strict";
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+const Renderer_1 = require("../../Client/graphic/Renderer");
+class Camera extends PIXI.Container {
+    constructor(follower) {
+        super();
+        this.dt = 0.1;
+        this.Follower = follower;
+        this.position.set(Renderer_1.Renderer.WIDTH / 2, Renderer_1.Renderer.HEIGHT / 2);
+    }
+    set Follower(follower) {
+        this.follower = follower;
+        this.pivot = new PIXI.Point(follower.x, follower.y);
+        this.update();
+    }
+    update() {
+        this.pivot.x = (this.follower.x - this.pivot.x) * this.dt + this.pivot.x;
+        this.pivot.y = (this.follower.y - this.pivot.y) * this.dt + this.pivot.y;
+    }
+}
+exports.Camera = Camera;
+
+},{"../../Client/graphic/Renderer":12}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectRender_1 = require("./GameObjectRender");
+class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
+    constructor() {
+        super();
+        this.textures = new Array();
+    }
+    setObject(gameObject) {
+        super.setObject(gameObject);
+        for (let i = 0; i < 4; i++) {
+            let texture = PIXI.Texture.fromFrame(this.objectReference.SpriteName + '_' + (i) + '.png');
+            this.textures.push(texture);
+        }
+        this.animation = new PIXI.extras.AnimatedSprite(this.textures);
+        this.addChild(this.animation);
+        this.animation.animationSpeed = 0.5;
+        this.animation.play();
+        this.animation.width = this.objectReference.Transform.Width;
+        this.animation.height = this.objectReference.Transform.Height;
+    }
+    update() {
+        super.update();
+    }
+    destroy() {
+        this.animation.destroy();
+    }
+}
+exports.GameObjectAnimationRender = GameObjectAnimationRender;
+
+},{"./GameObjectRender":6}],6:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -196,31 +212,50 @@ class GameObjectRender extends PIXI.Container {
     }
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
-        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
-        this.addChild(this.sprite);
-        //this.sprite.anchor.set(0.5, 0.5);
     }
     update() {
-        if (!this.sprite) {
-            return;
-        }
         let transform = this.objectReference.Transform;
+        // this.x = (transform.X - this.x) * 0.3 + this.x;
+        // this.y = (transform.Y - this.y) * 0.3 + this.y;
         this.x = transform.X;
         this.y = transform.Y;
-        this.sprite.width = transform.Width;
-        this.sprite.height = transform.Height;
-        if (this.sprite.texture != PIXI.utils.TextureCache[this.objectReference.SpriteName]) {
-            this.sprite.texture = PIXI.utils.TextureCache[this.objectReference.SpriteName];
-        }
-        this.sprite.rotation = this.objectReference.Transform.Rotation;
+        this.rotation = this.objectReference.Transform.Rotation;
     }
     destroy() {
-        this.sprite.destroy();
     }
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
+"use strict";
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectRender_1 = require("../../Client/graphic/GameObjectRender");
+class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
+    constructor() {
+        super();
+    }
+    setObject(gameObjectReference) {
+        this.objectReference = gameObjectReference;
+        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
+        this.addChild(this.sprite);
+        let transform = this.objectReference.Transform;
+        this.sprite.width = transform.Width;
+        this.sprite.height = transform.Height;
+    }
+    update() {
+        super.update();
+        if (this.sprite.texture != PIXI.utils.TextureCache[this.objectReference.SpriteName]) {
+            this.sprite.texture = PIXI.utils.TextureCache[this.objectReference.SpriteName];
+        }
+    }
+    destroy() {
+        this.destroy();
+    }
+}
+exports.GameObjectSpriteRender = GameObjectSpriteRender;
+
+},{"../../Client/graphic/GameObjectRender":6}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChatHtmlHandler {
@@ -297,7 +332,7 @@ class ChatHtmlHandler {
 }
 exports.ChatHtmlHandler = ChatHtmlHandler;
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DebugWindowHtmlHandler {
@@ -328,11 +363,11 @@ class DebugWindowHtmlHandler {
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectRender_1 = require("./GameObjectRender");
-class PlayerRender extends GameObjectRender_1.GameObjectRender {
+const GameObjectSpriteRender_1 = require("../../Client/graphic/GameObjectSpriteRender");
+class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
     constructor() {
         super();
     }
@@ -345,41 +380,109 @@ class PlayerRender extends GameObjectRender_1.GameObjectRender {
             fill: "#ffffff"
         });
         this.nameText.anchor.set(0.5, 2.75);
-        this.sprite.addChild(this.nameText);
+        this.addChild(this.nameText);
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
         this.hpBar.drawRect(-20, -50, 40, 8);
-        this.sprite.addChild(this.hpBar);
+        this.addChild(this.hpBar);
     }
     update() {
         super.update();
         this.nameText.text = this.playerReference.Name;
         this.hpBar.scale.x = this.playerReference.HP / 100;
     }
+    destroy() {
+        super.destroy();
+    }
 }
 exports.PlayerRender = PlayerRender;
 
-},{"./GameObjectRender":5}],9:[function(require,module,exports){
+},{"../../Client/graphic/GameObjectSpriteRender":7}],11:[function(require,module,exports){
+"use strict";
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+class RectRenderer extends PIXI.Container {
+    constructor() {
+        super();
+        this.red = false;
+    }
+    setObject(cell) {
+        this.cell = cell;
+        this.trans = cell.Transform;
+        // if(RectRenderer.textureRed == null) {
+        //     let rect1: PIXI.Graphics = new Graphics();
+        //
+        //     rect1.clear();
+        //     rect1.lineStyle(2, 0xff0000);
+        //     rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
+        //     rect1.endFill();
+        //
+        //     RectRenderer.textureRed = rect1.generateCanvasTexture();
+        //
+        //     rect1.clear();
+        //     rect1.lineStyle(2, 0x0000ff);
+        //     rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
+        //     rect1.endFill();
+        //
+        //     RectRenderer.textureBlue = rect1.generateCanvasTexture();
+        // }
+        this.x = this.trans.X;
+        this.y = this.trans.Y;
+        // this.spriteRed = new PIXI.Sprite(RectRenderer.textureRed);
+        // this.spriteBlue = new PIXI.Sprite(RectRenderer.textureBlue);
+        let id = new PIXI.Text(this.cell.id.toString(), {
+            fontFamily: "Arial",
+            fontSize: "12px",
+            fill: "#ffffff"
+        });
+        this.addChild(id);
+    }
+    update() {
+        // if(this.cell.isEmpty()) {
+        //     if(!this.red) {
+        //         this.removeChild(this.spriteBlue);
+        //         this.addChild(this.spriteRed);
+        //         this.red = true;
+        //     }
+        // } else {
+        //     if(this.red) {
+        //         this.red = false;
+        //         this.removeChild(this.spriteRed);
+        //         this.addChild(this.spriteBlue);
+        //     }
+        // }
+    }
+    destroy() {
+        // this.sp.destroy()
+    }
+}
+RectRenderer.textureRed = null;
+RectRenderer.textureBlue = null;
+exports.RectRenderer = RectRenderer;
+
+},{}],12:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../../Common/utils/game/GameObjectsHolder");
-const GameObjectRender_1 = require("./GameObjectRender");
 const PlayerRender_1 = require("./PlayerRender");
 const BulletRender_1 = require("./BulletRender");
-const BoxRenderer_1 = require("./BoxRenderer");
+const RectRenderer_1 = require("./RectRenderer");
+const Camera_1 = require("../../Client/graphic/Camera");
+const GameObjectSpriteRender_1 = require("../../Client/graphic/GameObjectSpriteRender");
 class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
         super();
         this.renderer =
-            PIXI.autoDetectRenderer(1024, 576, {
+            PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
                 view: document.getElementById("game-canvas"),
                 antialias: false,
                 transparent: false,
                 resolution: 1
             });
         this.rootContainer = new PIXI.Container();
-        this.renderer.render(this.rootContainer);
+        this.camera = new Camera_1.Camera(new PIXI.Point(333, 333));
+        this.camera.addChild(this.rootContainer);
         this.renderObjects = new Map();
         this.renderCells = new Map();
         PIXI.loader
@@ -389,6 +492,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
+            .add('flame', 'resources/animations/flame/flame.json')
             .load(afterCreateCallback);
     }
     update() {
@@ -398,7 +502,8 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderCells.forEach((boxRenderer) => {
             boxRenderer.update();
         });
-        this.renderer.render(this.rootContainer);
+        this.camera.update();
+        this.renderer.render(this.camera);
     }
     addGameObject(gameObject) {
         super.addGameObject(gameObject);
@@ -411,14 +516,17 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
             gameObjectRender = new BulletRender_1.BulletRender();
         }
         else {
-            gameObjectRender = new GameObjectRender_1.GameObjectRender();
+            gameObjectRender = new GameObjectSpriteRender_1.GameObjectSpriteRender();
         }
         gameObjectRender.setObject(gameObject);
         this.renderObjects.set(gameObject, gameObjectRender);
         this.rootContainer.addChild(gameObjectRender);
     }
+    set CameraFollower(gameObject) {
+        this.camera.Follower = this.renderObjects.get(gameObject).position;
+    }
     addCell(cell) {
-        let boxRenderer = new BoxRenderer_1.BoxRenderer();
+        let boxRenderer = new RectRenderer_1.RectRenderer();
         boxRenderer.setObject(cell);
         this.renderCells.set(cell, boxRenderer);
         this.rootContainer.addChild(boxRenderer);
@@ -429,9 +537,11 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects.delete(gameObject);
     }
 }
+Renderer.HEIGHT = 576;
+Renderer.WIDTH = 1024;
 exports.Renderer = Renderer;
 
-},{"../../Common/utils/game/GameObjectsHolder":25,"./BoxRenderer":3,"./BulletRender":4,"./GameObjectRender":5,"./PlayerRender":8}],10:[function(require,module,exports){
+},{"../../Client/graphic/Camera":4,"../../Client/graphic/GameObjectSpriteRender":7,"../../Common/utils/game/GameObjectsHolder":28,"./BulletRender":3,"./PlayerRender":10,"./RectRenderer":11}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
@@ -540,7 +650,7 @@ class InputHandler {
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputSnapshot":18,"../../Common/utils/game/Transform":28,"./InputMap":11}],11:[function(require,module,exports){
+},{"../../Common/input/InputSnapshot":21,"../../Common/utils/game/Transform":31,"./InputMap":14}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -558,7 +668,7 @@ exports.InputMap = new Map([
     [68, INPUT.RIGHT],
 ]);
 
-},{}],12:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameClient_1 = require("./GameClient");
@@ -568,7 +678,7 @@ window.onload = () => {
     let client = new GameClient_1.GameClient();
 };
 
-},{"../Common/CommonConfig":15,"./GameClient":2}],13:[function(require,module,exports){
+},{"../Common/CommonConfig":18,"./GameClient":2}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -605,7 +715,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../Common/net/SocketMsgs":20,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":7}],14:[function(require,module,exports){
+},{"../../Common/net/SocketMsgs":23,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":9}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -623,7 +733,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../Common/net/SocketMsgs":20}],15:[function(require,module,exports){
+},{"../../Common/net/SocketMsgs":23}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -637,7 +747,7 @@ class CommonConfig {
 CommonConfig.ORIGIN = Origin.UNKNOWN;
 exports.CommonConfig = CommonConfig;
 
-},{}],16:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -654,26 +764,29 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],17:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("./utils/game/GameObjectsHolder");
+const CommonConfig_1 = require("./CommonConfig");
 const SpacialGrid_1 = require("./utils/physics/SpacialGrid");
-class Game extends GameObjectsHolder_1.GameObjectsHolder {
+class World extends GameObjectsHolder_1.GameObjectsHolder {
+    // static HEIGHT: number = 576;
+    // static WIDTH: number = 1024;
     constructor() {
         super();
         this.tickrate = 30;
-        this.spacialGrid = new SpacialGrid_1.SpacialGrid(1024, 576, 90);
+        this.spacialGrid = new SpacialGrid_1.SpacialGrid(World.WIDTH, World.HEIGHT, 90);
         console.log("create game instance");
     }
     update(delta) {
         this.gameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
-        //if(CommonConfig.ORIGIN == Origin.SERVER) {
         this.spacialGrid.rebuildGrid();
-        this.spacialGrid.checkCollisions();
-        //}
+        if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
+            this.spacialGrid.checkCollisions();
+        }
     }
     addGameObject(gameObject) {
         this.spacialGrid.addObject(gameObject);
@@ -691,9 +804,11 @@ class Game extends GameObjectsHolder_1.GameObjectsHolder {
         return this.spacialGrid.Cells;
     }
 }
-exports.Game = Game;
+World.HEIGHT = 1152 * 2;
+World.WIDTH = 2048 * 2;
+exports.World = World;
 
-},{"./utils/game/GameObjectsHolder":25,"./utils/physics/SpacialGrid":29}],18:[function(require,module,exports){
+},{"./CommonConfig":18,"./utils/game/GameObjectsHolder":28,"./utils/physics/SpacialGrid":32}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class InputSnapshot {
@@ -729,7 +844,7 @@ class InputSnapshot {
 }
 exports.InputSnapshot = InputSnapshot;
 
-},{}],19:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../utils/game/GameObjectsHolder");
@@ -751,7 +866,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
         this.gameObjectsMapById.forEach((gameObject, id) => {
             let objectUpdate = gameObject.serialize(complete).slice(1);
             if (objectUpdate != '') {
-                serializedObjects += '$' + id + '-' + objectUpdate;
+                serializedObjects += '$' + id + '=' + objectUpdate;
             }
         });
         serializedObjects = serializedObjects.slice(1);
@@ -763,7 +878,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../utils/game/GameObjectsHolder":25}],20:[function(require,module,exports){
+},{"../utils/game/GameObjectsHolder":28}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -778,7 +893,7 @@ SocketMsgs.INPUT_SNAPSHOT = 'is';
 SocketMsgs.CHAT_MESSAGE = 'ch';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],21:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -797,6 +912,10 @@ class Bullet extends GameObject_1.GameObject {
             this.spriteName = "fireball";
             this.velocity = 0.7;
         }
+        this.spriteName = "flame";
+        this.velocity = 0.2;
+        this.transform.Width = 48;
+        this.transform.Height = 32;
         this.lifeSpan = 5000;
         this.changes.add(ChangesDict_1.ChangesDict.VELOCITY);
         this.changes.add(ChangesDict_1.ChangesDict.LIFE_SPAN);
@@ -849,7 +968,7 @@ Bullet.DeserializeFunctions = new Map([
 ]);
 exports.Bullet = Bullet;
 
-},{"./ChangesDict":22,"./GameObject":23,"./GameObjectTypes":24}],22:[function(require,module,exports){
+},{"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
@@ -869,7 +988,7 @@ ChangesDict.LIFE_SPAN = 'L';
 ChangesDict.ROTATION = 'R';
 exports.ChangesDict = ChangesDict;
 
-},{}],23:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("./ChangesDict");
@@ -999,7 +1118,7 @@ GameObject.DeserializeFunctions = new Map([
 ]);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":15,"./ChangesDict":22}],24:[function(require,module,exports){
+},{"../../CommonConfig":18,"./ChangesDict":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectType;
@@ -1009,7 +1128,7 @@ var GameObjectType;
     GameObjectType[GameObjectType["Bullet"] = 'B'] = "Bullet";
 })(GameObjectType = exports.GameObjectType || (exports.GameObjectType = {}));
 
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectsHolder {
@@ -1045,7 +1164,7 @@ class GameObjectsHolder {
 }
 exports.GameObjectsHolder = GameObjectsHolder;
 
-},{}],26:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
@@ -1090,7 +1209,7 @@ ObjectsFactory.HolderSubscribers = new Array();
 ObjectsFactory.DestroySubscribers = new Array();
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Bullet":21,"./Player":27,"./Transform":28}],27:[function(require,module,exports){
+},{"./Bullet":24,"./Player":30,"./Transform":31}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -1118,7 +1237,7 @@ class Player extends GameObject_1.GameObject {
             if (gameObject.Owner == this.ID) {
                 return;
             }
-            this.hp -= 10;
+            this.hit(10);
             if (this.hp <= 0)
                 this.hp = 250;
             this.changes.add(ChangesDict_1.ChangesDict.HP);
@@ -1130,7 +1249,8 @@ class Player extends GameObject_1.GameObject {
                 this.moveDirection = parseInt(value);
             }
             else if (command == "C") {
-                for (let i = 0; i < 1; i++) {
+                for (let i = 0; i < 50; i++) {
+                    //TODO fix click position after camera add
                     let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
                     bullet.Owner = this.ID;
                     let centerX = this.transform.X + this.transform.Width / 2;
@@ -1142,9 +1262,8 @@ class Player extends GameObject_1.GameObject {
                     let angle = Math.atan2(deltaY, deltaX);
                     if (angle < 0)
                         angle = angle + 2 * Math.PI;
-                    this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
-                    bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    //bullet.Transform.Rotation = angle;
+                    bullet.Transform.Rotation = Math.floor(Math.random() * 360);
                     bullet.Transform.X = centerX;
                     bullet.Transform.Y = centerY;
                 }
@@ -1195,7 +1314,7 @@ class Player extends GameObject_1.GameObject {
         }
     }
     hit(power) {
-        this.hp += power;
+        this.hp -= power;
         if (this.hp < 0) {
             this.hp = 0;
         }
@@ -1235,7 +1354,7 @@ Player.DeserializeFunctions = new Map([
 ]);
 exports.Player = Player;
 
-},{"./ChangesDict":22,"./GameObject":23,"./GameObjectTypes":24,"./ObjectsFactory":26}],28:[function(require,module,exports){
+},{"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27,"./ObjectsFactory":29}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SAT = require("sat");
@@ -1246,15 +1365,11 @@ class Transform {
         this.width = width || 32;
         this.height = height || 32;
         this.vector = new SAT.Vector(x, y);
-        //this.box = new SAT.Box(this.vector, width, height);
         this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
     }
     static testCollision(t1, t2) {
         return SAT.testPolygonPolygon(t1.polygon, t2.Polygon);
     }
-    // get Box(): SAT.Box {
-    //     return this.box;
-    // }
     get Polygon() {
         return this.polygon;
     }
@@ -1293,15 +1408,15 @@ class Transform {
 }
 exports.Transform = Transform;
 
-},{"sat":30}],29:[function(require,module,exports){
+},{"sat":33}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../game/Transform");
 const CommonConfig_1 = require("../../CommonConfig");
-let collisions = 0;
 class Cell {
     constructor(transform) {
         this.objects = new Array();
+        this.id = Cell.ID++;
         this.transform = transform;
     }
     get Transform() {
@@ -1316,20 +1431,6 @@ class Cell {
     isEmpty() {
         return this.objects.length <= 0;
     }
-    // checkForMovedObjects() {
-    //     for(let i = 0; i < this.objects.length; i++) {
-    //         if(this.objects[i].Transform.Moved) {
-    //             if(!rectOverlap(this.objects[i].Transform, this.transform)) {
-    //                 this.removeObject(this.objects[i]);
-    //             }
-    //         }
-    //     }
-    // }
-    // removeObject(gameObject: GameObject) {
-    //     for (let idx; (idx = this.objects.indexOf(gameObject)) != -1;) {
-    //         this.objects.splice(idx, 1);
-    //     }
-    // }
     checkCollisions() {
         for (let i = 0; i < this.objects.length; i++) {
             for (let j = i + 1; j < this.objects.length; j++) {
@@ -1343,6 +1444,7 @@ class Cell {
         }
     }
 }
+Cell.ID = 0;
 exports.Cell = Cell;
 class SpacialGrid {
     constructor(width, height, cellSize) {
@@ -1366,30 +1468,29 @@ class SpacialGrid {
             cell.clear();
         });
         this.gameObjects.forEach((gameObject) => {
-            this.cells.forEach((cell) => {
-                if (Transform_1.Transform.testCollision(gameObject.Transform, cell.Transform)) {
-                    cell.addObject(gameObject);
+            let xs = gameObject.Transform.X / this.cellSize;
+            let xe = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
+            xs = Math.floor(xs) - 1;
+            let ys = gameObject.Transform.Y / this.cellSize;
+            let ye = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
+            ys = Math.floor(ys) - 1;
+            for (let i = xs; i <= xe; i++) {
+                if (i >= this.cellsX || i < 0)
+                    continue;
+                for (let j = ys; j <= ye; j++) {
+                    if (j >= this.cellsY || j < 0)
+                        continue;
+                    let idx = (j * this.cellsX) + i;
+                    if (Transform_1.Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
+                        this.cells[idx].addObject(gameObject);
+                    }
                 }
-            });
-            // let xs: number = gameObject.Transform.X / this.cellSize;
-            // let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize));
-            // xs = Math.floor(xs);
-            //
-            // let ys: number = gameObject.Transform.Y / this.cellSize;
-            // let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize));
-            // ys = Math.floor(ys);
-            //
-            // for(let i = xs; i <= xe; i++) {
-            //     if(i >= this.cellsX || i < 0) continue;
-            //     for(let j = ys; j <= ye; j++) {
-            //         if(j >= this.cellsY || j < 0) continue;
-            //
-            //         let idx = (j * this.cellsX) + i;
-            //         if(this.cells[idx]) {
-            //             this.cells[idx].addObject(gameObject);
-            //         }
+            }
+            // this.cells.forEach((cell: Cell) => {
+            //     if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
+            //         cell.addObject(gameObject);
             //     }
-            // }
+            // });
         });
     }
     checkCollisions() {
@@ -1397,9 +1498,6 @@ class SpacialGrid {
             this.cells.forEach((cell) => {
                 cell.checkCollisions();
             });
-            if (collisions > 0) {
-            }
-            collisions = 0;
         }
     }
     addObject(gameObject) {
@@ -1415,12 +1513,8 @@ class SpacialGrid {
     }
 }
 exports.SpacialGrid = SpacialGrid;
-function rectOverlap(A, B) {
-    collisions++;
-    return (A.X < B.X + B.Width && A.X + A.Width > B.X && A.Y < B.Y + B.Height && A.Height + A.Y > B.Y);
-}
 
-},{"../../CommonConfig":15,"../game/Transform":28}],30:[function(require,module,exports){
+},{"../../CommonConfig":18,"../game/Transform":31}],33:[function(require,module,exports){
 // Version 0.6.0 - Copyright 2012 - 2016 -  Jim Riecken <jimr@jimr.ca>
 //
 // Released under the MIT License - https://github.com/jriecken/sat-js
@@ -2410,4 +2504,4 @@ function rectOverlap(A, B) {
   return SAT;
 }));
 
-},{}]},{},[12]);
+},{}]},{},[15]);

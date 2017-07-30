@@ -25,6 +25,12 @@ export class Bullet extends GameObject {
             this.velocity = 0.7;
         }
 
+        this.spriteName = "flame";
+        this.velocity = 0.2;
+
+        this.transform.Width = 48;
+        this.transform.Height = 32;
+
         this.lifeSpan = 5000;
         this.changes.add(ChangesDict.VELOCITY);
         this.changes.add(ChangesDict.LIFE_SPAN);

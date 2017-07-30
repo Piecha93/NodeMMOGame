@@ -2,13 +2,16 @@ import {GameObject} from "../game/GameObject";
 import {Transform} from "../game/Transform";
 import {CommonConfig, Origin} from "../../CommonConfig";
 
-let collisions = 0;
-
 export class Cell {
     objects: Array<GameObject> = new Array<GameObject>();
     transform: Transform;
 
+    static ID = 0;
+
+    id: number;
+
     constructor(transform: Transform) {
+        this.id = Cell.ID++;
         this.transform = transform;
     }
 
@@ -27,22 +30,6 @@ export class Cell {
     isEmpty(): boolean {
         return this.objects.length <= 0;
     }
-
-    // checkForMovedObjects() {
-    //     for(let i = 0; i < this.objects.length; i++) {
-    //         if(this.objects[i].Transform.Moved) {
-    //             if(!rectOverlap(this.objects[i].Transform, this.transform)) {
-    //                 this.removeObject(this.objects[i]);
-    //             }
-    //         }
-    //     }
-    // }
-
-    // removeObject(gameObject: GameObject) {
-    //     for (let idx; (idx = this.objects.indexOf(gameObject)) != -1;) {
-    //         this.objects.splice(idx, 1);
-    //     }
-    // }
 
     checkCollisions() {
         for(let i = 0; i < this.objects.length; i++) {
@@ -95,30 +82,31 @@ export class SpacialGrid {
             cell.clear();
         });
         this.gameObjects.forEach((gameObject: GameObject) => {
-            this.cells.forEach((cell: Cell) => {
-                if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
-                    cell.addObject(gameObject);
+            let xs: number = gameObject.Transform.X / this.cellSize ;
+            let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
+            xs = Math.floor(xs) - 1;
+
+            let ys: number = gameObject.Transform.Y / this.cellSize;
+            let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
+            ys = Math.floor(ys) - 1;
+
+            for(let i = xs; i <= xe; i++) {
+                if(i >= this.cellsX || i < 0) continue;
+                for(let j = ys; j <= ye; j++) {
+                    if(j >= this.cellsY || j < 0) continue;
+
+                    let idx = (j * this.cellsX) + i;
+                    if(Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
+                        this.cells[idx].addObject(gameObject);
+                    }
                 }
-            });
-            // let xs: number = gameObject.Transform.X / this.cellSize;
-            // let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize));
-            // xs = Math.floor(xs);
-            //
-            // let ys: number = gameObject.Transform.Y / this.cellSize;
-            // let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize));
-            // ys = Math.floor(ys);
-            //
-            // for(let i = xs; i <= xe; i++) {
-            //     if(i >= this.cellsX || i < 0) continue;
-            //     for(let j = ys; j <= ye; j++) {
-            //         if(j >= this.cellsY || j < 0) continue;
-            //
-            //         let idx = (j * this.cellsX) + i;
-            //         if(this.cells[idx]) {
-            //             this.cells[idx].addObject(gameObject);
-            //         }
+            }
+
+            // this.cells.forEach((cell: Cell) => {
+            //     if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
+            //         cell.addObject(gameObject);
             //     }
-            // }
+            // });
         });
     }
 
@@ -127,9 +115,6 @@ export class SpacialGrid {
             this.cells.forEach((cell: Cell) => {
                 cell.checkCollisions();
             });
-            if (collisions > 0) {
-            }
-            collisions = 0;
         }
     }
 
@@ -146,9 +131,4 @@ export class SpacialGrid {
     get Cells(): Array<Cell> {
         return this.cells;
     }
-}
-
-function rectOverlap(A: Transform, B: Transform): boolean {
-    collisions++;
-    return (A.X < B.X + B.Width && A.X + A.Width > B.X && A.Y < B.Y + B.Height && A.Height + A.Y > B.Y)
 }

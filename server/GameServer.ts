@@ -1,7 +1,7 @@
 import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
-import {Game} from "../Common/Game";
+import {World} from "../Common/World";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
@@ -15,7 +15,7 @@ export class GameServer {
     private sockets: SocketIO.Server;
     private clientsMap: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
 
-    private game: Game;
+    private game: World;
     private nameCounter: number = 0;
 
     private destroyedObjects: string = '';
@@ -30,7 +30,7 @@ export class GameServer {
     }
 
     private startGame() {
-        this.game = new Game;
+        this.game = new World;
 
         ObjectsFactory.HolderSubscribers.push(this.game);
         ObjectsFactory.HolderSubscribers.push(NetObjectsManager.Instance);
@@ -60,8 +60,8 @@ export class GameServer {
             
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
-                player.Transform.X = Math.floor(Math.random() * 800);
-                player.Transform.Y = Math.floor(Math.random() * 600);
+                player.Transform.X = Math.floor(Math.random() * 2048 * 2);
+                player.Transform.Y = Math.floor(Math.random() * 1152 * 2);
 
                 player.Name = clientName;
 

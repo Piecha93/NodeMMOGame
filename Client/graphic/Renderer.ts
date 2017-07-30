@@ -6,30 +6,37 @@ import {Transform} from "../../Common/utils/game/Transform";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {BulletRender} from "./BulletRender";
-import {BoxRenderer} from "./BoxRenderer";
+import {RectRenderer} from "./RectRenderer";
 import {Cell} from "../../Common/utils/physics/SpacialGrid";
+import {Camera} from "../../Client/graphic/Camera";
+import {GameObjectSpriteRender} from "../../Client/graphic/GameObjectSpriteRender";
 
 
 export class Renderer extends GameObjectsHolder {
     private renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
     private rootContainer: PIXI.Container;
+    private camera: Camera;
     private renderObjects: Map<GameObject, GameObjectRender>;
-    private renderCells: Map<Cell, BoxRenderer>;
+    private renderCells: Map<Cell, RectRenderer>;
+
+    static HEIGHT: number = 576;
+    static WIDTH: number = 1024;
 
     constructor(afterCreateCallback: Function) {
         super();
         this.renderer =
-            PIXI.autoDetectRenderer(1024, 576, {
+            PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
                   view:  document.getElementById("game-canvas") as HTMLCanvasElement,
                   antialias: false,
                   transparent: false,
                   resolution: 1});
         this.rootContainer = new PIXI.Container();
 
-        this.renderer.render(this.rootContainer);
+        this.camera = new Camera(new PIXI.Point(333,333));
+        this.camera.addChild(this.rootContainer);
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
-        this.renderCells = new Map<Cell, BoxRenderer>();
+        this.renderCells = new Map<Cell, RectRenderer>();
 
         PIXI.loader
             .add('bunny', 'resources/images/bunny.png')
@@ -38,6 +45,7 @@ export class Renderer extends GameObjectsHolder {
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
+            .add('flame', 'resources/animations/flame/flame.json')
             .load(afterCreateCallback);
     }
 
@@ -46,11 +54,11 @@ export class Renderer extends GameObjectsHolder {
             gameObjectRender.update();
         });
 
-        this.renderCells.forEach((boxRenderer: BoxRenderer) => {
+        this.renderCells.forEach((boxRenderer: RectRenderer) => {
             boxRenderer.update();
         });
-
-        this.renderer.render(this.rootContainer);
+        this.camera.update();
+        this.renderer.render(this.camera);
     }
 
     public addGameObject(gameObject: GameObject) {
@@ -64,7 +72,7 @@ export class Renderer extends GameObjectsHolder {
         } else if(type == "B") {
             gameObjectRender = new BulletRender();
         } else {
-            gameObjectRender = new GameObjectRender();
+            gameObjectRender = new GameObjectSpriteRender();
         }
 
         gameObjectRender.setObject(gameObject);
@@ -72,8 +80,12 @@ export class Renderer extends GameObjectsHolder {
         this.rootContainer.addChild(gameObjectRender);
     }
 
+    set CameraFollower(gameObject: GameObject) {
+        this.camera.Follower = this.renderObjects.get(gameObject).position;
+    }
+
     public addCell(cell: Cell) {
-        let boxRenderer: BoxRenderer = new BoxRenderer();
+        let boxRenderer: RectRenderer = new RectRenderer();
         boxRenderer.setObject(cell);
         this.renderCells.set(cell, boxRenderer);
         this.rootContainer.addChild(boxRenderer);
