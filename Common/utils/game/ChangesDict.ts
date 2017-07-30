@@ -6,6 +6,7 @@ export class ChangesDict {
 
     //Player
     public static HP = 'H';
+    public static MAX_HP = 'M';
     public static NAME = 'N';
 
     //Bullet

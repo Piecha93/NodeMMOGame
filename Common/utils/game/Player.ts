@@ -4,7 +4,6 @@ import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
-import {Renderer} from "../../../Client/graphic/Renderer";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -12,6 +11,7 @@ export class Player extends GameObject {
     }
 
     private name: string;
+    private maxHp: number;
     private hp: number;
     private moveDirection: number = 0;
 
@@ -22,7 +22,9 @@ export class Player extends GameObject {
         this.sFunc = new Map<string, Function>(function*() { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
-        this.hp = 100;
+
+        this.maxHp = 200;
+        this.hp = this.maxHp;
         this.velocity = 0.3;
 
         this.transform.Width = 40;
@@ -35,7 +37,7 @@ export class Player extends GameObject {
                 return;
             }
             this.hit(10);
-            if (this.hp <= 0) this.hp = 250;
+            if (this.hp <= 0) this.hp = this.maxHp;
             this.changes.add(ChangesDict.HP);
         }
     }
@@ -46,17 +48,13 @@ export class Player extends GameObject {
                 this.moveDirection = parseInt(value);
             } else if(command == "C") {
                 for(let i = 0; i < 1; i++) {
-                    //TODO fix click position after camera add
                     let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
                     bullet.Owner = this.ID;
 
-                    // let centerX = this.transform.X + this.transform.Width / 2;
-                    // let centerY = this.transform.Y + this.transform.Height / 2;
-
-                    let angle = parseFloat(value);
+                    let angle: number = parseFloat(value);
 
                     bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    // bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
                     bullet.Transform.X = this.transform.X + this.transform.Width / 2;
                     bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
@@ -112,6 +110,10 @@ export class Player extends GameObject {
         }
     }
 
+    get MaxHP(): number {
+        return this.maxHp;
+    }
+
     get HP(): number {
         return this.hp;
     }
@@ -126,6 +128,14 @@ export class Player extends GameObject {
 
     get Direction(): number {
         return this.moveDirection;
+    }
+
+    static serializeMaxHp(player: Player): string {
+        return ChangesDict.buildTag(ChangesDict.MAX_HP) + player.maxHp.toString();
+    }
+
+    static deserializeMaxHp(player: Player, data: string) {
+        player.maxHp = parseInt(data);
     }
 
     static serializeHp(player: Player): string {
@@ -145,10 +155,12 @@ export class Player extends GameObject {
     }
 
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
+        [ChangesDict.MAX_HP, Player.serializeMaxHp],
         [ChangesDict.HP, Player.serializeHp],
         [ChangesDict.NAME, Player.serializeName],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
+        [ChangesDict.MAX_HP, Player.deserializeMaxHp],
         [ChangesDict.HP, Player.deserializeHp],
         [ChangesDict.NAME, Player.deserializeName],
     ]);

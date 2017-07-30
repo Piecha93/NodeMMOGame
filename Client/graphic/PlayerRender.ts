@@ -35,8 +35,7 @@ export class PlayerRender extends GameObjectSpriteRender {
         super.update();
 
         this.nameText.text = this.playerReference.Name;
-
-        this.hpBar.scale.x = this.playerReference.HP / 100;
+        this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
     }
 
     public destroy() {

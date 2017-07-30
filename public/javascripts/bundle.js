@@ -394,7 +394,7 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
     update() {
         super.update();
         this.nameText.text = this.playerReference.Name;
-        this.hpBar.scale.x = this.playerReference.HP / 100;
+        this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
     }
     destroy() {
         super.destroy();
@@ -936,7 +936,7 @@ class Bullet extends GameObject_1.GameObject {
             this.velocity = 0.7;
         }
         this.spriteName = "flame";
-        this.velocity = 0.2;
+        this.velocity = 0.7;
         this.transform.Width = 48;
         this.transform.Height = 32;
         this.lifeSpan = 5000;
@@ -1005,6 +1005,7 @@ ChangesDict.SPRITE = 'S';
 ChangesDict.POSITION = 'P';
 //Player
 ChangesDict.HP = 'H';
+ChangesDict.MAX_HP = 'M';
 ChangesDict.NAME = 'N';
 //Bullet
 ChangesDict.LIFE_SPAN = 'L';
@@ -1247,7 +1248,8 @@ class Player extends GameObject_1.GameObject {
         this.sFunc = new Map(function* () { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map(function* () { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.name = name;
-        this.hp = 100;
+        this.maxHp = 200;
+        this.hp = this.maxHp;
         this.velocity = 0.3;
         this.transform.Width = 40;
         this.transform.Height = 64;
@@ -1262,7 +1264,7 @@ class Player extends GameObject_1.GameObject {
             }
             this.hit(10);
             if (this.hp <= 0)
-                this.hp = 250;
+                this.hp = this.maxHp;
             this.changes.add(ChangesDict_1.ChangesDict.HP);
         }
     }
@@ -1273,14 +1275,11 @@ class Player extends GameObject_1.GameObject {
             }
             else if (command == "C") {
                 for (let i = 0; i < 1; i++) {
-                    //TODO fix click position after camera add
                     let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
                     bullet.Owner = this.ID;
-                    // let centerX = this.transform.X + this.transform.Width / 2;
-                    // let centerY = this.transform.Y + this.transform.Height / 2;
                     let angle = parseFloat(value);
                     bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    // bullet.Transform.Rotation = Math.floor(Math.random() * 360);
                     bullet.Transform.X = this.transform.X + this.transform.Width / 2;
                     bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
                 }
@@ -1336,6 +1335,9 @@ class Player extends GameObject_1.GameObject {
             this.hp = 0;
         }
     }
+    get MaxHP() {
+        return this.maxHp;
+    }
     get HP() {
         return this.hp;
     }
@@ -1347,6 +1349,12 @@ class Player extends GameObject_1.GameObject {
     }
     get Direction() {
         return this.moveDirection;
+    }
+    static serializeMaxHp(player) {
+        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.MAX_HP) + player.maxHp.toString();
+    }
+    static deserializeMaxHp(player, data) {
+        player.maxHp = parseInt(data);
     }
     static serializeHp(player) {
         return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.HP) + player.HP.toString();
@@ -1362,10 +1370,12 @@ class Player extends GameObject_1.GameObject {
     }
 }
 Player.SerializeFunctions = new Map([
+    [ChangesDict_1.ChangesDict.MAX_HP, Player.serializeMaxHp],
     [ChangesDict_1.ChangesDict.HP, Player.serializeHp],
     [ChangesDict_1.ChangesDict.NAME, Player.serializeName],
 ]);
 Player.DeserializeFunctions = new Map([
+    [ChangesDict_1.ChangesDict.MAX_HP, Player.deserializeMaxHp],
     [ChangesDict_1.ChangesDict.HP, Player.deserializeHp],
     [ChangesDict_1.ChangesDict.NAME, Player.deserializeName],
 ]);
