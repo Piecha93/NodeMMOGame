@@ -17,7 +17,7 @@ import {Cell} from "../Common/utils/physics/SpacialGrid";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
-    private game: World;
+    private world: World;
     private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
@@ -29,7 +29,6 @@ export class GameClient {
 
     constructor() {
         this.connect();
-        this.game = new World();
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
@@ -43,15 +42,7 @@ export class GameClient {
             //     }
             // });
 
-            ObjectsFactory.HolderSubscribers.push(this.renderer);
-            ObjectsFactory.HolderSubscribers.push(this.game);
-            ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
-
             this.socket.emit(SocketMsgs.CLIENT_READY);
-
-            this.game.Cells.forEach((cell: Cell) => {
-                this.renderer.addCell(cell);
-            });
         });
     }
 
@@ -70,33 +61,48 @@ export class GameClient {
     private configureSocket() {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
+            let worldInfo: Array<string> = data['world'].split(',');
+            let width: number = Number(worldInfo[0]);
+            let height: number = Number(worldInfo[0]);
+            this.world = new World(width, height);
+
+            ObjectsFactory.HolderSubscribers.push(this.renderer);
+            ObjectsFactory.HolderSubscribers.push(this.world);
+            ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
+
             this.updateGame(data);
-            this.player = this.game.getGameObject(data['id']) as Player;
+            this.player = this.world.getGameObject(data['id']) as Player;
             this.renderer.CameraFollower = this.player;
 
             this.heartBeatSender.startSendingHeartbeats();
+
+            this.startGame();
+            // this.world.Cells.forEach((cell: Cell) => {
+            //     this.renderer.addCell(cell);
+            // });
         });
         this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
 
     private startGame() {
-            let timer: DeltaTimer = new DeltaTimer;
-            let deltaHistory: Array<number> = new Array<number>();
-            setInterval(() => {
-                let delta: number = timer.getDelta();
-                this.game.update(delta);
-                this.renderer.update();
+        console.log("start");
+        let timer: DeltaTimer = new DeltaTimer;
+        let deltaHistory: Array<number> = new Array<number>();
 
-                deltaHistory.push(delta);
-                if(deltaHistory.length > 30) deltaHistory.splice(0, 1);
-                let deltaAvg: number = 0;
-                deltaHistory.forEach((delta: number) => {
-                    deltaAvg += delta;
-                });
-                deltaAvg /= deltaHistory.length;
+        setInterval(() => {
+            let delta: number = timer.getDelta();
+            this.world.update(delta);
+            this.renderer.update();
 
-                DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
-            }, 15);
+            deltaHistory.push(delta);
+            if(deltaHistory.length > 30) deltaHistory.splice(0, 1);
+            let deltaAvg: number = 0;
+            deltaHistory.forEach((delta: number) => {
+                deltaAvg += delta;
+            });
+            deltaAvg /= deltaHistory.length;
+            DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
+        }, 15);
     }
 
     private updateGame(data) {

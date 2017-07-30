@@ -53,7 +53,6 @@ export class InputHandler {
         let rect: ClientRect = canvas.getBoundingClientRect();
         this.clickPosition = new Transform(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
 
-
         this.serializeSnapshot();
     }
 
@@ -92,14 +91,33 @@ export class InputHandler {
             inputSnapshot.append("D", newDirection.toString())
         }
 
-        if(this.clickPosition != null) {
-            inputSnapshot.append("C", this.clickPosition.X.toString() + ";" + this.clickPosition.Y.toString())
-            this.clickPosition = null;
-        }
+        let angle: string = this.parseClick();
+        inputSnapshot.append("C", angle);
 
         this.releasedKeys.clear();
 
         return inputSnapshot;
+    }
+
+    private parseClick(): string {
+        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
+
+        if(this.clickPosition != null) {
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+
+            let deltaX = this.clickPosition.X - centerX;
+            let deltaY = this.clickPosition.Y - centerY;
+
+            let angle: number = Math.atan2(deltaY, deltaX);
+
+            if (angle < 0)
+                angle = angle + 2*Math.PI;
+
+            this.clickPosition = null;
+
+            return angle.toString();
+        }
     }
 
     private parseDirection(directionBuffor: Array<INPUT>): number {
@@ -122,6 +140,6 @@ export class InputHandler {
             direction = 5;
         }
 
-        return direction
+        return direction;
     }
 }

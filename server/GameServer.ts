@@ -15,7 +15,7 @@ export class GameServer {
     private sockets: SocketIO.Server;
     private clientsMap: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
 
-    private game: World;
+    private world: World;
     private nameCounter: number = 0;
 
     private destroyedObjects: string = '';
@@ -30,9 +30,9 @@ export class GameServer {
     }
 
     private startGame() {
-        this.game = new World;
+        this.world = new World(4096, 2304);
 
-        ObjectsFactory.HolderSubscribers.push(this.game);
+        ObjectsFactory.HolderSubscribers.push(this.world);
         ObjectsFactory.HolderSubscribers.push(NetObjectsManager.Instance);
         ObjectsFactory.DestroySubscribers.push((id: string) => {
             this.destroyedObjects += '$' + '!' + id;
@@ -42,7 +42,7 @@ export class GameServer {
         let timer: DeltaTimer = new DeltaTimer;
         setInterval(() => {
             let delta: number = timer.getDelta();
-            this.game.update(delta)
+            this.world.update(delta)
         }, 15);
     }
 
@@ -56,7 +56,7 @@ export class GameServer {
 
             //  console.log(this.clientsMap.size);
 
-            socket.emit(SocketMsgs.START_GAME);
+            // socket.emit(SocketMsgs.START_GAME);
             
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
@@ -68,14 +68,15 @@ export class GameServer {
                 serverClient.PlayerId = player.ID;
 
                 let update: string = NetObjectsManager.Instance.collectUpdate(true);
+                let world: string = this.world.serialize();
 
-                socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update });
+                socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
                 player.forceCompleteUpdate();
                 serverClient.IsReady = true;
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
-                let player: Player = this.game.getGameObject(serverClient.PlayerId) as Player;
+                let player: Player = this.world.getGameObject(serverClient.PlayerId) as Player;
                 if(player == null) {
                     return;
                 }
@@ -97,13 +98,13 @@ export class GameServer {
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
                 if(this.clientsMap.has(socket)) {
                     if (msg == "rudycwel") {
-                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
+                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
                         return;
                     } else if (msg == "pandaxd") {
-                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "panda";
+                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "panda";
                         return;
                     } else if (msg == "kamis :*") {
-                        this.game.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
+                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
                         return;
                     }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});

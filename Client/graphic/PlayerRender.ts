@@ -21,13 +21,13 @@ export class PlayerRender extends GameObjectSpriteRender {
              fontSize: "12px",
              fill: "#ffffff"
         });
-        this.nameText.anchor.set(0.5, 2.75);
+        this.nameText.anchor.set(0, 2);
 
         this.addChild(this.nameText);
 
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-20, -50, 40, 8);
+        this.hpBar.drawRect(0, -40, 40, 8);
         this.addChild(this.hpBar);
     }
 

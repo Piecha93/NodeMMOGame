@@ -9,15 +9,14 @@ export class World extends GameObjectsHolder {
     private timeoutId: NodeJS.Timer;
     private spacialGrid: SpacialGrid;
 
-    static HEIGHT: number = 1152 * 2;
-    static WIDTH: number = 2048 * 2;
+    public height: number = 1152 * 2;
+    public width: number = 2048 * 2;
 
-    // static HEIGHT: number = 576;
-    // static WIDTH: number = 1024;
-
-    constructor() {
+    constructor(width: number, height: number) {
         super();
-        this.spacialGrid = new SpacialGrid(World.WIDTH, World.HEIGHT, 90);
+        this.width = width;
+        this.height = height;
+        this.spacialGrid = new SpacialGrid(this.width, this.height, 90);
         console.log("create game instance");
     }
 
@@ -49,5 +48,13 @@ export class World extends GameObjectsHolder {
     //TEST
     get Cells(): Array<Cell> {
         return this.spacialGrid.Cells;
+    }
+
+    deserialize(world: string) {
+
+    }
+
+    serialize(): string {
+        return this.width.toString() + ',' + this.height.toString();
     }
 }

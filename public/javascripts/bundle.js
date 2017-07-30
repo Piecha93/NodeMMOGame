@@ -37,7 +37,6 @@ class GameClient {
         this.netObjectMenager = NetObjectsManager_1.NetObjectsManager.Instance;
         this.player = null;
         this.connect();
-        this.game = new World_1.World();
         this.inputSender = new InputSender_1.InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         this.chat = new Chat_1.Chat(this.socket);
@@ -49,13 +48,7 @@ class GameClient {
             //         this.player.setInput(snapshot.Commands);
             //     }
             // });
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.game);
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
             this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
-            this.game.Cells.forEach((cell) => {
-                this.renderer.addCell(cell);
-            });
         });
     }
     connect() {
@@ -72,19 +65,31 @@ class GameClient {
     configureSocket() {
         this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
+            let worldInfo = data['world'].split(',');
+            let width = Number(worldInfo[0]);
+            let height = Number(worldInfo[0]);
+            this.world = new World_1.World(width, height);
+            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
+            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.world);
+            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
             this.updateGame(data);
-            this.player = this.game.getGameObject(data['id']);
+            this.player = this.world.getGameObject(data['id']);
             this.renderer.CameraFollower = this.player;
             this.heartBeatSender.startSendingHeartbeats();
+            this.startGame();
+            // this.world.Cells.forEach((cell: Cell) => {
+            //     this.renderer.addCell(cell);
+            // });
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
     startGame() {
+        console.log("start");
         let timer = new DeltaTimer_1.DeltaTimer;
         let deltaHistory = new Array();
         setInterval(() => {
             let delta = timer.getDelta();
-            this.game.update(delta);
+            this.world.update(delta);
             this.renderer.update();
             deltaHistory.push(delta);
             if (deltaHistory.length > 30)
@@ -379,11 +384,11 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
             fontSize: "12px",
             fill: "#ffffff"
         });
-        this.nameText.anchor.set(0.5, 2.75);
+        this.nameText.anchor.set(0, 2);
         this.addChild(this.nameText);
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-20, -50, 40, 8);
+        this.hpBar.drawRect(0, -40, 40, 8);
         this.addChild(this.hpBar);
     }
     update() {
@@ -612,12 +617,24 @@ class InputHandler {
             this.lastDirection = newDirection;
             inputSnapshot.append("D", newDirection.toString());
         }
-        if (this.clickPosition != null) {
-            inputSnapshot.append("C", this.clickPosition.X.toString() + ";" + this.clickPosition.Y.toString());
-            this.clickPosition = null;
-        }
+        let angle = this.parseClick();
+        inputSnapshot.append("C", angle);
         this.releasedKeys.clear();
         return inputSnapshot;
+    }
+    parseClick() {
+        let canvas = document.getElementById("game-canvas");
+        if (this.clickPosition != null) {
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+            let deltaX = this.clickPosition.X - centerX;
+            let deltaY = this.clickPosition.Y - centerY;
+            let angle = Math.atan2(deltaY, deltaX);
+            if (angle < 0)
+                angle = angle + 2 * Math.PI;
+            this.clickPosition = null;
+            return angle.toString();
+        }
     }
     parseDirection(directionBuffor) {
         let direction = 0;
@@ -772,12 +789,14 @@ const GameObjectsHolder_1 = require("./utils/game/GameObjectsHolder");
 const CommonConfig_1 = require("./CommonConfig");
 const SpacialGrid_1 = require("./utils/physics/SpacialGrid");
 class World extends GameObjectsHolder_1.GameObjectsHolder {
-    // static HEIGHT: number = 576;
-    // static WIDTH: number = 1024;
-    constructor() {
+    constructor(width, height) {
         super();
         this.tickrate = 30;
-        this.spacialGrid = new SpacialGrid_1.SpacialGrid(World.WIDTH, World.HEIGHT, 90);
+        this.height = 1152 * 2;
+        this.width = 2048 * 2;
+        this.width = width;
+        this.height = height;
+        this.spacialGrid = new SpacialGrid_1.SpacialGrid(this.width, this.height, 90);
         console.log("create game instance");
     }
     update(delta) {
@@ -804,9 +823,12 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
     get Cells() {
         return this.spacialGrid.Cells;
     }
+    deserialize(world) {
+    }
+    serialize() {
+        return this.width.toString() + ',' + this.height.toString();
+    }
 }
-World.HEIGHT = 1152 * 2;
-World.WIDTH = 2048 * 2;
 exports.World = World;
 
 },{"./CommonConfig":18,"./utils/game/GameObjectsHolder":28,"./utils/physics/SpacialGrid":32}],21:[function(require,module,exports){
@@ -1250,23 +1272,17 @@ class Player extends GameObject_1.GameObject {
                 this.moveDirection = parseInt(value);
             }
             else if (command == "C") {
-                for (let i = 0; i < 50; i++) {
+                for (let i = 0; i < 1; i++) {
                     //TODO fix click position after camera add
                     let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
                     bullet.Owner = this.ID;
-                    let centerX = this.transform.X + this.transform.Width / 2;
-                    let centerY = this.transform.Y + this.transform.Height / 2;
-                    let clickX = parseFloat(value.split(';')[0]);
-                    let clickY = parseFloat(value.split(';')[1]);
-                    let deltaX = clickX - centerX;
-                    let deltaY = clickY - centerY;
-                    let angle = Math.atan2(deltaY, deltaX);
-                    if (angle < 0)
-                        angle = angle + 2 * Math.PI;
-                    //bullet.Transform.Rotation = angle;
-                    bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-                    bullet.Transform.X = centerX;
-                    bullet.Transform.Y = centerY;
+                    // let centerX = this.transform.X + this.transform.Width / 2;
+                    // let centerY = this.transform.Y + this.transform.Height / 2;
+                    let angle = parseFloat(value);
+                    bullet.Transform.Rotation = angle;
+                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    bullet.Transform.X = this.transform.X + this.transform.Width / 2;
+                    bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
                 }
             }
         });

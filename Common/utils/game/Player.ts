@@ -4,6 +4,7 @@ import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
+import {Renderer} from "../../../Client/graphic/Renderer";
 
 export class Player extends GameObject {
     get Type(): string {
@@ -44,30 +45,21 @@ export class Player extends GameObject {
             if(command == "D") {
                 this.moveDirection = parseInt(value);
             } else if(command == "C") {
-                for(let i = 0; i < 50; i++) {
+                for(let i = 0; i < 1; i++) {
                     //TODO fix click position after camera add
                     let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
                     bullet.Owner = this.ID;
 
-                    let centerX = this.transform.X + this.transform.Width / 2;
-                    let centerY = this.transform.Y + this.transform.Height / 2;
+                    // let centerX = this.transform.X + this.transform.Width / 2;
+                    // let centerY = this.transform.Y + this.transform.Height / 2;
 
-                    let clickX: number = parseFloat(value.split(';')[0]);
-                    let clickY: number = parseFloat(value.split(';')[1]);
+                    let angle = parseFloat(value);
 
-                    let deltaX = clickX - centerX;
-                    let deltaY = clickY - centerY;
+                    bullet.Transform.Rotation = angle;
+                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
-                    let angle: number = Math.atan2(deltaY, deltaX);
-
-                     if (angle < 0)
-                         angle = angle + 2*Math.PI;
-
-                    //bullet.Transform.Rotation = angle;
-                    bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-
-                    bullet.Transform.X = centerX;
-                    bullet.Transform.Y = centerY;
+                    bullet.Transform.X = this.transform.X + this.transform.Width / 2;
+                    bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
                 }
             }
         });
