@@ -40,29 +40,28 @@ export class Bullet extends GameObject {
     }
 
     onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {
-        if(gameObject.Type == 'B') {
+        if(gameObject.Type == GameObjectType.Bullet.toString()) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
             }
-       } else if(gameObject.Type == 'O') {
-            //this.destroy()
-            //TODO calculate reflect angle
-            this.Transform.Rotation += Math.PI / 2;
+       } else if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+            this.transform.X += response.overlapV.x * 1.2;
+            this.transform.Y += response.overlapV.y * 1.2;
+
+            if(response.overlapN.x) {
+                this.Transform.Rotation = Math.PI - this.Transform.Rotation;
+            } else {
+                this.Transform.Rotation = 2*Math.PI - this.Transform.Rotation;
+            }
 
             this.changes.add(ChangesDict.ROTATION);
             this.changes.add(ChangesDict.POSITION);
-
-        } else if(gameObject.Type == 'P') {
+        } else if(gameObject.Type == GameObjectType.Player.toString()) {
             if(gameObject.ID != this.owner) {
                 this.destroy()
             }
         }
     }
-
-
-
-
-
 
     get Owner(): string {
         return this.owner;
@@ -87,6 +86,9 @@ export class Bullet extends GameObject {
 
         let sinAngle: number = Math.sin(this.transform.Rotation);
         let cosAngle: number = Math.cos(this.transform.Rotation);
+
+        this.oldTransform.X = this.transform.X;
+        this.oldTransform.Y = this.transform.Y;
 
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;

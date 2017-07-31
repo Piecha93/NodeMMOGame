@@ -15,8 +15,6 @@ export class Player extends GameObject {
     private hp: number;
     private moveDirection: number = 0;
 
-    private oldTransform: Transform;
-
     constructor(name: string, transform: Transform) {
         super(transform);
         this.id = this.Type + this.id;
@@ -33,8 +31,6 @@ export class Player extends GameObject {
         this.transform.Height = 64;
 
         this.spriteName = "bunny";
-
-        this.oldTransform = new Transform(0, 0);
     }
 
     public onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {

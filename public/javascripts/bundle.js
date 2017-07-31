@@ -951,18 +951,25 @@ class Bullet extends GameObject_1.GameObject {
         return GameObjectTypes_1.GameObjectType.Bullet.toString();
     }
     onCollisionEnter(gameObject, response) {
-        if (gameObject.Type == 'B') {
+        if (gameObject.Type == GameObjectTypes_1.GameObjectType.Bullet.toString()) {
             if (gameObject.owner != this.owner) {
                 this.destroy();
             }
         }
-        else if (gameObject.Type == 'O') {
-            //this.destroy()
-            this.Transform.Rotation += Math.PI / 2;
+        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
+            let responseAngle;
+            this.transform.X += response.overlapV.x * 1.2;
+            this.transform.Y += response.overlapV.y * 1.2;
+            if (response.overlapN.x) {
+                this.Transform.Rotation = Math.PI - this.Transform.Rotation;
+            }
+            else {
+                this.Transform.Rotation = 2 * Math.PI - this.Transform.Rotation;
+            }
             this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
             this.changes.add(ChangesDict_1.ChangesDict.POSITION);
         }
-        else if (gameObject.Type == 'P') {
+        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Player.toString()) {
             if (gameObject.ID != this.owner) {
                 this.destroy();
             }
@@ -985,6 +992,8 @@ class Bullet extends GameObject_1.GameObject {
         super.commonUpdate(delta);
         let sinAngle = Math.sin(this.transform.Rotation);
         let cosAngle = Math.cos(this.transform.Rotation);
+        this.oldTransform.X = this.transform.X;
+        this.oldTransform.Y = this.transform.Y;
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;
         //this.changes.add(ChangesDict.POSITION);
@@ -1028,6 +1037,7 @@ exports.ChangesDict = ChangesDict;
 },{}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Transform_1 = require("../physics/Transform");
 const ChangesDict_1 = require("./ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
 class GameObject {
@@ -1041,6 +1051,7 @@ class GameObject {
         this.dFunc = GameObject.DeserializeFunctions;
         this.spriteName = "none";
         this.destroyListeners = new Set();
+        this.oldTransform = new Transform_1.Transform(0, 0);
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -1155,7 +1166,7 @@ GameObject.DeserializeFunctions = new Map([
 ]);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":18,"./ChangesDict":25}],27:[function(require,module,exports){
+},{"../../CommonConfig":18,"../physics/Transform":33,"./ChangesDict":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectType;
@@ -1280,7 +1291,6 @@ exports.Obstacle = Obstacle;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const Transform_1 = require("../physics/Transform");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const ChangesDict_1 = require("./ChangesDict");
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -1298,7 +1308,6 @@ class Player extends GameObject_1.GameObject {
         this.transform.Width = 40;
         this.transform.Height = 64;
         this.spriteName = "bunny";
-        this.oldTransform = new Transform_1.Transform(0, 0);
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
@@ -1433,7 +1442,7 @@ Player.DeserializeFunctions = new Map([
 ]);
 exports.Player = Player;
 
-},{"../physics/Transform":33,"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27,"./ObjectsFactory":29}],32:[function(require,module,exports){
+},{"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27,"./ObjectsFactory":29}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");
