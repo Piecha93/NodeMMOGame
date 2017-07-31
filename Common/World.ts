@@ -1,16 +1,14 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
-import {Transform} from "./utils/game/Transform";
+import {Transform} from "./utils/physics/Transform";
 import {CommonConfig, Origin} from "./CommonConfig";
 import {Cell, SpacialGrid} from "./utils/physics/SpacialGrid";
 
 export class World extends GameObjectsHolder {
-    private tickrate: number = 30;
-    private timeoutId: NodeJS.Timer;
     private spacialGrid: SpacialGrid;
 
-    public height: number = 1152 * 2;
-    public width: number = 2048 * 2;
+    private height: number;
+    private width: number;
 
     constructor(width: number, height: number) {
         super();
@@ -25,8 +23,8 @@ export class World extends GameObjectsHolder {
             object.update(delta);
         });
 
-        this.spacialGrid.rebuildGrid();
         if(CommonConfig.ORIGIN == Origin.SERVER) {
+            this.spacialGrid.rebuildGrid();
             this.spacialGrid.checkCollisions();
         }
     }
@@ -41,13 +39,17 @@ export class World extends GameObjectsHolder {
         super.removeGameObject(gameObject);
     }
 
-    public stopGameLoop() {
-        clearTimeout(this.timeoutId);
-    }
-
     //TEST
     get Cells(): Array<Cell> {
         return this.spacialGrid.Cells;
+    }
+
+    get Width(): number {
+        return this.width;
+    }
+
+    get Height(): number {
+        return this.height;
     }
 
     deserialize(world: string) {

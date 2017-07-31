@@ -1,10 +1,10 @@
 import {GameObject} from "./GameObject";
 import {Player} from "./Player";
-import {Transform} from "./Transform";
+import {Transform} from "../physics/Transform";
 import {Bullet} from "./Bullet";
 import {GameObjectsHolder} from "./GameObjectsHolder";
+import {Obstacle} from "./Obstacle";
 
-//TODO maybe make this facrory as singleton??????
 export class ObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
@@ -23,6 +23,8 @@ export class ObjectsFactory {
             gameObject = new Player('DEFAULT', position);
         } else if(type == "B") {
             gameObject = new Bullet(position);
+        } else if(type == "O") {
+            gameObject = new Obstacle(position);
         } else {
             throw "Unknown object type";
         }

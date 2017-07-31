@@ -67,7 +67,7 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
             let worldInfo = data['world'].split(',');
             let width = Number(worldInfo[0]);
-            let height = Number(worldInfo[0]);
+            let height = Number(worldInfo[1]);
             this.world = new World_1.World(width, height);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.world);
@@ -197,6 +197,7 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
         this.animation.play();
         this.animation.width = this.objectReference.Transform.Width;
         this.animation.height = this.objectReference.Transform.Height;
+        this.animation.anchor.set(0.5, 0.5);
     }
     update() {
         super.update();
@@ -220,8 +221,8 @@ class GameObjectRender extends PIXI.Container {
     }
     update() {
         let transform = this.objectReference.Transform;
-        // this.x = (transform.X - this.x) * 0.3 + this.x;
-        // this.y = (transform.Y - this.y) * 0.3 + this.y;
+        // this.x = (transform.X - this.x) * 0.8 + this.x;
+        // this.y = (transform.Y - this.y) * 0.8 + this.y;
         this.x = transform.X;
         this.y = transform.Y;
         this.rotation = this.objectReference.Transform.Rotation;
@@ -247,6 +248,7 @@ class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
         let transform = this.objectReference.Transform;
         this.sprite.width = transform.Width;
         this.sprite.height = transform.Height;
+        this.sprite.anchor.set(0.5, 0.5);
     }
     update() {
         super.update();
@@ -384,12 +386,12 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
             fontSize: "12px",
             fill: "#ffffff"
         });
-        this.nameText.anchor.set(0, 2);
+        this.nameText.anchor.set(0.5, 4.5);
         this.addChild(this.nameText);
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(0, -40, 40, 8);
-        this.addChild(this.hpBar);
+        this.hpBar.drawRect(-this.objectReference.Transform.Width / 2, -this.objectReference.Transform.Height / 2, this.objectReference.Transform.Width, 7);
+        this.sprite.addChild(this.hpBar);
     }
     update() {
         super.update();
@@ -406,6 +408,7 @@ exports.PlayerRender = PlayerRender;
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
+var Graphics = PIXI.Graphics;
 class RectRenderer extends PIXI.Container {
     constructor() {
         super();
@@ -414,27 +417,23 @@ class RectRenderer extends PIXI.Container {
     setObject(cell) {
         this.cell = cell;
         this.trans = cell.Transform;
-        // if(RectRenderer.textureRed == null) {
-        //     let rect1: PIXI.Graphics = new Graphics();
-        //
-        //     rect1.clear();
-        //     rect1.lineStyle(2, 0xff0000);
-        //     rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
-        //     rect1.endFill();
-        //
-        //     RectRenderer.textureRed = rect1.generateCanvasTexture();
-        //
-        //     rect1.clear();
-        //     rect1.lineStyle(2, 0x0000ff);
-        //     rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
-        //     rect1.endFill();
-        //
-        //     RectRenderer.textureBlue = rect1.generateCanvasTexture();
-        // }
+        if (RectRenderer.textureRed == null) {
+            let rect1 = new Graphics();
+            rect1.clear();
+            rect1.lineStyle(2, 0xff0000);
+            rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
+            rect1.endFill();
+            RectRenderer.textureRed = rect1.generateCanvasTexture();
+            rect1.clear();
+            rect1.lineStyle(2, 0x0000ff);
+            rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
+            rect1.endFill();
+            RectRenderer.textureBlue = rect1.generateCanvasTexture();
+        }
         this.x = this.trans.X;
         this.y = this.trans.Y;
-        // this.spriteRed = new PIXI.Sprite(RectRenderer.textureRed);
-        // this.spriteBlue = new PIXI.Sprite(RectRenderer.textureBlue);
+        this.spriteRed = new PIXI.Sprite(RectRenderer.textureRed);
+        this.spriteBlue = new PIXI.Sprite(RectRenderer.textureBlue);
         let id = new PIXI.Text(this.cell.id.toString(), {
             fontFamily: "Arial",
             fontSize: "12px",
@@ -443,19 +442,20 @@ class RectRenderer extends PIXI.Container {
         this.addChild(id);
     }
     update() {
-        // if(this.cell.isEmpty()) {
-        //     if(!this.red) {
-        //         this.removeChild(this.spriteBlue);
-        //         this.addChild(this.spriteRed);
-        //         this.red = true;
-        //     }
-        // } else {
-        //     if(this.red) {
-        //         this.red = false;
-        //         this.removeChild(this.spriteRed);
-        //         this.addChild(this.spriteBlue);
-        //     }
-        // }
+        if (this.cell.isEmpty()) {
+            if (!this.red) {
+                this.removeChild(this.spriteBlue);
+                this.addChild(this.spriteRed);
+                this.red = true;
+            }
+        }
+        else {
+            if (this.red) {
+                this.red = false;
+                this.removeChild(this.spriteRed);
+                this.addChild(this.spriteBlue);
+            }
+        }
     }
     destroy() {
         // this.sp.destroy()
@@ -491,6 +491,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects = new Map();
         this.renderCells = new Map();
         PIXI.loader
+            .add('none', 'resources/images/none.png')
             .add('bunny', 'resources/images/bunny.png')
             .add('dyzma', 'resources/images/dyzma.jpg')
             .add('kamis', 'resources/images/kamis.jpg')
@@ -551,7 +552,7 @@ exports.Renderer = Renderer;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
-const Transform_1 = require("../../Common/utils/game/Transform");
+const Transform_1 = require("../../Common/utils/physics/Transform");
 const InputMap_1 = require("./InputMap");
 class InputHandler {
     constructor() {
@@ -662,13 +663,14 @@ class InputHandler {
         else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1) {
             direction = 5;
         }
+        let radians = direction * Math.PI / 180;
         return direction;
     }
 }
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputSnapshot":21,"../../Common/utils/game/Transform":31,"./InputMap":14}],14:[function(require,module,exports){
+},{"../../Common/input/InputSnapshot":21,"../../Common/utils/physics/Transform":33,"./InputMap":14}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -791,9 +793,6 @@ const SpacialGrid_1 = require("./utils/physics/SpacialGrid");
 class World extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(width, height) {
         super();
-        this.tickrate = 30;
-        this.height = 1152 * 2;
-        this.width = 2048 * 2;
         this.width = width;
         this.height = height;
         this.spacialGrid = new SpacialGrid_1.SpacialGrid(this.width, this.height, 90);
@@ -803,8 +802,8 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
         this.gameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
-        this.spacialGrid.rebuildGrid();
         if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
+            this.spacialGrid.rebuildGrid();
             this.spacialGrid.checkCollisions();
         }
     }
@@ -816,12 +815,15 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
         this.spacialGrid.removeObject(gameObject);
         super.removeGameObject(gameObject);
     }
-    stopGameLoop() {
-        clearTimeout(this.timeoutId);
-    }
     //TEST
     get Cells() {
         return this.spacialGrid.Cells;
+    }
+    get Width() {
+        return this.width;
+    }
+    get Height() {
+        return this.height;
     }
     deserialize(world) {
     }
@@ -948,9 +950,20 @@ class Bullet extends GameObject_1.GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.Bullet.toString();
     }
-    onCollisionEnter(gameObject) {
-        if (gameObject.ID != this.owner) {
-            if (!(gameObject.Type == "B" && gameObject.owner == this.owner)) {
+    onCollisionEnter(gameObject, response) {
+        if (gameObject.Type == 'B') {
+            if (gameObject.owner != this.owner) {
+                this.destroy();
+            }
+        }
+        else if (gameObject.Type == 'O') {
+            //this.destroy()
+            this.Transform.Rotation += Math.PI / 2;
+            this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
+            this.changes.add(ChangesDict_1.ChangesDict.POSITION);
+        }
+        else if (gameObject.Type == 'P') {
+            if (gameObject.ID != this.owner) {
                 this.destroy();
             }
         }
@@ -1026,7 +1039,7 @@ class GameObject {
         this.changes = new Set();
         this.sFunc = GameObject.SerializeFunctions;
         this.dFunc = GameObject.DeserializeFunctions;
-        this.spriteName = "bunny";
+        this.spriteName = "none";
         this.destroyListeners = new Set();
     }
     forceCompleteUpdate() {
@@ -1150,6 +1163,7 @@ var GameObjectType;
     GameObjectType[GameObjectType["GameObject"] = 'G'] = "GameObject";
     GameObjectType[GameObjectType["Player"] = 'P'] = "Player";
     GameObjectType[GameObjectType["Bullet"] = 'B'] = "Bullet";
+    GameObjectType[GameObjectType["Obstacle"] = 'O'] = "Obstacle";
 })(GameObjectType = exports.GameObjectType || (exports.GameObjectType = {}));
 
 },{}],28:[function(require,module,exports){
@@ -1192,9 +1206,9 @@ exports.GameObjectsHolder = GameObjectsHolder;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
-const Transform_1 = require("./Transform");
+const Transform_1 = require("../physics/Transform");
 const Bullet_1 = require("./Bullet");
-//TODO maybe make this facrory as singleton??????
+const Obstacle_1 = require("./Obstacle");
 class ObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
@@ -1208,6 +1222,9 @@ class ObjectsFactory {
         }
         else if (type == "B") {
             gameObject = new Bullet_1.Bullet(position);
+        }
+        else if (type == "O") {
+            gameObject = new Obstacle_1.Obstacle(position);
         }
         else {
             throw "Unknown object type";
@@ -1233,10 +1250,37 @@ ObjectsFactory.HolderSubscribers = new Array();
 ObjectsFactory.DestroySubscribers = new Array();
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"./Bullet":24,"./Player":30,"./Transform":31}],30:[function(require,module,exports){
+},{"../physics/Transform":33,"./Bullet":24,"./Obstacle":30,"./Player":31}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
+const GameObjectTypes_1 = require("./GameObjectTypes");
+class Obstacle extends GameObject_1.GameObject {
+    get Type() {
+        return GameObjectTypes_1.GameObjectType.Obstacle.toString();
+    }
+    //private lifeSpan: number = -1;
+    constructor(transform) {
+        super(transform);
+        this.id = this.Type + this.id;
+    }
+    onCollisionEnter(gameObject) {
+    }
+    serverUpdate(delta) {
+        super.serverUpdate(delta);
+    }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
+        //this.changes.add(ChangesDict.POSITION);
+    }
+}
+exports.Obstacle = Obstacle;
+
+},{"./GameObject":26,"./GameObjectTypes":27}],31:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObject_1 = require("./GameObject");
+const Transform_1 = require("../physics/Transform");
 const GameObjectTypes_1 = require("./GameObjectTypes");
 const ChangesDict_1 = require("./ChangesDict");
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -1253,11 +1297,13 @@ class Player extends GameObject_1.GameObject {
         this.velocity = 0.3;
         this.transform.Width = 40;
         this.transform.Height = 64;
+        this.spriteName = "bunny";
+        this.oldTransform = new Transform_1.Transform(0, 0);
     }
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
     }
-    onCollisionEnter(gameObject) {
+    onCollisionEnter(gameObject, response) {
         if (gameObject.Type == GameObjectTypes_1.GameObjectType.Bullet.toString()) {
             if (gameObject.Owner == this.ID) {
                 return;
@@ -1265,7 +1311,10 @@ class Player extends GameObject_1.GameObject {
             this.hit(10);
             if (this.hp <= 0)
                 this.hp = this.maxHp;
-            this.changes.add(ChangesDict_1.ChangesDict.HP);
+        }
+        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
+            this.transform.X += response.overlapV.x * 1.2;
+            this.transform.Y += response.overlapV.y * 1.2;
         }
     }
     setInput(commands) {
@@ -1279,9 +1328,9 @@ class Player extends GameObject_1.GameObject {
                     bullet.Owner = this.ID;
                     let angle = parseFloat(value);
                     bullet.Transform.Rotation = angle;
-                    // bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-                    bullet.Transform.X = this.transform.X + this.transform.Width / 2;
-                    bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
+                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    bullet.Transform.X = this.transform.X;
+                    bullet.Transform.Y = this.transform.Y;
                 }
             }
         });
@@ -1318,9 +1367,11 @@ class Player extends GameObject_1.GameObject {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.transform.X += xFactor * this.velocity * delta;
-        this.transform.Y += yFactor * this.velocity * delta;
         if (this.moveDirection != 0) {
+            this.oldTransform.X = this.transform.X;
+            this.oldTransform.Y = this.transform.Y;
+            this.transform.X += xFactor * this.velocity * delta;
+            this.transform.Y += yFactor * this.velocity * delta;
             this.changes.add(ChangesDict_1.ChangesDict.POSITION);
         }
     }
@@ -1334,6 +1385,7 @@ class Player extends GameObject_1.GameObject {
         if (this.hp < 0) {
             this.hp = 0;
         }
+        this.changes.add(ChangesDict_1.ChangesDict.HP);
     }
     get MaxHP() {
         return this.maxHp;
@@ -1381,65 +1433,11 @@ Player.DeserializeFunctions = new Map([
 ]);
 exports.Player = Player;
 
-},{"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27,"./ObjectsFactory":29}],31:[function(require,module,exports){
+},{"../physics/Transform":33,"./ChangesDict":25,"./GameObject":26,"./GameObjectTypes":27,"./ObjectsFactory":29}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Transform_1 = require("./Transform");
 const SAT = require("sat");
-class Transform {
-    constructor(x, y, width, height) {
-        x = x || 0;
-        y = y || 0;
-        this.width = width || 32;
-        this.height = height || 32;
-        this.vector = new SAT.Vector(x, y);
-        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
-    }
-    static testCollision(t1, t2) {
-        return SAT.testPolygonPolygon(t1.polygon, t2.Polygon);
-    }
-    get Polygon() {
-        return this.polygon;
-    }
-    get X() {
-        return this.polygon.pos.x;
-    }
-    set X(x) {
-        this.polygon.pos.x = x;
-    }
-    get Y() {
-        return this.polygon.pos.y;
-    }
-    set Y(y) {
-        this.polygon.pos.y = y;
-    }
-    set Width(width) {
-        this.width = width;
-        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
-    }
-    get Width() {
-        return this.width;
-    }
-    set Height(height) {
-        this.height = height;
-        this.polygon = new SAT.Box(this.vector, this.width, this.height).toPolygon();
-    }
-    get Height() {
-        return this.height;
-    }
-    set Rotation(angle) {
-        this.polygon.setAngle(angle);
-    }
-    get Rotation() {
-        return this.polygon.angle;
-    }
-}
-exports.Transform = Transform;
-
-},{"sat":33}],32:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const Transform_1 = require("../game/Transform");
-const CommonConfig_1 = require("../../CommonConfig");
 class Cell {
     constructor(transform) {
         this.objects = new Array();
@@ -1459,13 +1457,15 @@ class Cell {
         return this.objects.length <= 0;
     }
     checkCollisions() {
+        let response = new SAT.Response();
         for (let i = 0; i < this.objects.length; i++) {
             for (let j = i + 1; j < this.objects.length; j++) {
                 let o1 = this.objects[i];
                 let o2 = this.objects[j];
-                if (o1 != o2 && Transform_1.Transform.testCollision(o1.Transform, o2.Transform)) {
-                    o1.onCollisionEnter(o2);
-                    o2.onCollisionEnter(o1);
+                response.clear();
+                if (o1 != o2 && Transform_1.Transform.testCollision(o1.Transform, o2.Transform, response)) {
+                    o1.onCollisionEnter(o2, response);
+                    o2.onCollisionEnter(o1, response);
                 }
             }
         }
@@ -1513,19 +1513,12 @@ class SpacialGrid {
                     }
                 }
             }
-            // this.cells.forEach((cell: Cell) => {
-            //     if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
-            //         cell.addObject(gameObject);
-            //     }
-            // });
         });
     }
     checkCollisions() {
-        if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
-            this.cells.forEach((cell) => {
-                cell.checkCollisions();
-            });
-        }
+        this.cells.forEach((cell) => {
+            cell.checkCollisions();
+        });
     }
     addObject(gameObject) {
         this.gameObjects.push(gameObject);
@@ -1541,7 +1534,110 @@ class SpacialGrid {
 }
 exports.SpacialGrid = SpacialGrid;
 
-},{"../../CommonConfig":18,"../game/Transform":31}],33:[function(require,module,exports){
+},{"./Transform":33,"sat":34}],33:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const SAT = require("sat");
+class Transform {
+    constructor(x, y, width, height) {
+        x = x || 0;
+        y = y || 0;
+        this.width = width || 32;
+        this.height = height || 32;
+        let w = this.Width / 2;
+        let h = this.Height / 2;
+        this.polygon = new SAT.Polygon(new SAT.Vector(x, y), [
+            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
+            new SAT.Vector(w, h), new SAT.Vector(-w, h)
+        ]);
+    }
+    static testCollision(t1, t2, response) {
+        let result;
+        if (response) {
+            result = SAT.testPolygonPolygon(t1.Polygon, t2.Polygon, response);
+        }
+        else {
+            result = SAT.testPolygonPolygon(t1.Polygon, t2.Polygon);
+        }
+        return result;
+    }
+    rotate(angle) {
+        // let s: number = Math.sin(angle);
+        // let c: number = Math.cos(angle);
+        //
+        // let cx: number = this.Width / 2;
+        // let cy: number = this.Height / 2;
+        //
+        // this.X -= cx;
+        // this.Y -= cy;
+        //
+        // let xnew: number = this.X * c - this.Y * s;
+        // let ynew: number = this.X * s + this.Y * c;
+        //
+        // console.log(this.X * c - this.Y * s);
+        //
+        // this.X = xnew + cx;
+        // this.Y = ynew + cy;
+        //
+        // this.polygon = this.polygon.translate(-this.Width / 2, -this.Height / 2);
+        //this.X -= this.Width / 2;
+        //this.Y -= this.Height / 2;
+        //this.Polygon.rotate(0.1);
+        this.polygon.rotate(0.05);
+        console.log(this.Rotation);
+        // this.polygon.translate(this.Width / 2, this.Height / 2);
+        //this.X += this.Width / 2;
+        //this.Y += this.Height / 2;
+    }
+    get Polygon() {
+        return this.polygon;
+    }
+    get X() {
+        return this.polygon.pos.x;
+    }
+    set X(x) {
+        this.polygon.pos.x = x;
+    }
+    get Y() {
+        return this.polygon.pos.y;
+    }
+    set Y(y) {
+        this.polygon.pos.y = y;
+    }
+    set Width(width) {
+        this.width = width;
+        let w = this.Width / 2;
+        let h = this.Height / 2;
+        this.polygon = new SAT.Polygon(new SAT.Vector(this.X, this.Y), [
+            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
+            new SAT.Vector(w, h), new SAT.Vector(-w, h)
+        ]);
+    }
+    get Width() {
+        return this.width;
+    }
+    set Height(height) {
+        this.height = height;
+        let w = this.Width / 2;
+        let h = this.Height / 2;
+        this.polygon = new SAT.Polygon(new SAT.Vector(this.X, this.Y), [
+            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
+            new SAT.Vector(w, h), new SAT.Vector(-w, h)
+        ]);
+    }
+    get Height() {
+        return this.height;
+    }
+    set Rotation(angle) {
+        this.polygon.setAngle(angle);
+    }
+    get Rotation() {
+        return this.polygon.angle;
+    }
+}
+exports.Transform = Transform;
+
+},{"sat":34}],34:[function(require,module,exports){
 // Version 0.6.0 - Copyright 2012 - 2016 -  Jim Riecken <jimr@jimr.ca>
 //
 // Released under the MIT License - https://github.com/jriecken/sat-js

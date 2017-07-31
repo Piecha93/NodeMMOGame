@@ -63,7 +63,8 @@ export class GameClient {
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             let worldInfo: Array<string> = data['world'].split(',');
             let width: number = Number(worldInfo[0]);
-            let height: number = Number(worldInfo[0]);
+            let height: number = Number(worldInfo[1]);
+
             this.world = new World(width, height);
 
             ObjectsFactory.HolderSubscribers.push(this.renderer);

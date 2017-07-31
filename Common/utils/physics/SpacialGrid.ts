@@ -1,6 +1,7 @@
 import {GameObject} from "../game/GameObject";
-import {Transform} from "../game/Transform";
+import {Transform} from "./Transform";
 import {CommonConfig, Origin} from "../../CommonConfig";
+import * as SAT from 'sat';
 
 export class Cell {
     objects: Array<GameObject> = new Array<GameObject>();
@@ -32,13 +33,16 @@ export class Cell {
     }
 
     checkCollisions() {
+        let response: SAT.Response = new SAT.Response();
         for(let i = 0; i < this.objects.length; i++) {
             for(let j = i + 1; j < this.objects.length; j++) {
                 let o1: GameObject = this.objects[i];
                 let o2: GameObject = this.objects[j];
-                if (o1 != o2 && Transform.testCollision(o1.Transform, o2.Transform)) {
-                    o1.onCollisionEnter(o2);
-                    o2.onCollisionEnter(o1);
+
+                response.clear();
+                if (o1 != o2 && Transform.testCollision(o1.Transform, o2.Transform, response)) {
+                    o1.onCollisionEnter(o2, response);
+                    o2.onCollisionEnter(o1, response);
                 }
             }
         }
@@ -101,21 +105,13 @@ export class SpacialGrid {
                     }
                 }
             }
-
-            // this.cells.forEach((cell: Cell) => {
-            //     if(Transform.testCollision(gameObject.Transform, cell.Transform)) {
-            //         cell.addObject(gameObject);
-            //     }
-            // });
         });
     }
 
     checkCollisions() {
-        if(CommonConfig.ORIGIN == Origin.SERVER) {
-            this.cells.forEach((cell: Cell) => {
-                cell.checkCollisions();
-            });
-        }
+        this.cells.forEach((cell: Cell) => {
+            cell.checkCollisions();
+        });
     }
 
     addObject(gameObject: GameObject) {

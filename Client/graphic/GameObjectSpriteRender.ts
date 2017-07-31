@@ -1,7 +1,7 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {GameObject} from "../../Common/utils/game/GameObject";
-import {Transform} from "../../Common/utils/game/Transform";
+import {Transform} from "../../Common/utils/physics/Transform";
 import {GameObjectRender} from "../../Client/graphic/GameObjectRender";
 
 export class GameObjectSpriteRender extends GameObjectRender {
@@ -22,6 +22,8 @@ export class GameObjectSpriteRender extends GameObjectRender {
         let transform: Transform = this.objectReference.Transform;
         this.sprite.width = transform.Width;
         this.sprite.height = transform.Height;
+
+        this.sprite.anchor.set(0.5, 0.5);
     }
 
     public update() {

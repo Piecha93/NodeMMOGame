@@ -26,6 +26,8 @@ export class GameObjectAnimationRender extends GameObjectRender {
 
         this.animation.width = this.objectReference.Transform.Width;
         this.animation.height = this.objectReference.Transform.Height;
+
+        this.animation.anchor.set(0.5, 0.5);
     }
 
     public update() {

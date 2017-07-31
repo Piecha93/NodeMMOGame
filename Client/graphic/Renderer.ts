@@ -38,6 +38,7 @@ export class Renderer extends GameObjectsHolder {
         this.renderCells = new Map<Cell, RectRenderer>();
 
         PIXI.loader
+            .add('none', 'resources/images/none.png')
             .add('bunny', 'resources/images/bunny.png')
             .add('dyzma', 'resources/images/dyzma.jpg')
             .add('kamis', 'resources/images/kamis.jpg')

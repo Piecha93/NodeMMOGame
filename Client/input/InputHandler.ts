@@ -1,5 +1,5 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
-import {Transform} from "../../Common/utils/game/Transform";
+import {Transform} from "../../Common/utils/physics/Transform";
 import {InputMap, INPUT} from "./InputMap";
 
 export class InputHandler {
@@ -140,6 +140,7 @@ export class InputHandler {
             direction = 5;
         }
 
+        let radians: number = direction * Math.PI / 180;
         return direction;
     }
 }

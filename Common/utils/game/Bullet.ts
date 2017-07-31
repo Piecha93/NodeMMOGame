@@ -1,5 +1,5 @@
 import {GameObject} from "./GameObject";
-import {Transform} from "./Transform";
+import {Transform} from "../physics/Transform";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {Player} from "./Player";
@@ -39,13 +39,30 @@ export class Bullet extends GameObject {
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
 
-    onCollisionEnter(gameObject: GameObject) {
-        if(gameObject.ID != this.owner) {
-            if(!(gameObject.Type == "B" && (gameObject as Bullet).owner == this.owner)) {
+    onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {
+        if(gameObject.Type == 'B') {
+            if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
+            }
+       } else if(gameObject.Type == 'O') {
+            //this.destroy()
+            //TODO calculate reflect angle
+            this.Transform.Rotation += Math.PI / 2;
+
+            this.changes.add(ChangesDict.ROTATION);
+            this.changes.add(ChangesDict.POSITION);
+
+        } else if(gameObject.Type == 'P') {
+            if(gameObject.ID != this.owner) {
+                this.destroy()
             }
         }
     }
+
+
+
+
+
 
     get Owner(): string {
         return this.owner;

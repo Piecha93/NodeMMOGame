@@ -1,5 +1,5 @@
 import {GameObject} from "./GameObject";
-import {Transform} from "./Transform";
+import {Transform} from "../physics/Transform";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
@@ -15,6 +15,8 @@ export class Player extends GameObject {
     private hp: number;
     private moveDirection: number = 0;
 
+    private oldTransform: Transform;
+
     constructor(name: string, transform: Transform) {
         super(transform);
         this.id = this.Type + this.id;
@@ -29,16 +31,22 @@ export class Player extends GameObject {
 
         this.transform.Width = 40;
         this.transform.Height = 64;
+
+        this.spriteName = "bunny";
+
+        this.oldTransform = new Transform(0, 0);
     }
 
-    public onCollisionEnter(gameObject: GameObject) {
+    public onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {
         if(gameObject.Type == GameObjectType.Bullet.toString()) {
             if((gameObject as Bullet).Owner == this.ID) {
                 return;
             }
             this.hit(10);
             if (this.hp <= 0) this.hp = this.maxHp;
-            this.changes.add(ChangesDict.HP);
+        } else if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+            this.transform.X += response.overlapV.x * 1.2;
+            this.transform.Y += response.overlapV.y * 1.2;
         }
     }
 
@@ -54,10 +62,10 @@ export class Player extends GameObject {
                     let angle: number = parseFloat(value);
 
                     bullet.Transform.Rotation = angle;
-                    // bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
-                    bullet.Transform.X = this.transform.X + this.transform.Width / 2;
-                    bullet.Transform.Y = this.transform.Y + this.transform.Height / 2;
+                    bullet.Transform.X = this.transform.X;
+                    bullet.Transform.Y = this.transform.Y;
                 }
             }
         });
@@ -89,10 +97,14 @@ export class Player extends GameObject {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        this.transform.X += xFactor * this.velocity * delta;
-        this.transform.Y += yFactor * this.velocity * delta;
 
         if(this.moveDirection != 0) {
+            this.oldTransform.X = this.transform.X;
+            this.oldTransform.Y = this.transform.Y;
+
+            this.transform.X += xFactor * this.velocity * delta;
+            this.transform.Y += yFactor * this.velocity * delta;
+
             this.changes.add(ChangesDict.POSITION);
         }
     }
@@ -108,6 +120,7 @@ export class Player extends GameObject {
         if(this.hp < 0) {
             this.hp = 0;
         }
+        this.changes.add(ChangesDict.HP);
     }
 
     get MaxHP(): number {

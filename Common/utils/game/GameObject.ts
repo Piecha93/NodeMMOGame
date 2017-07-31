@@ -1,4 +1,4 @@
-import {Transform} from "./Transform";
+import {Transform} from "../physics/Transform";
 import {ChangesDict} from "./ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
@@ -27,11 +27,11 @@ export abstract class GameObject implements Collidable {
         this.sFunc = GameObject.SerializeFunctions;
         this.dFunc = GameObject.DeserializeFunctions;
 
-        this.spriteName = "bunny";
+        this.spriteName = "none";
         this.destroyListeners = new Set<Function>();
     }
 
-    abstract onCollisionEnter(gameObject: GameObject);
+    abstract onCollisionEnter(gameObject: GameObject, response: SAT.Response);
 
     public forceCompleteUpdate() {
         this.forceComplete = true;

@@ -10,6 +10,7 @@ import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import {DeltaTimer} from "../Common/DeltaTimer";
+import {Obstacle} from "../Common/utils/game/Obstacle";
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -30,7 +31,7 @@ export class GameServer {
     }
 
     private startGame() {
-        this.world = new World(4096, 2304);
+        this.world = new World(2048, 1156);
 
         ObjectsFactory.HolderSubscribers.push(this.world);
         ObjectsFactory.HolderSubscribers.push(NetObjectsManager.Instance);
@@ -38,6 +39,30 @@ export class GameServer {
             this.destroyedObjects += '$' + '!' + id;
         });
 
+        //TEST (CREATE WALLS AROUND MAP)
+        for(let i = 0; i < 1156 / 32; i++) {
+            let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
+            o.Transform.X = 0;
+            o.Transform.Y = i * 32;
+
+            o = ObjectsFactory.CreateGameObject("O") as Obstacle;
+            o.Transform.X = 2048 - 32;
+            o.Transform.Y = i * 32;
+        }
+
+        for(let i = 1; i < 2016 / 32; i++) {
+            let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
+            o.Transform.X = i * 32;
+            o.Transform.Y = 0;
+
+            o = ObjectsFactory.CreateGameObject("O") as Obstacle;
+            o.Transform.X = i * 32;
+            o.Transform.Y = 1156 - 32;
+        }
+        let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
+        o.Transform.X = 150;
+        o.Transform.Y = 150;
+        ///TEST
 
         let timer: DeltaTimer = new DeltaTimer;
         setInterval(() => {
@@ -54,14 +79,10 @@ export class GameServer {
             let serverClient: ServerClient = new ServerClient(clientName, socket);
             this.clientsMap.set(socket, serverClient);
 
-            //  console.log(this.clientsMap.size);
-
-            // socket.emit(SocketMsgs.START_GAME);
-            
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
-                player.Transform.X = Math.floor(Math.random() * 2048 * 2);
-                player.Transform.Y = Math.floor(Math.random() * 1152 * 2);
+                player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
+                player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
 
                 player.Name = clientName;
 
