@@ -28,7 +28,6 @@
   },
   "scripts": {
     "postinstall": "tsc",
-    "prestart": "start mongod --fork --dbpath data --config ./data/mongod.cfg",
     "start": "node app.js"
   }
 }

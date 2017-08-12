@@ -1,7 +1,6 @@
 import {Db, MongoClient} from "mongodb";
 
-let url = "mongodb://localhost:27017/mydb";
-
+let url = "mongodb://test:test@ds129352.mlab.com:29352/node-mmo-game";
 
 export class Database {
     private mongoClient: MongoClient = new MongoClient;
