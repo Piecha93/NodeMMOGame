@@ -4,10 +4,10 @@ import * as http from 'http';
 import * as io from 'socket.io';
 import * as path from 'path'
 let sharedsession = require("express-socket.io-session");
-import {GameServer} from "./GameServer";
+import {GameServer} from "./server/GameServer";
 import Socket = SocketIOClient.Socket;
-import {CommonConfig, Origin} from "../Common/CommonConfig";
-import {Database} from "./Database";
+import {CommonConfig, Origin} from "./Common/CommonConfig";
+import {Database} from "./server/Database";
 
 CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = process.env.PORT || 3000;

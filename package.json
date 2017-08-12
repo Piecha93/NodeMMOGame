@@ -28,6 +28,6 @@
   },
   "scripts": {
     "postinstall": "tsc",
-    "start": "node ./server/app.js"
+    "start": "node app.js"
   }
 }
