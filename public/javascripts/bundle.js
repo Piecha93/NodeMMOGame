@@ -53,7 +53,8 @@ class GameClient {
     }
     connect() {
         this.socket = io.connect({
-            reconnection: false
+            reconnection: false,
+            secure: true
         });
         if (this.socket != null) {
             this.configureSocket();
