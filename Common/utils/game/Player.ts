@@ -95,9 +95,6 @@ export class Player extends GameObject {
         }
 
         if(this.moveDirection != 0) {
-            this.oldTransform.X = this.transform.X;
-            this.oldTransform.Y = this.transform.Y;
-
             this.transform.X += xFactor * this.velocity * delta;
             this.transform.Y += yFactor * this.velocity * delta;
 

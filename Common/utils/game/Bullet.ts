@@ -87,9 +87,6 @@ export class Bullet extends GameObject {
         let sinAngle: number = Math.sin(this.transform.Rotation);
         let cosAngle: number = Math.cos(this.transform.Rotation);
 
-        this.oldTransform.X = this.transform.X;
-        this.oldTransform.Y = this.transform.Y;
-
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;
 

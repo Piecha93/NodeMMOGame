@@ -34,35 +34,7 @@ export class Transform {
     }
 
     rotate(angle: number) {
-        // let s: number = Math.sin(angle);
-        // let c: number = Math.cos(angle);
-        //
-        // let cx: number = this.Width / 2;
-        // let cy: number = this.Height / 2;
-        //
-        // this.X -= cx;
-        // this.Y -= cy;
-        //
-        // let xnew: number = this.X * c - this.Y * s;
-        // let ynew: number = this.X * s + this.Y * c;
-        //
-        // console.log(this.X * c - this.Y * s);
-        //
-        // this.X = xnew + cx;
-        // this.Y = ynew + cy;
-        //
-
-         // this.polygon = this.polygon.translate(-this.Width / 2, -this.Height / 2);
-         //this.X -= this.Width / 2;
-         //this.Y -= this.Height / 2;
-
-        //this.Polygon.rotate(0.1);
-        this.polygon.rotate(0.05);
-         console.log(this.Rotation);
-
-         // this.polygon.translate(this.Width / 2, this.Height / 2);
-        //this.X += this.Width / 2;
-        //this.Y += this.Height / 2;
+        this.Rotation += angle;
     }
 
     get Polygon(): SAT.Polygon {

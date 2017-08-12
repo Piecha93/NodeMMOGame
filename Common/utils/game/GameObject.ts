@@ -11,7 +11,6 @@ export abstract class GameObject implements Collidable {
     protected id: string = (GameObject.NEXT_ID++).toString();
     protected spriteName: string;
     protected transform: Transform;
-    protected oldTransform: Transform;
     protected velocity: number = 10;
 
     protected sFunc: Map<string, Function>;
@@ -30,8 +29,6 @@ export abstract class GameObject implements Collidable {
 
         this.spriteName = "none";
         this.destroyListeners = new Set<Function>();
-
-        this.oldTransform = new Transform(0, 0);
     }
 
     abstract onCollisionEnter(gameObject: GameObject, response: SAT.Response);

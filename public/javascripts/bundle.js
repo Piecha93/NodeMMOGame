@@ -957,7 +957,6 @@ class Bullet extends GameObject_1.GameObject {
             }
         }
         else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
-            let responseAngle;
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
             if (response.overlapN.x) {
@@ -992,8 +991,6 @@ class Bullet extends GameObject_1.GameObject {
         super.commonUpdate(delta);
         let sinAngle = Math.sin(this.transform.Rotation);
         let cosAngle = Math.cos(this.transform.Rotation);
-        this.oldTransform.X = this.transform.X;
-        this.oldTransform.Y = this.transform.Y;
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;
         //this.changes.add(ChangesDict.POSITION);
@@ -1037,7 +1034,6 @@ exports.ChangesDict = ChangesDict;
 },{}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Transform_1 = require("../physics/Transform");
 const ChangesDict_1 = require("./ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
 class GameObject {
@@ -1051,7 +1047,6 @@ class GameObject {
         this.dFunc = GameObject.DeserializeFunctions;
         this.spriteName = "none";
         this.destroyListeners = new Set();
-        this.oldTransform = new Transform_1.Transform(0, 0);
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -1166,7 +1161,7 @@ GameObject.DeserializeFunctions = new Map([
 ]);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":18,"../physics/Transform":33,"./ChangesDict":25}],27:[function(require,module,exports){
+},{"../../CommonConfig":18,"./ChangesDict":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectType;
@@ -1377,8 +1372,6 @@ class Player extends GameObject_1.GameObject {
             yFactor = -0.7071;
         }
         if (this.moveDirection != 0) {
-            this.oldTransform.X = this.transform.X;
-            this.oldTransform.Y = this.transform.Y;
             this.transform.X += xFactor * this.velocity * delta;
             this.transform.Y += yFactor * this.velocity * delta;
             this.changes.add(ChangesDict_1.ChangesDict.POSITION);
@@ -1571,32 +1564,7 @@ class Transform {
         return result;
     }
     rotate(angle) {
-        // let s: number = Math.sin(angle);
-        // let c: number = Math.cos(angle);
-        //
-        // let cx: number = this.Width / 2;
-        // let cy: number = this.Height / 2;
-        //
-        // this.X -= cx;
-        // this.Y -= cy;
-        //
-        // let xnew: number = this.X * c - this.Y * s;
-        // let ynew: number = this.X * s + this.Y * c;
-        //
-        // console.log(this.X * c - this.Y * s);
-        //
-        // this.X = xnew + cx;
-        // this.Y = ynew + cy;
-        //
-        // this.polygon = this.polygon.translate(-this.Width / 2, -this.Height / 2);
-        //this.X -= this.Width / 2;
-        //this.Y -= this.Height / 2;
-        //this.Polygon.rotate(0.1);
-        this.polygon.rotate(0.05);
-        console.log(this.Rotation);
-        // this.polygon.translate(this.Width / 2, this.Height / 2);
-        //this.X += this.Width / 2;
-        //this.Y += this.Height / 2;
+        this.Rotation += angle;
     }
     get Polygon() {
         return this.polygon;
