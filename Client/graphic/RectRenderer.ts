@@ -74,6 +74,6 @@ export class RectRenderer extends PIXI.Container {
     }
 
     public destroy() {
-        // this.sp.destroy()
+        super.destroy();
     }
 }

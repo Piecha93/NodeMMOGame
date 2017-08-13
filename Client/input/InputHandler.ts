@@ -91,8 +91,11 @@ export class InputHandler {
             inputSnapshot.append("D", newDirection.toString())
         }
 
-        let angle: string = this.parseClick();
-        inputSnapshot.append("C", angle);
+        if(this.clickPosition != null) {
+            let angle: string = this.parseClick();
+            inputSnapshot.append("C", angle);
+            this.clickPosition = null;
+        }
 
         this.releasedKeys.clear();
 
@@ -102,22 +105,15 @@ export class InputHandler {
     private parseClick(): string {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
 
-        if(this.clickPosition != null) {
-            let centerX = canvas.width / 2;
-            let centerY = canvas.height / 2;
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+        let deltaX = this.clickPosition.X - centerX;
+        let deltaY = this.clickPosition.Y - centerY;
+        let angle: number = Math.atan2(deltaY, deltaX);
+        if (angle < 0)
+            angle = angle + 2*Math.PI;
 
-            let deltaX = this.clickPosition.X - centerX;
-            let deltaY = this.clickPosition.Y - centerY;
-
-            let angle: number = Math.atan2(deltaY, deltaX);
-
-            if (angle < 0)
-                angle = angle + 2*Math.PI;
-
-            this.clickPosition = null;
-
-            return angle.toString();
-        }
+        return angle.toString();
     }
 
     private parseDirection(directionBuffor: Array<INPUT>): number {

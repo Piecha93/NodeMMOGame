@@ -6,6 +6,8 @@ import {Transform} from "../../Common/utils/physics/Transform";
 export abstract class GameObjectRender extends PIXI.Container {
     protected objectReference: GameObject;
 
+    private dt: number = 0.6;
+
     constructor() {
         super();
     }
@@ -18,13 +20,21 @@ export abstract class GameObjectRender extends PIXI.Container {
 
        let transform: Transform = this.objectReference.Transform;
 
-        // this.x = (transform.X - this.x) * 0.8 + this.x;
-        // this.y = (transform.Y - this.y) * 0.8 + this.y;
-       this.x = transform.X;
-       this.y = transform.Y;
+       if(Math.abs(transform.X - this.x) > 50) {
+           this.x = transform.X;
+       } else {
+           this.x = (transform.X - this.x) * this.dt + this.x;
+       }
+        if(Math.abs(transform.Y - this.y) > 50) {
+            this.y = transform.Y;
+        } else {
+            this.y = (transform.Y - this.y) * this.dt + this.y;
+        }
+
        this.rotation = this.objectReference.Transform.Rotation;
     }
 
     public destroy() {
+        super.destroy();
     }
 }

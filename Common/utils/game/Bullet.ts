@@ -9,7 +9,7 @@ export class Bullet extends GameObject {
         return GameObjectType.Bullet.toString();
     }
 
-    private lifeSpan: number = 300;
+    private lifeSpan: number = 50;
 
     private owner: string;
 
@@ -39,12 +39,21 @@ export class Bullet extends GameObject {
         this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
 
-    onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {
+    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
         if(gameObject.Type == GameObjectType.Bullet.toString()) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
             }
-       } else if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+       }
+       if(gameObject.Type == GameObjectType.Player.toString()) {
+            if(gameObject.ID != this.owner) {
+                this.destroy()
+            }
+        }
+    }
+
+    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+        if(gameObject.Type == GameObjectType.Obstacle.toString()) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
 
@@ -56,10 +65,6 @@ export class Bullet extends GameObject {
 
             this.changes.add(ChangesDict.ROTATION);
             this.changes.add(ChangesDict.POSITION);
-        } else if(gameObject.Type == GameObjectType.Player.toString()) {
-            if(gameObject.ID != this.owner) {
-                this.destroy()
-            }
         }
     }
 
@@ -101,10 +106,20 @@ export class Bullet extends GameObject {
         bullet.lifeSpan = parseInt(data);
     }
 
+    static serializeOwner(bullet: Bullet): string {
+        return ChangesDict.buildTag(ChangesDict.OWNER) + bullet.owner;
+    }
+
+    static deserializeOwner(bullet: Bullet, data: string) {
+        bullet.owner = data;
+    }
+
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan]
+        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
+        [ChangesDict.OWNER, Bullet.serializeOwner]
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan]
+        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
+        [ChangesDict.OWNER, Bullet.deserializeOwner]
     ]);
 }

@@ -15,6 +15,8 @@ export class Player extends GameObject {
     private hp: number;
     private moveDirection: number = 0;
 
+    private inputCommands: Map<string, string> = new Map<string, string>();
+
     constructor(name: string, transform: Transform) {
         super(transform);
         this.id = this.Type + this.id;
@@ -33,42 +35,33 @@ export class Player extends GameObject {
         this.spriteName = "bunny";
     }
 
-    public onCollisionEnter(gameObject: GameObject, response?: SAT.Response) {
+    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
         if(gameObject.Type == GameObjectType.Bullet.toString()) {
             if((gameObject as Bullet).Owner == this.ID) {
                 return;
             }
             this.hit(10);
-            if (this.hp <= 0) this.hp = this.maxHp;
-        } else if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+        }
+    }
+
+    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+        if(gameObject.Type == GameObjectType.Obstacle.toString()) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
         }
     }
 
     public setInput(commands: Map<string, string> ) {
-        commands.forEach((value: string, command: string) => {
-            if(command == "D") {
-                this.moveDirection = parseInt(value);
-            } else if(command == "C") {
-                for(let i = 0; i < 1; i++) {
-                    let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
-                    bullet.Owner = this.ID;
-
-                    let angle: number = parseFloat(value);
-
-                    bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-
-                    bullet.Transform.X = this.transform.X;
-                    bullet.Transform.Y = this.transform.Y;
-                }
-            }
-        });
+        this.inputCommands = commands;
     }
 
-    public commonUpdate(delta: number) {
+    protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
+
+        if(this.inputCommands.has("D")) {
+            this.moveDirection = parseInt(this.inputCommands.get("D"));
+            this.inputCommands.delete("D");
+        }
 
         let xFactor: number = 0;
         let yFactor: number = 0;
@@ -99,6 +92,22 @@ export class Player extends GameObject {
             this.transform.Y += yFactor * this.velocity * delta;
 
             this.changes.add(ChangesDict.POSITION);
+        }
+    }
+
+    protected serverUpdate(delta: number) {
+        if(this.inputCommands.has("C")) {
+            for(let i = 0; i < 1; i++) {
+                let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
+                bullet.Owner = this.ID;
+
+                bullet.Transform.Rotation = parseFloat(this.inputCommands.get("C"));
+                //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+
+                bullet.Transform.X = this.transform.X;
+                bullet.Transform.Y = this.transform.Y;
+            }
+            this.inputCommands.delete("C");
         }
     }
 

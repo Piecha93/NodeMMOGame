@@ -35,6 +35,7 @@ export class GameObjectAnimationRender extends GameObjectRender {
     }
 
     public destroy() {
+        super.destroy();
         this.animation.destroy();
     }
 }

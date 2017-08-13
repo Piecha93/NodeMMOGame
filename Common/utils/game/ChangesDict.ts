@@ -12,6 +12,7 @@ export class ChangesDict {
     //Bullet
     public static LIFE_SPAN = 'L';
     public static ROTATION = 'R';
+    public static OWNER = 'O';
 
 
     public static buildTag(char: string) {

@@ -43,18 +43,17 @@ class GameClient {
         this.renderer = new Renderer_1.Renderer(() => {
             this.inputHandler = new InputHandler_1.InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
-            //     if(this.player) {
-            //         this.player.setInput(snapshot.Commands);
-            //     }
-            // });
+            this.inputHandler.addSnapshotCallback((id, snapshot) => {
+                if (this.player) {
+                    this.player.setInput(snapshot.Commands);
+                }
+            });
             this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
         });
     }
     connect() {
         this.socket = io.connect({
-            reconnection: false,
-            secure: true
+            reconnection: false
         });
         if (this.socket != null) {
             this.configureSocket();
@@ -108,7 +107,7 @@ class GameClient {
             return;
         }
         let update = data['update'].split('$');
-        //console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('=');
             let id = splitObject[0];
@@ -118,6 +117,7 @@ class GameClient {
                 id = id.slice(1);
                 gameObject = this.netObjectMenager.getObject(id);
                 if (gameObject) {
+                    console.log("usuwom " + id);
                     gameObject.destroy();
                 }
                 continue;
@@ -204,6 +204,7 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
         super.update();
     }
     destroy() {
+        super.destroy();
         this.animation.destroy();
     }
 }
@@ -216,19 +217,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectRender extends PIXI.Container {
     constructor() {
         super();
+        this.dt = 0.6;
     }
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
     }
     update() {
         let transform = this.objectReference.Transform;
-        // this.x = (transform.X - this.x) * 0.8 + this.x;
-        // this.y = (transform.Y - this.y) * 0.8 + this.y;
-        this.x = transform.X;
-        this.y = transform.Y;
+        if (Math.abs(transform.X - this.x) > 50) {
+            this.x = transform.X;
+        }
+        else {
+            this.x = (transform.X - this.x) * this.dt + this.x;
+        }
+        if (Math.abs(transform.Y - this.y) > 50) {
+            this.y = transform.Y;
+        }
+        else {
+            this.y = (transform.Y - this.y) * this.dt + this.y;
+        }
         this.rotation = this.objectReference.Transform.Rotation;
     }
     destroy() {
+        super.destroy();
     }
 }
 exports.GameObjectRender = GameObjectRender;
@@ -258,7 +269,7 @@ class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
         }
     }
     destroy() {
-        this.destroy();
+        super.destroy();
     }
 }
 exports.GameObjectSpriteRender = GameObjectSpriteRender;
@@ -459,7 +470,7 @@ class RectRenderer extends PIXI.Container {
         }
     }
     destroy() {
-        // this.sp.destroy()
+        super.destroy();
     }
 }
 RectRenderer.textureRed = null;
@@ -619,24 +630,24 @@ class InputHandler {
             this.lastDirection = newDirection;
             inputSnapshot.append("D", newDirection.toString());
         }
-        let angle = this.parseClick();
-        inputSnapshot.append("C", angle);
+        if (this.clickPosition != null) {
+            let angle = this.parseClick();
+            inputSnapshot.append("C", angle);
+            this.clickPosition = null;
+        }
         this.releasedKeys.clear();
         return inputSnapshot;
     }
     parseClick() {
         let canvas = document.getElementById("game-canvas");
-        if (this.clickPosition != null) {
-            let centerX = canvas.width / 2;
-            let centerY = canvas.height / 2;
-            let deltaX = this.clickPosition.X - centerX;
-            let deltaY = this.clickPosition.Y - centerY;
-            let angle = Math.atan2(deltaY, deltaX);
-            if (angle < 0)
-                angle = angle + 2 * Math.PI;
-            this.clickPosition = null;
-            return angle.toString();
-        }
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+        let deltaX = this.clickPosition.X - centerX;
+        let deltaY = this.clickPosition.Y - centerY;
+        let angle = Math.atan2(deltaY, deltaX);
+        if (angle < 0)
+            angle = angle + 2 * Math.PI;
+        return angle.toString();
     }
     parseDirection(directionBuffor) {
         let direction = 0;
@@ -789,7 +800,6 @@ exports.DeltaTimer = DeltaTimer;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("./utils/game/GameObjectsHolder");
-const CommonConfig_1 = require("./CommonConfig");
 const SpacialGrid_1 = require("./utils/physics/SpacialGrid");
 class World extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(width, height) {
@@ -803,10 +813,10 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
         this.gameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
-        if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
-            this.spacialGrid.rebuildGrid();
-            this.spacialGrid.checkCollisions();
-        }
+        //  if(CommonConfig.ORIGIN == Origin.SERVER) {
+        this.spacialGrid.rebuildGrid();
+        this.spacialGrid.checkCollisions();
+        //}
     }
     addGameObject(gameObject) {
         this.spacialGrid.addObject(gameObject);
@@ -834,7 +844,7 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.World = World;
 
-},{"./CommonConfig":18,"./utils/game/GameObjectsHolder":28,"./utils/physics/SpacialGrid":32}],21:[function(require,module,exports){
+},{"./utils/game/GameObjectsHolder":28,"./utils/physics/SpacialGrid":32}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class InputSnapshot {
@@ -928,7 +938,7 @@ const ChangesDict_1 = require("./ChangesDict");
 class Bullet extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        this.lifeSpan = 300;
+        this.lifeSpan = 50;
         this.id = this.Type + this.id;
         if (Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
@@ -951,13 +961,20 @@ class Bullet extends GameObject_1.GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.Bullet.toString();
     }
-    onCollisionEnter(gameObject, response) {
+    serverCollision(gameObject, response) {
         if (gameObject.Type == GameObjectTypes_1.GameObjectType.Bullet.toString()) {
             if (gameObject.owner != this.owner) {
                 this.destroy();
             }
         }
-        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
+        if (gameObject.Type == GameObjectTypes_1.GameObjectType.Player.toString()) {
+            if (gameObject.ID != this.owner) {
+                this.destroy();
+            }
+        }
+    }
+    commonCollision(gameObject, response) {
+        if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
             if (response.overlapN.x) {
@@ -968,11 +985,6 @@ class Bullet extends GameObject_1.GameObject {
             }
             this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
             this.changes.add(ChangesDict_1.ChangesDict.POSITION);
-        }
-        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Player.toString()) {
-            if (gameObject.ID != this.owner) {
-                this.destroy();
-            }
         }
     }
     get Owner() {
@@ -1002,12 +1014,20 @@ class Bullet extends GameObject_1.GameObject {
     static deserializeLifeSpan(bullet, data) {
         bullet.lifeSpan = parseInt(data);
     }
+    static serializeOwner(bullet) {
+        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.OWNER) + bullet.owner;
+    }
+    static deserializeOwner(bullet, data) {
+        bullet.owner = data;
+    }
 }
 Bullet.SerializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan]
+    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
+    [ChangesDict_1.ChangesDict.OWNER, Bullet.serializeOwner]
 ]);
 Bullet.DeserializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan]
+    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
+    [ChangesDict_1.ChangesDict.OWNER, Bullet.deserializeOwner]
 ]);
 exports.Bullet = Bullet;
 
@@ -1030,6 +1050,7 @@ ChangesDict.NAME = 'N';
 //Bullet
 ChangesDict.LIFE_SPAN = 'L';
 ChangesDict.ROTATION = 'R';
+ChangesDict.OWNER = 'O';
 exports.ChangesDict = ChangesDict;
 
 },{}],26:[function(require,module,exports){
@@ -1048,6 +1069,16 @@ class GameObject {
         this.dFunc = GameObject.DeserializeFunctions;
         this.spriteName = "none";
         this.destroyListeners = new Set();
+    }
+    onCollisionEnter(gameObject, response) {
+        if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
+            this.serverCollision(gameObject, response);
+        }
+        this.commonCollision(gameObject, response);
+    }
+    serverCollision(gameObject, response) {
+    }
+    commonCollision(gameObject, response) {
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -1101,7 +1132,7 @@ class GameObject {
         for (let listener of this.destroyListeners) {
             listener(this.id);
         }
-        this.destroyListeners.clear();
+        console.log("Object destroyed " + this.ID);
     }
     get Transform() {
         return this.transform;
@@ -1224,6 +1255,7 @@ class ObjectsFactory {
         let type = id.substr(0, 1);
         let position = new Transform_1.Transform(0, 0);
         let gameObject = null;
+        console.log("TRAIN TO CREATE " + id);
         if (type == "P") {
             gameObject = new Player_1.Player('DEFAULT', position);
         }
@@ -1249,6 +1281,7 @@ class ObjectsFactory {
             ObjectsFactory.DestroySubscribers.forEach((subscriber) => {
                 gameObject.addDestroyListener(subscriber);
             });
+            console.log("New object " + gameObject.ID);
         }
         return gameObject;
     }
@@ -1294,6 +1327,7 @@ class Player extends GameObject_1.GameObject {
     constructor(name, transform) {
         super(transform);
         this.moveDirection = 0;
+        this.inputCommands = new Map();
         this.id = this.Type + this.id;
         this.sFunc = new Map(function* () { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map(function* () { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
@@ -1308,40 +1342,29 @@ class Player extends GameObject_1.GameObject {
     get Type() {
         return GameObjectTypes_1.GameObjectType.Player.toString();
     }
-    onCollisionEnter(gameObject, response) {
+    serverCollision(gameObject, response) {
         if (gameObject.Type == GameObjectTypes_1.GameObjectType.Bullet.toString()) {
             if (gameObject.Owner == this.ID) {
                 return;
             }
             this.hit(10);
-            if (this.hp <= 0)
-                this.hp = this.maxHp;
         }
-        else if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
+    }
+    commonCollision(gameObject, response) {
+        if (gameObject.Type == GameObjectTypes_1.GameObjectType.Obstacle.toString()) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
         }
     }
     setInput(commands) {
-        commands.forEach((value, command) => {
-            if (command == "D") {
-                this.moveDirection = parseInt(value);
-            }
-            else if (command == "C") {
-                for (let i = 0; i < 1; i++) {
-                    let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
-                    bullet.Owner = this.ID;
-                    let angle = parseFloat(value);
-                    bullet.Transform.Rotation = angle;
-                    //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-                    bullet.Transform.X = this.transform.X;
-                    bullet.Transform.Y = this.transform.Y;
-                }
-            }
-        });
+        this.inputCommands = commands;
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
+        if (this.inputCommands.has("D")) {
+            this.moveDirection = parseInt(this.inputCommands.get("D"));
+            this.inputCommands.delete("D");
+        }
         let xFactor = 0;
         let yFactor = 0;
         if (this.moveDirection == 1) {
@@ -1376,6 +1399,19 @@ class Player extends GameObject_1.GameObject {
             this.transform.X += xFactor * this.velocity * delta;
             this.transform.Y += yFactor * this.velocity * delta;
             this.changes.add(ChangesDict_1.ChangesDict.POSITION);
+        }
+    }
+    serverUpdate(delta) {
+        if (this.inputCommands.has("C")) {
+            for (let i = 0; i < 1; i++) {
+                let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
+                bullet.Owner = this.ID;
+                bullet.Transform.Rotation = parseFloat(this.inputCommands.get("C"));
+                //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
+                bullet.Transform.X = this.transform.X;
+                bullet.Transform.Y = this.transform.Y;
+            }
+            this.inputCommands.delete("C");
         }
     }
     set Direction(direction) {

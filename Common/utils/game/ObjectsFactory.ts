@@ -19,6 +19,8 @@ export class ObjectsFactory {
 
         let gameObject: GameObject = null;
 
+        console.log("TRAIN TO CREATE " + id);
+
         if(type == "P") {
             gameObject = new Player('DEFAULT', position);
         } else if(type == "B") {
@@ -45,6 +47,8 @@ export class ObjectsFactory {
             ObjectsFactory.DestroySubscribers.forEach((subscriber: Function) => {
                 gameObject.addDestroyListener(subscriber);
             });
+
+            console.log("New object " + gameObject.ID);
         }
 
         return gameObject;

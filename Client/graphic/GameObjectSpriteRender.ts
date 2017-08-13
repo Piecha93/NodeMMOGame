@@ -32,11 +32,9 @@ export class GameObjectSpriteRender extends GameObjectRender {
         if(this.sprite.texture != PIXI.utils.TextureCache[this.objectReference.SpriteName]) {
             this.sprite.texture = PIXI.utils.TextureCache[this.objectReference.SpriteName];
         }
-
-
     }
 
     public destroy() {
-        this.destroy();
+        super.destroy();
     }
 }

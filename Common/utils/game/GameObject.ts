@@ -31,7 +31,20 @@ export abstract class GameObject implements Collidable {
         this.destroyListeners = new Set<Function>();
     }
 
-    abstract onCollisionEnter(gameObject: GameObject, response: SAT.Response);
+    onCollisionEnter(gameObject: GameObject, response: SAT.Response) {
+        if(CommonConfig.ORIGIN == Origin.SERVER) {
+            this.serverCollision(gameObject, response);
+        }
+        this.commonCollision(gameObject, response);
+    }
+
+    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
+
+    }
+
+    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+
+    }
 
     public forceCompleteUpdate() {
         this.forceComplete = true;
@@ -96,7 +109,7 @@ export abstract class GameObject implements Collidable {
         for(let listener of this.destroyListeners) {
             listener(this.id);
         }
-        this.destroyListeners.clear()
+        console.log("Object destroyed " + this.ID);
     }
 
     get Transform(): Transform {

@@ -13,7 +13,7 @@ import {InputSender} from "../Client/net/InputSender";
 import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../Common/utils/game/Player";
-import {Cell} from "../Common/utils/physics/SpacialGrid";
+import {InputSnapshot} from "../Common/input/InputSnapshot";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -36,11 +36,11 @@ export class GameClient {
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            // this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
-            //     if(this.player) {
-            //         this.player.setInput(snapshot.Commands);
-            //     }
-            // });
+            this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
+                if(this.player) {
+                    this.player.setInput(snapshot.Commands);
+                }
+            });
 
             this.socket.emit(SocketMsgs.CLIENT_READY);
         });
@@ -112,7 +112,7 @@ export class GameClient {
         }
 
         let update = data['update'].split('$');
-        //console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject: string[] = update[object].split('=');
             let id: string = splitObject[0];
@@ -123,6 +123,7 @@ export class GameClient {
                 id = id.slice(1);
                 gameObject = this.netObjectMenager.getObject(id);
                 if(gameObject) {
+                    console.log("usuwom " + id);
                     gameObject.destroy();
                 }
                 continue;

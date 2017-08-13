@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Game</title>
+
+    <link rel='stylesheet' href='/css/style.css' />
+
+    <script src="/javascripts/socket.io-1.4.5.js"></script>
+    <script src="/javascripts/pixi.min.js"></script>
+    <script src="/javascripts/bundle.js"></script>
+
+</head>
+
+<body>
+<div id="content">
+    <canvas id="game-canvas"></canvas>
+    <div id="debug-window"></div>
+    <div id="chat-zone">
+        <div id="chat-msgs">
+        </div>
+
+        <form id="chat-form">
+            <input id="chat-input" type="text" autocomplete="off" placeholder="Press Enter to talk in global chat"></input>
+        </form>
+    </div>
+</div>
+</body>
+
+</html>
