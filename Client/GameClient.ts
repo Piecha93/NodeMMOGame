@@ -14,6 +14,7 @@ import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
+import {ClientConfig} from "./ClientConfig";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -81,12 +82,15 @@ export class GameClient {
             // this.world.Cells.forEach((cell: Cell) => {
             //     this.renderer.addCell(cell);
             // });
+            this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
+
+            this.socket.on(SocketMsgs.ERROR, (err: string) => {
+                console.log(err);
+            });
         });
-        this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
     }
 
     private startGame() {
-        console.log("start");
         let timer: DeltaTimer = new DeltaTimer;
         let deltaHistory: Array<number> = new Array<number>();
 
@@ -103,7 +107,7 @@ export class GameClient {
             });
             deltaAvg /= deltaHistory.length;
             DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
-        }, 15);
+        }, ClientConfig.TICKRATE);
     }
 
     private updateGame(data) {
@@ -112,7 +116,7 @@ export class GameClient {
         }
 
         let update = data['update'].split('$');
-        console.log(update);
+        //console.log(update);
         for (let object in update) {
             let splitObject: string[] = update[object].split('=');
             let id: string = splitObject[0];
@@ -123,7 +127,6 @@ export class GameClient {
                 id = id.slice(1);
                 gameObject = this.netObjectMenager.getObject(id);
                 if(gameObject) {
-                    console.log("usuwom " + id);
                     gameObject.destroy();
                 }
                 continue;

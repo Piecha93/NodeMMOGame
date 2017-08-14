@@ -8,16 +8,28 @@
 <body>
 <form id="login-form" action="/login" method="post">
     <h1>Login Form</h1>
+
+    <% if (locals.error_message) { %>
+        <h2> <%= error_message %> </h2>
+    <% } %>
+
     <div>
-        <input type="text" placeholder="Username" required="" id="username" name="username" />
+        <input type="text" placeholder="Username" required="" name="username" />
     </div>
     <div>
-        <input type="password" placeholder="Password" required="" id="password" name="password"/>
+        <input type="password" placeholder="Password" required="" name="password"/>
     </div>
     <div>
         <input type="submit" value="Log in" />
     </div>
 </form><!-- form -->
+
+<form id="login-form" action="/login" method="post">
+    <input type="hidden" name="username" value="guest" />
+    <input type="hidden" name="password" value="guest" />
+    <input type="submit" value="Play as guest" />
+</form>
+
 </body>
 
 </html>

@@ -3,6 +3,7 @@ export class ChangesDict {
     public static VELOCITY = 'V';
     public static SPRITE = 'S';
     public static POSITION = 'P';
+    public static SIZE = 'Z';
 
     //Player
     public static HP = 'H';

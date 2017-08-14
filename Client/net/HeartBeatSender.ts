@@ -21,13 +21,16 @@ export class HeartBeatSender {
     }
 
     private heartBeatResponse(id: number) {
-        let ping: number =  new Date().getTime() - this.heartBeats.get(id);
-        //console.log('hbr ' + ping);
+        if(this.heartBeats.has(id)) {
+            let ping: number = new Date().getTime() - this.heartBeats.get(id);
+            //console.log('hbr ' + ping);
 
-        DebugWindowHtmlHandler.Instance.Ping = ping.toString();
+            DebugWindowHtmlHandler.Instance.Ping = ping.toString();
 
-        if(this.isRunning) {
-            setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+            if (this.isRunning) {
+                setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+            }
+            this.heartBeats.delete(id);
         }
     }
 

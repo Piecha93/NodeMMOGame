@@ -11,13 +11,15 @@ import {SocketMsgs} from "../Common/net/SocketMsgs";
 import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import {DeltaTimer} from "../Common/DeltaTimer";
 import {Obstacle} from "../Common/utils/game/Obstacle";
+import Session = Express.Session;
+import {Database, IUserModel} from "./database/Database";
 
 export class GameServer {
     private sockets: SocketIO.Server;
-    private clientsMap: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
+    private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
+    private socketsIds: Map<string, Socket> = new Map<string, Socket>();
 
     private world: World;
-    private nameCounter: number = 0;
 
     private destroyedObjects: string = '';
 
@@ -62,6 +64,7 @@ export class GameServer {
         let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 150;
+        o.Transform.Width = 150;
         ///////////////////////////////////////////////////////////////////TEST
 
         let timer: DeltaTimer = new DeltaTimer;
@@ -73,16 +76,30 @@ export class GameServer {
 
     private configureSockets() {
         this.sockets.on('connection', (socket: Socket) => {
-            console.log((socket as any).session);
-            // if (!(socket as any).session.user_id) {
-            //     return
-            // }
+            let socketSession = (socket as any).request.session;
 
-            let clientName: string = "Guest " + this.nameCounter.toString();
-            this.nameCounter++;
+            if(this.socketsIds.has(socketSession.user_id)) {
+                let client: ServerClient = this.clients.get(this.socketsIds.get(socketSession.user_id));
+                this.clientDisconnected(client, "You connected from other browser");
+                this.socketsIds.delete(socketSession.user_id);
+            }
 
-            let serverClient: ServerClient = new ServerClient(clientName, socket);
-            this.clientsMap.set(socket, serverClient);
+            let serverClient: ServerClient = new ServerClient(socket);
+            this.clients.set(socket, serverClient);
+            this.socketsIds.set(socketSession.user_id, socket);
+
+            let clientName: string = "";
+            if(socketSession.user_id.substring(0, 5) == "Guest") {
+                clientName = socketSession.user_id;
+            } else {
+                Database.Instance.findUserById(socketSession.user_id, (user: IUserModel) => {
+                    clientName = user.username;
+                    let player: Player = this.world.getGameObject(serverClient.PlayerId) as Player;
+                    if(player) {
+                        player.Name =  clientName;
+                    }
+                })
+            }
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.CreateGameObject("P") as Player;
@@ -115,14 +132,14 @@ export class GameServer {
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
-                if(this.clientsMap.has(socket)) {
-                    this.clientsMap.get(socket).LastHbInterval = ServerConfig.CLIENT_TIMEOUT;
+                if(this.clients.has(socket)) {
+                    this.clients.get(socket).LastHbInterval = ServerConfig.CLIENT_TIMEOUT;
                     socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
                 }
             });
 
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
-                if(this.clientsMap.has(socket)) {
+                if(this.clients.has(socket)) {
                     if (msg == "rudycwel") {
                         this.world.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
                         return;
@@ -138,14 +155,12 @@ export class GameServer {
             });
 
             socket.on('disconnect', () => {
-                if(this.clientsMap.has(socket)) {
-                    this.clientDisconnected(this.clientsMap.get(socket));
-                }
+                this.clientDisconnected(this.clients.get(socket));
             });
         });
 
         setInterval(() => {
-            this.clientsMap.forEach((client: ServerClient, socket: Socket) => {
+            this.clients.forEach((client: ServerClient) => {
                 client.LastHbInterval -= 1000;
                 if (client.LastHbInterval <= 0) {
                     this.clientDisconnected(client);
@@ -163,23 +178,29 @@ export class GameServer {
             }
 
             if(update != '') {
-                this.clientsMap.forEach((client: ServerClient, socket: Socket) => {
+                this.clients.forEach((client: ServerClient) => {
                     if (client.IsReady) {
-                        socket.emit(SocketMsgs.UPDATE_GAME, {update});
+                        client.Socket.emit(SocketMsgs.UPDATE_GAME, {update});
                     }
                 });
             }
         }, ServerConfig.UPDATE_INTERVAL);
     }
 
-    private clientDisconnected(client: ServerClient) {
-        console.log('player disconnected' + client.Name);
+    private clientDisconnected(client: ServerClient, reason?: string) {
+        if(!client) return;
+
+        if(reason) {
+            client.Socket.emit(reason);
+        }
+
+        console.log(SocketMsgs.ERROR, 'player disconnected' + client.Name);
 
         let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(client.PlayerId);
         if(gameObject != null) {
             gameObject.destroy();
         }
-        this.clientsMap.delete(client.Socket);
+        this.clients.delete(client.Socket);
     }
 }
 

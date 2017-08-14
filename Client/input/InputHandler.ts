@@ -136,7 +136,6 @@ export class InputHandler {
             direction = 5;
         }
 
-        let radians: number = direction * Math.PI / 180;
         return direction;
     }
 }

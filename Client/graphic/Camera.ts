@@ -5,7 +5,7 @@ import {Renderer} from "../../Client/graphic/Renderer";
 export class Camera extends PIXI.Container {
 
     private follower: PIXI.Point | PIXI.ObservablePoint;
-    private dt = 0.1;
+    private dt: number = 0.1;
 
     constructor(follower: PIXI.Point) {
         super();

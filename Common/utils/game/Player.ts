@@ -139,6 +139,7 @@ export class Player extends GameObject {
 
     set Name(name: string) {
         this.name = name;
+        this.changes.add(ChangesDict.NAME);
     }
 
     get Direction(): number {

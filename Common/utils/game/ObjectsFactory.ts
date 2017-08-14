@@ -19,8 +19,6 @@ export class ObjectsFactory {
 
         let gameObject: GameObject = null;
 
-        console.log("TRAIN TO CREATE " + id);
-
         if(type == "P") {
             gameObject = new Player('DEFAULT', position);
         } else if(type == "B") {

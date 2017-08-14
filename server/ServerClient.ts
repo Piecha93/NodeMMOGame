@@ -3,14 +3,13 @@ import Timer = NodeJS.Timer;
 import {ServerConfig} from "./ServerConfig";
 
 export class ServerClient {
-    private name: string;
     private socket: Socket;
+    private name: string = "";
     private isReady: boolean = false;
     private lastHbInterval: number = ServerConfig.CLIENT_TIMEOUT;
-    private playerId: string;
+    private playerId: string = "";
 
-    constructor(name: string, socket: Socket) {
-        this.name = name;
+    constructor(socket: Socket) {
         this.socket = socket;
     }
 

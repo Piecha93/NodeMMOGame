@@ -134,7 +134,9 @@ export abstract class GameObject implements Collidable {
     }
 
     static serializePosition(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.POSITION) + gameObject.Transform.X.toString() + ',' + gameObject.Transform.Y.toString();
+        return ChangesDict.buildTag(ChangesDict.POSITION)
+            + gameObject.Transform.X.toPrecision(4)
+            + ',' + gameObject.Transform.Y.toPrecision(4);
     }
 
     static deserializePosition(gameObject: GameObject, data: string) {
@@ -143,6 +145,19 @@ export abstract class GameObject implements Collidable {
 
         gameObject.transform.X = parseFloat(x);
         gameObject.transform.Y = parseFloat(y);
+    }
+
+    static serializeSize(gameObject: GameObject): string {
+        return ChangesDict.buildTag(ChangesDict.SIZE)
+            + gameObject.Transform.Width + ',' + gameObject.Transform.Height;
+    }
+
+    static deserializeSize(gameObject: GameObject, data: string) {
+        let w: string = data.split(',')[0];
+        let h: string = data.split(',')[1];
+
+        gameObject.transform.Width = parseFloat(w);
+        gameObject.transform.Height = parseFloat(h);
     }
 
     static serializeSpriteName(gameObject: GameObject): string {
@@ -162,7 +177,7 @@ export abstract class GameObject implements Collidable {
     }
 
     static serializeRotation(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.ROTATION) + gameObject.Transform.Rotation;
+        return ChangesDict.buildTag(ChangesDict.ROTATION) + gameObject.Transform.Rotation.toPrecision(4);
     }
 
     static deserializeRotation(gameObject: GameObject, data: string) {
@@ -171,12 +186,14 @@ export abstract class GameObject implements Collidable {
 
     static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
         [ChangesDict.POSITION, GameObject.serializePosition],
+        [ChangesDict.SIZE, GameObject.serializeSize],
         [ChangesDict.SPRITE, GameObject.serializeSpriteName],
         [ChangesDict.VELOCITY, GameObject.serializeVelocity],
         [ChangesDict.ROTATION, GameObject.serializeRotation],
     ]);
     static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
         [ChangesDict.POSITION, GameObject.deserializePosition],
+        [ChangesDict.SIZE, GameObject.deserializeSize],
         [ChangesDict.SPRITE, GameObject.deserializeSpriteName],
         [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
         [ChangesDict.ROTATION, GameObject.deserializeRotation],

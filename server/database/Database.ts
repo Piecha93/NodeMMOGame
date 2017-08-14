@@ -5,14 +5,13 @@ import {IUser} from "./models/User";
 let url = "mongodb://test:test@ds129352.mlab.com:29352/node-mmo-game";
 // let url = "mongodb://localhost:27017";
 
-interface IUserModel extends IUser, mongoose.Document { }
+export interface IUserModel extends IUser, mongoose.Document { }
 
 export class Database {
     private connection: Connection;
-
     private userModel: Model<IUserModel>;
 
-    constructor() {
+    private constructor() {
         this.connection = mongoose.createConnection(url);
         this.connection.on('error', console.error.bind(console, 'connection error:'));
 
@@ -21,15 +20,21 @@ export class Database {
         });
 
         let userSchema = new mongoose.Schema({
-            password: String,
-            username: String
+            'password': String,
+            'username': { type: String, index: { unique: true } },
         });
 
         this.userModel = this.connection.model<IUserModel>("User", userSchema);
     }
 
-    findUser(username: string, callback: Function) {
+    findUserByName(username: string, callback: Function) {
         this.userModel.findOne({username: username}, (err, docs) => {
+            callback(docs);
+        })
+    }
+
+    findUserById(id: string, callback: Function) {
+        this.userModel.findOne({_id: id}, (err, docs) => {
             callback(docs);
         })
     }
@@ -37,6 +42,15 @@ export class Database {
     get DB(): Connection {
         return this.connection;
     }
+
+    private static instance: Database;
+
+    static get Instance(): Database {
+        if(Database.instance) {
+            return Database.instance;
+        } else {
+            Database.instance = new Database;
+            return Database.instance;
+        }
+    }
 }
-
-
