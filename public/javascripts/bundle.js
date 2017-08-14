@@ -813,10 +813,10 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
         this.gameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
-        //  if(CommonConfig.ORIGIN == Origin.SERVER) {
+        // if(CommonConfig.ORIGIN == Origin.SERVER) {
         this.spacialGrid.rebuildGrid();
         this.spacialGrid.checkCollisions();
-        //}
+        // }
     }
     addGameObject(gameObject) {
         this.spacialGrid.addObject(gameObject);
