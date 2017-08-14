@@ -48,20 +48,21 @@ app.get('/', (req, res) => {
 
 app.post('/login', (req, res) => {
     let post = req.body;
-    let authenticated: boolean = true;
+    let authenticated: boolean = false;
     if(post.username && post.password) {
         database.findUser(post.username, (user) => {
             if(user && user.password == post.password ) {
                 authenticated = true;
                 req.session.user_id = user._id;
             }
+            if(authenticated) {
+                res.redirect('/game');
+            } else {
+                res.send('Bad user/pass');
+            }
         });
     }
-    if(authenticated) {
-        res.redirect('/game');
-    } else {
-        res.send('Bad user/pass');
-    }
+
 });
 
 app.get('/game', checkAuth, (req, res) => {

@@ -39,7 +39,7 @@ export class GameServer {
             this.destroyedObjects += '$' + '!' + id;
         });
 
-        //TEST (CREATE WALLS AROUND MAP)
+        //////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
         for(let i = 0; i < 1156 / 32; i++) {
             let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
             o.Transform.X = 0;
@@ -62,17 +62,22 @@ export class GameServer {
         let o: Obstacle = ObjectsFactory.CreateGameObject("O") as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 150;
-        ///TEST
+        ///////////////////////////////////////////////////////////////////TEST
 
         let timer: DeltaTimer = new DeltaTimer;
         setInterval(() => {
             let delta: number = timer.getDelta();
             this.world.update(delta)
-        }, 15);
+        }, ServerConfig.TICKRATE);
     }
 
     private configureSockets() {
         this.sockets.on('connection', (socket: Socket) => {
+            console.log((socket as any).session);
+            // if (!(socket as any).session.user_id) {
+            //     return
+            // }
+
             let clientName: string = "Guest " + this.nameCounter.toString();
             this.nameCounter++;
 
