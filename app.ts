@@ -12,7 +12,6 @@ import {MongoStore} from "connect-mongo";
 import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./Common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
-import {log} from "util";
 
 CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = process.env.PORT || 3000;
@@ -54,10 +53,18 @@ app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs');
 
 app.get('/', (req: Request, res: Response) => {
-    res.render('index');
+    if(req.session.user_id) {
+        res.redirect('game');
+    } else {
+        res.render('index');
+    }
 });
 
 app.post('/login', (req: Request, res: Response) => {
+    if(req.session.user_id) {
+        return res.redirect('game');
+    }
+
     let post = req.body;
     if(post.username && post.password) {
         if(post.username == "guest" && post.password == "guest") {
