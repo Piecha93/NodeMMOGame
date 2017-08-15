@@ -10,6 +10,7 @@ export class Bullet extends GameObject {
     }
 
     private lifeSpan: number = 50;
+    private power: number = 10;
 
     private owner: string;
 
@@ -40,6 +41,7 @@ export class Bullet extends GameObject {
     }
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
+        super.serverCollision(gameObject, response);
         if(gameObject.Type == GameObjectType.Bullet.toString()) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
@@ -53,6 +55,7 @@ export class Bullet extends GameObject {
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+        super.commonCollision(gameObject, response);
         if(gameObject.Type == GameObjectType.Obstacle.toString()) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
@@ -66,6 +69,10 @@ export class Bullet extends GameObject {
             this.changes.add(ChangesDict.ROTATION);
             this.changes.add(ChangesDict.POSITION);
         }
+    }
+
+    get Power(): number {
+        return this.power;
     }
 
     get Owner(): string {

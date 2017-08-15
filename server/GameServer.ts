@@ -65,6 +65,21 @@ export class GameServer {
         o.Transform.X = 150;
         o.Transform.Y = 150;
         o.Transform.Width = 150;
+
+        let createEnemy: Function = () => {
+            let e: GameObject = ObjectsFactory.CreateGameObject("E");
+            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
+            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+
+            e.addDestroyListener(() => {
+                createEnemy();
+            })
+        };
+
+        for(let i = 0; i < 5; i++) {
+            createEnemy();
+        }
+
         ///////////////////////////////////////////////////////////////////TEST
 
         let timer: DeltaTimer = new DeltaTimer;

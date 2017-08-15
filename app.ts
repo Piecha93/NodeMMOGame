@@ -15,6 +15,7 @@ import {Database, IUserModel} from "./server/database/Database";
 
 CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = process.env.PORT || 3000;
+let guestCounter: number = 0;
 
 const app: express.Application = express();
 
@@ -68,8 +69,7 @@ app.post('/login', (req: Request, res: Response) => {
     let post = req.body;
     if(post.username && post.password) {
         if(post.username == "guest" && post.password == "guest") {
-            req.session.user_id = "Guest" + nextGuestNumber();
-            console.log(req.session.user_id);
+            req.session.user_id = "Guest" + guestCounter++;
             return res.redirect('/game');
         }
 
@@ -109,9 +109,3 @@ function checkAuth(req: Request, res: Response, next: Function) {
     }
 }
 
-let guestCounter: number = 0;
-
-function nextGuestNumber(): number {
-    guestCounter++;
-    return guestCounter;
-}

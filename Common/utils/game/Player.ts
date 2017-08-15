@@ -1,54 +1,20 @@
-import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
 import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
+import {Actor} from "./Actor";
 
-export class Player extends GameObject {
+export class Player extends Actor {
     get Type(): string {
         return GameObjectType.Player.toString();
     }
 
-    private name: string;
-    private maxHp: number;
-    private hp: number;
     private moveDirection: number = 0;
-
     private inputCommands: Map<string, string> = new Map<string, string>();
 
     constructor(name: string, transform: Transform) {
-        super(transform);
-        this.id = this.Type + this.id;
-
-        this.sFunc = new Map<string, Function>(function*() { yield* Player.SerializeFunctions; yield* this.sFunc; }.bind(this)());
-        this.dFunc = new Map<string, Function>(function*() { yield* Player.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
-        this.name = name;
-
-        this.maxHp = 200;
-        this.hp = this.maxHp;
-        this.velocity = 0.3;
-
-        this.transform.Width = 40;
-        this.transform.Height = 64;
-
-        this.spriteName = "bunny";
-    }
-
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        if(gameObject.Type == GameObjectType.Bullet.toString()) {
-            if((gameObject as Bullet).Owner == this.ID) {
-                return;
-            }
-            this.hit(10);
-        }
-    }
-
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        if(gameObject.Type == GameObjectType.Obstacle.toString()) {
-            this.transform.X += response.overlapV.x * 1.2;
-            this.transform.Y += response.overlapV.y * 1.2;
-        }
+        super(name, transform);
     }
 
     public setInput(commands: Map<string, string> ) {
@@ -117,68 +83,8 @@ export class Player extends GameObject {
         }
     }
 
-    hit(power: number) {
-        this.hp -= power;
-        if(this.hp < 0) {
-            this.hp = 0;
-        }
-        this.changes.add(ChangesDict.HP);
-    }
-
-    get MaxHP(): number {
-        return this.maxHp;
-    }
-
-    get HP(): number {
-        return this.hp;
-    }
-
-    get Name(): string {
-        return this.name;
-    }
-
-    set Name(name: string) {
-        this.name = name;
-        this.changes.add(ChangesDict.NAME);
-    }
-
     get Direction(): number {
         return this.moveDirection;
     }
-
-    static serializeMaxHp(player: Player): string {
-        return ChangesDict.buildTag(ChangesDict.MAX_HP) + player.maxHp.toString();
-    }
-
-    static deserializeMaxHp(player: Player, data: string) {
-        player.maxHp = parseInt(data);
-    }
-
-    static serializeHp(player: Player): string {
-        return ChangesDict.buildTag(ChangesDict.HP) + player.HP.toString();
-    }
-
-    static deserializeHp(player: Player, data: string) {
-        player.hp = parseInt(data);
-    }
-
-    static serializeName(player: Player): string {
-            return ChangesDict.buildTag(ChangesDict.NAME) +  player.name;
-    }
-
-    static deserializeName(player: Player, data: string) {
-        player.name = data;
-    }
-
-    static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.MAX_HP, Player.serializeMaxHp],
-        [ChangesDict.HP, Player.serializeHp],
-        [ChangesDict.NAME, Player.serializeName],
-    ]);
-    static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.MAX_HP, Player.deserializeMaxHp],
-        [ChangesDict.HP, Player.deserializeHp],
-        [ChangesDict.NAME, Player.deserializeName],
-    ]);
 }
 

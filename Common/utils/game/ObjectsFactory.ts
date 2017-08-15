@@ -4,6 +4,7 @@ import {Transform} from "../physics/Transform";
 import {Bullet} from "./Bullet";
 import {GameObjectsHolder} from "./GameObjectsHolder";
 import {Obstacle} from "./Obstacle";
+import {Enemy} from "./Enemy";
 
 export class ObjectsFactory {
     constructor() {
@@ -21,6 +22,8 @@ export class ObjectsFactory {
 
         if(type == "P") {
             gameObject = new Player('DEFAULT', position);
+        } else if(type == "E") {
+            gameObject = new Enemy("MONSTER", position);
         } else if(type == "B") {
             gameObject = new Bullet(position);
         } else if(type == "O") {
