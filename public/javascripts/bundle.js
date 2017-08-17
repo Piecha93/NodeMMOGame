@@ -174,8 +174,18 @@ class Camera extends PIXI.Container {
     constructor(follower) {
         super();
         this.dt = 0.1;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.deviationRate = 6;
         this.Follower = follower;
         this.position.set(Renderer_1.Renderer.WIDTH / 2, Renderer_1.Renderer.HEIGHT / 2);
+        window.addEventListener("mousemove", this.onMouseMove.bind(this));
+    }
+    onMouseMove(event) {
+        let canvas = document.getElementById("game-canvas");
+        let rect = canvas.getBoundingClientRect();
+        this.mouseX = (event.x - rect.left - Renderer_1.Renderer.WIDTH / 2) / this.deviationRate;
+        this.mouseY = (event.y - rect.top - Renderer_1.Renderer.HEIGHT / 2) / this.deviationRate;
     }
     set Follower(follower) {
         this.follower = follower;
@@ -183,8 +193,8 @@ class Camera extends PIXI.Container {
         this.update();
     }
     update() {
-        this.pivot.x = (this.follower.x - this.pivot.x) * this.dt + this.pivot.x;
-        this.pivot.y = (this.follower.y - this.pivot.y) * this.dt + this.pivot.y;
+        this.pivot.x += (this.follower.x + this.mouseX - this.pivot.x) * this.dt;
+        this.pivot.y += (this.follower.y + this.mouseY - this.pivot.y) * this.dt;
     }
 }
 exports.Camera = Camera;
@@ -343,11 +353,11 @@ class ChatHtmlHandler {
     }
     append(sender, message) {
         let htmlMessageeSender = document.createElement("span");
+        htmlMessageeSender.id = "msg-sender";
         htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
-        htmlMessageeSender.style.color = "rgb(50, 50, 85)";
         let htmlMessageeContent = document.createElement("span");
+        htmlMessageeContent.id = "msg-content";
         htmlMessageeContent.textContent = message;
-        htmlMessageeContent.style.color = "rgb(85, 85, 85)";
         let htmlMessagee = document.createElement("span");
         htmlMessagee.id = "chat-msg";
         htmlMessagee.appendChild(htmlMessageeSender);
@@ -464,11 +474,6 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
             .add('flame', 'resources/animations/flame/flame.json')
             .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);
-        document.addEventListener("keydown", (event) => {
-            if (event.keyCode == 72) {
-                this.hideNotVisibleObjects();
-            }
-        });
     }
     hideNotVisibleObjects() {
         this.renderObjects.forEach((obj) => {
@@ -488,7 +493,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
             (cameraY < object.y + object.height);
     }
     update() {
-        // this.hideNotVisibleObjects();
+        this.hideNotVisibleObjects();
         this.renderObjects.forEach((gameObjectRender) => {
             gameObjectRender.update();
         });
@@ -525,8 +530,8 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects.delete(gameObject);
     }
 }
-Renderer.HEIGHT = 576;
 Renderer.WIDTH = 1024;
+Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
 },{"../../Common/utils/game/GameObjectsHolder":31,"./BulletRender":4,"./Camera":5,"./GameObjectSpriteRender":8,"./PlayerRender":11,"./TileMap":13}],13:[function(require,module,exports){
@@ -587,7 +592,6 @@ class InputHandler {
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
         window.addEventListener("mousedown", this.mouseClick.bind(this));
-        //this.phaserInput.onDown.add(this.mouseClick, this);
     }
     addSnapshotCallback(callback) {
         this.snapshotCallbacks.push(callback);

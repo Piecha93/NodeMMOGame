@@ -19,7 +19,7 @@ export class TileMap extends PIXI.Container {
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
 
-        let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'],  new PIXI.Rectangle(6*32, 12*32, 32, 32));
+        let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(6*32, 12*32, 32, 32));
 
         for(let i = 0; i < 100; i++) {
             for(let j = 0; j < 100; j++) {

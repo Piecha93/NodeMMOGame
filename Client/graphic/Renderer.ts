@@ -20,8 +20,8 @@ export class Renderer extends GameObjectsHolder {
     private renderObjects: Map<GameObject, GameObjectRender>;
     private map: TileMap;
 
-    static HEIGHT: number = 576;
     static WIDTH: number = 1024;
+    static HEIGHT: number = 576;
 
     constructor(afterCreateCallback: Function) {
         super();

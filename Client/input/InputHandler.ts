@@ -23,8 +23,6 @@ export class InputHandler {
         document.addEventListener("keyup", this.keyReleased.bind(this));
 
         window.addEventListener("mousedown", this.mouseClick.bind(this));
-
-        //this.phaserInput.onDown.add(this.mouseClick, this);
     }
 
     public addSnapshotCallback(callback: Function) {

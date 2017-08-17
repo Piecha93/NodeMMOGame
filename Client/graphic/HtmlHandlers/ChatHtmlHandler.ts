@@ -68,12 +68,12 @@ export class ChatHtmlHandler {
 
     public append(sender: string, message: string) {
         let htmlMessageeSender: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
+        htmlMessageeSender.id = "msg-sender";
         htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
-        htmlMessageeSender.style.color = "rgb(50, 50, 85)";
 
         let htmlMessageeContent: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
+        htmlMessageeContent.id = "msg-content";
         htmlMessageeContent.textContent = message;
-        htmlMessageeContent.style.color = "rgb(85, 85, 85)";
 
         let htmlMessagee: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
         htmlMessagee.id = "chat-msg";
