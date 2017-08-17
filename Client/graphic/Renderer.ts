@@ -5,10 +5,12 @@ import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {BulletRender} from "./BulletRender";
-import {RectRenderer} from "./RectRenderer";
-import {Cell} from "../../Common/utils/physics/SpacialGrid";
-import {Camera} from "../../Client/graphic/Camera";
-import {GameObjectSpriteRender} from "../../Client/graphic/GameObjectSpriteRender";
+import {Camera} from "./Camera";
+import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
+import {TileMap} from "./TileMap";
+import Container = PIXI.Container;
+import DisplayObject = PIXI.DisplayObject;
+import Sprite = PIXI.Sprite;
 
 
 export class Renderer extends GameObjectsHolder {
@@ -16,7 +18,7 @@ export class Renderer extends GameObjectsHolder {
     private rootContainer: PIXI.Container;
     private camera: Camera;
     private renderObjects: Map<GameObject, GameObjectRender>;
-    private renderCells: Map<Cell, RectRenderer>;
+    private map: TileMap;
 
     static HEIGHT: number = 576;
     static WIDTH: number = 1024;
@@ -35,7 +37,6 @@ export class Renderer extends GameObjectsHolder {
         this.camera.addChild(this.rootContainer);
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
-        this.renderCells = new Map<Cell, RectRenderer>();
 
         PIXI.loader
             .add('none', 'resources/images/none.png')
@@ -47,19 +48,48 @@ export class Renderer extends GameObjectsHolder {
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
             .add('flame', 'resources/animations/flame/flame.json')
+            .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);
     }
 
+    private hideNotVisibleObjects() {
+        this.renderObjects.forEach((obj: GameObjectRender) => {
+            obj.visible = this.isInCameraView(obj);
+        });
+
+        this.map.children.forEach((obj: Sprite) => {
+            obj.visible = this.isInCameraView(obj);
+        });
+
+    }
+
+    private isInCameraView(object: any): boolean {
+        let buffor = 100;
+
+        let cameraX = this.camera.pivot.x - Renderer.WIDTH / 2 - buffor;
+        let cameraY = this.camera.pivot.y - Renderer.HEIGHT / 2 - buffor;
+
+        return (object.x < cameraX + Renderer.WIDTH + 2*buffor) &&
+            (object.y < cameraY + Renderer.HEIGHT + 2*buffor) &&
+            (cameraX < object.x + object.width) &&
+            (cameraY < object.y + object.height);
+    }
+
     public update(){
+        this.hideNotVisibleObjects();
+
         this.renderObjects.forEach((gameObjectRender: GameObjectRender) => {
             gameObjectRender.update();
         });
 
-        this.renderCells.forEach((boxRenderer: RectRenderer) => {
-            boxRenderer.update();
-        });
         this.camera.update();
         this.renderer.render(this.camera);
+    }
+
+    public setMap(map?: number[][]) {
+        this.map = new TileMap();
+
+        this.rootContainer.addChild(this.map);
     }
 
     public addGameObject(gameObject: GameObject) {
@@ -83,13 +113,6 @@ export class Renderer extends GameObjectsHolder {
 
     set CameraFollower(gameObject: GameObject) {
         this.camera.Follower = this.renderObjects.get(gameObject).position;
-    }
-
-    public addCell(cell: Cell) {
-        let boxRenderer: RectRenderer = new RectRenderer();
-        boxRenderer.setObject(cell);
-        this.renderCells.set(cell, boxRenderer);
-        this.rootContainer.addChild(boxRenderer);
     }
 
     public removeGameObject(gameObject: GameObject) {

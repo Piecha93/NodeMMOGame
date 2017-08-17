@@ -103,15 +103,14 @@ export class GameServer {
             this.clients.set(socket, serverClient);
             this.socketsIds.set(socketSession.user_id, socket);
 
-            let clientName: string = "";
             if(socketSession.user_id.substring(0, 5) == "Guest") {
-                clientName = socketSession.user_id;
+                serverClient.Name = socketSession.user_id;
             } else {
                 Database.Instance.findUserById(socketSession.user_id, (user: IUserModel) => {
-                    clientName = user.username;
+                    serverClient.Name = user.username;
                     let player: Player = this.world.getGameObject(serverClient.PlayerId) as Player;
                     if(player) {
-                        player.Name =  clientName;
+                        player.Name = serverClient.Name;
                     }
                 })
             }
@@ -121,7 +120,7 @@ export class GameServer {
                 player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
                 player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
 
-                player.Name = clientName;
+                player.Name = serverClient.Name;
 
                 serverClient.PlayerId = player.ID;
 
@@ -131,6 +130,8 @@ export class GameServer {
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
                 player.forceCompleteUpdate();
                 serverClient.IsReady = true;
+
+                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
@@ -165,7 +166,7 @@ export class GameServer {
                         this.world.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
                         return;
                     }
-                    this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: clientName, m: msg});
+                    this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
                 }
             });
 
@@ -210,6 +211,8 @@ export class GameServer {
         }
 
         console.log(SocketMsgs.ERROR, 'player disconnected' + client.Name);
+        this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
+
 
         let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(client.PlayerId);
         if(gameObject != null) {

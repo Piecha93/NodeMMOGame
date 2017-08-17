@@ -68,6 +68,8 @@ export class GameClient {
 
             this.world = new World(width, height);
 
+            this.renderer.setMap();
+
             ObjectsFactory.HolderSubscribers.push(this.renderer);
             ObjectsFactory.HolderSubscribers.push(this.world);
             ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);

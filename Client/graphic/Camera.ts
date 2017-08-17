@@ -15,9 +15,9 @@ export class Camera extends PIXI.Container {
     }
 
     set Follower(follower: PIXI.Point | PIXI.ObservablePoint) {
-            this.follower = follower;
-            this.pivot = new PIXI.Point(follower.x, follower.y);
-            this.update();
+        this.follower = follower;
+        this.pivot = new PIXI.Point(follower.x, follower.y);
+        this.update();
     }
 
     update() {

@@ -79,6 +79,7 @@ class GameClient {
             let width = Number(worldInfo[0]);
             let height = Number(worldInfo[1]);
             this.world = new World_1.World(width, height);
+            this.renderer.setMap();
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.world);
             ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
@@ -143,7 +144,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":18,"../Common/DeltaTimer":20,"../Common/World":21,"../Common/net/NetObjectsManager":23,"../Common/net/SocketMsgs":24,"../Common/utils/game/ObjectsFactory":32,"./Chat":1,"./ClientConfig":2,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":10,"./graphic/Renderer":13,"./input/InputHandler":14,"./net/HeartBeatSender":17}],4:[function(require,module,exports){
+},{"../Client/net/InputSender":18,"../Common/DeltaTimer":20,"../Common/World":21,"../Common/net/NetObjectsManager":23,"../Common/net/SocketMsgs":24,"../Common/utils/game/ObjectsFactory":32,"./Chat":1,"./ClientConfig":2,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":10,"./graphic/Renderer":12,"./input/InputHandler":14,"./net/HeartBeatSender":17}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("../../Client/graphic/GameObjectAnimationRender");
@@ -188,7 +189,7 @@ class Camera extends PIXI.Container {
 }
 exports.Camera = Camera;
 
-},{"../../Client/graphic/Renderer":13}],6:[function(require,module,exports){
+},{"../../Client/graphic/Renderer":12}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
@@ -431,73 +432,12 @@ exports.PlayerRender = PlayerRender;
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
-var Graphics = PIXI.Graphics;
-class RectRenderer extends PIXI.Container {
-    constructor() {
-        super();
-        this.red = false;
-    }
-    setObject(cell) {
-        this.cell = cell;
-        this.trans = cell.Transform;
-        if (RectRenderer.textureRed == null) {
-            let rect1 = new Graphics();
-            rect1.clear();
-            rect1.lineStyle(2, 0xff0000);
-            rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
-            rect1.endFill();
-            RectRenderer.textureRed = rect1.generateCanvasTexture();
-            rect1.clear();
-            rect1.lineStyle(2, 0x0000ff);
-            rect1.drawRect(0, 0, this.trans.Width, this.trans.Height);
-            rect1.endFill();
-            RectRenderer.textureBlue = rect1.generateCanvasTexture();
-        }
-        this.x = this.trans.X;
-        this.y = this.trans.Y;
-        this.spriteRed = new PIXI.Sprite(RectRenderer.textureRed);
-        this.spriteBlue = new PIXI.Sprite(RectRenderer.textureBlue);
-        let id = new PIXI.Text(this.cell.id.toString(), {
-            fontFamily: "Arial",
-            fontSize: "12px",
-            fill: "#ffffff"
-        });
-        this.addChild(id);
-    }
-    update() {
-        if (this.cell.isEmpty()) {
-            if (!this.red) {
-                this.removeChild(this.spriteBlue);
-                this.addChild(this.spriteRed);
-                this.red = true;
-            }
-        }
-        else {
-            if (this.red) {
-                this.red = false;
-                this.removeChild(this.spriteRed);
-                this.addChild(this.spriteBlue);
-            }
-        }
-    }
-    destroy() {
-        super.destroy();
-    }
-}
-RectRenderer.textureRed = null;
-RectRenderer.textureBlue = null;
-exports.RectRenderer = RectRenderer;
-
-},{}],13:[function(require,module,exports){
-"use strict";
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../../Common/utils/game/GameObjectsHolder");
 const PlayerRender_1 = require("./PlayerRender");
 const BulletRender_1 = require("./BulletRender");
-const RectRenderer_1 = require("./RectRenderer");
-const Camera_1 = require("../../Client/graphic/Camera");
-const GameObjectSpriteRender_1 = require("../../Client/graphic/GameObjectSpriteRender");
+const Camera_1 = require("./Camera");
+const GameObjectSpriteRender_1 = require("./GameObjectSpriteRender");
+const TileMap_1 = require("./TileMap");
 class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     constructor(afterCreateCallback) {
         super();
@@ -512,7 +452,6 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.camera = new Camera_1.Camera(new PIXI.Point(333, 333));
         this.camera.addChild(this.rootContainer);
         this.renderObjects = new Map();
-        this.renderCells = new Map();
         PIXI.loader
             .add('none', 'resources/images/none.png')
             .add('bunny', 'resources/images/bunny.png')
@@ -523,17 +462,42 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
             .add('flame', 'resources/animations/flame/flame.json')
+            .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);
+        document.addEventListener("keydown", (event) => {
+            if (event.keyCode == 72) {
+                this.hideNotVisibleObjects();
+            }
+        });
+    }
+    hideNotVisibleObjects() {
+        this.renderObjects.forEach((obj) => {
+            obj.visible = this.isInCameraView(obj);
+        });
+        this.map.children.forEach((obj) => {
+            obj.visible = this.isInCameraView(obj);
+        });
+    }
+    isInCameraView(object) {
+        let buffor = 100;
+        let cameraX = this.camera.pivot.x - Renderer.WIDTH / 2 - buffor;
+        let cameraY = this.camera.pivot.y - Renderer.HEIGHT / 2 - buffor;
+        return (object.x < cameraX + Renderer.WIDTH + 2 * buffor) &&
+            (object.y < cameraY + Renderer.HEIGHT + 2 * buffor) &&
+            (cameraX < object.x + object.width) &&
+            (cameraY < object.y + object.height);
     }
     update() {
+        // this.hideNotVisibleObjects();
         this.renderObjects.forEach((gameObjectRender) => {
             gameObjectRender.update();
         });
-        this.renderCells.forEach((boxRenderer) => {
-            boxRenderer.update();
-        });
         this.camera.update();
         this.renderer.render(this.camera);
+    }
+    setMap(map) {
+        this.map = new TileMap_1.TileMap();
+        this.rootContainer.addChild(this.map);
     }
     addGameObject(gameObject) {
         super.addGameObject(gameObject);
@@ -555,12 +519,6 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
     set CameraFollower(gameObject) {
         this.camera.Follower = this.renderObjects.get(gameObject).position;
     }
-    addCell(cell) {
-        let boxRenderer = new RectRenderer_1.RectRenderer();
-        boxRenderer.setObject(cell);
-        this.renderCells.set(cell, boxRenderer);
-        this.rootContainer.addChild(boxRenderer);
-    }
     removeGameObject(gameObject) {
         super.removeGameObject(gameObject);
         this.renderObjects.get(gameObject).destroy();
@@ -571,7 +529,49 @@ Renderer.HEIGHT = 576;
 Renderer.WIDTH = 1024;
 exports.Renderer = Renderer;
 
-},{"../../Client/graphic/Camera":5,"../../Client/graphic/GameObjectSpriteRender":8,"../../Common/utils/game/GameObjectsHolder":31,"./BulletRender":4,"./PlayerRender":11,"./RectRenderer":12}],14:[function(require,module,exports){
+},{"../../Common/utils/game/GameObjectsHolder":31,"./BulletRender":4,"./Camera":5,"./GameObjectSpriteRender":8,"./PlayerRender":11,"./TileMap":13}],13:[function(require,module,exports){
+"use strict";
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+class TileMap extends PIXI.Container {
+    constructor(map) {
+        super();
+        this.map = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+        let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(6 * 32, 12 * 32, 32, 32));
+        for (let i = 0; i < 100; i++) {
+            for (let j = 0; j < 100; j++) {
+                let sprite = new PIXI.Sprite(texture);
+                sprite.x = i * 32;
+                sprite.y = j * 32;
+                this.addChild(sprite);
+            }
+        }
+    }
+    update() {
+    }
+    destroy() {
+        super.destroy();
+    }
+}
+exports.TileMap = TileMap;
+// things = [];
+//
+// for(var i: number = 0; i < 10; i++) {
+//     this.things[i] = [];
+//     for(var j: number = 0; j< 10; j++) {
+//         this.things[i][j] = new Thing();
+//     }
+// } 
+
+},{}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../Common/input/InputSnapshot");
@@ -1198,7 +1198,6 @@ class Enemy extends Actor_1.Actor {
             for (let i = 0; i < 10; i++) {
                 let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject("B");
                 bullet.Owner = this.ID;
-                // bullet.Transform.Rotation = parseFloat(this.inputCommands.get("C"));
                 bullet.Transform.Rotation = Math.floor(Math.random() * 360);
                 bullet.Transform.X = this.transform.X;
                 bullet.Transform.Y = this.transform.Y;
@@ -1287,7 +1286,7 @@ class GameObject {
         for (let listener of this.destroyListeners) {
             listener(this.id);
         }
-        console.log("Object destroyed " + this.ID);
+        // console.log("Object destroyed " + this.ID);
     }
     get Transform() {
         return this.transform;
@@ -1455,7 +1454,7 @@ class ObjectsFactory {
             ObjectsFactory.DestroySubscribers.forEach((subscriber) => {
                 gameObject.addDestroyListener(subscriber);
             });
-            console.log("New object " + gameObject.ID);
+            // console.log("New object " + gameObject.ID);
         }
         return gameObject;
     }

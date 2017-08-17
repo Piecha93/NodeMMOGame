@@ -44,4 +44,8 @@ export class ServerClient {
     set PlayerId(value: string) {
         this.playerId = value;
     }
+
+    set Name(value: string) {
+        this.name = value;
+    }
 }

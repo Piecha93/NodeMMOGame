@@ -109,7 +109,7 @@ export abstract class GameObject implements Collidable {
         for(let listener of this.destroyListeners) {
             listener(this.id);
         }
-        console.log("Object destroyed " + this.ID);
+        // console.log("Object destroyed " + this.ID);
     }
 
     get Transform(): Transform {

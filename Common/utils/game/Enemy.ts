@@ -43,7 +43,6 @@ export class Enemy extends Actor {
                 let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
                 bullet.Owner = this.ID;
 
-                // bullet.Transform.Rotation = parseFloat(this.inputCommands.get("C"));
                 bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
                 bullet.Transform.X = this.transform.X;

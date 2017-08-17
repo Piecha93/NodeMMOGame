@@ -49,7 +49,7 @@ export class ObjectsFactory {
                 gameObject.addDestroyListener(subscriber);
             });
 
-            console.log("New object " + gameObject.ID);
+            // console.log("New object " + gameObject.ID);
         }
 
         return gameObject;
