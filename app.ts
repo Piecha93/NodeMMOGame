@@ -8,10 +8,10 @@ import * as bodyParser from 'body-parser'
 
 import {Request, Response} from "express";
 import {MongoStore} from "connect-mongo";
-
 import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./Common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
+import {Types} from "./Common/utils/game/GameObjectTypes";
 
 CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = process.env.PORT || 3000;
@@ -95,6 +95,7 @@ app.get('/game', checkAuth, (req: Request, res: Response) => {
     res.render('game');
 });
 
+Types.Init();
 let gameServer: GameServer = new GameServer(sockets);
 gameServer.start();
 

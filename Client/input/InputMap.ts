@@ -4,6 +4,7 @@ export enum INPUT {
     DOWN,
     LEFT,
     RIGHT,
+    FIRE
 }
 
 export const InputMap: Map<number, INPUT> = new Map<number, INPUT>([

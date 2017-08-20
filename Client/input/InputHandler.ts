@@ -1,6 +1,7 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
 import {Transform} from "../../Common/utils/physics/Transform";
 import {InputMap, INPUT} from "./InputMap";
+import {INPUT_COMMAND} from "../../Common/input/InputCommands";
 
 export class InputHandler {
     private releasedKeys: Set<number>;
@@ -86,12 +87,12 @@ export class InputHandler {
         let newDirection: number = this.parseDirection(directionBuffor);
         if(newDirection != this.lastDirection) {
             this.lastDirection = newDirection;
-            inputSnapshot.append("D", newDirection.toString())
+            inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString())
         }
 
         if(this.clickPosition != null) {
             let angle: string = this.parseClick();
-            inputSnapshot.append("C", angle);
+            inputSnapshot.append(INPUT_COMMAND.FIRE, angle);
             this.clickPosition = null;
         }
 

@@ -15,6 +15,7 @@ import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHand
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {ClientConfig} from "./ClientConfig";
+import {Types} from "../Common/utils/game/GameObjectTypes";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -75,20 +76,22 @@ export class GameClient {
             ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
 
             this.updateGame(data);
-            this.player = this.world.getGameObject(data['id']) as Player;
-            this.renderer.CameraFollower = this.player;
+            //setTimeout(() => {
+                this.player = this.world.getGameObject(data['id']) as Player;
+                this.renderer.CameraFollower = this.player;
 
-            this.heartBeatSender.startSendingHeartbeats();
+                this.heartBeatSender.startSendingHeartbeats();
 
-            this.startGame();
-            // this.world.Cells.forEach((cell: Cell) => {
-            //     this.renderer.addCell(cell);
-            // });
-            this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
+                this.startGame();
+                // this.world.Cells.forEach((cell: Cell) => {
+                //     this.renderer.addCell(cell);
+                // });
+                this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
 
-            this.socket.on(SocketMsgs.ERROR, (err: string) => {
-                console.log(err);
-            });
+                this.socket.on(SocketMsgs.ERROR, (err: string) => {
+                    console.log(err);
+                });
+            //}, 300);
         });
     }
 
@@ -113,33 +116,36 @@ export class GameClient {
     }
 
     private updateGame(data) {
-        if(data['update'] == null) {
-            return
-        }
+        // console.log(data);
+       // setTimeout(() => {
+            if (data['update'] == null) {
+                return
+            }
 
-        let update = data['update'].split('$');
-        //console.log(update);
-        for (let object in update) {
-            let splitObject: string[] = update[object].split('=');
-            let id: string = splitObject[0];
-            let data: string = splitObject[1];
+            let update = data['update'].split('$');
+            //console.log(update);
+            for (let object in update) {
+                let splitObject: string[] = update[object].split('=');
+                let id: string = splitObject[0];
+                let data: string = splitObject[1];
 
-            let gameObject: GameObject = null;
-            if(id[0] == '!') {
-                id = id.slice(1);
-                gameObject = this.netObjectMenager.getObject(id);
-                if(gameObject) {
-                    gameObject.destroy();
+                let gameObject: GameObject = null;
+                if (id[0] == '!') {
+                    id = id.slice(1);
+                    gameObject = this.netObjectMenager.getObject(id);
+                    if (gameObject) {
+                        gameObject.destroy();
+                    }
+                    continue;
                 }
-                continue;
-            }
 
-            gameObject = this.netObjectMenager.getObject(id);
+                gameObject = this.netObjectMenager.getObject(id);
 
-            if(gameObject == null) {
-                gameObject = ObjectsFactory.CreateGameObject(id, data);
+                if (gameObject == null) {
+                    gameObject = ObjectsFactory.CreateGameObject(Types.IdToClass.get(id[0]), id, data);
+                }
+                gameObject.deserialize(data.split('#'));
             }
-            gameObject.deserialize(data.split('#'));
-        }
+     //   }, 200);
     }
 }

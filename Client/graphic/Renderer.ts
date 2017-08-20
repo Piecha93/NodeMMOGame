@@ -98,7 +98,7 @@ export class Renderer extends GameObjectsHolder {
         let gameObjectRender: GameObjectRender;
 
         let type: string = gameObject.ID[0];
-        if(type == "P") {
+        if(type == "P" || type == "E") {
             gameObjectRender = new PlayerRender();
         } else if(type == "B") {
             gameObjectRender = new BulletRender();

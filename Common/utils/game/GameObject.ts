@@ -4,11 +4,7 @@ import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
 
 export abstract class GameObject implements Collidable {
-    abstract get Type(): string;
-
-    private static NEXT_ID: number = 0;
-
-    protected id: string = (GameObject.NEXT_ID++).toString();
+    protected id: string = "";
     protected spriteName: string;
     protected transform: Transform;
     protected velocity: number = 10;
@@ -135,8 +131,8 @@ export abstract class GameObject implements Collidable {
 
     static serializePosition(gameObject: GameObject): string {
         return ChangesDict.buildTag(ChangesDict.POSITION)
-            + gameObject.Transform.X.toPrecision(4)
-            + ',' + gameObject.Transform.Y.toPrecision(4);
+            + gameObject.Transform.X.toPrecision(10)
+            + ',' + gameObject.Transform.Y.toPrecision(10);
     }
 
     static deserializePosition(gameObject: GameObject, data: string) {

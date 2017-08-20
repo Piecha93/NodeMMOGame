@@ -1,5 +1,4 @@
 import {Transform} from "../physics/Transform";
-import {GameObjectType} from "./GameObjectTypes";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
 import {Actor} from "./Actor";
@@ -7,13 +6,8 @@ import {ChangesDict} from "./ChangesDict";
 
 export class Enemy extends Actor {
     private timeFromLastShot = 1000;
-
-    get Type(): string {
-        return GameObjectType.Player.toString();
-    }
-
-    constructor(name: string, transform: Transform) {
-        super(name, transform);
+    constructor(transform: Transform) {
+        super(transform);
     }
 
     protected commonUpdate(delta: number) {
@@ -40,7 +34,7 @@ export class Enemy extends Actor {
         if(this.timeFromLastShot <= 0) {
             this.timeFromLastShot = 1000;
             for(let i = 0; i < 10; i++) {
-                let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
+                let bullet: Bullet = ObjectsFactory.CreateGameObject(Bullet) as Bullet;
                 bullet.Owner = this.ID;
 
                 bullet.Transform.Rotation = Math.floor(Math.random() * 360);

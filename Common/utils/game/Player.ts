@@ -1,32 +1,28 @@
+import {INPUT_COMMAND} from "../../input/InputCommands";
 import {Transform} from "../physics/Transform";
-import {GameObjectType} from "./GameObjectTypes";
-import {ChangesDict} from "./ChangesDict";
-import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
 import {Actor} from "./Actor";
+import {ChangesDict} from "./ChangesDict";
+import {ObjectsFactory} from "./ObjectsFactory";
 
 export class Player extends Actor {
-    get Type(): string {
-        return GameObjectType.Player.toString();
-    }
-
     private moveDirection: number = 0;
-    private inputCommands: Map<string, string> = new Map<string, string>();
+    private inputCommands: Map<INPUT_COMMAND, string> = new Map<INPUT_COMMAND, string>();
 
-    constructor(name: string, transform: Transform) {
-        super(name, transform);
+    constructor(transform: Transform) {
+        super(transform);
     }
 
-    public setInput(commands: Map<string, string> ) {
+    public setInput(commands: Map<INPUT_COMMAND, string> ) {
         this.inputCommands = commands;
     }
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-        if(this.inputCommands.has("D")) {
-            this.moveDirection = parseInt(this.inputCommands.get("D"));
-            this.inputCommands.delete("D");
+        if(this.inputCommands.has(INPUT_COMMAND.MOVE_DIRECTION)) {
+            this.moveDirection = parseInt(this.inputCommands.get(INPUT_COMMAND.MOVE_DIRECTION));
+            this.inputCommands.delete(INPUT_COMMAND.MOVE_DIRECTION);
         }
 
         let xFactor: number = 0;
@@ -62,18 +58,18 @@ export class Player extends Actor {
     }
 
     protected serverUpdate(delta: number) {
-        if(this.inputCommands.has("C")) {
+        if(this.inputCommands.has(INPUT_COMMAND.FIRE)) {
             for(let i = 0; i < 1; i++) {
-                let bullet: Bullet = ObjectsFactory.CreateGameObject("B") as Bullet;
+                let bullet: Bullet = ObjectsFactory.CreateGameObject(Bullet) as Bullet;
                 bullet.Owner = this.ID;
 
-                bullet.Transform.Rotation = parseFloat(this.inputCommands.get("C"));
+                bullet.Transform.Rotation = parseFloat(this.inputCommands.get(INPUT_COMMAND.FIRE));
                 //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
 
                 bullet.Transform.X = this.transform.X;
                 bullet.Transform.Y = this.transform.Y;
             }
-            this.inputCommands.delete("C");
+            this.inputCommands.delete(INPUT_COMMAND.FIRE);
         }
     }
 

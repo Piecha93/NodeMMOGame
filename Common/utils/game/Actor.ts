@@ -1,29 +1,24 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
 import {Bullet} from "./Bullet";
+import {Obstacle} from "./Obstacle";
 
 export abstract class Actor extends GameObject {
-    get Type(): string {
-        return GameObjectType.Actor.toString();
-    }
-
     private name: string;
     private maxHp: number;
     private hp: number;
 
-    constructor(name: string, transform: Transform) {
+    constructor(transform: Transform) {
         super(transform);
-        this.id = this.Type + this.id;
 
         this.sFunc = new Map<string, Function>(function*() { yield* Actor.SerializeFunctions; yield* this.sFunc; }.bind(this)());
         this.dFunc = new Map<string, Function>(function*() { yield* Actor.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
-        this.name = name;
 
         this.maxHp = 200;
         this.hp = this.maxHp;
         this.velocity = 0.3;
+        this.name = '';
 
         this.transform.Width = 40;
         this.transform.Height = 64;
@@ -32,7 +27,8 @@ export abstract class Actor extends GameObject {
     }
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        if(gameObject.Type == GameObjectType.Bullet.toString()) {
+        super.serverCollision(gameObject, response);
+        if(gameObject instanceof Bullet) {
             let bullet: Bullet = gameObject as Bullet;
             if(bullet.Owner == this.ID) {
                 return;
@@ -42,7 +38,8 @@ export abstract class Actor extends GameObject {
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+        super.commonCollision(gameObject, response);
+        if(gameObject instanceof Obstacle) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
         }

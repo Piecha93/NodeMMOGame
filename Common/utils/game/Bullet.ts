@@ -1,14 +1,10 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {GameObjectType} from "./GameObjectTypes";
 import {ChangesDict} from "./ChangesDict";
-import {Player} from "./Player";
+import {Obstacle} from "./Obstacle";
+import {Actor} from "./Actor";
 
 export class Bullet extends GameObject {
-    get Type(): string {
-        return GameObjectType.Bullet.toString();
-    }
-
     private lifeSpan: number = 50;
     private power: number = 10;
 
@@ -16,7 +12,6 @@ export class Bullet extends GameObject {
 
     constructor(transform: Transform) {
         super(transform);
-        this.id = this.Type + this.id;
 
         if(Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
@@ -42,12 +37,12 @@ export class Bullet extends GameObject {
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
         super.serverCollision(gameObject, response);
-        if(gameObject.Type == GameObjectType.Bullet.toString()) {
+        if(gameObject instanceof Bullet) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
             }
        }
-       if(gameObject.Type == GameObjectType.Player.toString()) {
+       if(gameObject instanceof Actor) {
             if(gameObject.ID != this.owner) {
                 this.destroy()
             }
@@ -56,7 +51,7 @@ export class Bullet extends GameObject {
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
         super.commonCollision(gameObject, response);
-        if(gameObject.Type == GameObjectType.Obstacle.toString()) {
+        if(gameObject instanceof Obstacle) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;
 
