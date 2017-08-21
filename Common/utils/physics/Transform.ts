@@ -1,17 +1,26 @@
 import * as SAT from 'sat';
+import {NetworkProperty} from "../game/NetworkPropertyDecorator";
 
 export class Transform {
     private polygon: SAT.Polygon;
 
+    @NetworkProperty
     private width: number;
+    @NetworkProperty
     private height: number;
+    @NetworkProperty
+    private x: number;
+    @NetworkProperty
+    private y: number;
+    @NetworkProperty
+    private rotation: number;
 
     constructor(x?: number, y?: number, width?: number, height?: number) {
         x = x || 0;
         y = y || 0;
 
-        this.width = width || 32;
-        this.height = height || 32;
+        width = width || 32;
+        height = height || 32;
 
         let w: number = this.Width / 2;
         let h: number = this.Height / 2;
@@ -20,6 +29,14 @@ export class Transform {
             new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
             new SAT.Vector(w, h), new SAT.Vector(-w, h)
         ]);
+
+        this.X = x;
+        this.Y = y;
+
+        this.width = width;
+        this.height = height;
+
+        this.rotation = this.polygon.angle;
     }
 
     static testCollision(t1: Transform, t2: Transform, response?: SAT.Response) {
@@ -47,6 +64,7 @@ export class Transform {
 
     set X(x: number) {
         this.polygon.pos.x = x;
+        this.x = x;
     }
 
     get Y(): number {
@@ -55,6 +73,7 @@ export class Transform {
 
     set Y(y: number) {
         this.polygon.pos.y = y;
+        this.y = y;
     }
 
     set Width(width: number) {
@@ -89,6 +108,7 @@ export class Transform {
 
     set Rotation(angle: number) {
         this.polygon.setAngle(angle);
+        this.rotation = angle;
     }
 
     get Rotation(): number {

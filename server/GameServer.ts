@@ -43,25 +43,25 @@ export class GameServer {
         });
 
         //////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
-        for(let i = 0; i < 1156 / 32; i++) {
-            let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
-            o.Transform.X = 0;
-            o.Transform.Y = i * 32;
-
-            o = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
-            o.Transform.X = 2048 - 32;
-            o.Transform.Y = i * 32;
-        }
-
-        for(let i = 1; i < 2016 / 32; i++) {
-            let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
-            o.Transform.X = i * 32;
-            o.Transform.Y = 0;
-
-            o = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
-            o.Transform.X = i * 32;
-            o.Transform.Y = 1156 - 32;
-        }
+        // for(let i = 0; i < 1156 / 32; i++) {
+        //     let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
+        //     o.Transform.X = 0;
+        //     o.Transform.Y = i * 32;
+        //
+        //     o = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
+        //     o.Transform.X = 2048 - 32;
+        //     o.Transform.Y = i * 32;
+        // }
+        //
+        // for(let i = 1; i < 2016 / 32; i++) {
+        //     let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
+        //     o.Transform.X = i * 32;
+        //     o.Transform.Y = 0;
+        //
+        //     o = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
+        //     o.Transform.X = i * 32;
+        //     o.Transform.Y = 1156 - 32;
+        // }
         let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 150;
@@ -79,7 +79,7 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 5; i++) {
+        for(let i = 0; i < 0; i++) {
             createEnemy();
         }
 

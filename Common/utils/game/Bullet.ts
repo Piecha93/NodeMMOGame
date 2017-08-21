@@ -1,13 +1,14 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {ChangesDict} from "./ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
+import {NetworkProperty} from "./NetworkPropertyDecorator";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
+    @NetworkProperty
     private power: number = 10;
-
+    @NetworkProperty
     private owner: string;
 
     constructor(transform: Transform) {
@@ -28,11 +29,6 @@ export class Bullet extends GameObject {
         this.transform.Height = 20;
 
         this.lifeSpan = 5000;
-        this.changes.add(ChangesDict.VELOCITY);
-        this.changes.add(ChangesDict.LIFE_SPAN);
-
-        this.sFunc = new Map<string, Function>(function*() { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
-        this.dFunc = new Map<string, Function>(function*() { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
@@ -60,9 +56,6 @@ export class Bullet extends GameObject {
             } else {
                 this.Transform.Rotation = 2*Math.PI - this.Transform.Rotation;
             }
-
-            this.changes.add(ChangesDict.ROTATION);
-            this.changes.add(ChangesDict.POSITION);
         }
     }
 
@@ -96,32 +89,5 @@ export class Bullet extends GameObject {
 
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;
-
-        //this.changes.add(ChangesDict.POSITION);
     }
-
-    static serializeLifeSpan(bullet: Bullet): string {
-        return ChangesDict.buildTag(ChangesDict.LIFE_SPAN) + bullet.lifeSpan;
-    }
-
-    static deserializeLifeSpan(bullet: Bullet, data: string) {
-        bullet.lifeSpan = parseInt(data);
-    }
-
-    static serializeOwner(bullet: Bullet): string {
-        return ChangesDict.buildTag(ChangesDict.OWNER) + bullet.owner;
-    }
-
-    static deserializeOwner(bullet: Bullet, data: string) {
-        bullet.owner = data;
-    }
-
-    static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
-        [ChangesDict.OWNER, Bullet.serializeOwner]
-    ]);
-    static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
-        [ChangesDict.OWNER, Bullet.deserializeOwner]
-    ]);
 }

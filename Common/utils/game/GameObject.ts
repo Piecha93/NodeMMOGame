@@ -1,17 +1,18 @@
 import {Transform} from "../physics/Transform";
-import {ChangesDict} from "./ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
+import {NetworkProperty} from "./NetworkPropertyDecorator";
 
 export abstract class GameObject implements Collidable {
     protected id: string = "";
-    protected spriteName: string;
+    @NetworkProperty
+    protected spriteName: string = "";
     protected transform: Transform;
-    protected velocity: number = 10;
 
-    protected sFunc: Map<string, Function>;
-    protected dFunc: Map<string, Function>;
+    @NetworkProperty
+    protected velocity: number = 10;
     protected changes: Set<string>;
+
     private forceComplete: boolean = true;
 
     private destroyListeners: Set<Function>;
@@ -19,9 +20,6 @@ export abstract class GameObject implements Collidable {
     constructor(transform: Transform) {
         this.transform = transform;
         this.changes = new Set<string>();
-
-        this.sFunc = GameObject.SerializeFunctions;
-        this.dFunc = GameObject.DeserializeFunctions;
 
         this.spriteName = "none";
         this.destroyListeners = new Set<Function>();
@@ -69,28 +67,47 @@ export abstract class GameObject implements Collidable {
         }
 
         if(complete) {
-            this.sFunc.forEach((serializeFunc: Function) => {
-                update += serializeFunc(this);
+            this['networkProperties'].forEach((prop: string) => {
+                update += "#" + prop + ":" + this[prop];
+            });
+            this.Transform['networkProperties'].forEach((prop: string) => {
+                // prop = prop.charAt(0).toUpperCase() + prop.slice(1);
+                update += "#" + prop + ":" + this.Transform[prop];
             });
         } else {
-            this.changes.forEach((field: string) => {
-                if (this.sFunc.has(field)) {
-                    update += this.sFunc.get(field)(this);
-                    this.changes.delete(field);
-                }
+            this["serializedProperties"].forEach((val: string, key: any) => {
+                update += "#" + key + ":" + val;
+            });
+            this.Transform["serializedProperties"].forEach((val: string, key: any) => {
+                update += "#" + key + ":" + val;
             });
         }
-        this.changes.clear();
+
+        // if(this["serializedProperties"].size > 0) {
+        //     console.log(this["serializedProperties"]);
+        // }
+        // if(this.Transform["serializedProperties"].size > 0) {
+        //     console.log(this.Transform["serializedProperties"]);
+        // }
+        this["serializedProperties"].clear();
+        this.Transform["serializedProperties"].clear();
 
         return update;
     }
 
     public deserialize(update: string[]) {
-        for(let item of update) {
-            if(this.dFunc.has(item[0])) {
-                this.dFunc.get(item[0])(this, item.split(':')[1]);
+        console.log(update);
+
+        update.forEach((item: string) => {
+            let splited = item.split(':');
+            if(this['networkProperties'].indexOf(splited[0]) != -1) {
+                this[splited[0]] = splited[1];
             }
-        }
+            if(this.Transform['networkProperties'].indexOf(splited[0]) != -1) {
+                let prop: string = splited[0].charAt(0).toUpperCase() + splited[0].slice(1);
+                this.Transform[prop] = Number(splited[1]);
+            }
+        });
     }
 
     addDestroyListener(listener: Function) {
@@ -105,7 +122,6 @@ export abstract class GameObject implements Collidable {
         for(let listener of this.destroyListeners) {
             listener(this.id);
         }
-        // console.log("Object destroyed " + this.ID);
     }
 
     get Transform(): Transform {
@@ -126,72 +142,71 @@ export abstract class GameObject implements Collidable {
 
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
-        this.changes.add(ChangesDict.SPRITE);
     }
 
-    static serializePosition(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.POSITION)
-            + gameObject.Transform.X.toPrecision(10)
-            + ',' + gameObject.Transform.Y.toPrecision(10);
-    }
-
-    static deserializePosition(gameObject: GameObject, data: string) {
-        let x: string = data.split(',')[0];
-        let y: string = data.split(',')[1];
-
-        gameObject.transform.X = parseFloat(x);
-        gameObject.transform.Y = parseFloat(y);
-    }
-
-    static serializeSize(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.SIZE)
-            + gameObject.Transform.Width + ',' + gameObject.Transform.Height;
-    }
-
-    static deserializeSize(gameObject: GameObject, data: string) {
-        let w: string = data.split(',')[0];
-        let h: string = data.split(',')[1];
-
-        gameObject.transform.Width = parseFloat(w);
-        gameObject.transform.Height = parseFloat(h);
-    }
-
-    static serializeSpriteName(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.SPRITE) + gameObject.spriteName;
-    }
-
-    static deserializeSpriteName(gameObject: GameObject, data: string) {
-        gameObject.spriteName = data;
-    }
-
-    static serializeVelocity(bullet: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.VELOCITY) + bullet.velocity;
-    }
-
-    static deserializeVelocity(bullet: GameObject, data: string) {
-        bullet.velocity = parseFloat(data);
-    }
-
-    static serializeRotation(gameObject: GameObject): string {
-        return ChangesDict.buildTag(ChangesDict.ROTATION) + gameObject.Transform.Rotation.toPrecision(4);
-    }
-
-    static deserializeRotation(gameObject: GameObject, data: string) {
-        gameObject.Transform.Rotation = parseFloat(data);
-    }
-
-    static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.POSITION, GameObject.serializePosition],
-        [ChangesDict.SIZE, GameObject.serializeSize],
-        [ChangesDict.SPRITE, GameObject.serializeSpriteName],
-        [ChangesDict.VELOCITY, GameObject.serializeVelocity],
-        [ChangesDict.ROTATION, GameObject.serializeRotation],
-    ]);
-    static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
-        [ChangesDict.POSITION, GameObject.deserializePosition],
-        [ChangesDict.SIZE, GameObject.deserializeSize],
-        [ChangesDict.SPRITE, GameObject.deserializeSpriteName],
-        [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
-        [ChangesDict.ROTATION, GameObject.deserializeRotation],
-    ]);
+    // static serializePosition(gameObject: GameObject): string {
+    //     return ChangesDict.buildTag(ChangesDict.POSITION)
+    //         + gameObject.Transform.X.toPrecision(10)
+    //         + ',' + gameObject.Transform.Y.toPrecision(10);
+    // }
+    //
+    // static deserializePosition(gameObject: GameObject, data: string) {
+    //     let x: string = data.split(',')[0];
+    //     let y: string = data.split(',')[1];
+    //
+    //     gameObject.transform.X = parseFloat(x);
+    //     gameObject.transform.Y = parseFloat(y);
+    // }
+    //
+    // static serializeSize(gameObject: GameObject): string {
+    //     return ChangesDict.buildTag(ChangesDict.SIZE)
+    //         + gameObject.Transform.Width + ',' + gameObject.Transform.Height;
+    // }
+    //
+    // static deserializeSize(gameObject: GameObject, data: string) {
+    //     let w: string = data.split(',')[0];
+    //     let h: string = data.split(',')[1];
+    //
+    //     gameObject.transform.Width = parseFloat(w);
+    //     gameObject.transform.Height = parseFloat(h);
+    // }
+    //
+    // static serializeSpriteName(gameObject: GameObject): string {
+    //     return ChangesDict.buildTag(ChangesDict.SPRITE) + gameObject.spriteName;
+    // }
+    //
+    // static deserializeSpriteName(gameObject: GameObject, data: string) {
+    //     gameObject.spriteName = data;
+    // }
+    //
+    // static serializeVelocity(bullet: GameObject): string {
+    //     return ChangesDict.buildTag(ChangesDict.VELOCITY) + bullet.velocity;
+    // }
+    //
+    // static deserializeVelocity(bullet: GameObject, data: string) {
+    //     bullet.velocity = parseFloat(data);
+    // }
+    //
+    // static serializeRotation(gameObject: GameObject): string {
+    //     return ChangesDict.buildTag(ChangesDict.ROTATION) + gameObject.Transform.Rotation.toPrecision(4);
+    // }
+    //
+    // static deserializeRotation(gameObject: GameObject, data: string) {
+    //     gameObject.Transform.Rotation = parseFloat(data);
+    // }
+    //
+    // static SerializeFunctions: Map<string, Function> = new Map<string, Function>([
+    //     [ChangesDict.POSITION, GameObject.serializePosition],
+    //     [ChangesDict.SIZE, GameObject.serializeSize],
+    //     [ChangesDict.SPRITE, GameObject.serializeSpriteName],
+    //     [ChangesDict.VELOCITY, GameObject.serializeVelocity],
+    //     [ChangesDict.ROTATION, GameObject.serializeRotation],
+    // ]);
+    // static DeserializeFunctions: Map<string, Function> = new Map<string, Function>([
+    //     [ChangesDict.POSITION, GameObject.deserializePosition],
+    //     [ChangesDict.SIZE, GameObject.deserializeSize],
+    //     [ChangesDict.SPRITE, GameObject.deserializeSpriteName],
+    //     [ChangesDict.VELOCITY, GameObject.deserializeVelocity],
+    //     [ChangesDict.ROTATION, GameObject.deserializeRotation],
+    // ]);
 }

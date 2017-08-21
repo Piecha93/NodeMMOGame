@@ -123,7 +123,7 @@ export class GameClient {
             }
 
             let update = data['update'].split('$');
-            //console.log(update);
+            // console.log(update);
             for (let object in update) {
                 let splitObject: string[] = update[object].split('=');
                 let id: string = splitObject[0];
