@@ -42,7 +42,7 @@ export class GameServer {
             this.destroyedObjects += '$' + '!' + id;
         });
 
-        //////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
+        ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
         for(let i = 0; i < 1156 / 32; i++) {
             let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
             o.Transform.X = 0;
@@ -79,7 +79,7 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 5; i++) {
+        for(let i = 0; i < 0; i++) {
             createEnemy();
         }
 

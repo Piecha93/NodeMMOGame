@@ -1112,11 +1112,11 @@ class Bullet extends GameObject_1.GameObject {
             this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
             if (response.overlapV.x != 0) {
                 this.transform.X += response.overlapV.x * 1.2;
-                this.changes.add(ChangesDict_1.ChangesDict.X);
+                this.transform.addChange(ChangesDict_1.ChangesDict.X);
             }
             if (response.overlapV.y != 0) {
                 this.transform.Y += response.overlapV.y * 1.2;
-                this.changes.add(ChangesDict_1.ChangesDict.Y);
+                this.transform.addChange(ChangesDict_1.ChangesDict.Y);
             }
         }
     }
@@ -1148,6 +1148,10 @@ __decorate([
     NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, Number),
     __metadata("design:type", Number)
 ], Bullet.prototype, "power", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER),
+    __metadata("design:type", String)
+], Bullet.prototype, "owner", void 0);
 exports.Bullet = Bullet;
 
 },{"../serialize/ChangesDict":37,"../serialize/NetworkDecorators":38,"./Actor":26,"./GameObject":29,"./Obstacle":33}],28:[function(require,module,exports){
@@ -1414,6 +1418,7 @@ const Bullet_1 = require("./Bullet");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../serialize/ChangesDict");
 const ObjectsFactory_1 = require("./ObjectsFactory");
+const CommonConfig_1 = require("../../CommonConfig");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
@@ -1422,53 +1427,14 @@ class Player extends Actor_1.Actor {
     }
     setInput(commands) {
         this.inputCommands = commands;
-    }
-    commonUpdate(delta) {
-        super.commonUpdate(delta);
         if (this.inputCommands.has(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION)) {
             this.moveDirection = parseInt(this.inputCommands.get(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION));
             this.inputCommands.delete(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION);
         }
-        let xFactor = 0;
-        let yFactor = 0;
-        if (this.moveDirection == 1) {
-            yFactor = -1;
+        //here starts server commands
+        if (CommonConfig_1.CommonConfig.ORIGIN != CommonConfig_1.Origin.SERVER) {
+            return;
         }
-        else if (this.moveDirection == 2) {
-            xFactor = 0.7071;
-            yFactor = -0.7071;
-        }
-        else if (this.moveDirection == 3) {
-            xFactor = 1;
-        }
-        else if (this.moveDirection == 4) {
-            xFactor = 0.7071;
-            yFactor = 0.7071;
-        }
-        else if (this.moveDirection == 5) {
-            yFactor = 1;
-        }
-        else if (this.moveDirection == 6) {
-            xFactor = -0.7071;
-            yFactor = 0.7071;
-        }
-        else if (this.moveDirection == 7) {
-            xFactor = -1;
-        }
-        else if (this.moveDirection == 8) {
-            xFactor = -0.7071;
-            yFactor = -0.7071;
-        }
-        if (xFactor != 0) {
-            this.Transform.X += xFactor * this.velocity * delta;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-        }
-        if (yFactor != 0) {
-            this.Transform.Y += yFactor * this.velocity * delta;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-        }
-    }
-    serverUpdate(delta) {
         if (this.inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
             for (let i = 0; i < 1; i++) {
                 let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject(Bullet_1.Bullet);
@@ -1481,6 +1447,51 @@ class Player extends Actor_1.Actor {
             this.inputCommands.delete(InputCommands_1.INPUT_COMMAND.FIRE);
         }
     }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
+        if (this.moveDirection != 0) {
+            let xFactor = 0;
+            let yFactor = 0;
+            if (this.moveDirection == 1) {
+                yFactor = -1;
+            }
+            else if (this.moveDirection == 2) {
+                xFactor = 0.7071;
+                yFactor = -0.7071;
+            }
+            else if (this.moveDirection == 3) {
+                xFactor = 1;
+            }
+            else if (this.moveDirection == 4) {
+                xFactor = 0.7071;
+                yFactor = 0.7071;
+            }
+            else if (this.moveDirection == 5) {
+                yFactor = 1;
+            }
+            else if (this.moveDirection == 6) {
+                xFactor = -0.7071;
+                yFactor = 0.7071;
+            }
+            else if (this.moveDirection == 7) {
+                xFactor = -1;
+            }
+            else if (this.moveDirection == 8) {
+                xFactor = -0.7071;
+                yFactor = -0.7071;
+            }
+            if (xFactor != 0) {
+                this.Transform.X += xFactor * this.velocity * delta;
+                this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+            }
+            if (yFactor != 0) {
+                this.Transform.Y += yFactor * this.velocity * delta;
+                this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+            }
+        }
+    }
+    serverUpdate(delta) {
+    }
     set Direction(direction) {
         if (direction >= 0 && direction <= 8) {
             this.moveDirection = direction;
@@ -1492,7 +1503,7 @@ class Player extends Actor_1.Actor {
 }
 exports.Player = Player;
 
-},{"../../input/InputCommands":22,"../serialize/ChangesDict":37,"./Actor":26,"./Bullet":27,"./ObjectsFactory":32}],35:[function(require,module,exports){
+},{"../../CommonConfig":19,"../../input/InputCommands":22,"../serialize/ChangesDict":37,"./Actor":26,"./Bullet":27,"./ObjectsFactory":32}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");
@@ -1748,13 +1759,11 @@ class ChangesDict {
 //GameObject
 ChangesDict.VELOCITY = 'V';
 ChangesDict.SPRITE_NAME = 'S';
-//Player
+//Actor
 ChangesDict.HP = 'H';
 ChangesDict.MAX_HP = 'M';
 ChangesDict.NAME = 'N';
 //Bullet
-ChangesDict.LIFE_SPAN = 'L';
-ChangesDict.ROTATION = 'R';
 ChangesDict.OWNER = 'O';
 ChangesDict.POWER = 'B';
 //Transform
@@ -1762,33 +1771,37 @@ ChangesDict.X = 'X';
 ChangesDict.Y = 'Y';
 ChangesDict.WIDTH = 'W';
 ChangesDict.HEIGHT = 'E';
+ChangesDict.ROTATION = 'R';
 exports.ChangesDict = ChangesDict;
 
 },{}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
+function createMapProperty(target, propertyName) {
+    if (!target.hasOwnProperty(propertyName)) {
+        let prototype = Object.getPrototypeOf(target);
+        let propertyVal;
+        if (prototype.hasOwnProperty(propertyName)) {
+            propertyVal = new Map(prototype[propertyName]);
+        }
+        else {
+            propertyVal = new Map();
+        }
+        Object.defineProperty(target, propertyName, {
+            value: propertyVal,
+            enumerable: true,
+            configurable: true
+        });
+    }
+}
 function NetworkProperty(short_key, castFunction) {
     function decorator(target, key) {
-        if (!target.hasOwnProperty("SerializeFunctions")) {
-            Object.defineProperty(target, "SerializeFunctions", {
-                value: new Map(),
-                enumerable: true,
-                configurable: true
-            });
-        }
-        if (!target.hasOwnProperty("DeserializeFunctions")) {
-            Object.defineProperty(target, "DeserializeFunctions", {
-                value: new Map(),
-                enumerable: true,
-                configurable: true
-            });
-        }
-        target['SerializeFunctions'].set(short_key, (object) => {
+        createMapProperty(target, "SerializeFunctions");
+        createMapProperty(target, "DeserializeFunctions");
+        target["SerializeFunctions"].set(short_key, (object) => {
             if (object[key] instanceof Serializable_1.Serializable) {
-                let asd = object[key].serialize();
-                console.log("TRANSFROM " + asd);
-                return asd;
+                return object[key].serialize();
             }
             else {
                 return '#' + short_key + ':' + object[key];
@@ -1796,8 +1809,9 @@ function NetworkProperty(short_key, castFunction) {
         });
         target['DeserializeFunctions'].set(short_key, (object, data) => {
             if (castFunction)
-                data = castFunction(data);
-            object[key] = data;
+                object[key] = castFunction(data);
+            else
+                object[key] = data;
         });
     }
     return decorator;

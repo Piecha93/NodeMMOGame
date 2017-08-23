@@ -5,6 +5,7 @@ import {Collidable} from "../physics/Collidable";
 import {NetworkObject, NetworkProperty} from "../serialize/NetworkDecorators";
 import {Serializable} from "../serialize/Serializable";
 
+
 export abstract class GameObject extends Serializable implements Collidable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME)

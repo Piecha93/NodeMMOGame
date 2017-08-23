@@ -9,7 +9,7 @@ export class Bullet extends GameObject {
     private lifeSpan: number = 50;
     @NetworkProperty(ChangesDict.POWER, Number)
     private power: number = 10;
-
+    @NetworkProperty(ChangesDict.OWNER)
     private owner: string;
 
     constructor(transform: Transform) {
@@ -59,11 +59,11 @@ export class Bullet extends GameObject {
             this.changes.add(ChangesDict.ROTATION);
             if(response.overlapV.x != 0) {
                 this.transform.X += response.overlapV.x * 1.2;
-                this.changes.add(ChangesDict.X);
+                this.transform.addChange(ChangesDict.X);
             }
             if(response.overlapV.y != 0) {
                 this.transform.Y += response.overlapV.y * 1.2;
-                this.changes.add(ChangesDict.Y);
+                this.transform.addChange(ChangesDict.Y);
             }
         }
     }
