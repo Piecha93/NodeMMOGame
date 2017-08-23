@@ -125,7 +125,7 @@ class GameClient {
             return;
         }
         let update = data['update'].split('$');
-        //console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('=');
             let id = splitObject[0];
@@ -150,7 +150,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":18,"../Common/DeltaTimer":20,"../Common/World":21,"../Common/net/NetObjectsManager":24,"../Common/net/SocketMsgs":25,"../Common/utils/game/GameObjectTypes":31,"../Common/utils/game/ObjectsFactory":33,"./Chat":1,"./ClientConfig":2,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":10,"./graphic/Renderer":12,"./input/InputHandler":14,"./net/HeartBeatSender":17}],4:[function(require,module,exports){
+},{"../Client/net/InputSender":18,"../Common/DeltaTimer":20,"../Common/World":21,"../Common/net/NetObjectsManager":24,"../Common/net/SocketMsgs":25,"../Common/utils/game/GameObjectTypes":30,"../Common/utils/game/ObjectsFactory":32,"./Chat":1,"./ClientConfig":2,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":10,"./graphic/Renderer":12,"./input/InputHandler":14,"./net/HeartBeatSender":17}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("../../Client/graphic/GameObjectAnimationRender");
@@ -540,7 +540,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../Common/utils/game/GameObjectsHolder":32,"./BulletRender":4,"./Camera":5,"./GameObjectSpriteRender":8,"./PlayerRender":11,"./TileMap":13}],13:[function(require,module,exports){
+},{"../../Common/utils/game/GameObjectsHolder":31,"./BulletRender":4,"./Camera":5,"./GameObjectSpriteRender":8,"./PlayerRender":11,"./TileMap":13}],13:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -703,7 +703,7 @@ class InputHandler {
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputCommands":22,"../../Common/input/InputSnapshot":23,"../../Common/utils/physics/Transform":37,"./InputMap":15}],15:[function(require,module,exports){
+},{"../../Common/input/InputCommands":22,"../../Common/input/InputSnapshot":23,"../../Common/utils/physics/Transform":36,"./InputMap":15}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -734,7 +734,7 @@ window.onload = () => {
     let client = new GameClient_1.GameClient();
 };
 
-},{"../Common/CommonConfig":19,"../Common/utils/game/GameObjectTypes":31,"./GameClient":3}],17:[function(require,module,exports){
+},{"../Common/CommonConfig":19,"../Common/utils/game/GameObjectTypes":30,"./GameClient":3}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -871,7 +871,7 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.World = World;
 
-},{"./utils/game/GameObjectsHolder":32,"./utils/physics/SpacialGrid":36}],22:[function(require,module,exports){
+},{"./utils/game/GameObjectsHolder":31,"./utils/physics/SpacialGrid":35}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -954,7 +954,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../utils/game/GameObjectsHolder":32}],25:[function(require,module,exports){
+},{"../utils/game/GameObjectsHolder":31}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -972,16 +972,24 @@ exports.SocketMsgs = SocketMsgs;
 
 },{}],26:[function(require,module,exports){
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const ChangesDict_1 = require("./ChangesDict");
+const ChangesDict_1 = require("../serialize/ChangesDict");
 const Bullet_1 = require("./Bullet");
 const Obstacle_1 = require("./Obstacle");
+const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        this.sFunc = new Map(function* () { yield* Actor.SerializeFunctions; yield* this.sFunc; }.bind(this)());
-        this.dFunc = new Map(function* () { yield* Actor.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
         this.maxHp = 200;
         this.hp = this.maxHp;
         this.velocity = 0.3;
@@ -1027,44 +1035,38 @@ class Actor extends GameObject_1.GameObject {
         this.name = name;
         this.changes.add(ChangesDict_1.ChangesDict.NAME);
     }
-    static serializeMaxHp(actor) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.MAX_HP) + actor.maxHp.toString();
-    }
-    static deserializeMaxHp(actor, data) {
-        actor.maxHp = parseInt(data);
-    }
-    static serializeHp(actor) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.HP) + actor.HP.toString();
-    }
-    static deserializeHp(actor, data) {
-        actor.hp = parseInt(data);
-    }
-    static serializeName(actor) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.NAME) + actor.name;
-    }
-    static deserializeName(actor, data) {
-        actor.name = data;
-    }
 }
-Actor.SerializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.MAX_HP, Actor.serializeMaxHp],
-    [ChangesDict_1.ChangesDict.HP, Actor.serializeHp],
-    [ChangesDict_1.ChangesDict.NAME, Actor.serializeName],
-]);
-Actor.DeserializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.MAX_HP, Actor.deserializeMaxHp],
-    [ChangesDict_1.ChangesDict.HP, Actor.deserializeHp],
-    [ChangesDict_1.ChangesDict.NAME, Actor.deserializeName],
-]);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME),
+    __metadata("design:type", String)
+], Actor.prototype, "name", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, Number),
+    __metadata("design:type", Number)
+], Actor.prototype, "maxHp", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, Number),
+    __metadata("design:type", Number)
+], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"./Bullet":27,"./ChangesDict":28,"./GameObject":30,"./Obstacle":34}],27:[function(require,module,exports){
+},{"../serialize/ChangesDict":37,"../serialize/NetworkDecorators":38,"./Bullet":27,"./GameObject":29,"./Obstacle":33}],27:[function(require,module,exports){
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const ChangesDict_1 = require("./ChangesDict");
+const ChangesDict_1 = require("../serialize/ChangesDict");
 const Obstacle_1 = require("./Obstacle");
 const Actor_1 = require("./Actor");
+const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
 class Bullet extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -1084,9 +1086,6 @@ class Bullet extends GameObject_1.GameObject {
         this.transform.Height = 20;
         this.lifeSpan = 5000;
         this.changes.add(ChangesDict_1.ChangesDict.VELOCITY);
-        this.changes.add(ChangesDict_1.ChangesDict.LIFE_SPAN);
-        this.sFunc = new Map(function* () { yield* Bullet.SerializeFunctions; yield* this.sFunc; }.bind(this)());
-        this.dFunc = new Map(function* () { yield* Bullet.DeserializeFunctions; yield* this.dFunc; }.bind(this)());
     }
     serverCollision(gameObject, response) {
         super.serverCollision(gameObject, response);
@@ -1104,8 +1103,6 @@ class Bullet extends GameObject_1.GameObject {
     commonCollision(gameObject, response) {
         super.commonCollision(gameObject, response);
         if (gameObject instanceof Obstacle_1.Obstacle) {
-            this.transform.X += response.overlapV.x * 1.2;
-            this.transform.Y += response.overlapV.y * 1.2;
             if (response.overlapN.x) {
                 this.Transform.Rotation = Math.PI - this.Transform.Rotation;
             }
@@ -1113,7 +1110,14 @@ class Bullet extends GameObject_1.GameObject {
                 this.Transform.Rotation = 2 * Math.PI - this.Transform.Rotation;
             }
             this.changes.add(ChangesDict_1.ChangesDict.ROTATION);
-            this.changes.add(ChangesDict_1.ChangesDict.POSITION);
+            if (response.overlapV.x != 0) {
+                this.transform.X += response.overlapV.x * 1.2;
+                this.changes.add(ChangesDict_1.ChangesDict.X);
+            }
+            if (response.overlapV.y != 0) {
+                this.transform.Y += response.overlapV.y * 1.2;
+                this.changes.add(ChangesDict_1.ChangesDict.Y);
+            }
         }
     }
     get Power() {
@@ -1138,74 +1142,30 @@ class Bullet extends GameObject_1.GameObject {
         let cosAngle = Math.cos(this.transform.Rotation);
         this.transform.X += cosAngle * this.velocity * delta;
         this.transform.Y += sinAngle * this.velocity * delta;
-        //this.changes.add(ChangesDict.POSITION);
-    }
-    static serializeLifeSpan(bullet) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.LIFE_SPAN) + bullet.lifeSpan;
-    }
-    static deserializeLifeSpan(bullet, data) {
-        bullet.lifeSpan = parseInt(data);
-    }
-    static serializeOwner(bullet) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.OWNER) + bullet.owner;
-    }
-    static deserializeOwner(bullet, data) {
-        bullet.owner = data;
     }
 }
-Bullet.SerializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.serializeLifeSpan],
-    [ChangesDict_1.ChangesDict.OWNER, Bullet.serializeOwner]
-]);
-Bullet.DeserializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.LIFE_SPAN, Bullet.deserializeLifeSpan],
-    [ChangesDict_1.ChangesDict.OWNER, Bullet.deserializeOwner]
-]);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, Number),
+    __metadata("design:type", Number)
+], Bullet.prototype, "power", void 0);
 exports.Bullet = Bullet;
 
-},{"./Actor":26,"./ChangesDict":28,"./GameObject":30,"./Obstacle":34}],28:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ChangesDict {
-    static buildTag(char) {
-        return '#' + char + ':';
-    }
-}
-//GameObject
-ChangesDict.VELOCITY = 'V';
-ChangesDict.SPRITE = 'S';
-ChangesDict.POSITION = 'P';
-ChangesDict.SIZE = 'Z';
-//Player
-ChangesDict.HP = 'H';
-ChangesDict.MAX_HP = 'M';
-ChangesDict.NAME = 'N';
-//Bullet
-ChangesDict.LIFE_SPAN = 'L';
-ChangesDict.ROTATION = 'R';
-ChangesDict.OWNER = 'O';
-exports.ChangesDict = ChangesDict;
-
-},{}],29:[function(require,module,exports){
+},{"../serialize/ChangesDict":37,"../serialize/NetworkDecorators":38,"./Actor":26,"./GameObject":29,"./Obstacle":33}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
 const Bullet_1 = require("./Bullet");
 const Actor_1 = require("./Actor");
-const ChangesDict_1 = require("./ChangesDict");
+const ChangesDict_1 = require("../serialize/ChangesDict");
 class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.timeFromLastShot = 1000;
+        this.moveAngle = 0;
+        this.moveAngle = Math.random() * 3;
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
-        let rotation = Math.random() * 10;
-        let sinAngle = Math.sin(rotation);
-        let cosAngle = Math.cos(rotation);
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
-        this.changes.add(ChangesDict_1.ChangesDict.POSITION);
     }
     serverUpdate(delta) {
         if (this.HP <= 0) {
@@ -1215,7 +1175,7 @@ class Enemy extends Actor_1.Actor {
         this.timeFromLastShot -= delta;
         if (this.timeFromLastShot <= 0) {
             this.timeFromLastShot = 1000;
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 2; i++) {
                 let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject(Bullet_1.Bullet);
                 bullet.Owner = this.ID;
                 bullet.Transform.Rotation = Math.floor(Math.random() * 360);
@@ -1223,24 +1183,40 @@ class Enemy extends Actor_1.Actor {
                 bullet.Transform.Y = this.transform.Y;
             }
         }
+        this.moveAngle += Math.random() * 0.5 - 0.25;
+        let sinAngle = Math.sin(this.moveAngle);
+        let cosAngle = Math.cos(this.moveAngle);
+        this.transform.X += cosAngle * this.velocity * delta;
+        this.transform.Y += sinAngle * this.velocity * delta;
+        this.transform.addChange(ChangesDict_1.ChangesDict.X);
+        this.transform.addChange(ChangesDict_1.ChangesDict.Y);
     }
 }
 exports.Enemy = Enemy;
 
-},{"./Actor":26,"./Bullet":27,"./ChangesDict":28,"./ObjectsFactory":33}],30:[function(require,module,exports){
+},{"../serialize/ChangesDict":37,"./Actor":26,"./Bullet":27,"./ObjectsFactory":32}],29:[function(require,module,exports){
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const ChangesDict_1 = require("./ChangesDict");
+const Transform_1 = require("../physics/Transform");
+const ChangesDict_1 = require("../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
-class GameObject {
+const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
+const Serializable_1 = require("../serialize/Serializable");
+class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
+        super();
         this.id = "";
         this.velocity = 10;
-        this.forceComplete = true;
         this.transform = transform;
-        this.changes = new Set();
-        this.sFunc = GameObject.SerializeFunctions;
-        this.dFunc = GameObject.DeserializeFunctions;
         this.spriteName = "none";
         this.destroyListeners = new Set();
     }
@@ -1266,35 +1242,6 @@ class GameObject {
     commonUpdate(delta) {
     }
     serverUpdate(delta) {
-    }
-    serialize(complete = false) {
-        let update = "";
-        if (this.forceComplete) {
-            this.forceComplete = false;
-            complete = true;
-        }
-        if (complete) {
-            this.sFunc.forEach((serializeFunc) => {
-                update += serializeFunc(this);
-            });
-        }
-        else {
-            this.changes.forEach((field) => {
-                if (this.sFunc.has(field)) {
-                    update += this.sFunc.get(field)(this);
-                    this.changes.delete(field);
-                }
-            });
-        }
-        this.changes.clear();
-        return update;
-    }
-    deserialize(update) {
-        for (let item of update) {
-            if (this.dFunc.has(item[0])) {
-                this.dFunc.get(item[0])(this, item.split(':')[1]);
-            }
-        }
     }
     addDestroyListener(listener) {
         this.destroyListeners.add(listener);
@@ -1322,65 +1269,24 @@ class GameObject {
     }
     set SpriteName(spriteName) {
         this.spriteName = spriteName;
-        this.changes.add(ChangesDict_1.ChangesDict.SPRITE);
-    }
-    static serializePosition(gameObject) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.POSITION)
-            + gameObject.Transform.X.toPrecision(10)
-            + ',' + gameObject.Transform.Y.toPrecision(10);
-    }
-    static deserializePosition(gameObject, data) {
-        let x = data.split(',')[0];
-        let y = data.split(',')[1];
-        gameObject.transform.X = parseFloat(x);
-        gameObject.transform.Y = parseFloat(y);
-    }
-    static serializeSize(gameObject) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.SIZE)
-            + gameObject.Transform.Width + ',' + gameObject.Transform.Height;
-    }
-    static deserializeSize(gameObject, data) {
-        let w = data.split(',')[0];
-        let h = data.split(',')[1];
-        gameObject.transform.Width = parseFloat(w);
-        gameObject.transform.Height = parseFloat(h);
-    }
-    static serializeSpriteName(gameObject) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.SPRITE) + gameObject.spriteName;
-    }
-    static deserializeSpriteName(gameObject, data) {
-        gameObject.spriteName = data;
-    }
-    static serializeVelocity(bullet) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.VELOCITY) + bullet.velocity;
-    }
-    static deserializeVelocity(bullet, data) {
-        bullet.velocity = parseFloat(data);
-    }
-    static serializeRotation(gameObject) {
-        return ChangesDict_1.ChangesDict.buildTag(ChangesDict_1.ChangesDict.ROTATION) + gameObject.Transform.Rotation.toPrecision(4);
-    }
-    static deserializeRotation(gameObject, data) {
-        gameObject.Transform.Rotation = parseFloat(data);
+        this.changes.add(ChangesDict_1.ChangesDict.SPRITE_NAME);
     }
 }
-GameObject.SerializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.POSITION, GameObject.serializePosition],
-    [ChangesDict_1.ChangesDict.SIZE, GameObject.serializeSize],
-    [ChangesDict_1.ChangesDict.SPRITE, GameObject.serializeSpriteName],
-    [ChangesDict_1.ChangesDict.VELOCITY, GameObject.serializeVelocity],
-    [ChangesDict_1.ChangesDict.ROTATION, GameObject.serializeRotation],
-]);
-GameObject.DeserializeFunctions = new Map([
-    [ChangesDict_1.ChangesDict.POSITION, GameObject.deserializePosition],
-    [ChangesDict_1.ChangesDict.SIZE, GameObject.deserializeSize],
-    [ChangesDict_1.ChangesDict.SPRITE, GameObject.deserializeSpriteName],
-    [ChangesDict_1.ChangesDict.VELOCITY, GameObject.deserializeVelocity],
-    [ChangesDict_1.ChangesDict.ROTATION, GameObject.deserializeRotation],
-]);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME),
+    __metadata("design:type", String)
+], GameObject.prototype, "spriteName", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkObject,
+    __metadata("design:type", Transform_1.Transform)
+], GameObject.prototype, "transform", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, Number),
+    __metadata("design:type", Number)
+], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":19,"./ChangesDict":28}],31:[function(require,module,exports){
+},{"../../CommonConfig":19,"../physics/Transform":36,"../serialize/ChangesDict":37,"../serialize/NetworkDecorators":38,"../serialize/Serializable":39}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
@@ -1407,7 +1313,7 @@ class Types {
 }
 exports.Types = Types;
 
-},{"./Bullet":27,"./Enemy":29,"./Obstacle":34,"./Player":35}],32:[function(require,module,exports){
+},{"./Bullet":27,"./Enemy":28,"./Obstacle":33,"./Player":34}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectsHolder {
@@ -1443,7 +1349,7 @@ class GameObjectsHolder {
 }
 exports.GameObjectsHolder = GameObjectsHolder;
 
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -1479,7 +1385,7 @@ ObjectsFactory.HolderSubscribers = new Array();
 ObjectsFactory.DestroySubscribers = new Array();
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"../physics/Transform":37,"./GameObjectTypes":31}],34:[function(require,module,exports){
+},{"../physics/Transform":36,"./GameObjectTypes":30}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -1500,13 +1406,13 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":30}],35:[function(require,module,exports){
+},{"./GameObject":29}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
 const Bullet_1 = require("./Bullet");
 const Actor_1 = require("./Actor");
-const ChangesDict_1 = require("./ChangesDict");
+const ChangesDict_1 = require("../serialize/ChangesDict");
 const ObjectsFactory_1 = require("./ObjectsFactory");
 class Player extends Actor_1.Actor {
     constructor(transform) {
@@ -1553,10 +1459,13 @@ class Player extends Actor_1.Actor {
             xFactor = -0.7071;
             yFactor = -0.7071;
         }
-        if (this.moveDirection != 0) {
-            this.transform.X += xFactor * this.velocity * delta;
-            this.transform.Y += yFactor * this.velocity * delta;
-            this.changes.add(ChangesDict_1.ChangesDict.POSITION);
+        if (xFactor != 0) {
+            this.Transform.X += xFactor * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+        }
+        if (yFactor != 0) {
+            this.Transform.Y += yFactor * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         }
     }
     serverUpdate(delta) {
@@ -1583,7 +1492,7 @@ class Player extends Actor_1.Actor {
 }
 exports.Player = Player;
 
-},{"../../input/InputCommands":22,"./Actor":26,"./Bullet":27,"./ChangesDict":28,"./ObjectsFactory":33}],36:[function(require,module,exports){
+},{"../../input/InputCommands":22,"../serialize/ChangesDict":37,"./Actor":26,"./Bullet":27,"./ObjectsFactory":32}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");
@@ -1684,12 +1593,25 @@ class SpacialGrid {
 }
 exports.SpacialGrid = SpacialGrid;
 
-},{"./Transform":37,"sat":38}],37:[function(require,module,exports){
+},{"./Transform":36,"sat":40}],36:[function(require,module,exports){
 "use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const SAT = require("sat");
-class Transform {
+const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
+const ChangesDict_1 = require("../serialize/ChangesDict");
+const Serializable_1 = require("../serialize/Serializable");
+class Transform extends Serializable_1.Serializable {
     constructor(x, y, width, height) {
+        super();
         x = x || 0;
         y = y || 0;
         this.width = width || 32;
@@ -1711,8 +1633,35 @@ class Transform {
         }
         return result;
     }
+    static add(t1, t2) {
+        let result = new Transform();
+        result.X = t1.X + t2.X;
+        result.Y = t1.Y + t2.Y;
+        return result;
+    }
+    static substract(t1, t2) {
+        let result = new Transform();
+        result.X = t1.X - t2.X;
+        result.Y = t1.Y - t2.Y;
+        return result;
+    }
+    static multiple(t1, scalar) {
+        let result = new Transform();
+        result.X = t1.X * scalar;
+        result.Y = t1.Y * scalar;
+        return result;
+    }
+    static divide(t1, scalar) {
+        let result = new Transform();
+        result.X = t1.X /= scalar;
+        result.Y = t1.Y /= scalar;
+        return result;
+    }
     rotate(angle) {
         this.Rotation += angle;
+    }
+    get Magnitude() {
+        return this.polygon.pos.len();
     }
     get Polygon() {
         return this.polygon;
@@ -1730,10 +1679,12 @@ class Transform {
         this.polygon.pos.y = y;
     }
     set Width(width) {
+        if (this.width == width)
+            return;
         this.width = width;
         let w = this.Width / 2;
         let h = this.Height / 2;
-        this.polygon = new SAT.Polygon(new SAT.Vector(this.X, this.Y), [
+        this.polygon = new SAT.Polygon(this.polygon.pos, [
             new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
             new SAT.Vector(w, h), new SAT.Vector(-w, h)
         ]);
@@ -1742,10 +1693,12 @@ class Transform {
         return this.width;
     }
     set Height(height) {
+        if (this.height == height)
+            return;
         this.height = height;
         let w = this.Width / 2;
         let h = this.Height / 2;
-        this.polygon = new SAT.Polygon(new SAT.Vector(this.X, this.Y), [
+        this.polygon = new SAT.Polygon(this.polygon.pos, [
             new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
             new SAT.Vector(w, h), new SAT.Vector(-w, h)
         ]);
@@ -1760,9 +1713,162 @@ class Transform {
         return this.polygon.angle;
     }
 }
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, Number),
+    __metadata("design:type", Number),
+    __metadata("design:paramtypes", [Number])
+], Transform.prototype, "X", null);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, Number),
+    __metadata("design:type", Number),
+    __metadata("design:paramtypes", [Number])
+], Transform.prototype, "Y", null);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, Number),
+    __metadata("design:type", Number),
+    __metadata("design:paramtypes", [Number])
+], Transform.prototype, "Width", null);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, Number),
+    __metadata("design:type", Number),
+    __metadata("design:paramtypes", [Number])
+], Transform.prototype, "Height", null);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, Number),
+    __metadata("design:type", Number),
+    __metadata("design:paramtypes", [Number])
+], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"sat":38}],38:[function(require,module,exports){
+},{"../serialize/ChangesDict":37,"../serialize/NetworkDecorators":38,"../serialize/Serializable":39,"sat":40}],37:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class ChangesDict {
+}
+//GameObject
+ChangesDict.VELOCITY = 'V';
+ChangesDict.SPRITE_NAME = 'S';
+//Player
+ChangesDict.HP = 'H';
+ChangesDict.MAX_HP = 'M';
+ChangesDict.NAME = 'N';
+//Bullet
+ChangesDict.LIFE_SPAN = 'L';
+ChangesDict.ROTATION = 'R';
+ChangesDict.OWNER = 'O';
+ChangesDict.POWER = 'B';
+//Transform
+ChangesDict.X = 'X';
+ChangesDict.Y = 'Y';
+ChangesDict.WIDTH = 'W';
+ChangesDict.HEIGHT = 'E';
+exports.ChangesDict = ChangesDict;
+
+},{}],38:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Serializable_1 = require("./Serializable");
+function NetworkProperty(short_key, castFunction) {
+    function decorator(target, key) {
+        if (!target.hasOwnProperty("SerializeFunctions")) {
+            Object.defineProperty(target, "SerializeFunctions", {
+                value: new Map(),
+                enumerable: true,
+                configurable: true
+            });
+        }
+        if (!target.hasOwnProperty("DeserializeFunctions")) {
+            Object.defineProperty(target, "DeserializeFunctions", {
+                value: new Map(),
+                enumerable: true,
+                configurable: true
+            });
+        }
+        target['SerializeFunctions'].set(short_key, (object) => {
+            if (object[key] instanceof Serializable_1.Serializable) {
+                let asd = object[key].serialize();
+                console.log("TRANSFROM " + asd);
+                return asd;
+            }
+            else {
+                return '#' + short_key + ':' + object[key];
+            }
+        });
+        target['DeserializeFunctions'].set(short_key, (object, data) => {
+            if (castFunction)
+                data = castFunction(data);
+            object[key] = data;
+        });
+    }
+    return decorator;
+}
+exports.NetworkProperty = NetworkProperty;
+function NetworkObject(target, key) {
+    if (!target.hasOwnProperty("NestedNetworkObjects")) {
+        Object.defineProperty(target, "NestedNetworkObjects", {
+            value: new Array(),
+            enumerable: true,
+            configurable: true
+        });
+    }
+    target['NestedNetworkObjects'].push(key);
+}
+exports.NetworkObject = NetworkObject;
+
+},{"./Serializable":39}],39:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Serializable {
+    constructor() {
+        this.changes = new Set();
+        this.forceComplete = true;
+    }
+    addChange(change) {
+        this.changes.add(change);
+    }
+    serialize(complete = false) {
+        let update = "";
+        if (this.forceComplete) {
+            this.forceComplete = false;
+            complete = true;
+        }
+        if (complete) {
+            this['SerializeFunctions'].forEach((serializeFunc) => {
+                update += serializeFunc(this);
+            });
+        }
+        else {
+            this.changes.forEach((field) => {
+                if (this['SerializeFunctions'].has(field)) {
+                    update += this['SerializeFunctions'].get(field)(this);
+                    this.changes.delete(field);
+                }
+            });
+        }
+        if (this['NestedNetworkObjects']) {
+            for (let key of this['NestedNetworkObjects']) {
+                update += this[key].serialize(complete);
+            }
+        }
+        this.changes.clear();
+        return update;
+    }
+    deserialize(update) {
+        for (let item of update) {
+            if (this['DeserializeFunctions'].has(item[0])) {
+                this['DeserializeFunctions'].get(item[0])(this, item.split(':')[1]);
+            }
+            if (this['NestedNetworkObjects']) {
+                for (let key of this['NestedNetworkObjects']) {
+                    this[key].deserialize(update);
+                }
+            }
+        }
+    }
+}
+exports.Serializable = Serializable;
+
+},{}],40:[function(require,module,exports){
 // Version 0.6.0 - Copyright 2012 - 2016 -  Jim Riecken <jimr@jimr.ca>
 //
 // Released under the MIT License - https://github.com/jriecken/sat-js

@@ -2,7 +2,7 @@ import {INPUT_COMMAND} from "../../input/InputCommands";
 import {Transform} from "../physics/Transform";
 import {Bullet} from "./Bullet";
 import {Actor} from "./Actor";
-import {ChangesDict} from "./ChangesDict";
+import {ChangesDict} from "../serialize/ChangesDict";
 import {ObjectsFactory} from "./ObjectsFactory";
 
 export class Player extends Actor {
@@ -49,11 +49,13 @@ export class Player extends Actor {
             yFactor = -0.7071;
         }
 
-        if(this.moveDirection != 0) {
-            this.transform.X += xFactor * this.velocity * delta;
-            this.transform.Y += yFactor * this.velocity * delta;
-
-            this.changes.add(ChangesDict.POSITION);
+        if(xFactor != 0) {
+            this.Transform.X += xFactor * this.velocity * delta;
+            this.Transform.addChange(ChangesDict.X)
+        }
+        if(yFactor != 0) {
+            this.Transform.Y += yFactor * this.velocity * delta;
+            this.Transform.addChange(ChangesDict.X)
         }
     }
 
