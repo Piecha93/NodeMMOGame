@@ -10,8 +10,10 @@ export abstract class GameObject extends Serializable implements Collidable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME)
     protected spriteName: string;
-    @NetworkObject
+    @NetworkObject("t1")
     protected transform: Transform;
+    @NetworkObject("t2")
+    protected transform2: Transform;
     @NetworkProperty(ChangesDict.VELOCITY, Number)
     protected velocity: number = 10;
 
@@ -20,6 +22,7 @@ export abstract class GameObject extends Serializable implements Collidable {
     constructor(transform: Transform) {
         super();
         this.transform = transform;
+        this.transform2 = new Transform();
 
         this.spriteName = "none";
         this.destroyListeners = new Set<Function>();
@@ -33,7 +36,11 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
+        this.transform2.X = 500;
+        this.transform2.Y = 500;
 
+        this.transform2.addChange(ChangesDict.X);
+        this.transform2.addChange(ChangesDict.Y);
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {

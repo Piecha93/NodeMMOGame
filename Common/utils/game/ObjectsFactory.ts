@@ -11,10 +11,12 @@ export class ObjectsFactory {
 
     private static NEXT_ID: number = 0;
 
-    static HolderSubscribers: Array<GameObjectsHolder> = new Array<GameObjectsHolder>();
-    static DestroySubscribers: Array<Function> = new Array<Function>();
+    static ObjectHolderSubscribers: Array<GameObjectsHolder> = new Array<GameObjectsHolder>();
 
-    static CreateGameObject<T extends GameObject>(objectConstructor: GameObjectConstructor, id?: string, data?: string): GameObject {
+    static CreateCallbacks: Array<Function> = new Array<Function>();
+    static DestroyCallbacks: Array<Function> = new Array<Function>();
+
+    static CreateGameObject(objectConstructor: GameObjectConstructor, id?: string, data?: string): GameObject {
         let position: Transform = new Transform(0,0);
 
         let gameObject: GameObject = new objectConstructor(position);
@@ -26,14 +28,17 @@ export class ObjectsFactory {
         }
 
         if(data) {
-            gameObject.deserialize(data.split('#'));
+            gameObject.deserialize(data);
         }
 
-        ObjectsFactory.HolderSubscribers.forEach((subscriber: GameObjectsHolder) => {
+        ObjectsFactory.ObjectHolderSubscribers.forEach((subscriber: GameObjectsHolder) => {
             subscriber.addGameObject(gameObject);
         });
-        ObjectsFactory.DestroySubscribers.forEach((subscriber: Function) => {
-            gameObject.addDestroyListener(subscriber);
+        ObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
+            callback(gameObject);
+        });
+        ObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
+            gameObject.addDestroyListener(callback);
         });
         // console.log("New object " + gameObject.ID);
 

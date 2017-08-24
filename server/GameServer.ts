@@ -36,9 +36,9 @@ export class GameServer {
     private startGame() {
         this.world = new World(2048, 1156);
 
-        ObjectsFactory.HolderSubscribers.push(this.world);
-        ObjectsFactory.HolderSubscribers.push(NetObjectsManager.Instance);
-        ObjectsFactory.DestroySubscribers.push((id: string) => {
+        ObjectsFactory.ObjectHolderSubscribers.push(this.world);
+        ObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
+        ObjectsFactory.DestroyCallbacks.push((id: string) => {
             this.destroyedObjects += '$' + '!' + id;
         });
 
@@ -79,10 +79,9 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 0; i++) {
+        for(let i = 0; i < 55; i++) {
             createEnemy();
         }
-
         ///////////////////////////////////////////////////////////////////TEST
 
         let timer: DeltaTimer = new DeltaTimer;

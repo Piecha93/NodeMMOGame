@@ -81,9 +81,9 @@ class GameClient {
             let height = Number(worldInfo[1]);
             this.world = new World_1.World(width, height);
             this.renderer.setMap();
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.renderer);
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.world);
-            ObjectsFactory_1.ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
+            ObjectsFactory_1.ObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
+            ObjectsFactory_1.ObjectsFactory.ObjectHolderSubscribers.push(this.world);
+            ObjectsFactory_1.ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
             this.updateGame(data);
             //setTimeout(() => {
             this.player = this.world.getGameObject(data['id']);
@@ -125,7 +125,7 @@ class GameClient {
             return;
         }
         let update = data['update'].split('$');
-        console.log(update);
+        // console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('=');
             let id = splitObject[0];
@@ -143,7 +143,7 @@ class GameClient {
             if (gameObject == null) {
                 gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
             }
-            gameObject.deserialize(data.split('#'));
+            gameObject.deserialize(data);
         }
         //   }, 200);
     }
@@ -940,7 +940,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
     collectUpdate(complete = false) {
         let serializedObjects = '';
         this.gameObjectsMapById.forEach((gameObject, id) => {
-            let objectUpdate = gameObject.serialize(complete).slice(1);
+            let objectUpdate = gameObject.serialize(complete);
             if (objectUpdate != '') {
                 serializedObjects += '$' + id + '=' + objectUpdate;
             }
@@ -1221,6 +1221,7 @@ class GameObject extends Serializable_1.Serializable {
         this.id = "";
         this.velocity = 10;
         this.transform = transform;
+        this.transform2 = new Transform_1.Transform();
         this.spriteName = "none";
         this.destroyListeners = new Set();
     }
@@ -1231,6 +1232,10 @@ class GameObject extends Serializable_1.Serializable {
         this.commonCollision(gameObject, response);
     }
     serverCollision(gameObject, response) {
+        this.transform2.X = 500;
+        this.transform2.Y = 500;
+        this.transform2.addChange(ChangesDict_1.ChangesDict.X);
+        this.transform2.addChange(ChangesDict_1.ChangesDict.Y);
     }
     commonCollision(gameObject, response) {
     }
@@ -1281,9 +1286,13 @@ __decorate([
     __metadata("design:type", String)
 ], GameObject.prototype, "spriteName", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkObject,
+    NetworkDecorators_1.NetworkObject("t1"),
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkObject("t2"),
+    __metadata("design:type", Transform_1.Transform)
+], GameObject.prototype, "transform2", void 0);
 __decorate([
     NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, Number),
     __metadata("design:type", Number)
@@ -1372,21 +1381,25 @@ class ObjectsFactory {
             gameObject.ID = GameObjectTypes_1.Types.ClassToId.get(objectConstructor) + (ObjectsFactory.NEXT_ID++).toString();
         }
         if (data) {
-            gameObject.deserialize(data.split('#'));
+            gameObject.deserialize(data);
         }
-        ObjectsFactory.HolderSubscribers.forEach((subscriber) => {
+        ObjectsFactory.ObjectHolderSubscribers.forEach((subscriber) => {
             subscriber.addGameObject(gameObject);
         });
-        ObjectsFactory.DestroySubscribers.forEach((subscriber) => {
-            gameObject.addDestroyListener(subscriber);
+        ObjectsFactory.CreateCallbacks.forEach((callback) => {
+            callback(gameObject);
+        });
+        ObjectsFactory.DestroyCallbacks.forEach((callback) => {
+            gameObject.addDestroyListener(callback);
         });
         // console.log("New object " + gameObject.ID);
         return gameObject;
     }
 }
 ObjectsFactory.NEXT_ID = 0;
-ObjectsFactory.HolderSubscribers = new Array();
-ObjectsFactory.DestroySubscribers = new Array();
+ObjectsFactory.ObjectHolderSubscribers = new Array();
+ObjectsFactory.CreateCallbacks = new Array();
+ObjectsFactory.DestroyCallbacks = new Array();
 exports.ObjectsFactory = ObjectsFactory;
 
 },{"../physics/Transform":36,"./GameObjectTypes":30}],33:[function(require,module,exports){
@@ -1486,7 +1499,7 @@ class Player extends Actor_1.Actor {
             }
             if (yFactor != 0) {
                 this.Transform.Y += yFactor * this.velocity * delta;
-                this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+                this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
             }
         }
     }
@@ -1777,61 +1790,90 @@ exports.ChangesDict = ChangesDict;
 },{}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Serializable_1 = require("./Serializable");
-function createMapProperty(target, propertyName) {
-    if (!target.hasOwnProperty(propertyName)) {
-        let prototype = Object.getPrototypeOf(target);
-        let propertyVal;
-        if (prototype.hasOwnProperty(propertyName)) {
-            propertyVal = new Map(prototype[propertyName]);
-        }
-        else {
-            propertyVal = new Map();
-        }
-        Object.defineProperty(target, propertyName, {
-            value: propertyVal,
-            enumerable: true,
-            configurable: true
-        });
-    }
-}
-function NetworkProperty(short_key, castFunction) {
+//priority: number,
+var PropName;
+(function (PropName) {
+    PropName.SerializeFunctions = "SerializeFunctions";
+    PropName.DeserializeFunctions = "DeserializeFunctions";
+    PropName.SerializeEncodeOrder = "SerializeEncodeOrder";
+    PropName.SerializeDecodeOrder = "SerializeDecodeOrder";
+    PropName.DecodeCounter = "DecodeCounter";
+    PropName.NestedNetworkObjects = "NestedNetworkObjects";
+})(PropName = exports.PropName || (exports.PropName = {}));
+function NetworkProperty(shortKey, castFunction) {
     function decorator(target, key) {
-        createMapProperty(target, "SerializeFunctions");
-        createMapProperty(target, "DeserializeFunctions");
-        target["SerializeFunctions"].set(short_key, (object) => {
-            if (object[key] instanceof Serializable_1.Serializable) {
-                return object[key].serialize();
+        createMapProperty(target, PropName.SerializeFunctions);
+        createMapProperty(target, PropName.DeserializeFunctions);
+        createMapProperty(target, PropName.SerializeEncodeOrder);
+        createMapProperty(target, PropName.SerializeDecodeOrder);
+        addDcecodeCounter(target);
+        let counter = target[PropName.DecodeCounter]++;
+        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropName.SerializeFunctions].set(shortKey, (object) => {
+            return object[key];
+        });
+        target[PropName.DeserializeFunctions].set(shortKey, (object, data) => {
+            if (castFunction) {
+                object[key] = castFunction(data);
             }
             else {
-                return '#' + short_key + ':' + object[key];
-            }
-        });
-        target['DeserializeFunctions'].set(short_key, (object, data) => {
-            if (castFunction)
-                object[key] = castFunction(data);
-            else
                 object[key] = data;
+            }
         });
     }
     return decorator;
 }
 exports.NetworkProperty = NetworkProperty;
-function NetworkObject(target, key) {
-    if (!target.hasOwnProperty("NestedNetworkObjects")) {
-        Object.defineProperty(target, "NestedNetworkObjects", {
-            value: new Array(),
-            enumerable: true,
-            configurable: true
-        });
+function NetworkObject(shortKey) {
+    function decorator(target, key) {
+        createMapProperty(target, PropName.NestedNetworkObjects);
+        createMapProperty(target, PropName.SerializeEncodeOrder);
+        createMapProperty(target, PropName.SerializeDecodeOrder);
+        addDcecodeCounter(target);
+        let counter = target[PropName.DecodeCounter]++;
+        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropName.NestedNetworkObjects].set(shortKey, key);
     }
-    target['NestedNetworkObjects'].push(key);
+    return decorator;
 }
 exports.NetworkObject = NetworkObject;
+function createMapProperty(target, propertyName) {
+    if (!target.hasOwnProperty(propertyName)) {
+        let propertyVal = getPrototypePropertyVal(target, propertyName, null);
+        propertyVal = new Map(propertyVal);
+        createProperty(target, propertyName, propertyVal);
+    }
+}
+function createProperty(target, propertyName, propertyVal) {
+    Object.defineProperty(target, propertyName, {
+        value: propertyVal,
+        writable: true,
+        enumerable: true,
+        configurable: true
+    });
+}
+function addDcecodeCounter(target) {
+    if (!target.hasOwnProperty(PropName.DecodeCounter)) {
+        let propertyVal = getPrototypePropertyVal(target, PropName.DecodeCounter, 0);
+        createProperty(target, PropName.DecodeCounter, propertyVal);
+    }
+}
+function getPrototypePropertyVal(target, propertyName, defaultVal) {
+    let prototype = Object.getPrototypeOf(target);
+    if (prototype.hasOwnProperty(propertyName)) {
+        return prototype[propertyName];
+    }
+    else {
+        return defaultVal;
+    }
+}
 
-},{"./Serializable":39}],39:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const NetworkDecorators_1 = require("./NetworkDecorators");
 class Serializable {
     constructor() {
         this.changes = new Set();
@@ -1841,48 +1883,84 @@ class Serializable {
         this.changes.add(change);
     }
     serialize(complete = false) {
-        let update = "";
         if (this.forceComplete) {
             this.forceComplete = false;
             complete = true;
         }
-        if (complete) {
-            this['SerializeFunctions'].forEach((serializeFunc) => {
-                update += serializeFunc(this);
-            });
+        let updateArray = [];
+        if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
+            if (complete) {
+                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
+                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
+                    updateArray[index] = serializeFunc(this);
+                });
+            }
+            else {
+                this.changes.forEach((shortKey) => {
+                    if (this[NetworkDecorators_1.PropName.SerializeFunctions].has(shortKey)) {
+                        let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+                        updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
+                        this.changes.delete(shortKey);
+                    }
+                });
+            }
         }
-        else {
-            this.changes.forEach((field) => {
-                if (this['SerializeFunctions'].has(field)) {
-                    update += this['SerializeFunctions'].get(field)(this);
-                    this.changes.delete(field);
+        if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
+            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
+                let data = this[key].serialize(complete);
+                if (data != "") {
+                    updateArray[index] = "<" + data + ">";
                 }
             });
         }
-        if (this['NestedNetworkObjects']) {
-            for (let key of this['NestedNetworkObjects']) {
-                update += this[key].serialize(complete);
+        let update = "";
+        let lastFiledIndex = 0;
+        for (let i = 0; i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size; i++) {
+            if (updateArray[i] != null) {
+                update += updateArray[i];
+                lastFiledIndex = update.length + 1;
+            }
+            if (i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size - 1) {
+                update += "|";
             }
         }
         this.changes.clear();
-        return update;
+        return update.substr(0, lastFiledIndex);
     }
     deserialize(update) {
-        for (let item of update) {
-            if (this['DeserializeFunctions'].has(item[0])) {
-                this['DeserializeFunctions'].get(item[0])(this, item.split(':')[1]);
-            }
-            if (this['NestedNetworkObjects']) {
-                for (let key of this['NestedNetworkObjects']) {
-                    this[key].deserialize(update);
+        let decodeIdx = 0;
+        while (update) {
+            let short_key = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(decodeIdx++);
+            let idx1 = update.indexOf('|');
+            let idx2 = update.indexOf('<');
+            if (idx2 == -1 || idx1 <= idx2) {
+                let data = update.split('|', 1)[0];
+                if (data) {
+                    this[NetworkDecorators_1.PropName.DeserializeFunctions].get(short_key)(this, data);
                 }
+                if (idx1 != -1) {
+                    update = update.substr(idx1 + 1, update.length);
+                }
+                else {
+                    update = null;
+                }
+            }
+            else {
+                let bracketEnd = update.indexOf('>', idx2);
+                let data = update.split('>', 1)[0].slice(1);
+                if (data) {
+                    let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(short_key);
+                    this[key].deserialize(data);
+                }
+                update = update.substr(bracketEnd + 2, update.length);
             }
         }
     }
 }
 exports.Serializable = Serializable;
 
-},{}],40:[function(require,module,exports){
+},{"./NetworkDecorators":38}],40:[function(require,module,exports){
 // Version 0.6.0 - Copyright 2012 - 2016 -  Jim Riecken <jimr@jimr.ca>
 //
 // Released under the MIT License - https://github.com/jriecken/sat-js

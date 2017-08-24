@@ -5,7 +5,6 @@ import {Enemy} from "./Enemy";
 import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
 
-
 export interface GameObjectConstructor {
     new (position: Transform): GameObject;
 }

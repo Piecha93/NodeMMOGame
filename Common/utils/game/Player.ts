@@ -72,11 +72,11 @@ export class Player extends Actor {
 
             if (xFactor != 0) {
                 this.Transform.X += xFactor * this.velocity * delta;
-                this.Transform.addChange(ChangesDict.X)
+                this.Transform.addChange(ChangesDict.X);
             }
             if (yFactor != 0) {
                 this.Transform.Y += yFactor * this.velocity * delta;
-                this.Transform.addChange(ChangesDict.X)
+                this.Transform.addChange(ChangesDict.Y);
             }
         }
     }

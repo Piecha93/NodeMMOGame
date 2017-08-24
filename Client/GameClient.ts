@@ -71,9 +71,9 @@ export class GameClient {
 
             this.renderer.setMap();
 
-            ObjectsFactory.HolderSubscribers.push(this.renderer);
-            ObjectsFactory.HolderSubscribers.push(this.world);
-            ObjectsFactory.HolderSubscribers.push(this.netObjectMenager);
+            ObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
+            ObjectsFactory.ObjectHolderSubscribers.push(this.world);
+            ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
 
             this.updateGame(data);
             //setTimeout(() => {
@@ -123,7 +123,7 @@ export class GameClient {
             }
 
             let update = data['update'].split('$');
-            console.log(update);
+            // console.log(update);
             for (let object in update) {
                 let splitObject: string[] = update[object].split('=');
                 let id: string = splitObject[0];
@@ -144,7 +144,7 @@ export class GameClient {
                 if (gameObject == null) {
                     gameObject = ObjectsFactory.CreateGameObject(Types.IdToClass.get(id[0]), id, data);
                 }
-                gameObject.deserialize(data.split('#'));
+                gameObject.deserialize(data);
             }
      //   }, 200);
     }
