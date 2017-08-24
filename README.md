@@ -1,3 +1,5 @@
-Praca inżynierska xD
+Praca inżynierska 
 
-Typescript + nodejs + socket.io + HTML5 + phaser
+Node MMO game
+
+Typescript + nodejs + socket.io + HTML5 + pixijs
