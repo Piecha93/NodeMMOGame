@@ -14,6 +14,7 @@ import {Obstacle} from "../Common/utils/game/Obstacle";
 import Session = Express.Session;
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../Common/utils/game/Enemy";
+import * as LZString from "lz-string";
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -79,7 +80,7 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 55; i++) {
+        for(let i = 0; i < 100; i++) {
             createEnemy();
         }
         ///////////////////////////////////////////////////////////////////TEST
@@ -126,9 +127,8 @@ export class GameServer {
 
                 serverClient.PlayerId = player.ID;
 
-                let update: string = NetObjectsManager.Instance.collectUpdate(true);
+                let update: string = LZString.compressToUTF16(NetObjectsManager.Instance.collectUpdate(true));
                 let world: string = this.world.serialize();
-
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
                 player.forceCompleteUpdate();
                 serverClient.IsReady = true;
@@ -196,9 +196,10 @@ export class GameServer {
             }
 
             if(update != '') {
+                update = LZString.compressToUTF16(update);
                 this.clients.forEach((client: ServerClient) => {
                     if (client.IsReady) {
-                        client.Socket.emit(SocketMsgs.UPDATE_GAME, {update});
+                        client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
                     }
                 });
             }
@@ -209,10 +210,10 @@ export class GameServer {
         if(!client) return;
 
         if(reason) {
-            client.Socket.emit(reason);
+            client.Socket.emit(SocketMsgs.ERROR, reason);
         }
 
-        console.log(SocketMsgs.ERROR, 'player disconnected' + client.Name);
+        console.log('player disconnected' + client.Name + " due " + reason);
         this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
 
 

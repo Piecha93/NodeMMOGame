@@ -16,6 +16,8 @@ import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {ClientConfig} from "./ClientConfig";
 import {Types} from "../Common/utils/game/GameObjectTypes";
+import * as LZString from "lz-string";
+import * as io from "socket.io-client"
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -63,6 +65,7 @@ export class GameClient {
     private configureSocket() {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
+            console.log(data);
             let worldInfo: Array<string> = data['world'].split(',');
             let width: number = Number(worldInfo[0]);
             let height: number = Number(worldInfo[1]);
@@ -74,8 +77,7 @@ export class GameClient {
             ObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
             ObjectsFactory.ObjectHolderSubscribers.push(this.world);
             ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
-
-            this.updateGame(data);
+            this.updateGame(data['update']);
             //setTimeout(() => {
                 this.player = this.world.getGameObject(data['id']) as Player;
                 this.renderer.CameraFollower = this.player;
@@ -83,9 +85,6 @@ export class GameClient {
                 this.heartBeatSender.startSendingHeartbeats();
 
                 this.startGame();
-                // this.world.Cells.forEach((cell: Cell) => {
-                //     this.renderer.addCell(cell);
-                // });
                 this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
 
                 this.socket.on(SocketMsgs.ERROR, (err: string) => {
@@ -118,11 +117,13 @@ export class GameClient {
     private updateGame(data) {
         // console.log(data);
        // setTimeout(() => {
-            if (data['update'] == null) {
-                return
-            }
 
-            let update = data['update'].split('$');
+        if(!data) return;
+        console.log(data);
+
+        data = LZString.decompressFromUTF16(data);
+        console.log(data);
+        let update: Array<string> = data.split('$');
             // console.log(update);
             for (let object in update) {
                 let splitObject: string[] = update[object].split('=');

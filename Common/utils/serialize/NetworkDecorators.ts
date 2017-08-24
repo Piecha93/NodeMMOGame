@@ -23,7 +23,11 @@ export function NetworkProperty(shortKey: string, castFunction?:any) {
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
 
         target[PropName.SerializeFunctions].set(shortKey, (object) => {
+            if(castFunction == Number) {
+                return object[key].toFixed(4);
+            } else {
                 return object[key];
+            }
         });
 
         target[PropName.DeserializeFunctions].set(shortKey, (object, data) => {
