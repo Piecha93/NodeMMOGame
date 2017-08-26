@@ -1,9 +1,7 @@
 import {INPUT_COMMAND} from "../../input/InputCommands";
 import {Transform} from "../physics/Transform";
-import {Bullet} from "./Bullet";
 import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {ObjectsFactory} from "./ObjectsFactory";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
 import {SpacialGrid} from "../physics/SpacialGrid";
@@ -17,6 +15,7 @@ export class Player extends Actor {
         super(transform);
 
         this.inputHistory = [];
+        this.velocity = 0.8;
     }
 
     public setInput(inputSnapshot: InputSnapshot) {
@@ -37,16 +36,7 @@ export class Player extends Actor {
         this.inputHistory = [];
 
         if(inputCommands.has(INPUT_COMMAND.FIRE)) {
-            for(let i = 0; i < 1; i++) {
-                let bullet: Bullet = ObjectsFactory.CreateGameObject(Bullet) as Bullet;
-                bullet.Owner = this.ID;
-
-                bullet.Transform.Rotation = parseFloat(inputCommands.get(INPUT_COMMAND.FIRE));
-                //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
-
-                bullet.Transform.X = this.transform.X;
-                bullet.Transform.Y = this.transform.Y;
-            }
+            this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
         }
     }
 

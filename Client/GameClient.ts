@@ -137,7 +137,7 @@ export class GameClient {
                 gameObject = this.netObjectMenager.getObject(id);
 
                 if (gameObject == null) {
-                    gameObject = ObjectsFactory.CreateGameObject(Types.IdToClass.get(id[0]), id, data);
+                    gameObject = ObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
                 }
                 gameObject.deserialize(data);
                 if(lastSnapshotData && this.player.ID == id) {

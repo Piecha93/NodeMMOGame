@@ -14,7 +14,7 @@ export abstract class GameObject extends Serializable implements Collidable {
     protected transform: Transform;
 
     @NetworkProperty(ChangesDict.VELOCITY)
-    protected velocity: number = 10;
+    protected velocity: number = 0;
 
     private destroyListeners: Set<Function>;
 
@@ -86,6 +86,14 @@ export abstract class GameObject extends Serializable implements Collidable {
         return this.id;
     }
 
+    get Velocity(): number {
+        return this.velocity;
+    }
+
+    set Velocity(val: number) {
+        this.velocity = val;
+    }
+
     set ID(id: string) {
         this.id = id;
     }
@@ -96,6 +104,6 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
-        this.changes.add(ChangesDict.SPRITE_NAME);
+        this.addChange(ChangesDict.SPRITE_NAME);
     }
 }

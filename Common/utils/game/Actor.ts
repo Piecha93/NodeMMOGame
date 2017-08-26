@@ -3,6 +3,7 @@ import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
+import {ObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export abstract class Actor extends GameObject {
@@ -25,6 +26,15 @@ export abstract class Actor extends GameObject {
         this.transform.Height = 64;
 
         this.spriteName = "bunny";
+    }
+
+    protected shot(angle: number) {
+        let bullet: Bullet = ObjectsFactory.Instatiate("Bullet") as Bullet;
+        bullet.Owner = this.ID;
+
+        bullet.Transform.Rotation = angle;
+        bullet.Transform.X = this.transform.X;
+        bullet.Transform.Y = this.transform.Y;
     }
 
     protected serverCollision(gameObject: GameObject, response: SAT.Response) {
@@ -52,7 +62,7 @@ export abstract class Actor extends GameObject {
         if(this.hp < 0) {
             this.hp = 0;
         }
-        this.changes.add(ChangesDict.HP);
+        this.addChange(ChangesDict.HP);
     }
 
     get MaxHP(): number {
@@ -69,7 +79,7 @@ export abstract class Actor extends GameObject {
 
     set Name(name: string) {
         this.name = name;
-        this.changes.add(ChangesDict.NAME);
+        this.addChange(ChangesDict.NAME);
     }
 }
 

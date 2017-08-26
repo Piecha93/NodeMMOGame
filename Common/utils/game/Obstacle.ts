@@ -7,6 +7,11 @@ export class Obstacle extends GameObject {
 
     constructor(transform: Transform) {
         super(transform);
+
+        transform.Height = 48;
+        transform.Width = 48;
+
+        this.SpriteName = "wall";
     }
 
     onCollisionEnter(gameObject: GameObject) {
@@ -21,6 +26,6 @@ export class Obstacle extends GameObject {
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-        //this.changes.add(ChangesDict.POSITION);
+        //this.addChange(ChangesDict.POSITION);
     }
 }

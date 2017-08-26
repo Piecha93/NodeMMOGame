@@ -1,8 +1,12 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
 import {GameObjectsHolder} from "./GameObjectsHolder";
-import {Types, GameObjectConstructor} from "./GameObjectTypes";
+import {Player} from "./Player";
 import {Enemy} from "./Enemy";
+import {Obstacle} from "./Obstacle";
+import {Bullet} from "./Bullet";
+import {Types} from "./GameObjectTypes";
+
 
 export class ObjectsFactory {
     constructor() {
@@ -11,20 +15,30 @@ export class ObjectsFactory {
 
     private static NEXT_ID: number = 0;
 
-    static ObjectHolderSubscribers: Array<GameObjectsHolder> = new Array<GameObjectsHolder>();
+    static ObjectHolderSubscribers: Array<GameObjectsHolder> = [];
 
-    static CreateCallbacks: Array<Function> = new Array<Function>();
-    static DestroyCallbacks: Array<Function> = new Array<Function>();
+    static CreateCallbacks: Array<Function> = [];
+    static DestroyCallbacks: Array<Function> = [];
 
-    static CreateGameObject(objectConstructor: GameObjectConstructor, id?: string, data?: string): GameObject {
+    static Instatiate(type: string, id?: string, data?: string): GameObject {
+
         let position: Transform = new Transform(0,0);
+        let gameObject: GameObject;
 
-        let gameObject: GameObject = new objectConstructor(position);
+        if(type == "Player") {
+            gameObject = new Player(position);
+        } else if(type == "Enemy") {
+            gameObject = new Enemy(position);
+        } else if(type == "Bullet") {
+            gameObject = new Bullet(position);
+        } else if(type == "Obstacle") {
+            gameObject = new Obstacle(position);
+        }
 
         if(id) {
             gameObject.ID = id;
         } else {
-            gameObject.ID = Types.ClassToId.get(objectConstructor) + (ObjectsFactory.NEXT_ID++).toString()
+            gameObject.ID = Types.ClassToId.get(type) + (ObjectsFactory.NEXT_ID++).toString()
         }
 
         if(data) {

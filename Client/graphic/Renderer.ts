@@ -40,6 +40,7 @@ export class Renderer extends GameObjectsHolder {
 
         PIXI.loader
             .add('none', 'resources/images/none.png')
+            .add('wall', 'resources/images/wall.png')
             .add('bunny', 'resources/images/bunny.png')
             .add('dyzma', 'resources/images/dyzma.jpg')
             .add('kamis', 'resources/images/kamis.jpg')
