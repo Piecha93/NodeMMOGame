@@ -6,7 +6,7 @@ import {Transform} from "../../Common/utils/physics/Transform";
 export abstract class GameObjectRender extends PIXI.Container {
     protected objectReference: GameObject;
 
-    private dt: number = 0.6;
+    private dt: number = 0.4;
 
     constructor() {
         super();

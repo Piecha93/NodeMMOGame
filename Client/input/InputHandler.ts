@@ -112,7 +112,6 @@ export class InputHandler {
 
     private parseDirection(directionBuffor: Array<INPUT>): number {
         let direction: number = 0;
-        console.log(directionBuffor);
         if(directionBuffor.indexOf(INPUT.UP) != -1 && directionBuffor.indexOf(INPUT.RIGHT) != -1) {
             direction = 2;
         } else if(directionBuffor.indexOf(INPUT.DOWN) != -1 && directionBuffor.indexOf(INPUT.RIGHT) != -1) {

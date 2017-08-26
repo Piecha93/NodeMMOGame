@@ -12,6 +12,8 @@ import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./Common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import {Types} from "./Common/utils/game/GameObjectTypes";
+import shortid = require("shortid");
+
 
 CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = process.env.PORT || 3000;
@@ -68,7 +70,7 @@ app.post('/login', (req: Request, res: Response) => {
     let post = req.body;
     if(post.username && post.password) {
         if(post.username == "guest" && post.password == "guest") {
-            req.session.user_id = "Guest" + nextGuestNumber();
+            req.session.user_id = "Guest " + shortid.generate();
             console.log(req.session.user_id);
             return res.redirect('/game');
         }
@@ -104,7 +106,7 @@ console.log('Node gameServer started at ' + port);
 
 function checkAuth(req: Request, res: Response, next: Function) {
     if (!req.session.user_id) {
-        res.send('You are not authorized to view this page');
+        res.redirect('/');
     } else {
         next();
     }

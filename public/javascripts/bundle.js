@@ -341,7 +341,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectRender extends PIXI.Container {
     constructor() {
         super();
-        this.dt = 0.6;
+        this.dt = 0.4;
     }
     setObject(gameObjectReference) {
         this.objectReference = gameObjectReference;
@@ -763,7 +763,6 @@ class InputHandler {
     }
     parseDirection(directionBuffor) {
         let direction = 0;
-        console.log(directionBuffor);
         if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
             direction = 2;
         }
@@ -2000,6 +1999,7 @@ class SpacialGrid {
             }
         }
         gameObject.spacialGridCells = cells;
+        //TODO this is workaround for enemy outside map
         if (cells.length == 0) {
             gameObject.destroy();
         }
