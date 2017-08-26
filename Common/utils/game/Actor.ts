@@ -5,6 +5,7 @@ import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Bodies} from "matter-js";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
@@ -17,13 +18,20 @@ export abstract class Actor extends GameObject {
     constructor(transform: Transform) {
         super(transform);
 
+        if(!transform) {
+            //{isStatic: true}
+            this.transform = new Transform(Bodies.rectangle(0, 0, 32, 32));
+            this.transform.ScaleY = 2;
+            console.log(this.transform.Body.velocity);
+        }
+
         this.maxHp = 200;
         this.hp = this.maxHp;
         this.velocity = 0.3;
         this.name = '';
 
-        this.transform.Width = 40;
-        this.transform.Height = 64;
+        // this.transform.Width = 40;
+        // this.transform.Height = 64;
 
         this.spriteName = "bunny";
     }
@@ -37,8 +45,8 @@ export abstract class Actor extends GameObject {
         bullet.Transform.Y = this.transform.Y;
     }
 
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        super.serverCollision(gameObject, response);
+    protected serverCollision(gameObject: GameObject) {
+        super.serverCollision(gameObject);
         if(gameObject instanceof Bullet) {
             let bullet: Bullet = gameObject as Bullet;
             if(bullet.Owner == this.ID) {
@@ -48,12 +56,12 @@ export abstract class Actor extends GameObject {
         }
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        super.commonCollision(gameObject, response);
+    protected commonCollision(gameObject: GameObject) {
+        super.commonCollision(gameObject);
 
         if(gameObject instanceof Obstacle) {
-            this.transform.X += response.overlapV.x * 1.2;
-            this.transform.Y += response.overlapV.y * 1.2;
+            // this.transform.X += response.overlapV.x * 1.2;
+            // this.transform.Y += response.overlapV.y * 1.2;
         }
     }
 

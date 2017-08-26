@@ -1,15 +1,19 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
+import {Bodies} from "matter-js";
 
 export class Obstacle extends GameObject {
 
     //private lifeSpan: number = -1;
 
-    constructor(transform: Transform) {
+    constructor(transform?: Transform) {
         super(transform);
 
-        transform.Height = 48;
-        transform.Width = 48;
+        if(!transform) {
+            this.transform = new Transform(Bodies.rectangle(0, 0, 32, 32, { isStatic: true }))
+        }
+        // transform.Height = 48;
+        // transform.Width = 48;
 
         this.SpriteName = "wall";
     }

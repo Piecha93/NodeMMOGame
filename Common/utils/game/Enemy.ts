@@ -6,7 +6,7 @@ export class Enemy extends Actor {
     private timeFromLastShot = 1000;
 
     private moveAngle: number = 0;
-    constructor(transform: Transform) {
+    constructor(transform?: Transform) {
         super(transform);
         this.moveAngle = Math.random() * 3;
         this.velocity = 0.5

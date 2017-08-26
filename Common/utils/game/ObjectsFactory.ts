@@ -22,17 +22,16 @@ export class ObjectsFactory {
 
     static Instatiate(type: string, id?: string, data?: string): GameObject {
 
-        let position: Transform = new Transform(0,0);
         let gameObject: GameObject;
 
         if(type == "Player") {
-            gameObject = new Player(position);
+            gameObject = new Player();
         } else if(type == "Enemy") {
-            gameObject = new Enemy(position);
+            gameObject = new Enemy();
         } else if(type == "Bullet") {
-            gameObject = new Bullet(position);
+            gameObject = new Bullet();
         } else if(type == "Obstacle") {
-            gameObject = new Obstacle(position);
+            gameObject = new Obstacle();
         }
 
         if(id) {

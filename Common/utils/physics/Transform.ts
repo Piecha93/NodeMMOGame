@@ -1,149 +1,130 @@
-import * as SAT from 'sat';
-
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable} from "../../serialize/Serializable"
+import {Bodies, Body, Vector} from "matter-js";
 
 export class Transform extends Serializable {
-    private polygon: SAT.Polygon;
+    private body: Body;
 
-    private width: number;
-    private height: number;
+    static Width = 32;
+    static Height = 32;
 
-    constructor(x?: number, y?: number, width?: number, height?: number) {
+    get Width(): number {
+        return Transform.Width * this.scaleX;
+    }
+
+    get Height(): number {
+        return Transform.Height * this.scaleY;
+    }
+
+    private scaleX: number = 1;
+    private scaleY: number = 1;
+
+    constructor(body: Body) {
         super();
-        x = x || 0;
-        y = y || 0;
-
-        this.width = width || 32;
-        this.height = height || 32;
-
-        let w: number = this.Width / 2;
-        let h: number = this.Height / 2;
-
-        this.polygon = new SAT.Polygon(new SAT.Vector(x, y), [
-            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-            new SAT.Vector(w, h), new SAT.Vector(-w, h)
-        ]);
+        this.body = body;
     }
 
-    static testCollision(t1: Transform, t2: Transform, response?: SAT.Response) {
-        let result: boolean;
-        if(response) {
-            result = SAT.testPolygonPolygon(t1.Polygon, t2.Polygon, response);
-        } else {
-            result = SAT.testPolygonPolygon(t1.Polygon, t2.Polygon);
-        }
-
-        return result;
-    }
-
-    static add(t1: Transform, t2: Transform) {
-        let result: Transform = new Transform();
-
-        result.X = t1.X + t2.X;
-        result.Y = t1.Y + t2.Y;
-
-        return result;
-    }
-
-    static substract(t1: Transform, t2: Transform) {
-        let result: Transform = new Transform();
-
-        result.X = t1.X - t2.X;
-        result.Y = t1.Y - t2.Y;
-
-        return result;
-    }
-
-    static multiple(t1: Transform, scalar: number) {
-        let result: Transform = new Transform();
-
-        result.X = t1.X * scalar;
-        result.Y = t1.Y * scalar;
-
-        return result;
-    }
-
-    static divide(t1: Transform, scalar: number) {
-        let result: Transform = new Transform();
-
-        result.X = t1.X /= scalar;
-        result.Y = t1.Y /= scalar;
-
-        return result;
+    get Body(): Body {
+        return this.body;
     }
 
     rotate(angle: number) {
         this.Rotation += angle;
     }
 
-    get Magnitude(): number {
-        return this.polygon.pos.len();
-    }
+    // get Magnitude(): number {
+    //     return this.polygon.pos.len();
+    // }
 
-    get Polygon(): SAT.Polygon {
-        return this.polygon;
-    }
+    // get Polygon(): SAT.Polygon {
+    //     return this.polygon;
+    // }
 
     get X(): number {
-        return this.polygon.pos.x;
+        return this.body.position.x;
     }
 
     @NetworkProperty(ChangesDict.X,)
     set X(x: number) {
-        this.polygon.pos.x = x;
+        let newPos: Vector = Vector.clone(this.body.position);
+        newPos.x = x;
+        Body.setPosition(this.body, newPos);
     }
 
     get Y(): number {
-        return this.polygon.pos.y;
+        return this.body.position.y;
     }
 
     @NetworkProperty(ChangesDict.Y)
     set Y(y: number) {
-        this.polygon.pos.y = y;
+        let newPos: Vector = Vector.clone(this.body.position);
+        newPos.y = y;
+        Body.setPosition(this.body, newPos);
     }
 
-    @NetworkProperty(ChangesDict.WIDTH)
-    set Width(width: number) {
-        if(this.width == width) return;
-        this.width = width;
-
-        let w: number = this.Width / 2;
-        let h: number = this.Height / 2;
-        this.polygon = new SAT.Polygon(this.polygon.pos, [
-            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-            new SAT.Vector(w, h), new SAT.Vector(-w, h)
-        ]);
+    @NetworkProperty(ChangesDict.ScaleX)
+    set ScaleX(x: number) {
+        this.scaleX = x;
+        Body.scale(this.body, x, this.scaleY);
     }
 
-    get Width(): number {
-        return this.width;
+    get ScaleX(): number {
+        return this.scaleX;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT)
-    set Height(height: number) {
-        if(this.height == height) return;
-        this.height = height;
-
-        let w: number = this.Width / 2;
-        let h: number = this.Height / 2;
-        this.polygon = new SAT.Polygon(this.polygon.pos, [
-            new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-            new SAT.Vector(w, h), new SAT.Vector(-w, h)
-        ]);
+    @NetworkProperty(ChangesDict.ScaleY)
+    set ScaleY(y: number) {
+        this.scaleY = y;
+        Body.scale(this.body, this.scaleX, y);
     }
 
-    get Height(): number {
-        return this.height;
+    get ScaleY(): number {
+        return this.scaleY;
     }
+
+    // @NetworkProperty(ChangesDict.WIDTH)
+    // set Width(width: number) {
+    //     if(this.body.label == "Rectangle Body") {
+    //         this.width = width;
+    //     } else if(this.body.label == "Rectangle Body") {
+    //         this.width = width;
+    //     }
+    // }
+    //
+    // get Width(): number {
+    //     if(this.body.label == "Rectangle Body") {
+    //         return this.width;
+    //     } else if(this.body.label == "Rectangle Body") {
+    //         return this.width;
+    //     }
+    //     return this.width;
+    // }
+    //
+    // @NetworkProperty(ChangesDict.HEIGHT)
+    // set Height(height: number) {
+    //     if(this.body.label == "Rectangle Body") {
+    //         this.height = height;
+    //     } else if(this.body.label == "Rectangle Body") {
+    //         this.height = height;
+    //     }
+    // }
+    //
+    // get Height(): number {
+    //     if(this.body.label == "Rectangle Body") {
+    //         return this.height;
+    //     } else if(this.body.label == "Rectangle Body") {
+    //         return this.height;
+    //     }
+    //     return this.height;
+    // }
 
     @NetworkProperty(ChangesDict.ROTATION)
     set Rotation(angle: number) {
-        this.polygon.setAngle(angle);
+        Body.setAngle(this.body, angle);
     }
 
     get Rotation(): number {
-        return this.polygon.angle;
+        return this.body.angle;
     }
 }

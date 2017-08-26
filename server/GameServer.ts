@@ -1,7 +1,7 @@
 import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
-import {World} from "../Common/World";
+import {GameWorld} from "../Common/GameWorld";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
@@ -21,7 +21,7 @@ export class GameServer {
     private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
     private socketsIds: Map<string, Socket> = new Map<string, Socket>();
 
-    private world: World;
+    private world: GameWorld;
 
     private destroyedObjects: string = '';
 
@@ -35,7 +35,7 @@ export class GameServer {
     }
 
     private startGame() {
-        this.world = new World(2048, 1156);
+        this.world = new GameWorld(2048, 1156);
 
         ObjectsFactory.ObjectHolderSubscribers.push(this.world);
         ObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
@@ -44,7 +44,7 @@ export class GameServer {
         });
         let o: Obstacle;
         ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
-        for (let i = 0; i < this.world.Height / 48; i++) {
+        for (let i = 0; i < this.world.Height / 32; i++) {
             o= ObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = 0;
             o.Transform.Y = i * o.Transform.Height;
@@ -54,7 +54,7 @@ export class GameServer {
             o.Transform.Y = i * o.Transform.Height;
         }
 
-        for (let i = 1; i < this.world.Width / 48; i++) {
+        for (let i = 1; i < this.world.Width / 32; i++) {
             o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = 0;
@@ -67,12 +67,12 @@ export class GameServer {
         o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 150;
-        o.Transform.Width = 150;
+        o.Transform.ScaleX = 3;
 
         o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 450;
-        o.Transform.Height = 150;
+        o.Transform.ScaleY = 3;
 
         let createEnemy: Function = () => {
             let e: Enemy = ObjectsFactory.Instatiate("Enemy") as Enemy;
@@ -126,8 +126,8 @@ export class GameServer {
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.Instatiate("Player") as Player;
-                player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
-                player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+                // player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
+                // player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
 
                 player.Name = serverClient.Name;
 

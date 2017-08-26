@@ -1,12 +1,11 @@
 import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
-import {Collidable} from "../physics/Collidable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Serializable} from "../../serialize/Serializable";
-import {Cell} from "../physics/SpacialGrid";
+import {Bodies} from "matter-js";
 
-export abstract class GameObject extends Serializable implements Collidable {
+export abstract class GameObject extends Serializable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME)
     protected spriteName: string;
@@ -18,31 +17,35 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     private destroyListeners: Set<Function>;
 
-    public spacialGridCells: Array<Cell> = [];
+    // public spacialGridCells: Array<Cell> = [];
 
-    constructor(transform: Transform) {
+    constructor(transform?: Transform) {
         super();
+
+        if(!transform) {
+            transform = new Transform(Bodies.rectangle(0, 0, 32, 32));
+        }
+
         this.transform = transform;
 
         this.spriteName = "none";
         this.destroyListeners = new Set<Function>();
     }
 
-    onCollisionEnter(gameObject: GameObject, response: SAT.Response) {
-        if(CommonConfig.ORIGIN == Origin.SERVER) {
-            this.serverCollision(gameObject, response);
-        }
-        this.commonCollision(gameObject, response);
+    // onCollisionEnter(gameObject: GameObject, response: SAT.Response) {
+    //     if(CommonConfig.ORIGIN == Origin.SERVER) {
+    //         this.serverCollision(gameObject, response);
+    //     }
+    //     this.commonCollision(gameObject, response);
+    // }
+
+    protected serverCollision(gameObject: GameObject) {
     }
 
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-
-    }
-
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        if(response.a == this.Transform.Polygon) {
-            response.overlapV = response.overlapV.clone().reverse();
-        }
+    protected commonCollision(gameObject: GameObject) {
+        // if(response.a == this.Transform.Polygon) {
+        //     response.overlapV = response.overlapV.clone().reverse();
+        // }
     }
 
     public forceCompleteUpdate() {

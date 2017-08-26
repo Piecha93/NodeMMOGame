@@ -4,6 +4,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Bodies} from "matter-js";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
@@ -12,8 +13,12 @@ export class Bullet extends GameObject {
     @NetworkProperty(ChangesDict.OWNER)
     private owner: string;
 
-    constructor(transform: Transform) {
+    constructor(transform?: Transform) {
         super(transform);
+
+        if(!transform) {
+            this.transform = new Transform(Bodies.circle(0, 0, 32));
+        }
 
         if(Math.floor(Math.random() * 2)) {
             this.spriteName = "bluebolt";
@@ -26,15 +31,14 @@ export class Bullet extends GameObject {
         this.spriteName = "flame";
         this.velocity = 0;
 
-        this.transform.Width = 30;
-        this.transform.Height = 20;
+        // this.transform.Width = 30;
+        // this.transform.Height = 20;
 
         this.lifeSpan = 5000;
         this.addChange(ChangesDict.VELOCITY);
     }
-
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        super.serverCollision(gameObject, response);
+    protected serverCollision(gameObject: GameObject) {
+        super.serverCollision(gameObject);
         if(gameObject instanceof Bullet) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
@@ -47,27 +51,27 @@ export class Bullet extends GameObject {
         }
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        super.commonCollision(gameObject, response);
+    protected commonCollision(gameObject: GameObject) {
+        super.commonCollision(gameObject);
         if(gameObject instanceof Obstacle) {
-            if(response.overlapN.x) {
+            // if(response.overlapN.x) {
                 // this.Transform.Rotation = Math.PI - this.Transform.Rotation;
-            } else {
+            // } else {
                 // this.Transform.Rotation = 2*Math.PI - this.Transform.Rotation;
-            }
+            // }
 
-            if(response.overlapV.x != 0) {
-                this.velocityx *= -0.75;
-                this.transform.X += response.overlapV.x * 1.2;
-                this.transform.addChange(ChangesDict.Y);
-                this.Transform.addChange("xx");
-            }
-            if(response.overlapV.y != 0) {
-                this.velocity *= -0.75;
-                this.transform.Y += response.overlapV.y * 1.2;
-                this.transform.addChange(ChangesDict.Y);
-                this.Transform.addChange(ChangesDict.VELOCITY);
-            }
+            // if(response.overlapV.x != 0) {
+            //     this.velocityx *= -0.75;
+            //     this.transform.X += response.overlapV.x * 1.2;
+            //     this.transform.addChange(ChangesDict.Y);
+            //     this.Transform.addChange("xx");
+            // }
+            // if(response.overlapV.y != 0) {
+            //     this.velocity *= -0.75;
+            //     this.transform.Y += response.overlapV.y * 1.2;
+            //     this.transform.addChange(ChangesDict.Y);
+            //     this.Transform.addChange(ChangesDict.VELOCITY);
+            // }
         }
     }
 
@@ -82,28 +86,25 @@ export class Bullet extends GameObject {
     }
     private acceleration = 0.005;
 
-    @NetworkProperty('xx')
-    velocityx = null;
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
         // let sinAngle: number = Math.sin(this.Transform.Rotation);
         // let cosAngle: number = Math.cos(this.Transform.Rotation);
 
-        if(!this.velocityx) {
-            this.velocityx = Math.cos(this.Transform.Rotation);
-            this.velocity += Math.sin(this.Transform.Rotation);
-        }
+        // if(!this.velocityx) {
+        //     this.velocityx = Math.cos(this.Transform.Rotation);
+        //     this.velocity += Math.sin(this.Transform.Rotation);
+        // }
         
-        this.velocity += delta * (this.acceleration) / 2;
-        this.transform.X += this.velocityx * delta;
-        this.transform.Y += this.velocity * delta;
+        // this.velocity += delta * (this.acceleration) / 2;
+        // this.transform.X += this.velocityx * delta;
+        // this.transform.Y += this.velocity * delta;
 
-        this.Transform.Rotation = Math.atan2(this.velocity, this.velocityx);
+        // this.Transform.Rotation = Math.atan2(this.velocity, this.velocityx);
 
         this.Transform.addChange(ChangesDict.Y);
         this.Transform.addChange(ChangesDict.VELOCITY);
-        this.Transform.addChange("xx");
     }
 
     get Power(): number {

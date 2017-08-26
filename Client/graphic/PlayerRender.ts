@@ -1,6 +1,7 @@
 import {Player} from "../../Common/utils/game/Player";
 import {GameObject} from "../../Common/utils/game/GameObject";
 import {GameObjectSpriteRender} from "../../Client/graphic/GameObjectSpriteRender";
+import {Transform} from "../../Common/utils/physics/Transform";
 
 export class PlayerRender extends GameObjectSpriteRender {
     private playerReference: Player;
@@ -27,8 +28,11 @@ export class PlayerRender extends GameObjectSpriteRender {
 
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-this.objectReference.Transform.Width / 2, -this.objectReference.Transform.Height / 2,
-            this.objectReference.Transform.Width, 7);
+
+        let w: number = Transform.Width * this.objectReference.Transform.ScaleX;
+        let h: number = Transform.Height * this.objectReference.Transform.ScaleY;
+        this.hpBar.drawRect(-w / 2, -h / 2,
+            w, 7);
 
         this.sprite.addChild(this.hpBar);
     }

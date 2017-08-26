@@ -15,8 +15,8 @@ export class ChangesDict {
     //Transform
     public static X = 'X';
     public static Y = 'Y';
-    public static WIDTH = 'W';
-    public static HEIGHT = 'E';
+    public static ScaleX = 'W';
+    public static ScaleY = 'E';
     public static ROTATION = 'R';
 
 }

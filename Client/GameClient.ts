@@ -1,6 +1,6 @@
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 
-import {World} from "../Common/World";
+import {GameWorld} from "../Common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
@@ -21,7 +21,7 @@ import * as io from "socket.io-client"
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
-    private world: World;
+    private world: GameWorld;
     private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
@@ -70,7 +70,7 @@ export class GameClient {
             let width: number = Number(worldInfo[0]);
             let height: number = Number(worldInfo[1]);
 
-            this.world = new World(width, height);
+            this.world = new GameWorld(width, height);
 
             this.renderer.setMap();
 
@@ -141,7 +141,7 @@ export class GameClient {
                 }
                 gameObject.deserialize(data);
                 if(lastSnapshotData && this.player.ID == id) {
-                    this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
+                    // this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
                 }
             }
     }

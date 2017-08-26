@@ -4,18 +4,17 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
-import {SpacialGrid} from "../physics/SpacialGrid";
 
 export class Player extends Actor {
     private moveDirection: number = 0;
     private inputHistory: Array<InputSnapshot>;
     private lastInputSnapshot: InputSnapshot;
 
-    constructor(transform: Transform) {
+    constructor(transform?: Transform) {
         super(transform);
 
         this.inputHistory = [];
-        this.velocity = 0.8;
+        this.velocity = 1.8;
     }
 
     public setInput(inputSnapshot: InputSnapshot) {
@@ -42,7 +41,6 @@ export class Player extends Actor {
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
-
         if(this.lastInputSnapshot) {
             this.lastInputSnapshot.setSnapshotDelta();
         }
@@ -50,62 +48,63 @@ export class Player extends Actor {
         let moveFactors: [number, number] = this.parseMoveDir();
         if (moveFactors[0] != 0) {
             this.Transform.X += moveFactors[0] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.X);
         }
+        this.Transform.addChange(ChangesDict.X);
         if (moveFactors[1] != 0) {
             this.Transform.Y += moveFactors[1] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.Y);
         }
+        this.Transform.addChange(ChangesDict.Y);
+        this.Transform.addChange(ChangesDict.ROTATION);
     }
 
-    public reconciliation(serverSnapshotData: [number, number], spacialGrid: SpacialGrid) {
-        let serverSnapshotId: number = serverSnapshotData[0];
-        let serverSnapshotDelta: number = serverSnapshotData[1];
-        let histElemsToRemove: number = 0;
-        for(let i: number = 0; i < this.inputHistory.length; i++) {
-            if(this.inputHistory[i].ID >= serverSnapshotId) {
-                let delta: number = 0;
-
-                if(i < this.inputHistory.length - 1) {
-                    delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
-                } else {
-                    delta = this.inputHistory[i].SnapshotDelta;
-                }
-                if(this.inputHistory[i].ID == serverSnapshotId) {
-                    delta -= serverSnapshotDelta;
-                }
-                this.setInput(this.inputHistory[i]);
-                let moveFactors: [number, number] = this.parseMoveDir();
-
-                let stepSize = 25;
-                let steps: number = Math.floor(delta / stepSize);
-                let rest: number = delta % stepSize;
-
-                for (let i = 0; i <= steps; i++) {
-                    let step: number;
-                    if (i == steps) {
-                        step = rest;
-                    } else {
-                        step = stepSize;
-                    }
-
-                    if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
-                        this.Transform.X += moveFactors[0] * this.velocity * step;
-                    }
-                    if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
-                        this.Transform.Y += moveFactors[1] * this.velocity * step;
-                    }
-                    spacialGrid.insertObjectIntoGrid(this);
-                    for (let cell of this.spacialGridCells) {
-                        cell.checkCollisionsForObject(this);
-                    }
-                }
-            } else {
-                histElemsToRemove++
-            }
-        }
-        this.inputHistory = this.inputHistory.splice(histElemsToRemove);
-    }
+    // public reconciliation(serverSnapshotData: [number, number], spacialGrid: SpacialGrid) {
+    //     let serverSnapshotId: number = serverSnapshotData[0];
+    //     let serverSnapshotDelta: number = serverSnapshotData[1];
+    //     let histElemsToRemove: number = 0;
+    //     for(let i: number = 0; i < this.inputHistory.length; i++) {
+    //         if(this.inputHistory[i].ID >= serverSnapshotId) {
+    //             let delta: number = 0;
+    //
+    //             if(i < this.inputHistory.length - 1) {
+    //                 delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
+    //             } else {
+    //                 delta = this.inputHistory[i].SnapshotDelta;
+    //             }
+    //             if(this.inputHistory[i].ID == serverSnapshotId) {
+    //                 delta -= serverSnapshotDelta;
+    //             }
+    //             this.setInput(this.inputHistory[i]);
+    //             let moveFactors: [number, number] = this.parseMoveDir();
+    //
+    //             let stepSize = 25;
+    //             let steps: number = Math.floor(delta / stepSize);
+    //             let rest: number = delta % stepSize;
+    //
+    //             for (let i = 0; i <= steps; i++) {
+    //                 let step: number;
+    //                 if (i == steps) {
+    //                     step = rest;
+    //                 } else {
+    //                     step = stepSize;
+    //                 }
+    //
+    //                 if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
+    //                     this.Transform.X += moveFactors[0] * this.velocity * step;
+    //                 }
+    //                 if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
+    //                     this.Transform.Y += moveFactors[1] * this.velocity * step;
+    //                 }
+    //                 spacialGrid.insertObjectIntoGrid(this);
+    //                 for (let cell of this.spacialGridCells) {
+    //                     cell.checkCollisionsForObject(this);
+    //                 }
+    //             }
+    //         } else {
+    //             histElemsToRemove++
+    //         }
+    //     }
+    //     this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+    // }
 
     protected serverUpdate(delta: number) {
 
