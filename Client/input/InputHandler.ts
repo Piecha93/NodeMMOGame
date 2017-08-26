@@ -72,23 +72,18 @@ export class InputHandler {
     private createInputSnapshot(): InputSnapshot {
         let inputSnapshot: InputSnapshot = new InputSnapshot;
 
-        let directionBuffor: Array<INPUT> = new Array<INPUT>(4);
-        let inputPressed: Set<INPUT> = new Set<INPUT>();
+        let directionBuffor: Array<INPUT> = [];
         this.pressedKeys.forEach((key: number) => {
             let input: INPUT = InputMap.get(key);
 
             if(input == INPUT.UP || input == INPUT.DOWN || input == INPUT.LEFT || input == INPUT.RIGHT) {
                 directionBuffor.push(input);
-            } else {
-                inputPressed.add(input);
             }
         });
 
         let newDirection: number = this.parseDirection(directionBuffor);
-        if(newDirection != this.lastDirection) {
-            this.lastDirection = newDirection;
-            inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString())
-        }
+        this.lastDirection = newDirection;
+        inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString())
 
         if(this.clickPosition != null) {
             let angle: string = this.parseClick();
@@ -117,6 +112,7 @@ export class InputHandler {
 
     private parseDirection(directionBuffor: Array<INPUT>): number {
         let direction: number = 0;
+        console.log(directionBuffor);
         if(directionBuffor.indexOf(INPUT.UP) != -1 && directionBuffor.indexOf(INPUT.RIGHT) != -1) {
             direction = 2;
         } else if(directionBuffor.indexOf(INPUT.DOWN) != -1 && directionBuffor.indexOf(INPUT.RIGHT) != -1) {

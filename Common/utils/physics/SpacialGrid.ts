@@ -4,8 +4,9 @@ import {CommonConfig, Origin} from "../../CommonConfig";
 import * as SAT from 'sat';
 
 export class Cell {
-    objects: Array<GameObject> = new Array<GameObject>();
-    transform: Transform;
+    private objects: Array<GameObject> = [];
+    private transform: Transform;
+    private response: SAT.Response;
 
     static ID = 0;
 
@@ -14,6 +15,7 @@ export class Cell {
     constructor(transform: Transform) {
         this.id = Cell.ID++;
         this.transform = transform;
+        this.response = new SAT.Response();
     }
 
     get Transform(): Transform {
@@ -21,7 +23,16 @@ export class Cell {
     }
 
     addObject(gameObject: GameObject) {
+        if(this.objects.indexOf(gameObject) == -1) {
             this.objects.push(gameObject);
+        }
+    }
+
+    removeObject(gameObject: GameObject) {
+        let index: number = this.objects.indexOf(gameObject, 0);
+        if (index > -1) {
+            this.objects.splice(index, 1);
+        }
     }
 
     clear() {
@@ -32,20 +43,36 @@ export class Cell {
         return this.objects.length <= 0;
     }
 
+    checkCollisionsForObject(o1: GameObject) {
+        if (this.objects.indexOf(o1) == -1) {
+            return;
+        }
+        for (let i = 0; i < this.objects.length; i++) {
+            let o2: GameObject = this.objects[i];
+
+            if(this.checkCollision(o1, o2)) {
+                o1.onCollisionEnter(o2, this.response);
+            }
+        }
+    }
+
     checkCollisions() {
-        let response: SAT.Response = new SAT.Response();
         for(let i = 0; i < this.objects.length; i++) {
             for(let j = i + 1; j < this.objects.length; j++) {
                 let o1: GameObject = this.objects[i];
                 let o2: GameObject = this.objects[j];
 
-                response.clear();
-                if (o1 != o2 && Transform.testCollision(o1.Transform, o2.Transform, response)) {
-                    o1.onCollisionEnter(o2, response);
-                    o2.onCollisionEnter(o1, response);
+                if(this.checkCollision(o1, o2)) {
+                    o1.onCollisionEnter(o2, this.response);
+                    o2.onCollisionEnter(o1, this.response);
                 }
             }
         }
+    }
+
+    checkCollision(o1: GameObject, o2: GameObject): boolean {
+        this.response.clear();
+        return o1 != o2 && Transform.testCollision(o1.Transform, o2.Transform, this.response);
     }
 }
 
@@ -69,8 +96,8 @@ export class SpacialGrid {
         this.cellsX = Math.ceil(width / cellSize);
         this.cellsY = Math.ceil(height / cellSize);
 
-        this.gameObjects = new Array<GameObject>();
-        this.cells = new Array<Cell>();
+        this.gameObjects = [];
+        this.cells = [];
 
         for(let y: number = 0; y < this.cellsY; y++) {
             for(let x: number = 0; x < this.cellsX; x++) {
@@ -86,26 +113,37 @@ export class SpacialGrid {
             cell.clear();
         });
         this.gameObjects.forEach((gameObject: GameObject) => {
-            let xs: number = gameObject.Transform.X / this.cellSize ;
-            let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
-            xs = Math.floor(xs) - 1;
+            this.insertObjectIntoGrid(gameObject);
+        });
+    }
 
-            let ys: number = gameObject.Transform.Y / this.cellSize;
-            let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
-            ys = Math.floor(ys) - 1;
+    public insertObjectIntoGrid(gameObject: GameObject) {
+        gameObject.spacialGridCells.forEach((cell: Cell) => {
+           cell.removeObject(gameObject);
+        });
+        let xs: number = gameObject.Transform.X / this.cellSize ;
+        let xe: number = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
+        xs = Math.floor(xs);
 
-            for(let i = xs; i <= xe; i++) {
-                if(i >= this.cellsX || i < 0) continue;
-                for(let j = ys; j <= ye; j++) {
-                    if(j >= this.cellsY || j < 0) continue;
+        let ys: number = gameObject.Transform.Y / this.cellSize;
+        let ye: number = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
+        ys = Math.floor(ys);
 
-                    let idx = (j * this.cellsX) + i;
-                    if(Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
-                        this.cells[idx].addObject(gameObject);
-                    }
+        let cells: Array<Cell> = [];
+
+        for(let i = xs; i <= xe; i++) {
+            if(i >= this.cellsX || i < 0) continue;
+            for(let j = ys; j <= ye; j++) {
+                if(j >= this.cellsY || j < 0) continue;
+
+                let idx = (j * this.cellsX) + i;
+                if(Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
+                    this.cells[idx].addObject(gameObject);
+                    cells.push(this.cells[idx]);
                 }
             }
-        });
+        }
+        gameObject.spacialGridCells = cells;
     }
 
     checkCollisions() {

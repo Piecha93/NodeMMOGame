@@ -1,7 +1,6 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
 import {Cell, SpacialGrid} from "./utils/physics/SpacialGrid";
-import {CommonConfig, Origin} from "../Common/CommonConfig";
 
 export class World extends GameObjectsHolder {
     private spacialGrid: SpacialGrid;
@@ -38,9 +37,8 @@ export class World extends GameObjectsHolder {
         super.removeGameObject(gameObject);
     }
 
-    //TEST
-    get Cells(): Array<Cell> {
-        return this.spacialGrid.Cells;
+    get SpacialGrid(): SpacialGrid {
+        return this.spacialGrid;
     }
 
     get Width(): number {

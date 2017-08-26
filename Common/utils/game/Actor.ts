@@ -40,6 +40,7 @@ export abstract class Actor extends GameObject {
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
         super.commonCollision(gameObject, response);
+
         if(gameObject instanceof Obstacle) {
             this.transform.X += response.overlapV.x * 1.2;
             this.transform.Y += response.overlapV.y * 1.2;

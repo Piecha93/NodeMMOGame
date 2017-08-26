@@ -3,14 +3,20 @@ import {PropName} from "./NetworkDecorators";
 export class Serializable {
     protected forceComplete: boolean;
     protected changes: Set<string>;
+    protected deserializedFields: Set<string>;
 
     constructor() {
         this.changes = new Set<string>();
+        this.deserializedFields = new Set<string>();
         this.forceComplete = true;
     }
 
     public addChange(change: string) {
         this.changes.add(change);
+    }
+
+    get DeserializedFields():Set<string> {
+        return this.deserializedFields;
     }
 
     public serialize(complete: boolean = false): string {
@@ -66,6 +72,7 @@ export class Serializable {
 
     public deserialize(update: string) {
         let decodeIdx: number = 0;
+        this.deserializedFields.clear();
         while (update) {
             let short_key = this[PropName.SerializeDecodeOrder].get(decodeIdx++);
             let idx1 = update.indexOf('|');
@@ -74,6 +81,7 @@ export class Serializable {
                 let data: string = update.split('|', 1)[0];
                 if(data) {
                     this[PropName.DeserializeFunctions].get(short_key)(this, data);
+                    this.deserializedFields.add(short_key);
                 }
                 if(idx1 != -1) {
                     update = update.substr(idx1 + 1, update.length);

@@ -44,7 +44,7 @@ export class GameServer {
         });
 
         ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
-        for(let i = 0; i < 1156 / 32; i++) {
+        for (let i = 0; i < 1156 / 32; i++) {
             let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
             o.Transform.X = 0;
             o.Transform.Y = i * 32;
@@ -54,7 +54,7 @@ export class GameServer {
             o.Transform.Y = i * 32;
         }
 
-        for(let i = 1; i < 2016 / 32; i++) {
+        for (let i = 1; i < 2016 / 32; i++) {
             let o: Obstacle = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
             o.Transform.X = i * 32;
             o.Transform.Y = 0;
@@ -68,10 +68,15 @@ export class GameServer {
         o.Transform.Y = 150;
         o.Transform.Width = 150;
 
+        o = ObjectsFactory.CreateGameObject(Obstacle) as Obstacle;
+        o.Transform.X = 150;
+        o.Transform.Y = 450;
+        o.Transform.Height = 150;
+
         let createEnemy: Function = () => {
             let e: Enemy = ObjectsFactory.CreateGameObject(Enemy) as Enemy;
-            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
-            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
+            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
 
             e.Name = "Monster";
 
@@ -80,7 +85,7 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 20; i++) {
+        for (let i = 0; i < 20; i++) {
             createEnemy();
         }
         ///////////////////////////////////////////////////////////////////TEST
@@ -142,10 +147,8 @@ export class GameServer {
                     return;
                 }
 
-                let snapshotId: number = parseInt(data['id']);
                 let snapshot: InputSnapshot = new InputSnapshot();
-                snapshot.deserialize(data['serializedSnapshot']);
-
+                snapshot.deserialize(data);
                 player.setInput(snapshot);
             });
 

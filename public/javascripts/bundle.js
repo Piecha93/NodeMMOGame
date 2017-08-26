@@ -198,7 +198,7 @@ class GameClient {
     }
     startGame() {
         let timer = new DeltaTimer_1.DeltaTimer;
-        let deltaHistory = new Array();
+        let deltaHistory = [];
         setInterval(() => {
             let delta = timer.getDelta();
             this.world.update(delta);
@@ -211,7 +211,7 @@ class GameClient {
                 deltaAvg += delta;
             });
             deltaAvg /= deltaHistory.length;
-            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
+            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
         }, ClientConfig_1.ClientConfig.TICKRATE);
     }
     updateGame(data, lastSnapshotData) {
@@ -239,7 +239,7 @@ class GameClient {
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.player.ID == id) {
-                this.player.reconciliation(lastSnapshotData);
+                this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
             }
         }
     }
@@ -732,22 +732,18 @@ class InputHandler {
     }
     createInputSnapshot() {
         let inputSnapshot = new InputSnapshot_1.InputSnapshot;
-        let directionBuffor = new Array(4);
-        let inputPressed = new Set();
+        let directionBuffor = [];
         this.pressedKeys.forEach((key) => {
             let input = InputMap_1.InputMap.get(key);
             if (input == InputMap_1.INPUT.UP || input == InputMap_1.INPUT.DOWN || input == InputMap_1.INPUT.LEFT || input == InputMap_1.INPUT.RIGHT) {
                 directionBuffor.push(input);
             }
-            else {
-                inputPressed.add(input);
-            }
         });
         let newDirection = this.parseDirection(directionBuffor);
-        if (newDirection != this.lastDirection) {
-            this.lastDirection = newDirection;
-            inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
-        }
+        // if(newDirection != this.lastDirection) {
+        this.lastDirection = newDirection;
+        inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
+        // }
         if (this.clickPosition != null) {
             let angle = this.parseClick();
             inputSnapshot.append(InputCommands_1.INPUT_COMMAND.FIRE, angle);
@@ -769,6 +765,7 @@ class InputHandler {
     }
     parseDirection(directionBuffor) {
         let direction = 0;
+        console.log(directionBuffor);
         if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
             direction = 2;
         }
@@ -882,7 +879,7 @@ class InputSender {
         let serializedSnapshot = snapshot.serializeSnapshot();
         //console.log(serializedSnapshot);
         if (serializedSnapshot.length > 0) {
-            this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, { id, serializedSnapshot });
+            this.socket.emit(SocketMsgs_1.SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
         }
     }
 }
@@ -952,9 +949,8 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
         this.spacialGrid.removeObject(gameObject);
         super.removeGameObject(gameObject);
     }
-    //TEST
-    get Cells() {
-        return this.spacialGrid.Cells;
+    get SpacialGrid() {
+        return this.spacialGrid;
     }
     get Width() {
         return this.width;
@@ -1205,10 +1201,14 @@ const NetworkDecorators_1 = require("./NetworkDecorators");
 class Serializable {
     constructor() {
         this.changes = new Set();
+        this.deserializedFields = new Set();
         this.forceComplete = true;
     }
     addChange(change) {
         this.changes.add(change);
+    }
+    get DeserializedFields() {
+        return this.deserializedFields;
     }
     serialize(complete = false) {
         if (this.forceComplete) {
@@ -1258,6 +1258,7 @@ class Serializable {
     }
     deserialize(update) {
         let decodeIdx = 0;
+        this.deserializedFields.clear();
         while (update) {
             let short_key = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(decodeIdx++);
             let idx1 = update.indexOf('|');
@@ -1266,6 +1267,7 @@ class Serializable {
                 let data = update.split('|', 1)[0];
                 if (data) {
                     this[NetworkDecorators_1.PropName.DeserializeFunctions].get(short_key)(this, data);
+                    this.deserializedFields.add(short_key);
                 }
                 if (idx1 != -1) {
                     update = update.substr(idx1 + 1, update.length);
@@ -1538,6 +1540,7 @@ class GameObject extends Serializable_1.Serializable {
         super();
         this.id = "";
         this.velocity = 10;
+        this.spacialGridCells = [];
         this.transform = transform;
         this.spriteName = "none";
         this.destroyListeners = new Set();
@@ -1551,6 +1554,9 @@ class GameObject extends Serializable_1.Serializable {
     serverCollision(gameObject, response) {
     }
     commonCollision(gameObject, response) {
+        if (response.a == this.Transform.Polygon) {
+            response.overlapV = response.overlapV.clone().reverse();
+        }
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -1599,7 +1605,7 @@ __decorate([
     __metadata("design:type", String)
 ], GameObject.prototype, "spriteName", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkObject("t1"),
+    NetworkDecorators_1.NetworkObject("pos"),
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
@@ -1748,17 +1754,18 @@ class Player extends Actor_1.Actor {
         this.inputHistory = [];
     }
     setInput(inputSnapshot) {
-        this.lastInputSnapshot = inputSnapshot;
         let inputCommands = inputSnapshot.Commands;
         if (inputCommands.has(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION)) {
             this.moveDirection = parseInt(inputCommands.get(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION));
-        }
-        if (CommonConfig_1.CommonConfig.ORIGIN != CommonConfig_1.Origin.SERVER) {
+            this.lastInputSnapshot = inputSnapshot;
             if (this.inputHistory.indexOf(inputSnapshot) == -1) {
                 this.inputHistory.push(inputSnapshot);
             }
+        }
+        if (CommonConfig_1.CommonConfig.ORIGIN != CommonConfig_1.Origin.SERVER) {
             return;
         }
+        this.inputHistory = [];
         if (inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
             for (let i = 0; i < 1; i++) {
                 let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject(Bullet_1.Bullet);
@@ -1775,9 +1782,69 @@ class Player extends Actor_1.Actor {
         if (this.lastInputSnapshot) {
             this.lastInputSnapshot.setSnapshotDelta();
         }
+        let moveFactors = this.parseMoveDir();
+        if (moveFactors[0] != 0) {
+            this.Transform.X += moveFactors[0] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+        }
+        if (moveFactors[1] != 0) {
+            this.Transform.Y += moveFactors[1] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
+        }
+    }
+    reconciliation(serverSnapshotData, spacialGrid) {
+        let serverSnapshotId = serverSnapshotData[0];
+        let serverSnapshotDelta = serverSnapshotData[1];
+        let histElemsToRemove = 0;
+        for (let i = 0; i < this.inputHistory.length; i++) {
+            if (this.inputHistory[i].ID >= serverSnapshotId) {
+                let delta = 0;
+                if (i < this.inputHistory.length - 1) {
+                    delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
+                }
+                else {
+                    delta = this.inputHistory[i].SnapshotDelta;
+                }
+                if (this.inputHistory[i].ID == serverSnapshotId) {
+                    delta -= serverSnapshotDelta;
+                }
+                this.setInput(this.inputHistory[i]);
+                let moveFactors = this.parseMoveDir();
+                let stepSize = 25;
+                let steps = Math.floor(delta / stepSize);
+                let rest = delta % stepSize;
+                for (let i = 0; i <= steps; i++) {
+                    let step;
+                    if (i == steps) {
+                        step = rest;
+                    }
+                    else {
+                        step = stepSize;
+                    }
+                    if (this.Transform.DeserializedFields.has(ChangesDict_1.ChangesDict.X)) {
+                        this.Transform.X += moveFactors[0] * this.velocity * step;
+                    }
+                    if (this.Transform.DeserializedFields.has(ChangesDict_1.ChangesDict.Y)) {
+                        this.Transform.Y += moveFactors[1] * this.velocity * step;
+                    }
+                    spacialGrid.insertObjectIntoGrid(this);
+                    for (let cell of this.spacialGridCells) {
+                        cell.checkCollisionsForObject(this);
+                    }
+                }
+            }
+            else {
+                histElemsToRemove++;
+            }
+        }
+        this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+    }
+    serverUpdate(delta) {
+    }
+    parseMoveDir() {
+        let xFactor = 0;
+        let yFactor = 0;
         if (this.moveDirection != 0) {
-            let xFactor = 0;
-            let yFactor = 0;
             if (this.moveDirection == 1) {
                 yFactor = -1;
             }
@@ -1806,51 +1873,8 @@ class Player extends Actor_1.Actor {
                 xFactor = -0.7071;
                 yFactor = -0.7071;
             }
-            if (xFactor != 0) {
-                this.Transform.X += xFactor * this.velocity * delta;
-            }
-            if (yFactor != 0) {
-                this.Transform.Y += yFactor * this.velocity * delta;
-            }
-            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         }
-    }
-    reconciliation(serverSnapshotData) {
-        let serverSnapshotId = serverSnapshotData[0];
-        let serverSnapshotDelta = serverSnapshotData[1];
-        let histElemsToRemove = 0;
-        for (let i = 0; i < this.inputHistory.length; i++) {
-            if (this.inputHistory[i].ID >= serverSnapshotId) {
-                let delta = 0;
-                if (i < this.inputHistory.length - 1) {
-                    delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
-                }
-                else {
-                    delta = this.inputHistory[i].SnapshotDelta;
-                }
-                if (this.inputHistory[i].ID == serverSnapshotId) {
-                    console.log(delta + " " + serverSnapshotDelta);
-                    delta -= serverSnapshotDelta;
-                }
-                this.setInput(this.inputHistory[i]);
-                this.commonUpdate(delta);
-            }
-            else {
-                histElemsToRemove = i + 1;
-            }
-        }
-        this.inputHistory = this.inputHistory.splice(histElemsToRemove);
-    }
-    serverUpdate(delta) {
-    }
-    get LastInputSnapshotId() {
-        if (this.lastInputSnapshot) {
-            return this.lastInputSnapshot.ID;
-        }
-        else {
-            return -1;
-        }
+        return [xFactor, yFactor];
     }
     get LastInputSnapshot() {
         return this.lastInputSnapshot;
@@ -1873,15 +1897,24 @@ const Transform_1 = require("./Transform");
 const SAT = require("sat");
 class Cell {
     constructor(transform) {
-        this.objects = new Array();
+        this.objects = [];
         this.id = Cell.ID++;
         this.transform = transform;
+        this.response = new SAT.Response();
     }
     get Transform() {
         return this.transform;
     }
     addObject(gameObject) {
-        this.objects.push(gameObject);
+        if (this.objects.indexOf(gameObject) == -1) {
+            this.objects.push(gameObject);
+        }
+    }
+    removeObject(gameObject) {
+        let index = this.objects.indexOf(gameObject, 0);
+        if (index > -1) {
+            this.objects.splice(index, 1);
+        }
     }
     clear() {
         this.objects.splice(0, this.objects.length);
@@ -1889,19 +1922,32 @@ class Cell {
     isEmpty() {
         return this.objects.length <= 0;
     }
+    checkCollisionsForObject(o1) {
+        if (this.objects.indexOf(o1) == -1) {
+            return;
+        }
+        for (let i = 0; i < this.objects.length; i++) {
+            let o2 = this.objects[i];
+            if (this.checkCollision(o1, o2)) {
+                o1.onCollisionEnter(o2, this.response);
+            }
+        }
+    }
     checkCollisions() {
-        let response = new SAT.Response();
         for (let i = 0; i < this.objects.length; i++) {
             for (let j = i + 1; j < this.objects.length; j++) {
                 let o1 = this.objects[i];
                 let o2 = this.objects[j];
-                response.clear();
-                if (o1 != o2 && Transform_1.Transform.testCollision(o1.Transform, o2.Transform, response)) {
-                    o1.onCollisionEnter(o2, response);
-                    o2.onCollisionEnter(o1, response);
+                if (this.checkCollision(o1, o2)) {
+                    o1.onCollisionEnter(o2, this.response);
+                    o2.onCollisionEnter(o1, this.response);
                 }
             }
         }
+    }
+    checkCollision(o1, o2) {
+        this.response.clear();
+        return o1 != o2 && Transform_1.Transform.testCollision(o1.Transform, o2.Transform, this.response);
     }
 }
 Cell.ID = 0;
@@ -1913,8 +1959,8 @@ class SpacialGrid {
         this.cellSize = cellSize;
         this.cellsX = Math.ceil(width / cellSize);
         this.cellsY = Math.ceil(height / cellSize);
-        this.gameObjects = new Array();
-        this.cells = new Array();
+        this.gameObjects = [];
+        this.cells = [];
         for (let y = 0; y < this.cellsY; y++) {
             for (let x = 0; x < this.cellsX; x++) {
                 let transform = new Transform_1.Transform(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize);
@@ -1928,25 +1974,34 @@ class SpacialGrid {
             cell.clear();
         });
         this.gameObjects.forEach((gameObject) => {
-            let xs = gameObject.Transform.X / this.cellSize;
-            let xe = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
-            xs = Math.floor(xs) - 1;
-            let ys = gameObject.Transform.Y / this.cellSize;
-            let ye = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
-            ys = Math.floor(ys) - 1;
-            for (let i = xs; i <= xe; i++) {
-                if (i >= this.cellsX || i < 0)
+            this.insertObjectIntoGrid(gameObject);
+        });
+    }
+    insertObjectIntoGrid(gameObject) {
+        gameObject.spacialGridCells.forEach((cell) => {
+            cell.removeObject(gameObject);
+        });
+        let xs = gameObject.Transform.X / this.cellSize;
+        let xe = Math.floor(xs + (gameObject.Transform.Width / this.cellSize)) + 1;
+        xs = Math.floor(xs);
+        let ys = gameObject.Transform.Y / this.cellSize;
+        let ye = Math.floor(ys + (gameObject.Transform.Height / this.cellSize)) + 1;
+        ys = Math.floor(ys);
+        let cells = [];
+        for (let i = xs; i <= xe; i++) {
+            if (i >= this.cellsX || i < 0)
+                continue;
+            for (let j = ys; j <= ye; j++) {
+                if (j >= this.cellsY || j < 0)
                     continue;
-                for (let j = ys; j <= ye; j++) {
-                    if (j >= this.cellsY || j < 0)
-                        continue;
-                    let idx = (j * this.cellsX) + i;
-                    if (Transform_1.Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
-                        this.cells[idx].addObject(gameObject);
-                    }
+                let idx = (j * this.cellsX) + i;
+                if (Transform_1.Transform.testCollision(gameObject.Transform, this.cells[idx].Transform)) {
+                    this.cells[idx].addObject(gameObject);
+                    cells.push(this.cells[idx]);
                 }
             }
-        });
+        }
+        gameObject.spacialGridCells = cells;
     }
     checkCollisions() {
         this.cells.forEach((cell) => {

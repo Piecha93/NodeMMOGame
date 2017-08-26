@@ -12,7 +12,7 @@ export class InputSender {
         let serializedSnapshot = snapshot.serializeSnapshot();
         //console.log(serializedSnapshot);
         if (serializedSnapshot.length > 0) {
-            this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, {id, serializedSnapshot});
+            this.socket.emit(SocketMsgs.INPUT_SNAPSHOT, serializedSnapshot);
         }
     }
 }

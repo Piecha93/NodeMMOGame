@@ -78,23 +78,23 @@ export class GameClient {
             ObjectsFactory.ObjectHolderSubscribers.push(this.world);
             ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
             this.updateGame(data['update']);
-            this.player = this.world.getGameObject(data['id']) as Player;
-            this.renderer.CameraFollower = this.player;
+                this.player = this.world.getGameObject(data['id']) as Player;
+                this.renderer.CameraFollower = this.player;
 
-            this.heartBeatSender.startSendingHeartbeats();
+                this.heartBeatSender.startSendingHeartbeats();
 
-            this.startGame();
-            this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
+                this.startGame();
+                this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
 
-            this.socket.on(SocketMsgs.ERROR, (err: string) => {
-                console.log(err);
-            });
+                this.socket.on(SocketMsgs.ERROR, (err: string) => {
+                    console.log(err);
+                });
         });
     }
 
     private startGame() {
         let timer: DeltaTimer = new DeltaTimer;
-        let deltaHistory: Array<number> = new Array<number>();
+        let deltaHistory: Array<number> = [];
 
         setInterval(() => {
             let delta: number = timer.getDelta();
@@ -108,11 +108,12 @@ export class GameClient {
                 deltaAvg += delta;
             });
             deltaAvg /= deltaHistory.length;
-            DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
+            DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
         }, ClientConfig.TICKRATE);
     }
 
     private updateGame(data, lastSnapshotData?: [number, number]) {
+
         if(!data) return;
 
         data = LZString.decompressFromUTF16(data);
@@ -140,7 +141,7 @@ export class GameClient {
                 }
                 gameObject.deserialize(data);
                 if(lastSnapshotData && this.player.ID == id) {
-                    this.player.reconciliation(lastSnapshotData);
+                    this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
                 }
             }
     }

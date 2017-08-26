@@ -4,19 +4,21 @@ import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Serializable} from "../../serialize/Serializable";
-
+import {Cell} from "../physics/SpacialGrid";
 
 export abstract class GameObject extends Serializable implements Collidable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME)
     protected spriteName: string;
-    @NetworkObject("t1")
+    @NetworkObject("pos")
     protected transform: Transform;
 
     @NetworkProperty(ChangesDict.VELOCITY)
     protected velocity: number = 10;
 
     private destroyListeners: Set<Function>;
+
+    public spacialGridCells: Array<Cell> = [];
 
     constructor(transform: Transform) {
         super();
@@ -38,7 +40,9 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-
+        if(response.a == this.Transform.Polygon) {
+            response.overlapV = response.overlapV.clone().reverse();
+        }
     }
 
     public forceCompleteUpdate() {
