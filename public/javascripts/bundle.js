@@ -156,7 +156,7 @@ class GameClient {
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             this.inputHandler.addSnapshotCallback((id, snapshot) => {
                 if (this.player) {
-                    this.player.setInput(snapshot.Commands);
+                    this.player.setInput(snapshot);
                 }
             });
             this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
@@ -186,7 +186,6 @@ class GameClient {
             ObjectsFactory_1.ObjectsFactory.ObjectHolderSubscribers.push(this.world);
             ObjectsFactory_1.ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
             this.updateGame(data['update']);
-            //setTimeout(() => {
             this.player = this.world.getGameObject(data['id']);
             this.renderer.CameraFollower = this.player;
             this.heartBeatSender.startSendingHeartbeats();
@@ -195,7 +194,6 @@ class GameClient {
             this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
                 console.log(err);
             });
-            //}, 300);
         });
     }
     startGame() {
@@ -216,14 +214,10 @@ class GameClient {
             DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toPrecision(2).toString();
         }, ClientConfig_1.ClientConfig.TICKRATE);
     }
-    updateGame(data) {
-        // console.log(data);
-        // setTimeout(() => {
+    updateGame(data, lastSnapshotData) {
         if (!data)
             return;
-        console.log(data);
         data = LZString.decompressFromUTF16(data);
-        console.log(data);
         let update = data.split('$');
         // console.log(update);
         for (let object in update) {
@@ -244,13 +238,15 @@ class GameClient {
                 gameObject = ObjectsFactory_1.ObjectsFactory.CreateGameObject(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
+            if (lastSnapshotData && this.player.ID == id) {
+                this.player.reconciliation(lastSnapshotData);
+            }
         }
-        //   }, 200);
     }
 }
 exports.GameClient = GameClient;
 
-},{"../Client/net/InputSender":20,"../Common/DeltaTimer":22,"../Common/World":23,"../Common/net/NetObjectsManager":26,"../Common/net/SocketMsgs":27,"../Common/utils/game/GameObjectTypes":32,"../Common/utils/game/ObjectsFactory":34,"./Chat":3,"./ClientConfig":4,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":12,"./graphic/Renderer":14,"./input/InputHandler":16,"./net/HeartBeatSender":19,"lz-string":69,"socket.io-client":75}],6:[function(require,module,exports){
+},{"../Client/net/InputSender":20,"../Common/DeltaTimer":22,"../Common/World":23,"../Common/net/NetObjectsManager":26,"../Common/net/SocketMsgs":27,"../Common/utils/game/GameObjectTypes":35,"../Common/utils/game/ObjectsFactory":37,"./Chat":3,"./ClientConfig":4,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":12,"./graphic/Renderer":14,"./input/InputHandler":16,"./net/HeartBeatSender":19,"lz-string":69,"socket.io-client":75}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("../../Client/graphic/GameObjectAnimationRender");
@@ -640,7 +636,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../Common/utils/game/GameObjectsHolder":33,"./BulletRender":6,"./Camera":7,"./GameObjectSpriteRender":10,"./PlayerRender":13,"./TileMap":15}],15:[function(require,module,exports){
+},{"../../Common/utils/game/GameObjectsHolder":36,"./BulletRender":6,"./Camera":7,"./GameObjectSpriteRender":10,"./PlayerRender":13,"./TileMap":15}],15:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -803,7 +799,7 @@ class InputHandler {
 InputHandler.SnapshotId = 0;
 exports.InputHandler = InputHandler;
 
-},{"../../Common/input/InputCommands":24,"../../Common/input/InputSnapshot":25,"../../Common/utils/physics/Transform":38,"./InputMap":17}],17:[function(require,module,exports){
+},{"../../Common/input/InputCommands":24,"../../Common/input/InputSnapshot":25,"../../Common/utils/physics/Transform":41,"./InputMap":17}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -834,7 +830,7 @@ window.onload = () => {
     let client = new GameClient_1.GameClient();
 };
 
-},{"../Common/CommonConfig":21,"../Common/utils/game/GameObjectTypes":32,"./GameClient":5}],19:[function(require,module,exports){
+},{"../Common/CommonConfig":21,"../Common/utils/game/GameObjectTypes":35,"./GameClient":5}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../Common/net/SocketMsgs");
@@ -911,15 +907,18 @@ exports.CommonConfig = CommonConfig;
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
     constructor() {
-        this.lastUpdate = new Date().getTime();
+        this.lastUpdate = DeltaTimer.getTimestamp();
     }
     getDelta() {
-        this.currentTime = new Date().getTime();
+        this.currentTime = DeltaTimer.getTimestamp();
         this.delta = this.currentTime - this.lastUpdate;
         this.lastUpdate = this.currentTime;
         return this.delta;
     }
     ;
+    static getTimestamp() {
+        return Date.now();
+    }
 }
 exports.DeltaTimer = DeltaTimer;
 
@@ -971,7 +970,7 @@ class World extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.World = World;
 
-},{"./utils/game/GameObjectsHolder":33,"./utils/physics/SpacialGrid":37}],24:[function(require,module,exports){
+},{"./utils/game/GameObjectsHolder":36,"./utils/physics/SpacialGrid":40}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -987,17 +986,18 @@ exports.InputCommands = new Map([
 },{}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const DeltaTimer_1 = require("../DeltaTimer");
 class InputSnapshot {
     constructor(serializedSnapshot) {
+        this.snapshotDelta = 0;
+        this.time = DeltaTimer_1.DeltaTimer.getTimestamp();
         if (serializedSnapshot) {
             this.deserialize(serializedSnapshot);
         }
         else {
+            this.id = InputSnapshot.NextId++;
             this.commandList = new Map();
         }
-    }
-    get Commands() {
-        return this.commandList;
     }
     append(command, value) {
         this.commandList.set(command, value);
@@ -1007,20 +1007,38 @@ class InputSnapshot {
         this.commandList.forEach((value, key) => {
             serializedSnapshot += '#' + key.toString() + ':' + value;
         });
-        return serializedSnapshot.slice(1);
+        return this.id + "=" + serializedSnapshot.slice(1);
     }
     deserialize(serializedSnapshot) {
         this.commandList.clear();
-        let commands = serializedSnapshot.split('#');
+        let splited = serializedSnapshot.split("=");
+        this.id = Number(splited[0]);
+        let commands = splited[1].split('#');
         commands.forEach((command) => {
             let splited = command.split(':');
             this.commandList.set(Number(splited[0]), splited[1]);
         });
     }
+    get CreateTime() {
+        return this.time;
+    }
+    setSnapshotDelta() {
+        this.snapshotDelta = Date.now() - this.time;
+    }
+    get SnapshotDelta() {
+        return this.snapshotDelta;
+    }
+    get ID() {
+        return this.id;
+    }
+    get Commands() {
+        return this.commandList;
+    }
 }
+InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{}],26:[function(require,module,exports){
+},{"../DeltaTimer":22}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsHolder_1 = require("../utils/game/GameObjectsHolder");
@@ -1054,7 +1072,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../utils/game/GameObjectsHolder":33}],27:[function(require,module,exports){
+},{"../utils/game/GameObjectsHolder":36}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -1072,6 +1090,206 @@ exports.SocketMsgs = SocketMsgs;
 
 },{}],28:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class ChangesDict {
+}
+//GameObject
+ChangesDict.VELOCITY = 'V';
+ChangesDict.SPRITE_NAME = 'S';
+//Actor
+ChangesDict.HP = 'H';
+ChangesDict.MAX_HP = 'M';
+ChangesDict.NAME = 'N';
+//Bullet
+ChangesDict.OWNER = 'O';
+ChangesDict.POWER = 'B';
+//Transform
+ChangesDict.X = 'X';
+ChangesDict.Y = 'Y';
+ChangesDict.WIDTH = 'W';
+ChangesDict.HEIGHT = 'E';
+ChangesDict.ROTATION = 'R';
+exports.ChangesDict = ChangesDict;
+
+},{}],29:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var PropName;
+(function (PropName) {
+    PropName.SerializeFunctions = "SerializeFunctions";
+    PropName.DeserializeFunctions = "DeserializeFunctions";
+    PropName.SerializeEncodeOrder = "SerializeEncodeOrder";
+    PropName.SerializeDecodeOrder = "SerializeDecodeOrder";
+    PropName.DecodeCounter = "DecodeCounter";
+    PropName.NestedNetworkObjects = "NestedNetworkObjects";
+})(PropName = exports.PropName || (exports.PropName = {}));
+function NetworkProperty(shortKey) {
+    function decorator(target, key) {
+        createMapProperty(target, PropName.SerializeFunctions);
+        createMapProperty(target, PropName.DeserializeFunctions);
+        createMapProperty(target, PropName.SerializeEncodeOrder);
+        createMapProperty(target, PropName.SerializeDecodeOrder);
+        addDcecodeCounter(target);
+        let counter = target[PropName.DecodeCounter]++;
+        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropName.SerializeFunctions].set(shortKey, (object) => {
+            if (typeof object[key] == "number") {
+                return object[key].toFixed(4);
+            }
+            else {
+                return object[key];
+            }
+        });
+        target[PropName.DeserializeFunctions].set(shortKey, (object, data) => {
+            if (typeof object[key] == "number") {
+                object[key] = Number(data);
+            }
+            else {
+                object[key] = data;
+            }
+        });
+    }
+    return decorator;
+}
+exports.NetworkProperty = NetworkProperty;
+function NetworkObject(shortKey) {
+    function decorator(target, key) {
+        createMapProperty(target, PropName.NestedNetworkObjects);
+        createMapProperty(target, PropName.SerializeEncodeOrder);
+        createMapProperty(target, PropName.SerializeDecodeOrder);
+        addDcecodeCounter(target);
+        let counter = target[PropName.DecodeCounter]++;
+        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropName.NestedNetworkObjects].set(shortKey, key);
+    }
+    return decorator;
+}
+exports.NetworkObject = NetworkObject;
+function createMapProperty(target, propertyName) {
+    if (!target.hasOwnProperty(propertyName)) {
+        let propertyVal = getPrototypePropertyVal(target, propertyName, null);
+        propertyVal = new Map(propertyVal);
+        createProperty(target, propertyName, propertyVal);
+    }
+}
+function createProperty(target, propertyName, propertyVal) {
+    Object.defineProperty(target, propertyName, {
+        value: propertyVal,
+        writable: true,
+        enumerable: true,
+        configurable: true
+    });
+}
+function addDcecodeCounter(target) {
+    if (!target.hasOwnProperty(PropName.DecodeCounter)) {
+        let propertyVal = getPrototypePropertyVal(target, PropName.DecodeCounter, 0);
+        createProperty(target, PropName.DecodeCounter, propertyVal);
+    }
+}
+function getPrototypePropertyVal(target, propertyName, defaultVal) {
+    let prototype = Object.getPrototypeOf(target);
+    if (prototype.hasOwnProperty(propertyName)) {
+        return prototype[propertyName];
+    }
+    else {
+        return defaultVal;
+    }
+}
+
+},{}],30:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const NetworkDecorators_1 = require("./NetworkDecorators");
+class Serializable {
+    constructor() {
+        this.changes = new Set();
+        this.forceComplete = true;
+    }
+    addChange(change) {
+        this.changes.add(change);
+    }
+    serialize(complete = false) {
+        if (this.forceComplete) {
+            this.forceComplete = false;
+            complete = true;
+        }
+        let updateArray = [];
+        if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
+            if (complete) {
+                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
+                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
+                    updateArray[index] = serializeFunc(this);
+                });
+            }
+            else {
+                this.changes.forEach((shortKey) => {
+                    if (this[NetworkDecorators_1.PropName.SerializeFunctions].has(shortKey)) {
+                        let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+                        updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
+                        this.changes.delete(shortKey);
+                    }
+                });
+            }
+        }
+        if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
+            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
+                let data = this[key].serialize(complete);
+                if (data != "") {
+                    updateArray[index] = "<" + data + ">";
+                }
+            });
+        }
+        let update = "";
+        let lastFiledIndex = 0;
+        for (let i = 0; i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size; i++) {
+            if (updateArray[i] != null) {
+                update += updateArray[i];
+                lastFiledIndex = update.length + 1;
+            }
+            if (i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size - 1) {
+                update += "|";
+            }
+        }
+        this.changes.clear();
+        return update.substr(0, lastFiledIndex);
+    }
+    deserialize(update) {
+        let decodeIdx = 0;
+        while (update) {
+            let short_key = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(decodeIdx++);
+            let idx1 = update.indexOf('|');
+            let idx2 = update.indexOf('<');
+            if (idx2 == -1 || idx1 <= idx2) {
+                let data = update.split('|', 1)[0];
+                if (data) {
+                    this[NetworkDecorators_1.PropName.DeserializeFunctions].get(short_key)(this, data);
+                }
+                if (idx1 != -1) {
+                    update = update.substr(idx1 + 1, update.length);
+                }
+                else {
+                    update = null;
+                }
+            }
+            else {
+                let bracketEnd = update.indexOf('>', idx2);
+                let data = update.split('>', 1)[0].slice(1);
+                if (data) {
+                    let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(short_key);
+                    this[key].deserialize(data);
+                }
+                update = update.substr(bracketEnd + 2, update.length);
+            }
+        }
+    }
+}
+exports.Serializable = Serializable;
+
+},{"./NetworkDecorators":29}],31:[function(require,module,exports){
+"use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -1083,10 +1301,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const ChangesDict_1 = require("../serialize/ChangesDict");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Bullet_1 = require("./Bullet");
 const Obstacle_1 = require("./Obstacle");
-const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -1141,16 +1359,16 @@ __decorate([
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP),
     __metadata("design:type", Number)
 ], Actor.prototype, "maxHp", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../serialize/ChangesDict":39,"../serialize/NetworkDecorators":40,"./Bullet":29,"./GameObject":31,"./Obstacle":35}],29:[function(require,module,exports){
+},{"../../serialize/ChangesDict":28,"../../serialize/NetworkDecorators":29,"./Bullet":32,"./GameObject":34,"./Obstacle":38}],32:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -1163,10 +1381,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const ChangesDict_1 = require("../serialize/ChangesDict");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Obstacle_1 = require("./Obstacle");
 const Actor_1 = require("./Actor");
-const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 class Bullet extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -1245,7 +1463,7 @@ class Bullet extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER),
     __metadata("design:type", Number)
 ], Bullet.prototype, "power", void 0);
 __decorate([
@@ -1254,13 +1472,13 @@ __decorate([
 ], Bullet.prototype, "owner", void 0);
 exports.Bullet = Bullet;
 
-},{"../serialize/ChangesDict":39,"../serialize/NetworkDecorators":40,"./Actor":28,"./GameObject":31,"./Obstacle":35}],30:[function(require,module,exports){
+},{"../../serialize/ChangesDict":28,"../../serialize/NetworkDecorators":29,"./Actor":31,"./GameObject":34,"./Obstacle":38}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
 const Bullet_1 = require("./Bullet");
 const Actor_1 = require("./Actor");
-const ChangesDict_1 = require("../serialize/ChangesDict");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
 class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
@@ -1298,7 +1516,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../serialize/ChangesDict":39,"./Actor":28,"./Bullet":29,"./ObjectsFactory":34}],31:[function(require,module,exports){
+},{"../../serialize/ChangesDict":28,"./Actor":31,"./Bullet":32,"./ObjectsFactory":37}],34:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -1311,10 +1529,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
-const ChangesDict_1 = require("../serialize/ChangesDict");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
-const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
-const Serializable_1 = require("../serialize/Serializable");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const Serializable_1 = require("../../serialize/Serializable");
 class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
         super();
@@ -1385,12 +1603,12 @@ __decorate([
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY),
     __metadata("design:type", Number)
 ], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":21,"../physics/Transform":38,"../serialize/ChangesDict":39,"../serialize/NetworkDecorators":40,"../serialize/Serializable":41}],32:[function(require,module,exports){
+},{"../../CommonConfig":21,"../../serialize/ChangesDict":28,"../../serialize/NetworkDecorators":29,"../../serialize/Serializable":30,"../physics/Transform":41}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("./Player");
@@ -1417,7 +1635,7 @@ class Types {
 }
 exports.Types = Types;
 
-},{"./Bullet":29,"./Enemy":30,"./Obstacle":35,"./Player":36}],33:[function(require,module,exports){
+},{"./Bullet":32,"./Enemy":33,"./Obstacle":38,"./Player":39}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class GameObjectsHolder {
@@ -1453,7 +1671,7 @@ class GameObjectsHolder {
 }
 exports.GameObjectsHolder = GameObjectsHolder;
 
-},{}],34:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -1493,7 +1711,7 @@ ObjectsFactory.CreateCallbacks = new Array();
 ObjectsFactory.DestroyCallbacks = new Array();
 exports.ObjectsFactory = ObjectsFactory;
 
-},{"../physics/Transform":38,"./GameObjectTypes":32}],35:[function(require,module,exports){
+},{"../physics/Transform":41,"./GameObjectTypes":35}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -1514,45 +1732,49 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":31}],36:[function(require,module,exports){
+},{"./GameObject":34}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
 const Bullet_1 = require("./Bullet");
 const Actor_1 = require("./Actor");
-const ChangesDict_1 = require("../serialize/ChangesDict");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
 const ObjectsFactory_1 = require("./ObjectsFactory");
 const CommonConfig_1 = require("../../CommonConfig");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.moveDirection = 0;
-        this.inputCommands = new Map();
+        this.inputHistory = [];
     }
-    setInput(commands) {
-        this.inputCommands = commands;
-        if (this.inputCommands.has(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION)) {
-            this.moveDirection = parseInt(this.inputCommands.get(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION));
-            this.inputCommands.delete(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION);
+    setInput(inputSnapshot) {
+        this.lastInputSnapshot = inputSnapshot;
+        let inputCommands = inputSnapshot.Commands;
+        if (inputCommands.has(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION)) {
+            this.moveDirection = parseInt(inputCommands.get(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION));
         }
-        //here starts server commands
         if (CommonConfig_1.CommonConfig.ORIGIN != CommonConfig_1.Origin.SERVER) {
+            if (this.inputHistory.indexOf(inputSnapshot) == -1) {
+                this.inputHistory.push(inputSnapshot);
+            }
             return;
         }
-        if (this.inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
+        if (inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
             for (let i = 0; i < 1; i++) {
                 let bullet = ObjectsFactory_1.ObjectsFactory.CreateGameObject(Bullet_1.Bullet);
                 bullet.Owner = this.ID;
-                bullet.Transform.Rotation = parseFloat(this.inputCommands.get(InputCommands_1.INPUT_COMMAND.FIRE));
+                bullet.Transform.Rotation = parseFloat(inputCommands.get(InputCommands_1.INPUT_COMMAND.FIRE));
                 //bullet.Transform.Rotation = Math.floor(Math.random() * 360);
                 bullet.Transform.X = this.transform.X;
                 bullet.Transform.Y = this.transform.Y;
             }
-            this.inputCommands.delete(InputCommands_1.INPUT_COMMAND.FIRE);
         }
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
+        if (this.lastInputSnapshot) {
+            this.lastInputSnapshot.setSnapshotDelta();
+        }
         if (this.moveDirection != 0) {
             let xFactor = 0;
             let yFactor = 0;
@@ -1586,15 +1808,52 @@ class Player extends Actor_1.Actor {
             }
             if (xFactor != 0) {
                 this.Transform.X += xFactor * this.velocity * delta;
-                this.Transform.addChange(ChangesDict_1.ChangesDict.X);
             }
             if (yFactor != 0) {
                 this.Transform.Y += yFactor * this.velocity * delta;
-                this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
             }
+            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         }
     }
+    reconciliation(serverSnapshotData) {
+        let serverSnapshotId = serverSnapshotData[0];
+        let serverSnapshotDelta = serverSnapshotData[1];
+        let histElemsToRemove = 0;
+        for (let i = 0; i < this.inputHistory.length; i++) {
+            if (this.inputHistory[i].ID >= serverSnapshotId) {
+                let delta = 0;
+                if (i < this.inputHistory.length - 1) {
+                    delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
+                }
+                else {
+                    delta = this.inputHistory[i].SnapshotDelta;
+                }
+                if (this.inputHistory[i].ID == serverSnapshotId) {
+                    console.log(delta + " " + serverSnapshotDelta);
+                    delta -= serverSnapshotDelta;
+                }
+                this.setInput(this.inputHistory[i]);
+                this.commonUpdate(delta);
+            }
+            else {
+                histElemsToRemove = i + 1;
+            }
+        }
+        this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+    }
     serverUpdate(delta) {
+    }
+    get LastInputSnapshotId() {
+        if (this.lastInputSnapshot) {
+            return this.lastInputSnapshot.ID;
+        }
+        else {
+            return -1;
+        }
+    }
+    get LastInputSnapshot() {
+        return this.lastInputSnapshot;
     }
     set Direction(direction) {
         if (direction >= 0 && direction <= 8) {
@@ -1607,7 +1866,7 @@ class Player extends Actor_1.Actor {
 }
 exports.Player = Player;
 
-},{"../../CommonConfig":21,"../../input/InputCommands":24,"../serialize/ChangesDict":39,"./Actor":28,"./Bullet":29,"./ObjectsFactory":34}],37:[function(require,module,exports){
+},{"../../CommonConfig":21,"../../input/InputCommands":24,"../../serialize/ChangesDict":28,"./Actor":31,"./Bullet":32,"./ObjectsFactory":37}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");
@@ -1708,7 +1967,7 @@ class SpacialGrid {
 }
 exports.SpacialGrid = SpacialGrid;
 
-},{"./Transform":38,"sat":74}],38:[function(require,module,exports){
+},{"./Transform":41,"sat":74}],41:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -1721,9 +1980,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const SAT = require("sat");
-const NetworkDecorators_1 = require("../serialize/NetworkDecorators");
-const ChangesDict_1 = require("../serialize/ChangesDict");
-const Serializable_1 = require("../serialize/Serializable");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
+const Serializable_1 = require("../../serialize/Serializable");
 class Transform extends Serializable_1.Serializable {
     constructor(x, y, width, height) {
         super();
@@ -1829,234 +2088,33 @@ class Transform extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "X", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Y", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Width", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Height", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, Number),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../serialize/ChangesDict":39,"../serialize/NetworkDecorators":40,"../serialize/Serializable":41,"sat":74}],39:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ChangesDict {
-}
-//GameObject
-ChangesDict.VELOCITY = 'V';
-ChangesDict.SPRITE_NAME = 'S';
-//Actor
-ChangesDict.HP = 'H';
-ChangesDict.MAX_HP = 'M';
-ChangesDict.NAME = 'N';
-//Bullet
-ChangesDict.OWNER = 'O';
-ChangesDict.POWER = 'B';
-//Transform
-ChangesDict.X = 'X';
-ChangesDict.Y = 'Y';
-ChangesDict.WIDTH = 'W';
-ChangesDict.HEIGHT = 'E';
-ChangesDict.ROTATION = 'R';
-exports.ChangesDict = ChangesDict;
-
-},{}],40:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-//priority: number,
-var PropName;
-(function (PropName) {
-    PropName.SerializeFunctions = "SerializeFunctions";
-    PropName.DeserializeFunctions = "DeserializeFunctions";
-    PropName.SerializeEncodeOrder = "SerializeEncodeOrder";
-    PropName.SerializeDecodeOrder = "SerializeDecodeOrder";
-    PropName.DecodeCounter = "DecodeCounter";
-    PropName.NestedNetworkObjects = "NestedNetworkObjects";
-})(PropName = exports.PropName || (exports.PropName = {}));
-function NetworkProperty(shortKey, castFunction) {
-    function decorator(target, key) {
-        createMapProperty(target, PropName.SerializeFunctions);
-        createMapProperty(target, PropName.DeserializeFunctions);
-        createMapProperty(target, PropName.SerializeEncodeOrder);
-        createMapProperty(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
-        let counter = target[PropName.DecodeCounter]++;
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.SerializeFunctions].set(shortKey, (object) => {
-            if (castFunction == Number) {
-                return object[key].toFixed(4);
-            }
-            else {
-                return object[key];
-            }
-        });
-        target[PropName.DeserializeFunctions].set(shortKey, (object, data) => {
-            if (castFunction) {
-                object[key] = castFunction(data);
-            }
-            else {
-                object[key] = data;
-            }
-        });
-    }
-    return decorator;
-}
-exports.NetworkProperty = NetworkProperty;
-function NetworkObject(shortKey) {
-    function decorator(target, key) {
-        createMapProperty(target, PropName.NestedNetworkObjects);
-        createMapProperty(target, PropName.SerializeEncodeOrder);
-        createMapProperty(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
-        let counter = target[PropName.DecodeCounter]++;
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.NestedNetworkObjects].set(shortKey, key);
-    }
-    return decorator;
-}
-exports.NetworkObject = NetworkObject;
-function createMapProperty(target, propertyName) {
-    if (!target.hasOwnProperty(propertyName)) {
-        let propertyVal = getPrototypePropertyVal(target, propertyName, null);
-        propertyVal = new Map(propertyVal);
-        createProperty(target, propertyName, propertyVal);
-    }
-}
-function createProperty(target, propertyName, propertyVal) {
-    Object.defineProperty(target, propertyName, {
-        value: propertyVal,
-        writable: true,
-        enumerable: true,
-        configurable: true
-    });
-}
-function addDcecodeCounter(target) {
-    if (!target.hasOwnProperty(PropName.DecodeCounter)) {
-        let propertyVal = getPrototypePropertyVal(target, PropName.DecodeCounter, 0);
-        createProperty(target, PropName.DecodeCounter, propertyVal);
-    }
-}
-function getPrototypePropertyVal(target, propertyName, defaultVal) {
-    let prototype = Object.getPrototypeOf(target);
-    if (prototype.hasOwnProperty(propertyName)) {
-        return prototype[propertyName];
-    }
-    else {
-        return defaultVal;
-    }
-}
-
-},{}],41:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const NetworkDecorators_1 = require("./NetworkDecorators");
-class Serializable {
-    constructor() {
-        this.changes = new Set();
-        this.forceComplete = true;
-    }
-    addChange(change) {
-        this.changes.add(change);
-    }
-    serialize(complete = false) {
-        if (this.forceComplete) {
-            this.forceComplete = false;
-            complete = true;
-        }
-        let updateArray = [];
-        if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
-            if (complete) {
-                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
-                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                    updateArray[index] = serializeFunc(this);
-                });
-            }
-            else {
-                this.changes.forEach((shortKey) => {
-                    if (this[NetworkDecorators_1.PropName.SerializeFunctions].has(shortKey)) {
-                        let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
-                        updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
-                        this.changes.delete(shortKey);
-                    }
-                });
-            }
-        }
-        if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
-            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
-                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                let data = this[key].serialize(complete);
-                if (data != "") {
-                    updateArray[index] = "<" + data + ">";
-                }
-            });
-        }
-        let update = "";
-        let lastFiledIndex = 0;
-        for (let i = 0; i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size; i++) {
-            if (updateArray[i] != null) {
-                update += updateArray[i];
-                lastFiledIndex = update.length + 1;
-            }
-            if (i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size - 1) {
-                update += "|";
-            }
-        }
-        this.changes.clear();
-        return update.substr(0, lastFiledIndex);
-    }
-    deserialize(update) {
-        let decodeIdx = 0;
-        while (update) {
-            let short_key = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(decodeIdx++);
-            let idx1 = update.indexOf('|');
-            let idx2 = update.indexOf('<');
-            if (idx2 == -1 || idx1 <= idx2) {
-                let data = update.split('|', 1)[0];
-                if (data) {
-                    this[NetworkDecorators_1.PropName.DeserializeFunctions].get(short_key)(this, data);
-                }
-                if (idx1 != -1) {
-                    update = update.substr(idx1 + 1, update.length);
-                }
-                else {
-                    update = null;
-                }
-            }
-            else {
-                let bracketEnd = update.indexOf('>', idx2);
-                let data = update.split('>', 1)[0].slice(1);
-                if (data) {
-                    let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(short_key);
-                    this[key].deserialize(data);
-                }
-                update = update.substr(bracketEnd + 2, update.length);
-            }
-        }
-    }
-}
-exports.Serializable = Serializable;
-
-},{"./NetworkDecorators":40}],42:[function(require,module,exports){
+},{"../../serialize/ChangesDict":28,"../../serialize/NetworkDecorators":29,"../../serialize/Serializable":30,"sat":74}],42:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {

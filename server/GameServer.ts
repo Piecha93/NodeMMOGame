@@ -80,7 +80,7 @@ export class GameServer {
             })
         };
 
-        for(let i = 0; i < 100; i++) {
+        for(let i = 0; i < 20; i++) {
             createEnemy();
         }
         ///////////////////////////////////////////////////////////////////TEST
@@ -146,7 +146,7 @@ export class GameServer {
                 let snapshot: InputSnapshot = new InputSnapshot();
                 snapshot.deserialize(data['serializedSnapshot']);
 
-                player.setInput(snapshot.Commands);
+                player.setInput(snapshot);
             });
 
             socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
@@ -173,7 +173,7 @@ export class GameServer {
             });
 
             socket.on('disconnect', () => {
-                this.clientDisconnected(this.clients.get(socket));
+                this.clientDisconnected(this.clients.get(socket), "disconnected");
             });
         });
 
@@ -181,7 +181,7 @@ export class GameServer {
             this.clients.forEach((client: ServerClient) => {
                 client.LastHbInterval -= 1000;
                 if (client.LastHbInterval <= 0) {
-                    this.clientDisconnected(client);
+                    this.clientDisconnected(client, "timeout");
                 }
             });
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
@@ -199,7 +199,15 @@ export class GameServer {
                 update = LZString.compressToUTF16(update);
                 this.clients.forEach((client: ServerClient) => {
                     if (client.IsReady) {
-                        client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
+                        let player: Player = this.world.getGameObject(client.PlayerId) as Player;
+                        if(player) {
+                            let snapshot: InputSnapshot = player.LastInputSnapshot;
+                            if(snapshot) {
+                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
+                            } else {
+                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
+                            }
+                        }
                     }
                 });
             }
@@ -216,8 +224,7 @@ export class GameServer {
         console.log('player disconnected' + client.Name + " due " + reason);
         this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
 
-
-        let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(client.PlayerId);
+        let gameObject: GameObject = this.world.getGameObject(client.PlayerId);
         if(gameObject != null) {
             gameObject.destroy();
         }

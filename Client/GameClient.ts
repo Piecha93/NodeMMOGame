@@ -42,7 +42,7 @@ export class GameClient {
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
                 if(this.player) {
-                    this.player.setInput(snapshot.Commands);
+                    this.player.setInput(snapshot);
                 }
             });
 
@@ -78,19 +78,17 @@ export class GameClient {
             ObjectsFactory.ObjectHolderSubscribers.push(this.world);
             ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
             this.updateGame(data['update']);
-            //setTimeout(() => {
-                this.player = this.world.getGameObject(data['id']) as Player;
-                this.renderer.CameraFollower = this.player;
+            this.player = this.world.getGameObject(data['id']) as Player;
+            this.renderer.CameraFollower = this.player;
 
-                this.heartBeatSender.startSendingHeartbeats();
+            this.heartBeatSender.startSendingHeartbeats();
 
-                this.startGame();
-                this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
+            this.startGame();
+            this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
 
-                this.socket.on(SocketMsgs.ERROR, (err: string) => {
-                    console.log(err);
-                });
-            //}, 300);
+            this.socket.on(SocketMsgs.ERROR, (err: string) => {
+                console.log(err);
+            });
         });
     }
 
@@ -114,15 +112,10 @@ export class GameClient {
         }, ClientConfig.TICKRATE);
     }
 
-    private updateGame(data) {
-        // console.log(data);
-       // setTimeout(() => {
-
+    private updateGame(data, lastSnapshotData?: [number, number]) {
         if(!data) return;
-        console.log(data);
 
         data = LZString.decompressFromUTF16(data);
-        console.log(data);
         let update: Array<string> = data.split('$');
             // console.log(update);
             for (let object in update) {
@@ -146,7 +139,9 @@ export class GameClient {
                     gameObject = ObjectsFactory.CreateGameObject(Types.IdToClass.get(id[0]), id, data);
                 }
                 gameObject.deserialize(data);
+                if(lastSnapshotData && this.player.ID == id) {
+                    this.player.reconciliation(lastSnapshotData);
+                }
             }
-     //   }, 200);
     }
 }

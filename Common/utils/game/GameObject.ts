@@ -1,9 +1,9 @@
 import {Transform} from "../physics/Transform";
-import {ChangesDict} from "../serialize/ChangesDict";
+import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
-import {NetworkObject, NetworkProperty} from "../serialize/NetworkDecorators";
-import {Serializable} from "../serialize/Serializable";
+import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Serializable} from "../../serialize/Serializable";
 
 
 export abstract class GameObject extends Serializable implements Collidable {
@@ -13,7 +13,7 @@ export abstract class GameObject extends Serializable implements Collidable {
     @NetworkObject("t1")
     protected transform: Transform;
 
-    @NetworkProperty(ChangesDict.VELOCITY, Number)
+    @NetworkProperty(ChangesDict.VELOCITY)
     protected velocity: number = 10;
 
     private destroyListeners: Set<Function>;

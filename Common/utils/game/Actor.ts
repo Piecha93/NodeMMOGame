@@ -1,16 +1,16 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {ChangesDict} from "../serialize/ChangesDict";
+import {ChangesDict} from "../../serialize/ChangesDict";
 import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
-import {NetworkProperty} from "../serialize/NetworkDecorators";
+import {NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
     private name: string;
-    @NetworkProperty(ChangesDict.MAX_HP, Number)
+    @NetworkProperty(ChangesDict.MAX_HP)
     private maxHp: number;
-    @NetworkProperty(ChangesDict.HP, Number)
+    @NetworkProperty(ChangesDict.HP)
     private hp: number;
 
     constructor(transform: Transform) {

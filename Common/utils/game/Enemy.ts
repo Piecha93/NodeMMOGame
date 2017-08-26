@@ -2,7 +2,7 @@ import {Transform} from "../physics/Transform";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {Bullet} from "./Bullet";
 import {Actor} from "./Actor";
-import {ChangesDict} from "../serialize/ChangesDict";
+import {ChangesDict} from "../../serialize/ChangesDict";
 
 export class Enemy extends Actor {
     private timeFromLastShot = 1000;

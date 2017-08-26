@@ -1,13 +1,13 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {ChangesDict} from "../serialize/ChangesDict";
+import {ChangesDict} from "../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
-import {NetworkProperty} from "../serialize/NetworkDecorators";
+import {NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
-    @NetworkProperty(ChangesDict.POWER, Number)
+    @NetworkProperty(ChangesDict.POWER)
     private power: number = 10;
     @NetworkProperty(ChangesDict.OWNER)
     private owner: string;

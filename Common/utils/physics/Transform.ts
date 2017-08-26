@@ -1,8 +1,8 @@
 import * as SAT from 'sat';
 
-import {NetworkProperty} from "../serialize/NetworkDecorators";
-import {ChangesDict} from "../serialize/ChangesDict";
-import {Serializable} from "../serialize/Serializable"
+import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {ChangesDict} from "../../serialize/ChangesDict";
+import {Serializable} from "../../serialize/Serializable"
 
 export class Transform extends Serializable {
     private polygon: SAT.Polygon;
@@ -90,7 +90,7 @@ export class Transform extends Serializable {
         return this.polygon.pos.x;
     }
 
-    @NetworkProperty(ChangesDict.X, Number)
+    @NetworkProperty(ChangesDict.X,)
     set X(x: number) {
         this.polygon.pos.x = x;
     }
@@ -99,12 +99,12 @@ export class Transform extends Serializable {
         return this.polygon.pos.y;
     }
 
-    @NetworkProperty(ChangesDict.Y, Number)
+    @NetworkProperty(ChangesDict.Y)
     set Y(y: number) {
         this.polygon.pos.y = y;
     }
 
-    @NetworkProperty(ChangesDict.WIDTH, Number)
+    @NetworkProperty(ChangesDict.WIDTH)
     set Width(width: number) {
         if(this.width == width) return;
         this.width = width;
@@ -121,7 +121,7 @@ export class Transform extends Serializable {
         return this.width;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT, Number)
+    @NetworkProperty(ChangesDict.HEIGHT)
     set Height(height: number) {
         if(this.height == height) return;
         this.height = height;
@@ -138,7 +138,7 @@ export class Transform extends Serializable {
         return this.height;
     }
 
-    @NetworkProperty(ChangesDict.ROTATION, Number)
+    @NetworkProperty(ChangesDict.ROTATION)
     set Rotation(angle: number) {
         this.polygon.setAngle(angle);
     }
