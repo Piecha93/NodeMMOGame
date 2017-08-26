@@ -144,6 +144,10 @@ export class SpacialGrid {
             }
         }
         gameObject.spacialGridCells = cells;
+        //TODO this is workaround for enemy outside map
+        if(cells.length == 0) {
+            gameObject.destroy();
+        }
     }
 
     checkCollisions() {

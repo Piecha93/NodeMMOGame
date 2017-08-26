@@ -740,10 +740,8 @@ class InputHandler {
             }
         });
         let newDirection = this.parseDirection(directionBuffor);
-        // if(newDirection != this.lastDirection) {
         this.lastDirection = newDirection;
         inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
-        // }
         if (this.clickPosition != null) {
             let angle = this.parseClick();
             inputSnapshot.append(InputCommands_1.INPUT_COMMAND.FIRE, angle);
@@ -2002,6 +2000,9 @@ class SpacialGrid {
             }
         }
         gameObject.spacialGridCells = cells;
+        if (cells.length == 0) {
+            gameObject.destroy();
+        }
     }
     checkCollisions() {
         this.cells.forEach((cell) => {
