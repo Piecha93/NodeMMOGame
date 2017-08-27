@@ -126,8 +126,9 @@ export class GameServer {
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = ObjectsFactory.Instatiate("Player") as Player;
-                // player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
-                // player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+                let x: number = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
+                let y: number = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+                player.Transform.XY = [x,y];
 
                 player.Name = serverClient.Name;
 

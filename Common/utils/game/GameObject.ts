@@ -12,9 +12,6 @@ export abstract class GameObject extends Serializable {
     @NetworkObject("pos")
     protected transform: Transform;
 
-    @NetworkProperty(ChangesDict.VELOCITY)
-    protected velocity: number = 0;
-
     private destroyListeners: Set<Function>;
 
     // public spacialGridCells: Array<Cell> = [];
@@ -87,14 +84,6 @@ export abstract class GameObject extends Serializable {
 
     get ID(): string {
         return this.id;
-    }
-
-    get Velocity(): number {
-        return this.velocity;
-    }
-
-    set Velocity(val: number) {
-        this.velocity = val;
     }
 
     set ID(id: string) {

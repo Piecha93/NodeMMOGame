@@ -1332,7 +1332,6 @@ class Actor extends GameObject_1.GameObject {
         }
         this.maxHp = 200;
         this.hp = this.maxHp;
-        this.velocity = 0.3;
         this.name = '';
         // this.transform.Width = 40;
         // this.transform.Height = 64;
@@ -1342,8 +1341,14 @@ class Actor extends GameObject_1.GameObject {
         let bullet = ObjectsFactory_1.ObjectsFactory.Instatiate("Bullet");
         bullet.Owner = this.ID;
         bullet.Transform.Rotation = angle;
-        bullet.Transform.X = this.transform.X;
+        bullet.Transform.X = this.transform.X + 100;
         bullet.Transform.Y = this.transform.Y;
+        let sinAngle = Math.sin(this.Transform.Rotation);
+        let cosAngle = Math.cos(this.Transform.Rotation);
+        // Body.applyForce(bullet.Transform.Body, this.Transform.Body.position, Vector.create(cosAngle * 2, sinAngle * 2));
+        matter_js_1.Body.setVelocity(bullet.Transform.Body, matter_js_1.Vector.create(cosAngle * 10, sinAngle * 10));
+        // bullet.Transform.Body.force.x = cosAngle * 2;
+        // bullet.Transform.Body.force.y = sinAngle * 2;
     }
     serverCollision(gameObject) {
         super.serverCollision(gameObject);
@@ -1425,16 +1430,7 @@ class Bullet extends GameObject_1.GameObject {
         if (!transform) {
             this.transform = new Transform_1.Transform(matter_js_1.Bodies.circle(0, 0, 32));
         }
-        if (Math.floor(Math.random() * 2)) {
-            this.spriteName = "bluebolt";
-            this.velocity = 1.4;
-        }
-        else {
-            this.spriteName = "fireball";
-            this.velocity = 0.7;
-        }
         this.spriteName = "flame";
-        this.velocity = 0;
         // this.transform.Width = 30;
         // this.transform.Height = 20;
         this.lifeSpan = 5000;
@@ -1494,8 +1490,8 @@ class Bullet extends GameObject_1.GameObject {
         // this.transform.X += this.velocityx * delta;
         // this.transform.Y += this.velocity * delta;
         // this.Transform.Rotation = Math.atan2(this.velocity, this.velocityx);
+        this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
-        this.Transform.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
     get Power() {
         return this.power;
@@ -1528,7 +1524,6 @@ class Enemy extends Actor_1.Actor {
         this.timeFromLastShot = 1000;
         this.moveAngle = 0;
         this.moveAngle = Math.random() * 3;
-        this.velocity = 0.5;
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
@@ -1548,8 +1543,8 @@ class Enemy extends Actor_1.Actor {
         this.moveAngle += Math.random() * 0.5 - 0.25;
         let sinAngle = Math.sin(this.moveAngle);
         let cosAngle = Math.cos(this.moveAngle);
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
+        // this.transform.X += cosAngle * this.velocity * delta;
+        // this.transform.Y += sinAngle * this.velocity * delta;
         this.transform.addChange(ChangesDict_1.ChangesDict.X);
         this.transform.addChange(ChangesDict_1.ChangesDict.Y);
     }
@@ -1579,7 +1574,6 @@ class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
         super();
         this.id = "";
-        this.velocity = 0;
         if (!transform) {
             transform = new Transform_1.Transform(matter_js_1.Bodies.rectangle(0, 0, 32, 32));
         }
@@ -1631,12 +1625,6 @@ class GameObject extends Serializable_1.Serializable {
     get ID() {
         return this.id;
     }
-    get Velocity() {
-        return this.velocity;
-    }
-    set Velocity(val) {
-        this.velocity = val;
-    }
     set ID(id) {
         this.id = id;
     }
@@ -1656,10 +1644,6 @@ __decorate([
     NetworkDecorators_1.NetworkObject("pos"),
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
-__decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY),
-    __metadata("design:type", Number)
-], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
 },{"../../CommonConfig":21,"../../serialize/ChangesDict":28,"../../serialize/NetworkDecorators":29,"../../serialize/Serializable":30,"../physics/Transform":40,"matter-js":69}],35:[function(require,module,exports){
@@ -1816,7 +1800,6 @@ class Player extends Actor_1.Actor {
         super(transform);
         this.moveDirection = 0;
         this.inputHistory = [];
-        this.velocity = 1.8;
     }
     setInput(inputSnapshot) {
         let inputCommands = inputSnapshot.Commands;
@@ -1832,7 +1815,8 @@ class Player extends Actor_1.Actor {
         }
         this.inputHistory = [];
         if (inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
-            this.shot(parseFloat(inputCommands.get(InputCommands_1.INPUT_COMMAND.FIRE)));
+            for (let i = 0; i < 100; i++)
+                this.shot(parseFloat(inputCommands.get(InputCommands_1.INPUT_COMMAND.FIRE)));
         }
     }
     commonUpdate(delta) {
@@ -1842,11 +1826,14 @@ class Player extends Actor_1.Actor {
         }
         let moveFactors = this.parseMoveDir();
         if (moveFactors[0] != 0) {
-            this.Transform.X += moveFactors[0] * this.velocity * delta;
+            // this.Transform.X += moveFactors[0] * this.velocity * delta;
+            this.Transform.Body.force.x = moveFactors[0] * 0.01;
         }
         this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         if (moveFactors[1] != 0) {
-            this.Transform.Y += moveFactors[1] * this.velocity * delta;
+            // Body.applyForce()
+            this.Transform.Body.force.y = moveFactors[1] * 0.01;
+            // this.Transform.Y += moveFactors[1] * this.velocity * delta;
         }
         this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         this.Transform.addChange(ChangesDict_1.ChangesDict.ROTATION);
@@ -1985,12 +1972,12 @@ class Transform extends Serializable_1.Serializable {
     rotate(angle) {
         this.Rotation += angle;
     }
-    // get Magnitude(): number {
-    //     return this.polygon.pos.len();
-    // }
-    // get Polygon(): SAT.Polygon {
-    //     return this.polygon;
-    // }
+    set XY(xy) {
+        let newPos = matter_js_1.Vector.clone(this.body.position);
+        newPos.x = xy[0];
+        newPos.y = xy[1];
+        matter_js_1.Body.setPosition(this.body, newPos);
+    }
     get X() {
         return this.body.position.x;
     }

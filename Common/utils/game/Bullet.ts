@@ -20,16 +20,7 @@ export class Bullet extends GameObject {
             this.transform = new Transform(Bodies.circle(0, 0, 32));
         }
 
-        if(Math.floor(Math.random() * 2)) {
-            this.spriteName = "bluebolt";
-            this.velocity = 1.4;
-        } else {
-            this.spriteName = "fireball";
-            this.velocity = 0.7;
-        }
-
         this.spriteName = "flame";
-        this.velocity = 0;
 
         // this.transform.Width = 30;
         // this.transform.Height = 20;
@@ -103,8 +94,8 @@ export class Bullet extends GameObject {
 
         // this.Transform.Rotation = Math.atan2(this.velocity, this.velocityx);
 
+        this.Transform.addChange(ChangesDict.X);
         this.Transform.addChange(ChangesDict.Y);
-        this.Transform.addChange(ChangesDict.VELOCITY);
     }
 
     get Power(): number {

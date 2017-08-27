@@ -33,19 +33,18 @@ export class Transform extends Serializable {
         this.Rotation += angle;
     }
 
-    // get Magnitude(): number {
-    //     return this.polygon.pos.len();
-    // }
-
-    // get Polygon(): SAT.Polygon {
-    //     return this.polygon;
-    // }
+    set XY(xy: [number, number]) {
+        let newPos: Vector = Vector.clone(this.body.position);
+        newPos.x = xy[0];
+        newPos.y = xy[1];
+        Body.setPosition(this.body, newPos);
+    }
 
     get X(): number {
         return this.body.position.x;
     }
 
-    @NetworkProperty(ChangesDict.X,)
+    @NetworkProperty(ChangesDict.X)
     set X(x: number) {
         let newPos: Vector = Vector.clone(this.body.position);
         newPos.x = x;

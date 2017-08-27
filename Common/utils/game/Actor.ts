@@ -5,7 +5,7 @@ import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
-import {Bodies} from "matter-js";
+import {Bodies, Body, Vector} from "matter-js";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
@@ -27,7 +27,6 @@ export abstract class Actor extends GameObject {
 
         this.maxHp = 200;
         this.hp = this.maxHp;
-        this.velocity = 0.3;
         this.name = '';
 
         // this.transform.Width = 40;
@@ -41,8 +40,16 @@ export abstract class Actor extends GameObject {
         bullet.Owner = this.ID;
 
         bullet.Transform.Rotation = angle;
-        bullet.Transform.X = this.transform.X;
+        bullet.Transform.X = this.transform.X + 100;
         bullet.Transform.Y = this.transform.Y;
+
+        let sinAngle: number = Math.sin(this.Transform.Rotation);
+        let cosAngle: number = Math.cos(this.Transform.Rotation);
+
+        // Body.applyForce(bullet.Transform.Body, this.Transform.Body.position, Vector.create(cosAngle * 2, sinAngle * 2));
+        Body.setVelocity(bullet.Transform.Body, Vector.create(cosAngle * 10, sinAngle * 10));
+        // bullet.Transform.Body.force.x = cosAngle * 2;
+        // bullet.Transform.Body.force.y = sinAngle * 2;
     }
 
     protected serverCollision(gameObject: GameObject) {

@@ -14,7 +14,6 @@ export class Player extends Actor {
         super(transform);
 
         this.inputHistory = [];
-        this.velocity = 1.8;
     }
 
     public setInput(inputSnapshot: InputSnapshot) {
@@ -35,7 +34,8 @@ export class Player extends Actor {
         this.inputHistory = [];
 
         if(inputCommands.has(INPUT_COMMAND.FIRE)) {
-            this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
+            for(let i=0; i < 100; i++)
+                this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
         }
     }
 
@@ -47,12 +47,17 @@ export class Player extends Actor {
 
         let moveFactors: [number, number] = this.parseMoveDir();
         if (moveFactors[0] != 0) {
-            this.Transform.X += moveFactors[0] * this.velocity * delta;
+            // this.Transform.X += moveFactors[0] * this.velocity * delta;
+            this.Transform.Body.force.x = moveFactors[0]* 0.01;
         }
         this.Transform.addChange(ChangesDict.X);
         if (moveFactors[1] != 0) {
-            this.Transform.Y += moveFactors[1] * this.velocity * delta;
+            // Body.applyForce()
+            this.Transform.Body.force.y = moveFactors[1] * 0.01;
+            // this.Transform.Y += moveFactors[1] * this.velocity * delta;
         }
+
+
         this.Transform.addChange(ChangesDict.Y);
         this.Transform.addChange(ChangesDict.ROTATION);
     }
