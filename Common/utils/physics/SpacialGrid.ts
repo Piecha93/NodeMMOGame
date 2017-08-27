@@ -1,6 +1,5 @@
 import {GameObject} from "../game/GameObject";
 import {Transform} from "./Transform";
-import {CommonConfig, Origin} from "../../CommonConfig";
 import * as SAT from 'sat';
 
 export class Cell {

@@ -19,7 +19,6 @@ export class Player extends Actor {
     }
 
     public setInput(inputSnapshot: InputSnapshot) {
-
         let inputCommands: Map<INPUT_COMMAND, string> = inputSnapshot.Commands;
 
         if(inputCommands.has(INPUT_COMMAND.MOVE_DIRECTION)) {
@@ -108,7 +107,7 @@ export class Player extends Actor {
     }
 
     protected serverUpdate(delta: number) {
-
+        super.serverUpdate(delta);
     }
 
     private parseMoveDir(): [number, number] {

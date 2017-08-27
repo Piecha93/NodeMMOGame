@@ -6,7 +6,7 @@ import {GameObjectRender} from "../../Client/graphic/GameObjectRender";
 
 export class GameObjectSpriteRender extends GameObjectRender {
     protected sprite: PIXI.Sprite;
-    protected objectReference: GameObject;
+    protected objectRef: GameObject;
 
 
     constructor() {
@@ -14,14 +14,13 @@ export class GameObjectSpriteRender extends GameObjectRender {
     }
 
     public setObject(gameObjectReference: GameObject) {
-        this.objectReference = gameObjectReference;
+        this.objectRef = gameObjectReference;
 
-        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectReference.SpriteName]);
+        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectRef.SpriteName]);
         this.addChild(this.sprite);
 
-        let transform: Transform = this.objectReference.Transform;
-        this.sprite.width = transform.Width;
-        this.sprite.height = transform.Height;
+        this.sprite.width = this.objectRef.Transform.Width;
+        this.sprite.height = this.objectRef.Transform.Height;
 
         this.sprite.anchor.set(0.5, 0.5);
     }
@@ -29,9 +28,12 @@ export class GameObjectSpriteRender extends GameObjectRender {
     public update() {
         super.update();
 
-        if(this.sprite.texture != PIXI.utils.TextureCache[this.objectReference.SpriteName]) {
-            this.sprite.texture = PIXI.utils.TextureCache[this.objectReference.SpriteName];
+        if(this.sprite.texture != PIXI.utils.TextureCache[this.objectRef.SpriteName]) {
+            this.sprite.texture = PIXI.utils.TextureCache[this.objectRef.SpriteName];
         }
+
+        this.sprite.width = this.objectRef.Transform.Width;
+        this.sprite.height = this.objectRef.Transform.Height;
     }
 
     public destroy() {

@@ -21,6 +21,10 @@ export class InputSnapshot {
         this.commandList.set(command, value);
     }
 
+    public isMoving(): boolean {
+        return this.Commands.has(INPUT_COMMAND.MOVE_DIRECTION) && this.Commands.get(INPUT_COMMAND.MOVE_DIRECTION) != "0";
+    }
+
     public serializeSnapshot(): string {
         let serializedSnapshot: string = '';
         this.commandList.forEach((value:string, key: INPUT_COMMAND) => {

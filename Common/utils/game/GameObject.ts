@@ -40,7 +40,7 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        if(response.a == this.Transform.Polygon) {
+        if(response.a == this.Transform.Body) {
             response.overlapV = response.overlapV.clone().reverse();
         }
     }

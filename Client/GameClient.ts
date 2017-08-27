@@ -93,56 +93,59 @@ export class GameClient {
     }
 
     private startGame() {
-        let timer: DeltaTimer = new DeltaTimer;
-        let deltaHistory: Array<number> = [];
+        this.startRenderLoop();
+    }
 
-        setInterval(() => {
-            let delta: number = timer.getDelta();
-            this.world.update(delta);
-            this.renderer.update();
+    timer: DeltaTimer = new DeltaTimer;
+    deltaHistory: Array<number> = [];
 
-            deltaHistory.push(delta);
-            if(deltaHistory.length > 30) deltaHistory.splice(0, 1);
-            let deltaAvg: number = 0;
-            deltaHistory.forEach((delta: number) => {
-                deltaAvg += delta;
-            });
-            deltaAvg /= deltaHistory.length;
-            DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        }, ClientConfig.TICKRATE);
+    private startRenderLoop() {
+        let delta: number = this.timer.getDelta();
+        this.world.update(delta);
+
+        this.deltaHistory.push(delta);
+        if(this.deltaHistory.length > 30) this.deltaHistory.splice(0, 1);
+        let deltaAvg: number = 0;
+        this.deltaHistory.forEach((delta: number) => {
+            deltaAvg += delta;
+        });
+        deltaAvg /= this.deltaHistory.length;
+        DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+
+        this.renderer.update();
+        requestAnimationFrame(this.startRenderLoop.bind(this));
     }
 
     private updateGame(data, lastSnapshotData?: [number, number]) {
-
         if(!data) return;
-
         data = LZString.decompressFromUTF16(data);
+
         let update: Array<string> = data.split('$');
-            // console.log(update);
-            for (let object in update) {
-                let splitObject: string[] = update[object].split('=');
-                let id: string = splitObject[0];
-                let data: string = splitObject[1];
+        // console.log(update);
+        for (let object in update) {
+            let splitObject: string[] = update[object].split('=');
+            let id: string = splitObject[0];
+            let data: string = splitObject[1];
 
-                let gameObject: GameObject = null;
-                if (id[0] == '!') {
-                    id = id.slice(1);
-                    gameObject = this.netObjectMenager.getObject(id);
-                    if (gameObject) {
-                        gameObject.destroy();
-                    }
-                    continue;
-                }
-
+            let gameObject: GameObject = null;
+            if (id[0] == '!') {
+                id = id.slice(1);
                 gameObject = this.netObjectMenager.getObject(id);
-
-                if (gameObject == null) {
-                    gameObject = ObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
+                if (gameObject) {
+                    gameObject.destroy();
                 }
-                gameObject.deserialize(data);
-                if(lastSnapshotData && this.player.ID == id) {
-                    this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
-                }
+                continue;
             }
+
+            gameObject = this.netObjectMenager.getObject(id);
+
+            if (gameObject == null) {
+                gameObject = ObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
+            }
+            gameObject.deserialize(data);
+            if (lastSnapshotData && this.player.ID == id) {
+                this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
+            }
+        }
     }
 }

@@ -22,7 +22,7 @@ export class ObjectsFactory {
 
     static Instatiate(type: string, id?: string, data?: string): GameObject {
 
-        let position: Transform = new Transform(0,0);
+        let position: Transform = new Transform(0,0,32,32);
         let gameObject: GameObject;
 
         if(type == "Player") {

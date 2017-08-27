@@ -4,7 +4,7 @@ import {GameObject} from "../../Common/utils/game/GameObject";
 import {Transform} from "../../Common/utils/physics/Transform";
 
 export abstract class GameObjectRender extends PIXI.Container {
-    protected objectReference: GameObject;
+    protected objectRef: GameObject;
 
     private dt: number = 0.4;
 
@@ -13,12 +13,11 @@ export abstract class GameObjectRender extends PIXI.Container {
     }
 
     public setObject(gameObjectReference: GameObject) {
-        this.objectReference = gameObjectReference;
+        this.objectRef = gameObjectReference;
     }
 
     public update() {
-
-       let transform: Transform = this.objectReference.Transform;
+       let transform: Transform = this.objectRef.Transform;
 
        if(Math.abs(transform.X - this.x) > 50) {
            this.x = transform.X;
@@ -31,7 +30,7 @@ export abstract class GameObjectRender extends PIXI.Container {
             this.y = (transform.Y - this.y) * this.dt + this.y;
         }
 
-       this.rotation = this.objectReference.Transform.Rotation;
+       this.rotation = this.objectRef.Transform.Rotation;
     }
 
     public destroy() {

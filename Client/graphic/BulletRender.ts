@@ -1,6 +1,6 @@
 import {GameObject} from "../../Common/utils/game/GameObject";
 import {Bullet} from "../../Common/utils/game/Bullet";
-import {GameObjectAnimationRender} from "../../Client/graphic/GameObjectAnimationRender";
+import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 
 export class BulletRender extends GameObjectAnimationRender {
     private bulletReference: Bullet;

@@ -70,9 +70,10 @@ export class GameServer {
         o.Transform.Width = 150;
 
         o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
-        o.Transform.X = 150;
+        o.Transform.X = 350;
         o.Transform.Y = 450;
-        o.Transform.Height = 150;
+        o.Transform.Width = 150;
+        o.Transform.Rotation = 3;
 
         let createEnemy: Function = () => {
             let e: Enemy = ObjectsFactory.Instatiate("Enemy") as Enemy;
@@ -87,14 +88,26 @@ export class GameServer {
         };
 
         for (let i = 0; i < 20; i++) {
-            // createEnemy();
+            createEnemy();
         }
         ///////////////////////////////////////////////////////////////////TEST
 
-        let timer: DeltaTimer = new DeltaTimer;
-        setInterval(() => {
-            let delta: number = timer.getDelta();
-            this.world.update(delta)
+        this.startGameLoop();
+    }
+
+    updateResolution: number = 0;
+    timer: DeltaTimer = new DeltaTimer;
+
+    private startGameLoop() {
+        let delta: number = this.timer.getDelta();
+        this.world.update(delta);
+
+
+        if(this.updateResolution++ % 5) {
+            this.sendUpdate();
+        }
+        setTimeout(() => {
+            this.startGameLoop();
         }, ServerConfig.TICKRATE);
     }
 
@@ -171,6 +184,12 @@ export class GameServer {
                     } else if (msg == "kamis :*") {
                         this.world.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
                         return;
+                    } else if (msg == "big boy") {
+                        this.world.getGameObject(serverClient.PlayerId).Transform.Width *= 3;
+                        this.world.getGameObject(serverClient.PlayerId).Transform.Height *= 3;
+                        this.world.getGameObject(serverClient.PlayerId).Transform.addChange("W");
+                        this.world.getGameObject(serverClient.PlayerId).Transform.addChange("H");
+                        return;
                     }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
                 }
@@ -189,33 +208,33 @@ export class GameServer {
                 }
             });
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
+    }
 
-        setInterval(() => {
-            let update: string = NetObjectsManager.Instance.collectUpdate();
-            update += this.destroyedObjects;
-            this.destroyedObjects = '';
+    private sendUpdate() {
+        let update: string = NetObjectsManager.Instance.collectUpdate();
+        update += this.destroyedObjects;
+        this.destroyedObjects = '';
 
-            if(update[0] == "$") {
-                update = update.slice(1);
-            }
+        if(update[0] == "$") {
+            update = update.slice(1);
+        }
 
-            if(update != '') {
-                update = LZString.compressToUTF16(update);
-                this.clients.forEach((client: ServerClient) => {
-                    if (client.IsReady) {
-                        let player: Player = this.world.getGameObject(client.PlayerId) as Player;
-                        if(player) {
-                            let snapshot: InputSnapshot = player.LastInputSnapshot;
-                            if(snapshot) {
-                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
-                            } else {
-                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
-                            }
+        if(update != '') {
+            update = LZString.compressToUTF16(update);
+            this.clients.forEach((client: ServerClient) => {
+                if (client.IsReady) {
+                    let player: Player = this.world.getGameObject(client.PlayerId) as Player;
+                    if(player) {
+                        let snapshot: InputSnapshot = player.LastInputSnapshot;
+                        if(snapshot && snapshot.isMoving()) {
+                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
+                        } else {
+                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
                         }
                     }
-                });
-            }
-        }, ServerConfig.UPDATE_INTERVAL);
+                }
+            });
+        }
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {

@@ -1,11 +1,11 @@
 export class ChangesDict {
     //GameObject
-    public static VELOCITY = 'V';
     public static SPRITE_NAME = 'S';
+    public static VELOCITY = 'V';
 
     //Actor
-    public static HP = 'H';
-    public static MAX_HP = 'M';
+    public static HP = 'HP';
+    public static MAX_HP = 'MHP';
     public static NAME = 'N';
 
     //Bullet
@@ -15,8 +15,8 @@ export class ChangesDict {
     //Transform
     public static X = 'X';
     public static Y = 'Y';
+    public static HEIGHT = 'H';
     public static WIDTH = 'W';
-    public static HEIGHT = 'E';
     public static ROTATION = 'R';
 
 }

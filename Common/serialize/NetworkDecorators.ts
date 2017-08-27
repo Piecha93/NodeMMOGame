@@ -22,7 +22,7 @@ export function NetworkProperty(shortKey: string) {
         target[PropName.SerializeFunctions].set(shortKey, (object) => {
             if (typeof object[key] == "number") {
                 return object[key].toFixed(4);
-            } else {
+            }  else {
                 return object[key];
             }
         });
@@ -84,5 +84,12 @@ function getPrototypePropertyVal(target: Object, propertyName: string, defaultVa
         return prototype[propertyName]
     } else {
         return defaultVal;
+    }
+}
+
+function parseArray(arr: Array<any>, data: string) {
+    let splited: Array<string> = data.split(',');
+    for(let i = 0; i < splited.length; i++) {
+        arr[i] = Number(splited[i]);
     }
 }

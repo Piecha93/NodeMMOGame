@@ -5,7 +5,7 @@ import {INPUT_COMMAND} from "../../Common/input/InputCommands";
 
 export class InputHandler {
     private releasedKeys: Set<number>;
-    private clickPosition: Transform;
+    private clickPosition: [number, number];
     private lastDirection: number = 0;
 
     private snapshotCallbacks: Array<Function>;
@@ -18,7 +18,7 @@ export class InputHandler {
         this.releasedKeys =  new Set<number>();
         this.clickPosition = null;
 
-        this.snapshotCallbacks = new Array<Function>();
+        this.snapshotCallbacks = [];
 
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
@@ -50,7 +50,7 @@ export class InputHandler {
     private mouseClick(mouseEvent: MouseEvent) {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
-        this.clickPosition = new Transform(mouseEvent.x - rect.left, mouseEvent.y - rect.top);
+        this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
 
         this.serializeSnapshot();
     }
@@ -101,8 +101,8 @@ export class InputHandler {
 
         let centerX = canvas.width / 2;
         let centerY = canvas.height / 2;
-        let deltaX = this.clickPosition.X - centerX;
-        let deltaY = this.clickPosition.Y - centerY;
+        let deltaX = this.clickPosition[0] - centerX;
+        let deltaY = this.clickPosition[1] - centerY;
         let angle: number = Math.atan2(deltaY, deltaX);
         if (angle < 0)
             angle = angle + 2*Math.PI;
