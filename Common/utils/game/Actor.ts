@@ -5,7 +5,7 @@ import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
 import {ObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
-import {Bodies, Body, Vector} from "matter-js";
+import {Body} from "p2";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
@@ -20,10 +20,12 @@ export abstract class Actor extends GameObject {
 
         if(!transform) {
             //{isStatic: true}
-            this.transform = new Transform(Bodies.rectangle(0, 0, 32, 32));
-            this.transform.ScaleY = 2;
-            console.log(this.transform.Body.velocity);
+            this.transform = new Transform(new Body({
+                mass: 5
+            }));
         }
+        this.transform.ScaleY = 2;
+        this.Transform.Body.fixedRotation = 1;
 
         this.maxHp = 200;
         this.hp = this.maxHp;
@@ -40,14 +42,15 @@ export abstract class Actor extends GameObject {
         bullet.Owner = this.ID;
 
         bullet.Transform.Rotation = angle;
-        bullet.Transform.X = this.transform.X + 100;
-        bullet.Transform.Y = this.transform.Y;
+        bullet.Transform.X = this.transform.X + Math.random() * 100 - 50;
+        bullet.Transform.Y = this.transform.Y+ Math.random() * 100 - 50;
 
         let sinAngle: number = Math.sin(this.Transform.Rotation);
         let cosAngle: number = Math.cos(this.Transform.Rotation);
 
+        this.Transform.Body.applyForce([cosAngle * 2, sinAngle * 2]);
         // Body.applyForce(bullet.Transform.Body, this.Transform.Body.position, Vector.create(cosAngle * 2, sinAngle * 2));
-        Body.setVelocity(bullet.Transform.Body, Vector.create(cosAngle * 10, sinAngle * 10));
+        // Body.setVelocity(bullet.Transform.Body, Vector.create(cosAngle * 10, sinAngle * 10));
         // bullet.Transform.Body.force.x = cosAngle * 2;
         // bullet.Transform.Body.force.y = sinAngle * 2;
     }

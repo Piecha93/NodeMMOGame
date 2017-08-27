@@ -34,7 +34,7 @@ export class Player extends Actor {
         this.inputHistory = [];
 
         if(inputCommands.has(INPUT_COMMAND.FIRE)) {
-            for(let i=0; i < 100; i++)
+            for(let i=0; i < 1; i++)
                 this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
         }
     }
@@ -46,20 +46,12 @@ export class Player extends Actor {
         }
 
         let moveFactors: [number, number] = this.parseMoveDir();
-        if (moveFactors[0] != 0) {
-            // this.Transform.X += moveFactors[0] * this.velocity * delta;
-            this.Transform.Body.force.x = moveFactors[0]* 0.01;
-        }
+
+        this.Transform.Body.applyForce([moveFactors[0] * delta * 50, moveFactors[1] * delta * 50]);
+
         this.Transform.addChange(ChangesDict.X);
-        if (moveFactors[1] != 0) {
-            // Body.applyForce()
-            this.Transform.Body.force.y = moveFactors[1] * 0.01;
-            // this.Transform.Y += moveFactors[1] * this.velocity * delta;
-        }
-
-
         this.Transform.addChange(ChangesDict.Y);
-        this.Transform.addChange(ChangesDict.ROTATION);
+        // this.Transform.addChange(ChangesDict.ROTATION);
     }
 
     // public reconciliation(serverSnapshotData: [number, number], spacialGrid: SpacialGrid) {

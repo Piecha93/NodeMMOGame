@@ -91,10 +91,21 @@ export class GameServer {
         }
         ///////////////////////////////////////////////////////////////////TEST
 
-        let timer: DeltaTimer = new DeltaTimer;
-        setInterval(() => {
-            let delta: number = timer.getDelta();
-            this.world.update(delta)
+        this.startGameLoop();
+    }
+
+    a: number = 0;
+    timer: DeltaTimer = new DeltaTimer;
+
+    private startGameLoop() {
+        let delta: number = this.timer.getDelta();
+        this.world.update(delta);
+
+        if(this.a++ % 3) {
+            this.sendUpdate();
+        }
+        setTimeout(() => {
+            this.startGameLoop();
         }, ServerConfig.TICKRATE);
     }
 
@@ -190,33 +201,33 @@ export class GameServer {
                 }
             });
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
+    }
 
-        setInterval(() => {
-            let update: string = NetObjectsManager.Instance.collectUpdate();
-            update += this.destroyedObjects;
-            this.destroyedObjects = '';
+    private sendUpdate() {
+        let update: string = NetObjectsManager.Instance.collectUpdate();
+        update += this.destroyedObjects;
+        this.destroyedObjects = '';
 
-            if(update[0] == "$") {
-                update = update.slice(1);
-            }
+        if(update[0] == "$") {
+            update = update.slice(1);
+        }
 
-            if(update != '') {
-                update = LZString.compressToUTF16(update);
-                this.clients.forEach((client: ServerClient) => {
-                    if (client.IsReady) {
-                        let player: Player = this.world.getGameObject(client.PlayerId) as Player;
-                        if(player) {
-                            let snapshot: InputSnapshot = player.LastInputSnapshot;
-                            if(snapshot) {
-                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
-                            } else {
-                                client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
-                            }
+        if(update != '') {
+            update = LZString.compressToUTF16(update);
+            this.clients.forEach((client: ServerClient) => {
+                if (client.IsReady) {
+                    let player: Player = this.world.getGameObject(client.PlayerId) as Player;
+                    if(player) {
+                        let snapshot: InputSnapshot = player.LastInputSnapshot;
+                        if(snapshot) {
+                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
+                        } else {
+                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
                         }
                     }
-                });
-            }
-        }, ServerConfig.UPDATE_INTERVAL);
+                }
+            });
+        }
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {

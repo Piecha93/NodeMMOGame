@@ -4,7 +4,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
-import {Bodies} from "matter-js";
+import {Body} from "p2";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
@@ -17,13 +17,12 @@ export class Bullet extends GameObject {
         super(transform);
 
         if(!transform) {
-            this.transform = new Transform(Bodies.circle(0, 0, 32));
+            this.transform = this.transform = new Transform(new Body({
+                mass: 5
+            }));
         }
 
         this.spriteName = "flame";
-
-        // this.transform.Width = 30;
-        // this.transform.Height = 20;
 
         this.lifeSpan = 5000;
         this.addChange(ChangesDict.VELOCITY);
@@ -44,26 +43,7 @@ export class Bullet extends GameObject {
 
     protected commonCollision(gameObject: GameObject) {
         super.commonCollision(gameObject);
-        if(gameObject instanceof Obstacle) {
-            // if(response.overlapN.x) {
-                // this.Transform.Rotation = Math.PI - this.Transform.Rotation;
-            // } else {
-                // this.Transform.Rotation = 2*Math.PI - this.Transform.Rotation;
-            // }
 
-            // if(response.overlapV.x != 0) {
-            //     this.velocityx *= -0.75;
-            //     this.transform.X += response.overlapV.x * 1.2;
-            //     this.transform.addChange(ChangesDict.Y);
-            //     this.Transform.addChange("xx");
-            // }
-            // if(response.overlapV.y != 0) {
-            //     this.velocity *= -0.75;
-            //     this.transform.Y += response.overlapV.y * 1.2;
-            //     this.transform.addChange(ChangesDict.Y);
-            //     this.Transform.addChange(ChangesDict.VELOCITY);
-            // }
-        }
     }
 
     protected serverUpdate(delta: number) {
@@ -75,7 +55,6 @@ export class Bullet extends GameObject {
             this.destroy();
         }
     }
-    private acceleration = 0.005;
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
@@ -92,10 +71,12 @@ export class Bullet extends GameObject {
         // this.transform.X += this.velocityx * delta;
         // this.transform.Y += this.velocity * delta;
 
-        // this.Transform.Rotation = Math.atan2(this.velocity, this.velocityx);
+        let velocity = this.Transform.Body.velocity;
+        // this.Transform.Rotation = Math.atan2(velocity[0], velocity[1]);
 
         this.Transform.addChange(ChangesDict.X);
         this.Transform.addChange(ChangesDict.Y);
+        this.Transform.addChange(ChangesDict.ROTATION);
     }
 
     get Power(): number {

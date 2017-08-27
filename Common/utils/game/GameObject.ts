@@ -3,7 +3,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Serializable} from "../../serialize/Serializable";
-import {Bodies} from "matter-js";
+import {Body} from "p2";
 
 export abstract class GameObject extends Serializable {
     protected id: string = "";
@@ -20,7 +20,9 @@ export abstract class GameObject extends Serializable {
         super();
 
         if(!transform) {
-            transform = new Transform(Bodies.rectangle(0, 0, 32, 32));
+            transform = this.transform = new Transform(new Body({
+                mass: 5
+            }));
         }
 
         this.transform = transform;

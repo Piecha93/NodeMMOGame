@@ -65,7 +65,6 @@ export class GameClient {
     private configureSocket() {
         this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
-            console.log(data);
             let worldInfo: Array<string> = data['world'].split(',');
             let width: number = Number(worldInfo[0]);
             let height: number = Number(worldInfo[1]);
@@ -93,23 +92,28 @@ export class GameClient {
     }
 
     private startGame() {
-        let timer: DeltaTimer = new DeltaTimer;
-        let deltaHistory: Array<number> = [];
+        this.startRenderLoop();
+    }
 
-        setInterval(() => {
-            let delta: number = timer.getDelta();
-            this.world.update(delta);
-            this.renderer.update();
+    timer: DeltaTimer = new DeltaTimer;
+    deltaHistory: Array<number> = [];
 
-            deltaHistory.push(delta);
-            if(deltaHistory.length > 30) deltaHistory.splice(0, 1);
-            let deltaAvg: number = 0;
-            deltaHistory.forEach((delta: number) => {
-                deltaAvg += delta;
-            });
-            deltaAvg /= deltaHistory.length;
-            DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        }, ClientConfig.TICKRATE);
+    private startRenderLoop() {
+        let delta: number = this.timer.getDelta();
+        this.world.update(delta);
+        console.log(delta);
+
+        this.deltaHistory.push(delta);
+        if(this.deltaHistory.length > 30) this.deltaHistory.splice(0, 1);
+        let deltaAvg: number = 0;
+        this.deltaHistory.forEach((delta: number) => {
+            deltaAvg += delta;
+        });
+        deltaAvg /= this.deltaHistory.length;
+        DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+
+        this.renderer.update();
+        requestAnimationFrame(this.startRenderLoop.bind(this));
     }
 
     private updateGame(data, lastSnapshotData?: [number, number]) {

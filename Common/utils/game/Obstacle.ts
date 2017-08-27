@@ -1,6 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {Bodies} from "matter-js";
+import {Body} from "p2";
+import {ChangesDict} from "../../serialize/ChangesDict";
 
 export class Obstacle extends GameObject {
 
@@ -10,7 +11,9 @@ export class Obstacle extends GameObject {
         super(transform);
 
         if(!transform) {
-            this.transform = new Transform(Bodies.rectangle(0, 0, 32, 32, { isStatic: true }))
+            this.transform = this.transform = new Transform(new Body({
+                mass: 0
+            }));
         }
         // transform.Height = 48;
         // transform.Width = 48;
@@ -24,6 +27,9 @@ export class Obstacle extends GameObject {
 
     protected serverUpdate(delta: number) {
         super.serverUpdate(delta);
+        // this.Transform.addChange(ChangesDict.X);
+        // this.Transform.addChange(ChangesDict.Y);
+        // this.Transform.addChange(ChangesDict.ROTATION);
 
     }
 

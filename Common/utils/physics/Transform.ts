@@ -1,7 +1,7 @@
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable} from "../../serialize/Serializable"
-import {Bodies, Body, Vector} from "matter-js";
+import {Body, Box} from "p2";
 
 export class Transform extends Serializable {
     private body: Body;
@@ -23,6 +23,10 @@ export class Transform extends Serializable {
     constructor(body: Body) {
         super();
         this.body = body;
+        this.body.addShape(new Box({
+            width: 32,
+            height: 32
+        }));
     }
 
     get Body(): Body {
@@ -34,38 +38,31 @@ export class Transform extends Serializable {
     }
 
     set XY(xy: [number, number]) {
-        let newPos: Vector = Vector.clone(this.body.position);
-        newPos.x = xy[0];
-        newPos.y = xy[1];
-        Body.setPosition(this.body, newPos);
+        this.body.position = xy;
     }
 
     get X(): number {
-        return this.body.position.x;
+        return this.body.position[0];
     }
 
     @NetworkProperty(ChangesDict.X)
     set X(x: number) {
-        let newPos: Vector = Vector.clone(this.body.position);
-        newPos.x = x;
-        Body.setPosition(this.body, newPos);
+        this.body.position[0] = x;
     }
 
     get Y(): number {
-        return this.body.position.y;
+        return this.body.position[1];
     }
 
     @NetworkProperty(ChangesDict.Y)
     set Y(y: number) {
-        let newPos: Vector = Vector.clone(this.body.position);
-        newPos.y = y;
-        Body.setPosition(this.body, newPos);
+        this.body.position[1] = y;
+
     }
 
     @NetworkProperty(ChangesDict.ScaleX)
     set ScaleX(x: number) {
         this.scaleX = x;
-        Body.scale(this.body, x, this.scaleY);
     }
 
     get ScaleX(): number {
@@ -75,7 +72,6 @@ export class Transform extends Serializable {
     @NetworkProperty(ChangesDict.ScaleY)
     set ScaleY(y: number) {
         this.scaleY = y;
-        Body.scale(this.body, this.scaleX, y);
     }
 
     get ScaleY(): number {
@@ -120,7 +116,7 @@ export class Transform extends Serializable {
 
     @NetworkProperty(ChangesDict.ROTATION)
     set Rotation(angle: number) {
-        Body.setAngle(this.body, angle);
+        this.body.angle = angle
     }
 
     get Rotation(): number {

@@ -1,13 +1,12 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
-import {Bodies, Composites, Engine, IRunnerOptions, Runner, World, Body, Events} from "matter-js";
 import {CommonConfig, Origin} from "../Common/CommonConfig";
+import {World} from "p2";
 
 export class GameWorld extends GameObjectsHolder {
     private height: number;
     private width: number;
 
-    private engine: Engine;
     private world: World;
 
     constructor(width: number, height: number) {
@@ -21,36 +20,25 @@ export class GameWorld extends GameObjectsHolder {
     }
 
     private initPhysics() {
-        this.engine = Engine.create({});
-        this.world = this.engine.world;
-        this.world.gravity.scale = 0.0005;
+        this.world = new World();
+        this.world.gravity = [0, 9.81];
     }
 
     public update(delta: number) {
         this.gameObjectsMapById.forEach((object: GameObject) => {
             object.update(delta);
         });
-
         if(CommonConfig.ORIGIN == Origin.SERVER)
-            Engine.update(this.engine, delta);
-
-        // Events.trigger(this.engine, 'tick', { timestamp: this.engine.timing.timestamp });
-        // Engine.update(this.engine, delta);
-        // Events.trigger(this.engine, 'afterTick', { timestamp: this.engine.timing.timestamp });
-
-      //  if(CommonConfig.ORIGIN == Origin.SERVER) {
-      //       this.spacialGrid.rebuildGrid();
-      //       this.spacialGrid.checkCollisions();
-        //}
+            this.world.step(1 / 60, delta, 10);
     }
 
     public addGameObject(gameObject: GameObject) {
-        World.add(this.world, gameObject.Transform.Body);
+        this.world.addBody(gameObject.Transform.Body);
         super.addGameObject(gameObject);
     }
 
     public removeGameObject(gameObject: GameObject) {
-        World.remove(this.world, gameObject.Transform.Body);
+        this.world.removeBody(gameObject.Transform.Body);
         super.removeGameObject(gameObject);
     }
 
