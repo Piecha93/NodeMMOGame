@@ -4,7 +4,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
-import {Body} from "p2";
+import {Body, Box} from "p2";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
@@ -17,9 +17,15 @@ export class Bullet extends GameObject {
         super(transform);
 
         if(!transform) {
-            this.transform = this.transform = new Transform(new Body({
+            let body: Body = new Body({
                 mass: 5
+            });
+            body.addShape(new Box({
+                width: 32,
+                height: 32,
             }));
+            body.shapes[0].sensor = true;
+            this.transform = this.transform = new Transform(body);
         }
 
         this.spriteName = "flame";
@@ -71,7 +77,7 @@ export class Bullet extends GameObject {
         // this.transform.X += this.velocityx * delta;
         // this.transform.Y += this.velocity * delta;
 
-        let velocity = this.Transform.Body.velocity;
+        // let velocity = this.Transform.Body.velocity;
         // this.Transform.Rotation = Math.atan2(velocity[0], velocity[1]);
 
         this.Transform.addChange(ChangesDict.X);

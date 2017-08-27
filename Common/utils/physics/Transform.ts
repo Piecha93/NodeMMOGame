@@ -23,10 +23,6 @@ export class Transform extends Serializable {
     constructor(body: Body) {
         super();
         this.body = body;
-        this.body.addShape(new Box({
-            width: 32,
-            height: 32
-        }));
     }
 
     get Body(): Body {

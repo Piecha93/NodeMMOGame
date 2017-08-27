@@ -1,6 +1,6 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {Body} from "p2";
+import {Body, Box} from "p2";
 import {ChangesDict} from "../../serialize/ChangesDict";
 
 export class Obstacle extends GameObject {
@@ -11,9 +11,14 @@ export class Obstacle extends GameObject {
         super(transform);
 
         if(!transform) {
-            this.transform = this.transform = new Transform(new Body({
+            let body: Body = new Body({
                 mass: 0
+            });
+            body.addShape(new Box({
+                width: 32,
+                height: 32
             }));
+            this.transform = new Transform(body);
         }
         // transform.Height = 48;
         // transform.Width = 48;

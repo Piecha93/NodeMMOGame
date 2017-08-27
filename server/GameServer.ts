@@ -44,20 +44,20 @@ export class GameServer {
         });
         let o: Obstacle;
         ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
-        for (let i = 0; i < this.world.Height / 32; i++) {
-            o= ObjectsFactory.Instatiate("Obstacle") as Obstacle;
-            o.Transform.X = 0;
-            o.Transform.Y = i * o.Transform.Height;
-
-            o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
-            o.Transform.X = this.world.Width - o.Transform.Width + this.world.Width % 48;
-            o.Transform.Y = i * o.Transform.Height;
-        }
+        // for (let i = 0; i < this.world.Height / 32; i++) {
+        //     o= ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        //     o.Transform.X = 0;
+        //     o.Transform.Y = i * o.Transform.Height;
+        //
+        //     o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        //     o.Transform.X = this.world.Width - o.Transform.Width + this.world.Width % 48;
+        //     o.Transform.Y = i * o.Transform.Height;
+        // }
 
         for (let i = 1; i < this.world.Width / 32; i++) {
-            o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
-            o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = 0;
+            // o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            // o.Transform.X = i * o.Transform.Width;
+            // o.Transform.Y = 0;
 
             o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = i * o.Transform.Width;
@@ -94,14 +94,16 @@ export class GameServer {
         this.startGameLoop();
     }
 
-    a: number = 0;
+    updateResolution: number = 0;
     timer: DeltaTimer = new DeltaTimer;
 
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
 
-        if(this.a++ % 3) {
+
+        if(this.updateResolution++ % 3) {
+            console.log("update");
             this.sendUpdate();
         }
         setTimeout(() => {

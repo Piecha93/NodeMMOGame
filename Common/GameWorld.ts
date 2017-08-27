@@ -28,8 +28,9 @@ export class GameWorld extends GameObjectsHolder {
         this.gameObjectsMapById.forEach((object: GameObject) => {
             object.update(delta);
         });
+        console.log(delta / 1000 + " " + 1/30*10);
         if(CommonConfig.ORIGIN == Origin.SERVER)
-            this.world.step(1 / 60, delta, 10);
+            this.world.step(1 / 30, delta / 1000, 10);
     }
 
     public addGameObject(gameObject: GameObject) {

@@ -168,7 +168,6 @@ class GameClient {
     configureSocket() {
         this.socket.on(SocketMsgs_1.SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
-            console.log(data);
             let worldInfo = data['world'].split(',');
             let width = Number(worldInfo[0]);
             let height = Number(worldInfo[1]);
@@ -934,8 +933,9 @@ class GameWorld extends GameObjectsHolder_1.GameObjectsHolder {
         this.gameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
+        console.log(delta / 1000 + " " + 1 / 30 * 10);
         if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER)
-            this.world.step(1 / 60, delta, 10);
+            this.world.step(1 / 30, delta / 1000, 10);
     }
     addGameObject(gameObject) {
         this.world.addBody(gameObject.Transform.Body);
@@ -1310,10 +1310,14 @@ class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
         if (!transform) {
-            //{isStatic: true}
-            this.transform = new Transform_1.Transform(new p2_1.Body({
+            let body = new p2_1.Body({
                 mass: 5
+            });
+            body.addShape(new p2_1.Box({
+                width: 32,
+                height: 32
             }));
+            this.transform = new Transform_1.Transform(body);
         }
         this.transform.ScaleY = 2;
         this.Transform.Body.fixedRotation = 1;
@@ -1328,11 +1332,11 @@ class Actor extends GameObject_1.GameObject {
         let bullet = ObjectsFactory_1.ObjectsFactory.Instatiate("Bullet");
         bullet.Owner = this.ID;
         bullet.Transform.Rotation = angle;
-        bullet.Transform.X = this.transform.X + Math.random() * 100 - 50;
-        bullet.Transform.Y = this.transform.Y + Math.random() * 100 - 50;
-        let sinAngle = Math.sin(this.Transform.Rotation);
-        let cosAngle = Math.cos(this.Transform.Rotation);
-        this.Transform.Body.applyForce([cosAngle * 2, sinAngle * 2]);
+        bullet.Transform.X = this.transform.X;
+        bullet.Transform.Y = this.transform.Y;
+        let sinAngle = Math.sin(angle);
+        let cosAngle = Math.cos(angle);
+        bullet.Transform.Body.applyForce([cosAngle * 50000, sinAngle * 50000]);
         // Body.applyForce(bullet.Transform.Body, this.Transform.Body.position, Vector.create(cosAngle * 2, sinAngle * 2));
         // Body.setVelocity(bullet.Transform.Body, Vector.create(cosAngle * 10, sinAngle * 10));
         // bullet.Transform.Body.force.x = cosAngle * 2;
@@ -1414,9 +1418,15 @@ class Bullet extends GameObject_1.GameObject {
         this.lifeSpan = 50;
         this.power = 10;
         if (!transform) {
-            this.transform = this.transform = new Transform_1.Transform(new p2_1.Body({
+            let body = new p2_1.Body({
                 mass: 5
+            });
+            body.addShape(new p2_1.Box({
+                width: 32,
+                height: 32,
             }));
+            body.shapes[0].sensor = true;
+            this.transform = this.transform = new Transform_1.Transform(body);
         }
         this.spriteName = "flame";
         this.lifeSpan = 5000;
@@ -1456,7 +1466,7 @@ class Bullet extends GameObject_1.GameObject {
         // this.velocity += delta * (this.acceleration) / 2;
         // this.transform.X += this.velocityx * delta;
         // this.transform.Y += this.velocity * delta;
-        let velocity = this.Transform.Body.velocity;
+        // let velocity = this.Transform.Body.velocity;
         // this.Transform.Rotation = Math.atan2(velocity[0], velocity[1]);
         this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
@@ -1741,9 +1751,14 @@ class Obstacle extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
         if (!transform) {
-            this.transform = this.transform = new Transform_1.Transform(new p2_1.Body({
+            let body = new p2_1.Body({
                 mass: 0
+            });
+            body.addShape(new p2_1.Box({
+                width: 32,
+                height: 32
             }));
+            this.transform = new Transform_1.Transform(body);
         }
         // transform.Height = 48;
         // transform.Width = 48;
@@ -1920,17 +1935,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Serializable_1 = require("../../serialize/Serializable");
-const p2_1 = require("p2");
 class Transform extends Serializable_1.Serializable {
     constructor(body) {
         super();
         this.scaleX = 1;
         this.scaleY = 1;
         this.body = body;
-        this.body.addShape(new p2_1.Box({
-            width: 32,
-            height: 32
-        }));
     }
     get Width() {
         return Transform.Width * this.scaleX;
@@ -2042,7 +2052,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":27,"../../serialize/NetworkDecorators":28,"../../serialize/Serializable":29,"p2":99}],40:[function(require,module,exports){
+},{"../../serialize/ChangesDict":27,"../../serialize/NetworkDecorators":28,"../../serialize/Serializable":29}],40:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
