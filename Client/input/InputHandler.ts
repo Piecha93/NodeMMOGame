@@ -1,11 +1,11 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
-import {Transform} from "../../Common/utils/physics/Transform";
 import {InputMap, INPUT} from "./InputMap";
 import {INPUT_COMMAND} from "../../Common/input/InputCommands";
 
 export class InputHandler {
     private releasedKeys: Set<number>;
     private clickPosition: [number, number];
+    private mousePosition: [number, number];
     private lastDirection: number = 0;
 
     private snapshotCallbacks: Array<Function>;
@@ -17,6 +17,7 @@ export class InputHandler {
         this.pressedKeys =  new Set<number>();
         this.releasedKeys =  new Set<number>();
         this.clickPosition = null;
+        this.mousePosition = [0,0];
 
         this.snapshotCallbacks = [];
 
@@ -24,6 +25,8 @@ export class InputHandler {
         document.addEventListener("keyup", this.keyReleased.bind(this));
 
         window.addEventListener("mousedown", this.mouseClick.bind(this));
+        window.addEventListener("mousemove", this.mouseMove.bind(this));
+
     }
 
     public addSnapshotCallback(callback: Function) {
@@ -55,18 +58,24 @@ export class InputHandler {
         this.serializeSnapshot();
     }
 
+    private mouseMove(mouseEvent: MouseEvent) {
+        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
+        let rect: ClientRect = canvas.getBoundingClientRect();
+        this.mousePosition = [mouseEvent.x - rect.width/2 - rect.left, mouseEvent.y - rect.height/2 - rect.top];
+    }
+
     public serializeSnapshot() {
-            let snapshot: InputSnapshot = this.createInputSnapshot();
-            let serializedSnapshot = JSON.stringify(snapshot);
-            if(serializedSnapshot.length == 0) {
-                return;
-            }
+        let snapshot: InputSnapshot = this.createInputSnapshot();
+        let serializedSnapshot = JSON.stringify(snapshot);
+        if (serializedSnapshot.length == 0) {
+            return;
+        }
 
-            let id: number = InputHandler.SnapshotId++;
+        let id: number = InputHandler.SnapshotId++;
 
-            this.snapshotCallbacks.forEach((callback: Function) => {
-                callback(id, snapshot);
-            });
+        this.snapshotCallbacks.forEach((callback: Function) => {
+            callback(id, snapshot);
+        });
     }
 
     private createInputSnapshot(): InputSnapshot {
@@ -79,11 +88,16 @@ export class InputHandler {
             if(input == INPUT.UP || input == INPUT.DOWN || input == INPUT.LEFT || input == INPUT.RIGHT) {
                 directionBuffor.push(input);
             }
+
+            if(input == INPUT.WALL) {
+                console.log(this.mousePosition);
+                inputSnapshot.append(INPUT_COMMAND.WALL, this.mousePosition.toString())
+            }
         });
 
         let newDirection: number = this.parseDirection(directionBuffor);
         this.lastDirection = newDirection;
-        inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString())
+        inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
 
         if(this.clickPosition != null) {
             let angle: string = this.parseClick();

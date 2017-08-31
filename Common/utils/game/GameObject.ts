@@ -2,9 +2,9 @@ import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
-import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Serializable} from "../../serialize/Serializable";
 import {Cell} from "../physics/SpacialGrid";
+import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export abstract class GameObject extends Serializable implements Collidable {
     protected id: string = "";
@@ -29,6 +29,10 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     onCollisionEnter(gameObject: GameObject, response: SAT.Response) {
+        if(response.a == this.Transform.Body) {
+            response.overlapV = response.overlapV.clone().reverse();
+        }
+
         if(CommonConfig.ORIGIN == Origin.SERVER) {
             this.serverCollision(gameObject, response);
         }
@@ -40,9 +44,7 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        if(response.a == this.Transform.Body) {
-            response.overlapV = response.overlapV.clone().reverse();
-        }
+
     }
 
     public forceCompleteUpdate() {

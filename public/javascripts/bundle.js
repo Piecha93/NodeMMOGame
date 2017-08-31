@@ -686,10 +686,12 @@ class InputHandler {
         this.pressedKeys = new Set();
         this.releasedKeys = new Set();
         this.clickPosition = null;
+        this.mousePosition = [0, 0];
         this.snapshotCallbacks = [];
         document.addEventListener("keydown", this.keyPressed.bind(this));
         document.addEventListener("keyup", this.keyReleased.bind(this));
         window.addEventListener("mousedown", this.mouseClick.bind(this));
+        window.addEventListener("mousemove", this.mouseMove.bind(this));
     }
     addSnapshotCallback(callback) {
         this.snapshotCallbacks.push(callback);
@@ -714,6 +716,11 @@ class InputHandler {
         this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
         this.serializeSnapshot();
     }
+    mouseMove(mouseEvent) {
+        let canvas = document.getElementById("game-canvas");
+        let rect = canvas.getBoundingClientRect();
+        this.mousePosition = [mouseEvent.x - rect.width / 2 - rect.left, mouseEvent.y - rect.height / 2 - rect.top];
+    }
     serializeSnapshot() {
         let snapshot = this.createInputSnapshot();
         let serializedSnapshot = JSON.stringify(snapshot);
@@ -732,6 +739,10 @@ class InputHandler {
             let input = InputMap_1.InputMap.get(key);
             if (input == InputMap_1.INPUT.UP || input == InputMap_1.INPUT.DOWN || input == InputMap_1.INPUT.LEFT || input == InputMap_1.INPUT.RIGHT) {
                 directionBuffor.push(input);
+            }
+            if (input == InputMap_1.INPUT.WALL) {
+                console.log(this.mousePosition);
+                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.WALL, this.mousePosition.toString());
             }
         });
         let newDirection = this.parseDirection(directionBuffor);
@@ -799,12 +810,14 @@ var INPUT;
     INPUT[INPUT["LEFT"] = 3] = "LEFT";
     INPUT[INPUT["RIGHT"] = 4] = "RIGHT";
     INPUT[INPUT["FIRE"] = 5] = "FIRE";
+    INPUT[INPUT["WALL"] = 6] = "WALL";
 })(INPUT = exports.INPUT || (exports.INPUT = {}));
 exports.InputMap = new Map([
     [87, INPUT.UP],
     [83, INPUT.DOWN],
     [65, INPUT.LEFT],
     [68, INPUT.RIGHT],
+    [70, INPUT.WALL],
 ]);
 
 },{}],17:[function(require,module,exports){
@@ -965,10 +978,12 @@ var INPUT_COMMAND;
 (function (INPUT_COMMAND) {
     INPUT_COMMAND[INPUT_COMMAND["MOVE_DIRECTION"] = 0] = "MOVE_DIRECTION";
     INPUT_COMMAND[INPUT_COMMAND["FIRE"] = 1] = "FIRE";
+    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 2] = "WALL";
 })(INPUT_COMMAND = exports.INPUT_COMMAND || (exports.INPUT_COMMAND = {}));
 exports.InputCommands = new Map([
     ["D", INPUT_COMMAND.MOVE_DIRECTION],
     ["C", INPUT_COMMAND.FIRE],
+    ["W", INPUT_COMMAND.WALL],
 ]);
 
 },{}],24:[function(require,module,exports){
@@ -1524,8 +1539,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
-const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 const Serializable_1 = require("../../serialize/Serializable");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
         super();
@@ -1537,6 +1552,9 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners = new Set();
     }
     onCollisionEnter(gameObject, response) {
+        if (response.a == this.Transform.Body) {
+            response.overlapV = response.overlapV.clone().reverse();
+        }
         if (CommonConfig_1.CommonConfig.ORIGIN == CommonConfig_1.Origin.SERVER) {
             this.serverCollision(gameObject, response);
         }
@@ -1545,9 +1563,6 @@ class GameObject extends Serializable_1.Serializable {
     serverCollision(gameObject, response) {
     }
     commonCollision(gameObject, response) {
-        if (response.a == this.Transform.Body) {
-            response.overlapV = response.overlapV.clone().reverse();
-        }
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -1757,6 +1772,7 @@ const InputCommands_1 = require("../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
+const ObjectsFactory_1 = require("./ObjectsFactory");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
@@ -1779,6 +1795,14 @@ class Player extends Actor_1.Actor {
         this.inputHistory = [];
         if (inputCommands.has(InputCommands_1.INPUT_COMMAND.FIRE)) {
             this.shot(parseFloat(inputCommands.get(InputCommands_1.INPUT_COMMAND.FIRE)));
+        }
+        if (inputCommands.has(InputCommands_1.INPUT_COMMAND.WALL)) {
+            let o = ObjectsFactory_1.ObjectsFactory.Instatiate("Obstacle");
+            let splited = inputCommands.get(InputCommands_1.INPUT_COMMAND.WALL).split(',');
+            o.Transform.X = Number(splited[0]) + this.Transform.X;
+            o.Transform.Y = Number(splited[1]) + this.Transform.Y;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
     commonUpdate(delta) {
@@ -1895,7 +1919,7 @@ class Player extends Actor_1.Actor {
 }
 exports.Player = Player;
 
-},{"../../CommonConfig":20,"../../input/InputCommands":23,"../../serialize/ChangesDict":27,"./Actor":30}],39:[function(require,module,exports){
+},{"../../CommonConfig":20,"../../input/InputCommands":23,"../../serialize/ChangesDict":27,"./Actor":30,"./ObjectsFactory":36}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");
