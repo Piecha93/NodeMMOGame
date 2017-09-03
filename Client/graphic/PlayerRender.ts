@@ -30,6 +30,7 @@ export class PlayerRender extends GameObjectSpriteRender {
         this.hpBar.drawRect(-this.objectRef.Transform.Width / 2, -this.objectRef.Transform.Height / 2,
             this.objectRef.Transform.Width, 7);
 
+
         this.sprite.addChild(this.hpBar);
     }
 

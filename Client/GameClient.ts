@@ -142,7 +142,7 @@ export class GameClient {
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {
-                this.localPlayer.reconciliation(lastSnapshotData, this.world.SpacialGrid);
+                this.localPlayer.reconciliation(lastSnapshotData, this.world.SpatialGrid);
             }
         }
     }

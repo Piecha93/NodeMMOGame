@@ -4,7 +4,7 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
-import {SpacialGrid} from "../physics/SpacialGrid";
+import {SpatialGrid} from "../physics/SpatialGrid";
 import {Obstacle} from "./Obstacle";
 import {GameObjectsFactory} from "./ObjectsFactory";
 
@@ -72,7 +72,7 @@ export class Player extends Actor {
         }
     }
 
-    public reconciliation(serverSnapshotData: [number, number], spacialGrid: SpacialGrid) {
+    public reconciliation(serverSnapshotData: [number, number], spatialGrid: SpatialGrid) {
         let serverSnapshotId: number = serverSnapshotData[0];
         let serverSnapshotDelta: number = serverSnapshotData[1];
         let histElemsToRemove: number = 0;
@@ -109,8 +109,8 @@ export class Player extends Actor {
                     if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
                         this.Transform.Y += moveFactors[1] * this.velocity * step;
                     }
-                    spacialGrid.insertObjectIntoGrid(this);
-                    for (let cell of this.spacialGridCells) {
+                    spatialGrid.insertObject(this);
+                    for (let cell of this.spatialGridCells) {
                         cell.checkCollisionsForObject(this);
                     }
                 }

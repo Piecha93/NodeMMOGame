@@ -1,9 +1,9 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
-import {SpacialGrid} from "./utils/physics/SpacialGrid";
+import {SpatialGrid} from "./utils/physics/SpatialGrid";
 
 export class GameWorld extends GameObjectsHolder {
-    private spacialGrid: SpacialGrid;
+    private spatialGrid: SpatialGrid;
 
     private height: number;
     private width: number;
@@ -12,7 +12,7 @@ export class GameWorld extends GameObjectsHolder {
         super();
         this.width = width;
         this.height = height;
-        this.spacialGrid = new SpacialGrid(this.width, this.height, 90);
+        this.spatialGrid = new SpatialGrid(this.width, this.height, 90);
         console.log("create game instance");
     }
 
@@ -21,22 +21,22 @@ export class GameWorld extends GameObjectsHolder {
             object.update(delta);
         });
 
-        this.spacialGrid.rebuildGrid();
-        this.spacialGrid.checkCollisions();
+        this.spatialGrid.rebuildGrid();
+        this.spatialGrid.checkCollisions();
     }
 
     public addGameObject(gameObject: GameObject) {
-        this.spacialGrid.addObject(gameObject);
+        this.spatialGrid.addObject(gameObject);
         super.addGameObject(gameObject);
     }
 
     public removeGameObject(gameObject: GameObject) {
-        this.spacialGrid.removeObject(gameObject);
+        this.spatialGrid.removeObject(gameObject);
         super.removeGameObject(gameObject);
     }
 
-    get SpacialGrid(): SpacialGrid {
-        return this.spacialGrid;
+    get SpatialGrid(): SpatialGrid {
+        return this.spatialGrid;
     }
 
     get Width(): number {

@@ -1,8 +1,8 @@
-import {Cell} from "../physics/SpacialGrid";
+import {Cell} from "./SpatialGrid";
 import {Transform} from "../physics/Transform";
 
 export interface Collidable {
-    spacialGridCells: Array<Cell>;
+    spatialGridCells: Array<Cell>;
     onCollisionEnter(gameObject: Collidable, response?: SAT.Response);
     Transform: Transform
 }

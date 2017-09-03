@@ -1,7 +1,7 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {Transform} from "../../Common/utils/physics/Transform";
-import {Cell} from "../../Common/utils/physics/SpacialGrid";
+import {Cell} from "../../Common/utils/physics/SpatialGrid";
 import Graphics = PIXI.Graphics;
 
 export class RectRenderer extends PIXI.Container {

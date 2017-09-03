@@ -3,7 +3,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig, Origin} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
 import {Serializable} from "../../serialize/Serializable";
-import {Cell} from "../physics/SpacialGrid";
+import {Cell} from "../physics/SpatialGrid";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export abstract class GameObject extends Serializable implements Collidable {
@@ -18,7 +18,7 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     private destroyListeners: Set<Function>;
 
-    public spacialGridCells: Array<Cell> = [];
+    public spatialGridCells: Array<Cell> = [];
 
     constructor(transform: Transform) {
         super();

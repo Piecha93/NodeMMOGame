@@ -75,7 +75,7 @@ export class Cell {
     }
 }
 
-export class SpacialGrid {
+export class SpatialGrid {
     width: number;
     height: number;
     cellSize: number;
@@ -112,12 +112,12 @@ export class SpacialGrid {
             cell.clear();
         });
         this.arrayCollidable.forEach((collidable: Collidable) => {
-            this.insertObjectIntoGrid(collidable);
+            this.insertObject(collidable);
         });
     }
 
-    public insertObjectIntoGrid(collidable: Collidable) {
-        collidable.spacialGridCells.forEach((cell: Cell) => {
+    public insertObject(collidable: Collidable) {
+        collidable.spatialGridCells.forEach((cell: Cell) => {
            cell.removeObject(collidable);
         });
         let xs: number = collidable.Transform.X / this.cellSize ;
@@ -142,7 +142,7 @@ export class SpacialGrid {
                 }
             }
         }
-        collidable.spacialGridCells = cells;
+        collidable.spatialGridCells = cells;
     }
 
     checkCollisions() {
