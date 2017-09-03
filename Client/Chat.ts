@@ -13,8 +13,10 @@ export class Chat {
         });
 
         this.chatHtmlHandler = ChatHtmlHandler.Instance;
-        this.chatHtmlHandler.setSubmitCallback((text: string) => {
-            this.socket.emit(SocketMsgs.CHAT_MESSAGE, text);
-        });
+        this.chatHtmlHandler.setSubmitCallback(this.sendMessage.bind(this));
+    }
+
+    sendMessage(text: string) {
+        this.socket.emit(SocketMsgs.CHAT_MESSAGE, text);
     }
 }

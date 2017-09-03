@@ -6,7 +6,7 @@ export class HeartBeatSender {
     private socket: SocketIOClient.Socket;
     private heartBeats: Map<number, number>;
     private hbId: number = 0;
-    private rate: number = 1;
+    private interval: number = 1000;
     private isRunning = false;
 
     constructor(socket: SocketIOClient.Socket, rate?: number) {
@@ -16,7 +16,7 @@ export class HeartBeatSender {
         this.heartBeats = new Map<number, number>();
 
         if(rate != null) {
-            this.rate = rate;
+            this.interval = rate;
         }
     }
 
@@ -28,13 +28,13 @@ export class HeartBeatSender {
             DebugWindowHtmlHandler.Instance.Ping = ping.toString();
 
             if (this.isRunning) {
-                setTimeout(() => this.startSendingHeartbeats(), 1 / this.rate * 1000);
+                setTimeout(() => this.sendHeartBeat(), this.interval);
             }
             this.heartBeats.delete(id);
         }
     }
 
-    public startSendingHeartbeats() {
+    public sendHeartBeat() {
         this.isRunning = true;
         this.socket.emit(SocketMsgs.HEARTBEAT, this.hbId);
         this.heartBeats.set(this.hbId, new Date().getTime());

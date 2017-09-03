@@ -8,7 +8,7 @@ export class InputSender {
         this.socket = socket;
     }
 
-    public sendInput(id: number, snapshot: InputSnapshot) {
+    public sendInput(snapshot: InputSnapshot) {
         let serializedSnapshot = snapshot.serializeSnapshot();
         //console.log(serializedSnapshot);
         if (serializedSnapshot.length > 0) {

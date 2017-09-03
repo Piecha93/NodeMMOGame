@@ -8,7 +8,7 @@ import {Bullet} from "./Bullet";
 import {Types} from "./GameObjectTypes";
 
 
-export class ObjectsFactory {
+export class GameObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
     }
@@ -38,20 +38,20 @@ export class ObjectsFactory {
         if(id) {
             gameObject.ID = id;
         } else {
-            gameObject.ID = Types.ClassToId.get(type) + (ObjectsFactory.NEXT_ID++).toString()
+            gameObject.ID = Types.ClassToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
         }
 
         if(data) {
             gameObject.deserialize(data);
         }
 
-        ObjectsFactory.ObjectHolderSubscribers.forEach((subscriber: GameObjectsHolder) => {
+        GameObjectsFactory.ObjectHolderSubscribers.forEach((subscriber: GameObjectsHolder) => {
             subscriber.addGameObject(gameObject);
         });
-        ObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
+        GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
             callback(gameObject);
         });
-        ObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
+        GameObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
             gameObject.addDestroyListener(callback);
         });
         // console.log("New object " + gameObject.ID);

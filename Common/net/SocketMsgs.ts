@@ -1,4 +1,6 @@
 export class SocketMsgs {
+    public static CONNECTION = 'connection';
+    public static DISCONNECT = 'disconnect';
     public static CLIENT_READY = 'cr';
     public static START_GAME = 'sg';
     public static INITIALIZE_GAME = 'ig';

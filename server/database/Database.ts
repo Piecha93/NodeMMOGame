@@ -1,18 +1,21 @@
 import * as mongoose from "mongoose";
 import {Connection, Model, Schema} from "mongoose";
 import {IUser} from "./models/User";
+import {IItem} from "./models/Item";
+import {ServerConfig} from "../ServerConfig";
 
-let url = "mongodb://test:test@ds129352.mlab.com:29352/node-mmo-game";
 // let url = "mongodb://localhost:27017";
 
 export interface IUserModel extends IUser, mongoose.Document { }
+export interface IItemModel extends IItem, mongoose.Document { }
 
 export class Database {
     private connection: Connection;
     private userModel: Model<IUserModel>;
+    private url: string = ServerConfig.DATABASE_URL;
 
     private constructor() {
-        this.connection = mongoose.createConnection(url);
+        this.connection = mongoose.createConnection(this.url);
         this.connection.on('error', console.error.bind(console, 'connection error:'));
 
         this.connection.once('open', () => {

@@ -1,5 +1,5 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
-import {InputMap, INPUT} from "./InputMap";
+import {INPUT, InputMap} from "./InputMap";
 import {INPUT_COMMAND} from "../../Common/input/InputCommands";
 
 export class InputHandler {
@@ -11,8 +11,6 @@ export class InputHandler {
     private snapshotCallbacks: Array<Function>;
     private pressedKeys: Set<number>;
 
-    private static SnapshotId: number = 0;
-
     constructor() {
         this.pressedKeys =  new Set<number>();
         this.releasedKeys =  new Set<number>();
@@ -21,11 +19,11 @@ export class InputHandler {
 
         this.snapshotCallbacks = [];
 
-        document.addEventListener("keydown", this.keyPressed.bind(this));
-        document.addEventListener("keyup", this.keyReleased.bind(this));
+        document.addEventListener("keydown", this.onKeyDown.bind(this));
+        document.addEventListener("keyup", this.onKeyUp.bind(this));
 
-        window.addEventListener("mousedown", this.mouseClick.bind(this));
-        window.addEventListener("mousemove", this.mouseMove.bind(this));
+        window.addEventListener("mousedown", this.onMouseClick.bind(this));
+        window.addEventListener("mousemove", this.onMouseMove.bind(this));
 
     }
 
@@ -34,47 +32,44 @@ export class InputHandler {
     }
 
 
-    private keyPressed(event : KeyboardEvent) {
+    private onKeyDown(event : KeyboardEvent) {
         if(InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
             this.releasedKeys.delete(event.keyCode);
             this.pressedKeys.add(event.keyCode);
-            this.serializeSnapshot();
+            this.invokeSnapshotCallbacks();
         }
     }
 
-    private keyReleased(event : KeyboardEvent) {
+    private onKeyUp(event : KeyboardEvent) {
         if(InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
             this.pressedKeys.delete(event.keyCode);
             this.releasedKeys.add(event.keyCode);
-            this.serializeSnapshot();
+            this.invokeSnapshotCallbacks();
         }
     }
 
-    private mouseClick(mouseEvent: MouseEvent) {
+    private onMouseClick(mouseEvent: MouseEvent) {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
         this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
 
-        this.serializeSnapshot();
+        this.invokeSnapshotCallbacks();
     }
 
-    private mouseMove(mouseEvent: MouseEvent) {
+    private onMouseMove(mouseEvent: MouseEvent) {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
         this.mousePosition = [mouseEvent.x - rect.width/2 - rect.left, mouseEvent.y - rect.height/2 - rect.top];
     }
 
-    public serializeSnapshot() {
+    public invokeSnapshotCallbacks() {
         let snapshot: InputSnapshot = this.createInputSnapshot();
-        let serializedSnapshot = JSON.stringify(snapshot);
-        if (serializedSnapshot.length == 0) {
+        if (snapshot.Commands.size == 0) {
             return;
         }
 
-        let id: number = InputHandler.SnapshotId++;
-
         this.snapshotCallbacks.forEach((callback: Function) => {
-            callback(id, snapshot);
+            callback(snapshot);
         });
     }
 

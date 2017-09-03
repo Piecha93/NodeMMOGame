@@ -1,10 +1,10 @@
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 
-import {World} from "../Common/World";
+import {GameWorld} from "../Common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
+import {GameObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {GameObject} from "../Common/utils/game/GameObject";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
@@ -14,22 +14,20 @@ import {DeltaTimer} from "../Common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
-import {ClientConfig} from "./ClientConfig";
 import {Types} from "../Common/utils/game/GameObjectTypes";
 import * as LZString from "lz-string";
 import * as io from "socket.io-client"
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
-    private world: World;
+    private world: GameWorld;
     private chat: Chat;
     private renderer: Renderer;
     private inputHandler: InputHandler;
     private heartBeatSender: HeartBeatSender;
     private inputSender: InputSender;
-    private netObjectMenager: NetObjectsManager = NetObjectsManager.Instance;
 
-    private player: Player = null;
+    private localPlayer: Player = null;
 
     constructor() {
         this.connect();
@@ -40,9 +38,9 @@ export class GameClient {
         this.renderer = new Renderer(() => {
             this.inputHandler = new InputHandler();
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            this.inputHandler.addSnapshotCallback((id:number, snapshot: InputSnapshot) => {
-                if(this.player) {
-                    this.player.setInput(snapshot);
+            this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
+                if(this.localPlayer) {
+                    this.localPlayer.setInput(snapshot);
                 }
             });
 
@@ -70,36 +68,36 @@ export class GameClient {
             let width: number = Number(worldInfo[0]);
             let height: number = Number(worldInfo[1]);
 
-            this.world = new World(width, height);
+            this.world = new GameWorld(width, height);
 
             this.renderer.setMap();
 
-            ObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
-            ObjectsFactory.ObjectHolderSubscribers.push(this.world);
-            ObjectsFactory.ObjectHolderSubscribers.push(this.netObjectMenager);
-            this.updateGame(data['update']);
-                this.player = this.world.getGameObject(data['id']) as Player;
-                this.renderer.CameraFollower = this.player;
+            GameObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
+            GameObjectsFactory.ObjectHolderSubscribers.push(this.world);
+            GameObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
+            this.onServerUpdate(data['update']);
+            this.localPlayer = this.world.getGameObject(data['id']) as Player;
+            this.renderer.CameraFollower = this.localPlayer;
 
-                this.heartBeatSender.startSendingHeartbeats();
+            this.heartBeatSender.sendHeartBeat();
 
-                this.startGame();
-                this.socket.on(SocketMsgs.UPDATE_GAME, this.updateGame.bind(this));
+            this.startGame();
+            this.socket.on(SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
 
-                this.socket.on(SocketMsgs.ERROR, (err: string) => {
-                    console.log(err);
-                });
+            this.socket.on(SocketMsgs.ERROR, (err: string) => {
+                console.log(err);
+            });
         });
     }
 
     private startGame() {
-        this.startRenderLoop();
+        this.startGameLoop();
     }
 
     timer: DeltaTimer = new DeltaTimer;
     deltaHistory: Array<number> = [];
 
-    private startRenderLoop() {
+    private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
 
@@ -113,10 +111,10 @@ export class GameClient {
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
 
         this.renderer.update();
-        requestAnimationFrame(this.startRenderLoop.bind(this));
+        requestAnimationFrame(this.startGameLoop.bind(this));
     }
 
-    private updateGame(data, lastSnapshotData?: [number, number]) {
+    private onServerUpdate(data, lastSnapshotData?: [number, number]) {
         if(!data) return;
         data = LZString.decompressFromUTF16(data);
 
@@ -130,21 +128,21 @@ export class GameClient {
             let gameObject: GameObject = null;
             if (id[0] == '!') {
                 id = id.slice(1);
-                gameObject = this.netObjectMenager.getObject(id);
+                gameObject = NetObjectsManager.Instance.getObject(id);
                 if (gameObject) {
                     gameObject.destroy();
                 }
                 continue;
             }
 
-            gameObject = this.netObjectMenager.getObject(id);
+            gameObject = NetObjectsManager.Instance.getObject(id);
 
             if (gameObject == null) {
-                gameObject = ObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
+                gameObject = GameObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
-            if (lastSnapshotData && this.player.ID == id) {
-                this.player.reconciliation(lastSnapshotData, this.world.SpacialGrid);
+            if (lastSnapshotData && this.localPlayer.ID == id) {
+                this.localPlayer.reconciliation(lastSnapshotData, this.world.SpacialGrid);
             }
         }
     }

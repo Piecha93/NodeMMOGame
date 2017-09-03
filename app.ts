@@ -11,23 +11,18 @@ import {MongoStore} from "connect-mongo";
 import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./Common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
-import {Types} from "./Common/utils/game/GameObjectTypes";
 import shortid = require("shortid");
 
 
 CommonConfig.ORIGIN = Origin.SERVER;
+
 const port: number = process.env.PORT || 3000;
-
 const app: express.Application = express();
-
-const server: http.Server = http.createServer(app);
-let sockets: SocketIO.Server = io.listen(server);
-
-let database: Database = Database.Instance;
-
+const httpServer: http.Server = http.createServer(app);
+const sockets: SocketIO.Server = io.listen(httpServer);
+const database: Database = Database.Instance;
 const MongoStoreExpress = connectMongo(express_session);
-let sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});
-
+const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});
 const session = express_session({
     store: sessionStore,
     secret: "mysecret",
@@ -66,7 +61,6 @@ app.post('/login', (req: Request, res: Response) => {
     if(req.session.user_id) {
         return res.redirect('game');
     }
-
     let post = req.body;
     if(post.username && post.password) {
         if(post.username == "guest" && post.password == "guest") {
@@ -74,7 +68,6 @@ app.post('/login', (req: Request, res: Response) => {
             console.log(req.session.user_id);
             return res.redirect('/game');
         }
-
         database.findUserByName(post.username, (user: IUserModel) => {
             if(user && user.password == post.password ) {
                 req.session.user_id = user._id;
@@ -97,11 +90,10 @@ app.get('/game', checkAuth, (req: Request, res: Response) => {
     res.render('game');
 });
 
-Types.Init();
 let gameServer: GameServer = new GameServer(sockets);
 gameServer.start();
 
-server.listen(port);
+httpServer.listen(port);
 console.log('Node gameServer started at ' + port);
 
 function checkAuth(req: Request, res: Response, next: Function) {
@@ -110,11 +102,4 @@ function checkAuth(req: Request, res: Response, next: Function) {
     } else {
         next();
     }
-}
-
-let guestCounter: number = 0;
-
-function nextGuestNumber(): number {
-    guestCounter++;
-    return guestCounter;
 }

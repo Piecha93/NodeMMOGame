@@ -6,7 +6,7 @@ import {CommonConfig, Origin} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
 import {SpacialGrid} from "../physics/SpacialGrid";
 import {Obstacle} from "./Obstacle";
-import {ObjectsFactory} from "./ObjectsFactory";
+import {GameObjectsFactory} from "./ObjectsFactory";
 
 export class Player extends Actor {
     private moveDirection: number = 0;
@@ -37,11 +37,14 @@ export class Player extends Actor {
         this.inputHistory = [];
 
         if(inputCommands.has(INPUT_COMMAND.FIRE)) {
-            this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
+            // for(let i =0; i < 500; i++) {
+                this.shot(parseFloat(inputCommands.get(INPUT_COMMAND.FIRE)));
+                // this.shot(Math.floor(Math.random() * 360));
+            // }
         }
 
         if(inputCommands.has(INPUT_COMMAND.WALL)) {
-            let o: Obstacle = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
             o.Transform.X = Number(splited[0]) + this.Transform.X;
             o.Transform.Y = Number(splited[1]) + this.Transform.Y;

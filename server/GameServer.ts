@@ -1,14 +1,14 @@
 import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
-import {World} from "../Common/World";
+import {GameWorld} from "../Common/GameWorld";
 import {Player} from "../Common/utils/game/Player";
 import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {NetObjectsManager} from "../Common/net/NetObjectsManager";
 import {GameObject} from "../Common/utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {ObjectsFactory} from "../Common/utils/game/ObjectsFactory";
+import {GameObjectsFactory} from "../Common/utils/game/ObjectsFactory";
 import {DeltaTimer} from "../Common/DeltaTimer";
 import {Obstacle} from "../Common/utils/game/Obstacle";
 import Session = Express.Session;
@@ -21,7 +21,7 @@ export class GameServer {
     private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
     private socketsIds: Map<string, Socket> = new Map<string, Socket>();
 
-    private world: World;
+    private world: GameWorld;
 
     private destroyedObjects: string = '';
 
@@ -35,48 +35,48 @@ export class GameServer {
     }
 
     private startGame() {
-        this.world = new World(2048, 1156);
+        this.world = new GameWorld(2048, 1156);
 
-        ObjectsFactory.ObjectHolderSubscribers.push(this.world);
-        ObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
-        ObjectsFactory.DestroyCallbacks.push((id: string) => {
+        GameObjectsFactory.ObjectHolderSubscribers.push(this.world);
+        GameObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
+        GameObjectsFactory.DestroyCallbacks.push((id: string) => {
             this.destroyedObjects += '$' + '!' + id;
         });
         let o: Obstacle;
         ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
         for (let i = 0; i < this.world.Height / 48; i++) {
-            o= ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o= GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = 0;
             o.Transform.Y = i * o.Transform.Height;
 
-            o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = this.world.Width - o.Transform.Width + this.world.Width % 48;
             o.Transform.Y = i * o.Transform.Height;
         }
 
         for (let i = 1; i < this.world.Width / 48; i++) {
-            o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = 0;
 
-            o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = this.world.Height - this.world.Width % 48;
         }
 
-        o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
         o.Transform.X = 150;
         o.Transform.Y = 150;
         o.Transform.Width = 150;
 
-        o = ObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
         o.Transform.X = 350;
         o.Transform.Y = 450;
         o.Transform.Width = 150;
         o.Transform.Rotation = 3;
 
         let createEnemy: Function = () => {
-            let e: Enemy = ObjectsFactory.Instatiate("Enemy") as Enemy;
+            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
             e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
             e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
 
@@ -103,7 +103,7 @@ export class GameServer {
         this.world.update(delta);
 
 
-        if(this.updateResolution++ % 5) {
+        if(this.updateResolution++ % 5 == 0) {
             this.sendUpdate();
         }
         setTimeout(() => {
@@ -112,12 +112,12 @@ export class GameServer {
     }
 
     private configureSockets() {
-        this.sockets.on('connection', (socket: Socket) => {
+        this.sockets.on(SocketMsgs.CONNECTION, (socket: Socket) => {
             let socketSession = (socket as any).request.session;
 
             if(this.socketsIds.has(socketSession.user_id)) {
                 let client: ServerClient = this.clients.get(this.socketsIds.get(socketSession.user_id));
-                this.clientDisconnected(client, "You connected from other browser");
+                this.clientDisconnected(client, "You have connected from another browser");
                 this.socketsIds.delete(socketSession.user_id);
             }
 
@@ -138,7 +138,7 @@ export class GameServer {
             }
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
-                let player: Player = ObjectsFactory.Instatiate("Player") as Player;
+                let player: Player = GameObjectsFactory.Instatiate("Player") as Player;
                 player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
                 player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
 
@@ -195,7 +195,7 @@ export class GameServer {
                 }
             });
 
-            socket.on('disconnect', () => {
+            socket.on(SocketMsgs.DISCONNECT, () => {
                 this.clientDisconnected(this.clients.get(socket), "disconnected");
             });
         });

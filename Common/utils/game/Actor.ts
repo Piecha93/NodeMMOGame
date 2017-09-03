@@ -3,7 +3,7 @@ import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
-import {ObjectsFactory} from "./ObjectsFactory";
+import {GameObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 
 export abstract class Actor extends GameObject {
@@ -29,7 +29,7 @@ export abstract class Actor extends GameObject {
     }
 
     protected shot(angle: number) {
-        let bullet: Bullet = ObjectsFactory.Instatiate("Bullet") as Bullet;
+        let bullet: Bullet = GameObjectsFactory.Instatiate("Bullet") as Bullet;
         bullet.Owner = this.ID;
 
         bullet.Transform.Rotation = angle;

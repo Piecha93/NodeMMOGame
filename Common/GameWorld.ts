@@ -1,8 +1,8 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
-import {Cell, SpacialGrid} from "./utils/physics/SpacialGrid";
+import {SpacialGrid} from "./utils/physics/SpacialGrid";
 
-export class World extends GameObjectsHolder {
+export class GameWorld extends GameObjectsHolder {
     private spacialGrid: SpacialGrid;
 
     private height: number;
@@ -21,10 +21,8 @@ export class World extends GameObjectsHolder {
             object.update(delta);
         });
 
-      //  if(CommonConfig.ORIGIN == Origin.SERVER) {
-            this.spacialGrid.rebuildGrid();
-            this.spacialGrid.checkCollisions();
-        //}
+        this.spacialGrid.rebuildGrid();
+        this.spacialGrid.checkCollisions();
     }
 
     public addGameObject(gameObject: GameObject) {
