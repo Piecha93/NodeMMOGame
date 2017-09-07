@@ -61,7 +61,6 @@ export class GameClient {
     }
 
     private configureSocket() {
-        this.socket.on(SocketMsgs.START_GAME, this.startGame.bind(this));
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
             console.log(data);
             let worldInfo: Array<string> = data['world'].split(',');

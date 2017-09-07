@@ -43,7 +43,7 @@ export class GameServer {
             this.destroyedObjects += '$' + '!' + id;
         });
         let o: Obstacle;
-        ////////////////////////////////////////////////////TEST (CREATE WALLS AROUND MAP)
+        ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
         for (let i = 0; i < this.world.Height / 48; i++) {
             o= GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
             o.Transform.X = 0;

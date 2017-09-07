@@ -1,6 +1,6 @@
 import {PropName} from "./NetworkDecorators";
 
-export class Serializable {
+export abstract class Serializable {
     protected forceComplete: boolean;
     protected changes: Set<string>;
     protected deserializedFields: Set<string>;
