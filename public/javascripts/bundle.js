@@ -418,7 +418,7 @@ class ChatHtmlHandler {
             return false;
         };
         document.addEventListener("keypress", (event) => {
-            if (event.keyCode == 13) {
+            if (event.keyCode == 13) { //enter
                 event.stopPropagation();
                 this.chatInput.focus();
             }
@@ -668,7 +668,7 @@ exports.TileMap = TileMap;
 //     for(var j: number = 0; j< 10; j++) {
 //         this.things[i][j] = new Thing();
 //     }
-// } 
+// }
 
 },{}],15:[function(require,module,exports){
 "use strict";
@@ -1758,7 +1758,6 @@ const InputCommands_1 = require("../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
-const ObjectsFactory_1 = require("./ObjectsFactory");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
@@ -1785,14 +1784,15 @@ class Player extends Actor_1.Actor {
             // this.shot(Math.floor(Math.random() * 360));
             // }
         }
-        if (inputCommands.has(InputCommands_1.INPUT_COMMAND.WALL)) {
-            let o = ObjectsFactory_1.GameObjectsFactory.Instatiate("Obstacle");
-            let splited = inputCommands.get(InputCommands_1.INPUT_COMMAND.WALL).split(',');
-            o.Transform.X = Number(splited[0]) + this.Transform.X;
-            o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
-        }
+        // if(inputCommands.has(INPUT_COMMAND.WALL)) {
+        //     let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        //     let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
+        //     o.Transform.X = Number(splited[0]) + this.Transform.X;
+        //     o.Transform.Y = Number(splited[1]) + this.Transform.Y;
+        //
+        //     this.Transform.addChange(ChangesDict.X);
+        //     this.Transform.addChange(ChangesDict.Y);
+        // }
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
@@ -1908,7 +1908,7 @@ class Player extends Actor_1.Actor {
 }
 exports.Player = Player;
 
-},{"../../CommonConfig":20,"../../input/InputCommands":23,"../../serialize/ChangesDict":27,"./Actor":30,"./ObjectsFactory":36}],39:[function(require,module,exports){
+},{"../../CommonConfig":20,"../../input/InputCommands":23,"../../serialize/ChangesDict":27,"./Actor":30}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("./Transform");

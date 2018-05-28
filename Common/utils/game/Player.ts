@@ -43,15 +43,15 @@ export class Player extends Actor {
             // }
         }
 
-        if(inputCommands.has(INPUT_COMMAND.WALL)) {
-            let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
-            let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
-            o.Transform.X = Number(splited[0]) + this.Transform.X;
-            o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-
-            this.Transform.addChange(ChangesDict.X);
-            this.Transform.addChange(ChangesDict.Y);
-        }
+        // if(inputCommands.has(INPUT_COMMAND.WALL)) {
+        //     let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        //     let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
+        //     o.Transform.X = Number(splited[0]) + this.Transform.X;
+        //     o.Transform.Y = Number(splited[1]) + this.Transform.Y;
+        //
+        //     this.Transform.addChange(ChangesDict.X);
+        //     this.Transform.addChange(ChangesDict.Y);
+        // }
     }
 
     protected commonUpdate(delta: number) {
