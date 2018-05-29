@@ -3,7 +3,7 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
 
 export class Enemy extends Actor {
-    private timeFromLastShot = 1000;
+    private timeSinceLastShot = 1000;
 
     private moveAngle: number = 0;
     constructor(transform: Transform) {
@@ -23,9 +23,9 @@ export class Enemy extends Actor {
             return;
         }
 
-        this.timeFromLastShot -= delta;
-        if(this.timeFromLastShot <= 0) {
-            this.timeFromLastShot = 1000;
+        this.timeSinceLastShot -= delta;
+        if(this.timeSinceLastShot <= 0) {
+            this.timeSinceLastShot = 1000;
             for(let i = 0; i < 2; i++) {
                 this.shot(Math.floor(Math.random() * 360));
             }

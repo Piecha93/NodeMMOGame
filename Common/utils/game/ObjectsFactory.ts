@@ -1,12 +1,19 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {GameObjectsHolder} from "./GameObjectsHolder";
+import {GameObjectsSubscriber} from "./GameObjectsSubscriber";
 import {Player} from "./Player";
 import {Enemy} from "./Enemy";
 import {Obstacle} from "./Obstacle";
 import {Bullet} from "./Bullet";
 import {Types} from "./GameObjectTypes";
 
+export class GameObjectsContainer {
+    constructor() {
+        throw new Error("Cannot instatiate this class");
+    }
+
+    static gameObjectsMapById: Map<string, GameObject> = new Map<string, GameObject>();
+}
 
 export class GameObjectsFactory {
     constructor() {
@@ -14,8 +21,6 @@ export class GameObjectsFactory {
     }
 
     private static NEXT_ID: number = 0;
-
-    static ObjectHolderSubscribers: Array<GameObjectsHolder> = [];
 
     static CreateCallbacks: Array<Function> = [];
     static DestroyCallbacks: Array<Function> = [];
@@ -45,16 +50,18 @@ export class GameObjectsFactory {
             gameObject.deserialize(data);
         }
 
-        GameObjectsFactory.ObjectHolderSubscribers.forEach((subscriber: GameObjectsHolder) => {
-            subscriber.addGameObject(gameObject);
-        });
+        GameObjectsContainer.gameObjectsMapById.set(gameObject.ID, gameObject);
+
         GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
             callback(gameObject);
         });
         GameObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
             gameObject.addDestroyListener(callback);
         });
-        // console.log("New object " + gameObject.ID);
+
+        gameObject.addDestroyListener(() => {
+            GameObjectsContainer.gameObjectsMapById.delete(gameObject.ID);
+        });
 
         return gameObject;
     }

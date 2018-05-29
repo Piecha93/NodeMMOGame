@@ -96,6 +96,8 @@ export class Transform extends Serializable {
             this.shape.r = this.width;
             this.height = this.shape.r;
         }
+
+        this.addChange(ChangesDict.WIDTH);
     }
 
     get Width(): number {
@@ -118,6 +120,7 @@ export class Transform extends Serializable {
             this.shape.r = this.height;
             this.width = this.shape.r;
         }
+        this.addChange(ChangesDict.HEIGHT);
     }
 
     get Height(): number {

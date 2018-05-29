@@ -75,7 +75,7 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     destroy() {
         for(let listener of this.destroyListeners) {
-            listener(this.id);
+            listener(this);
         }
         // console.log("Object destroyed " + this.ID);
     }

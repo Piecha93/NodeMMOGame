@@ -71,9 +71,6 @@ export class GameClient {
 
             this.renderer.setMap();
 
-            GameObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
-            GameObjectsFactory.ObjectHolderSubscribers.push(this.world);
-            GameObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
             this.onServerUpdate(data['update']);
             this.localPlayer = this.world.getGameObject(data['id']) as Player;
             this.renderer.CameraFollower = this.localPlayer;
@@ -127,14 +124,14 @@ export class GameClient {
             let gameObject: GameObject = null;
             if (id[0] == '!') {
                 id = id.slice(1);
-                gameObject = NetObjectsManager.Instance.getObject(id);
+                gameObject = NetObjectsManager.Instance.getGameObject(id);
                 if (gameObject) {
                     gameObject.destroy();
                 }
                 continue;
             }
 
-            gameObject = NetObjectsManager.Instance.getObject(id);
+            gameObject = NetObjectsManager.Instance.getGameObject(id);
 
             if (gameObject == null) {
                 gameObject = GameObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);

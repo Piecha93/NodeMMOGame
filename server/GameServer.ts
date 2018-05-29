@@ -15,6 +15,7 @@ import Session = Express.Session;
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../Common/utils/game/Enemy";
 import * as LZString from "lz-string";
+import {Actor} from "../Common/utils/game/Actor";
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -37,10 +38,13 @@ export class GameServer {
     private startGame() {
         this.world = new GameWorld(2048, 1156);
 
-        GameObjectsFactory.ObjectHolderSubscribers.push(this.world);
-        GameObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager.Instance);
-        GameObjectsFactory.DestroyCallbacks.push((id: string) => {
-            this.destroyedObjects += '$' + '!' + id;
+        GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
+            this.destroyedObjects += '$' + '!' + gameObject.ID;
+
+            if(gameObject instanceof Actor) {
+                this.sockets.emit(SocketMsgs.CHAT_MESSAGE,
+                    {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
+            }
         });
         let o: Obstacle;
         ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
@@ -175,22 +179,6 @@ export class GameServer {
 
             socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
                 if(this.clients.has(socket)) {
-                    if (msg == "rudycwel") {
-                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "dyzma";
-                        return;
-                    } else if (msg == "pandaxd") {
-                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "panda";
-                        return;
-                    } else if (msg == "kamis :*") {
-                        this.world.getGameObject(serverClient.PlayerId).SpriteName = "kamis";
-                        return;
-                    } else if (msg == "big boy") {
-                        this.world.getGameObject(serverClient.PlayerId).Transform.Width *= 3;
-                        this.world.getGameObject(serverClient.PlayerId).Transform.Height *= 3;
-                        this.world.getGameObject(serverClient.PlayerId).Transform.addChange("W");
-                        this.world.getGameObject(serverClient.PlayerId).Transform.addChange("H");
-                        return;
-                    }
                     this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
                 }
             });

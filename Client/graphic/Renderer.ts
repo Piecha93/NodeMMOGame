@@ -1,7 +1,7 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {GameObject} from "../../Common/utils/game/GameObject";
-import {GameObjectsHolder} from "../../Common/utils/game/GameObjectsHolder";
+import {GameObjectsSubscriber} from "../../Common/utils/game/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {BulletRender} from "./BulletRender";
@@ -13,7 +13,7 @@ import DisplayObject = PIXI.DisplayObject;
 import Sprite = PIXI.Sprite;
 
 
-export class Renderer extends GameObjectsHolder {
+export class Renderer extends GameObjectsSubscriber {
     private renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
     private rootContainer: PIXI.Container;
     private camera: Camera;
@@ -93,9 +93,7 @@ export class Renderer extends GameObjectsHolder {
         this.rootContainer.addChild(this.map);
     }
 
-    public addGameObject(gameObject: GameObject) {
-        super.addGameObject(gameObject);
-
+    public onObjectCreate(gameObject: GameObject) {
         let gameObjectRender: GameObjectRender;
 
         let type: string = gameObject.ID[0];
@@ -112,13 +110,12 @@ export class Renderer extends GameObjectsHolder {
         this.rootContainer.addChild(gameObjectRender);
     }
 
-    set CameraFollower(gameObject: GameObject) {
-        this.camera.Follower = this.renderObjects.get(gameObject).position;
-    }
-
-    public removeGameObject(gameObject: GameObject) {
-        super.removeGameObject(gameObject);
+    public onObjectDestroy(gameObject: GameObject) {
         this.renderObjects.get(gameObject).destroy();
         this.renderObjects.delete(gameObject);
+    }
+
+    set CameraFollower(gameObject: GameObject) {
+        this.camera.Follower = this.renderObjects.get(gameObject).position;
     }
 }

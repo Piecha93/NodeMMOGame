@@ -1,8 +1,8 @@
 import {GameObject} from "./utils/game/GameObject";
-import {GameObjectsHolder} from "./utils/game/GameObjectsHolder";
+import {GameObjectsSubscriber} from "./utils/game/GameObjectsSubscriber";
 import {SpatialGrid} from "./utils/physics/SpatialGrid";
 
-export class GameWorld extends GameObjectsHolder {
+export class GameWorld extends GameObjectsSubscriber {
     private spatialGrid: SpatialGrid;
 
     private height: number;
@@ -17,7 +17,7 @@ export class GameWorld extends GameObjectsHolder {
     }
 
     public update(delta: number) {
-        this.gameObjectsMapById.forEach((object: GameObject) => {
+        this.GameObjectsMapById.forEach((object: GameObject) => {
             object.update(delta);
         });
 
@@ -25,14 +25,14 @@ export class GameWorld extends GameObjectsHolder {
         this.spatialGrid.checkCollisions();
     }
 
-    public addGameObject(gameObject: GameObject) {
+    public onObjectCreate(gameObject: GameObject) {
         this.spatialGrid.addObject(gameObject);
-        super.addGameObject(gameObject);
+        // super.addGameObject(gameObject);
     }
 
-    public removeGameObject(gameObject: GameObject) {
+    public onObjectDestroy(gameObject: GameObject) {
         this.spatialGrid.removeObject(gameObject);
-        super.removeGameObject(gameObject);
+        // super.removeGameObject(gameObject);
     }
 
     get SpatialGrid(): SpatialGrid {

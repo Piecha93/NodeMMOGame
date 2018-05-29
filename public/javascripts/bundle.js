@@ -173,9 +173,6 @@ class GameClient {
             let height = Number(worldInfo[1]);
             this.world = new GameWorld_1.GameWorld(width, height);
             this.renderer.setMap();
-            ObjectsFactory_1.GameObjectsFactory.ObjectHolderSubscribers.push(this.renderer);
-            ObjectsFactory_1.GameObjectsFactory.ObjectHolderSubscribers.push(this.world);
-            ObjectsFactory_1.GameObjectsFactory.ObjectHolderSubscribers.push(NetObjectsManager_1.NetObjectsManager.Instance);
             this.onServerUpdate(data['update']);
             this.localPlayer = this.world.getGameObject(data['id']);
             this.renderer.CameraFollower = this.localPlayer;
@@ -218,13 +215,13 @@ class GameClient {
             let gameObject = null;
             if (id[0] == '!') {
                 id = id.slice(1);
-                gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getObject(id);
+                gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
                 if (gameObject) {
                     gameObject.destroy();
                 }
                 continue;
             }
-            gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getObject(id);
+            gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
             if (gameObject == null) {
                 gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
             }
@@ -535,13 +532,13 @@ exports.PlayerRender = PlayerRender;
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectsHolder_1 = require("../../Common/utils/game/GameObjectsHolder");
+const GameObjectsSubscriber_1 = require("../../Common/utils/game/GameObjectsSubscriber");
 const PlayerRender_1 = require("./PlayerRender");
 const BulletRender_1 = require("./BulletRender");
 const Camera_1 = require("./Camera");
 const GameObjectSpriteRender_1 = require("./GameObjectSpriteRender");
 const TileMap_1 = require("./TileMap");
-class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
+class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(afterCreateCallback) {
         super();
         this.renderer =
@@ -598,8 +595,7 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.map = new TileMap_1.TileMap();
         this.rootContainer.addChild(this.map);
     }
-    addGameObject(gameObject) {
-        super.addGameObject(gameObject);
+    onObjectCreate(gameObject) {
         let gameObjectRender;
         let type = gameObject.ID[0];
         if (type == "P" || type == "E") {
@@ -615,20 +611,19 @@ class Renderer extends GameObjectsHolder_1.GameObjectsHolder {
         this.renderObjects.set(gameObject, gameObjectRender);
         this.rootContainer.addChild(gameObjectRender);
     }
-    set CameraFollower(gameObject) {
-        this.camera.Follower = this.renderObjects.get(gameObject).position;
-    }
-    removeGameObject(gameObject) {
-        super.removeGameObject(gameObject);
+    onObjectDestroy(gameObject) {
         this.renderObjects.get(gameObject).destroy();
         this.renderObjects.delete(gameObject);
+    }
+    set CameraFollower(gameObject) {
+        this.camera.Follower = this.renderObjects.get(gameObject).position;
     }
 }
 Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../Common/utils/game/GameObjectsHolder":35,"./BulletRender":5,"./Camera":6,"./GameObjectSpriteRender":9,"./PlayerRender":12,"./TileMap":14}],14:[function(require,module,exports){
+},{"../../Common/utils/game/GameObjectsSubscriber":35,"./BulletRender":5,"./Camera":6,"./GameObjectSpriteRender":9,"./PlayerRender":12,"./TileMap":14}],14:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -918,9 +913,9 @@ exports.DeltaTimer = DeltaTimer;
 },{}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectsHolder_1 = require("./utils/game/GameObjectsHolder");
+const GameObjectsSubscriber_1 = require("./utils/game/GameObjectsSubscriber");
 const SpatialGrid_1 = require("./utils/physics/SpatialGrid");
-class GameWorld extends GameObjectsHolder_1.GameObjectsHolder {
+class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(width, height) {
         super();
         this.width = width;
@@ -929,19 +924,19 @@ class GameWorld extends GameObjectsHolder_1.GameObjectsHolder {
         console.log("create game instance");
     }
     update(delta) {
-        this.gameObjectsMapById.forEach((object) => {
+        this.GameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
         this.spatialGrid.rebuildGrid();
         this.spatialGrid.checkCollisions();
     }
-    addGameObject(gameObject) {
+    onObjectCreate(gameObject) {
         this.spatialGrid.addObject(gameObject);
-        super.addGameObject(gameObject);
+        // super.addGameObject(gameObject);
     }
-    removeGameObject(gameObject) {
+    onObjectDestroy(gameObject) {
         this.spatialGrid.removeObject(gameObject);
-        super.removeGameObject(gameObject);
+        // super.removeGameObject(gameObject);
     }
     get SpatialGrid() {
         return this.spatialGrid;
@@ -960,7 +955,7 @@ class GameWorld extends GameObjectsHolder_1.GameObjectsHolder {
 }
 exports.GameWorld = GameWorld;
 
-},{"./utils/game/GameObjectsHolder":35,"./utils/physics/SpatialGrid":39}],23:[function(require,module,exports){
+},{"./utils/game/GameObjectsSubscriber":35,"./utils/physics/SpatialGrid":39}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -1037,8 +1032,8 @@ exports.InputSnapshot = InputSnapshot;
 },{"../../Common/input/InputCommands":23,"../DeltaTimer":21}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectsHolder_1 = require("../utils/game/GameObjectsHolder");
-class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
+const GameObjectsSubscriber_1 = require("../utils/game/GameObjectsSubscriber");
+class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
     }
@@ -1053,7 +1048,7 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
     }
     collectUpdate(complete = false) {
         let serializedObjects = '';
-        this.gameObjectsMapById.forEach((gameObject, id) => {
+        this.GameObjectsMapById.forEach((gameObject, id) => {
             let objectUpdate = gameObject.serialize(complete);
             if (objectUpdate != '') {
                 serializedObjects += '$' + id + '=' + objectUpdate;
@@ -1062,13 +1057,10 @@ class NetObjectsManager extends GameObjectsHolder_1.GameObjectsHolder {
         serializedObjects = serializedObjects.slice(1);
         return serializedObjects;
     }
-    getObject(id) {
-        return this.gameObjectsMapById.get(id);
-    }
 }
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../utils/game/GameObjectsHolder":35}],26:[function(require,module,exports){
+},{"../utils/game/GameObjectsSubscriber":35}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -1484,7 +1476,7 @@ const ChangesDict_1 = require("../../serialize/ChangesDict");
 class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
-        this.timeFromLastShot = 1000;
+        this.timeSinceLastShot = 1000;
         this.moveAngle = 0;
         this.moveAngle = Math.random() * 3;
         this.velocity = 0.5;
@@ -1497,9 +1489,9 @@ class Enemy extends Actor_1.Actor {
             this.destroy();
             return;
         }
-        this.timeFromLastShot -= delta;
-        if (this.timeFromLastShot <= 0) {
-            this.timeFromLastShot = 1000;
+        this.timeSinceLastShot -= delta;
+        if (this.timeSinceLastShot <= 0) {
+            this.timeSinceLastShot = 1000;
             for (let i = 0; i < 2; i++) {
                 this.shot(Math.floor(Math.random() * 360));
             }
@@ -1576,7 +1568,7 @@ class GameObject extends Serializable_1.Serializable {
     }
     destroy() {
         for (let listener of this.destroyListeners) {
-            listener(this.id);
+            listener(this);
         }
         // console.log("Object destroyed " + this.ID);
     }
@@ -1643,35 +1635,26 @@ exports.Types = Types;
 },{}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-class GameObjectsHolder {
+const ObjectsFactory_1 = require("./ObjectsFactory");
+class GameObjectsSubscriber {
     constructor() {
-        this.gameObjectsMapById = new Map();
+        ObjectsFactory_1.GameObjectsFactory.CreateCallbacks.push(this.onObjectCreate.bind(this));
+        ObjectsFactory_1.GameObjectsFactory.DestroyCallbacks.push(this.onObjectDestroy.bind(this));
     }
-    addGameObject(gameObject) {
-        gameObject.addDestroyListener(this.onDestroy.bind(this));
-        this.gameObjectsMapById.set(gameObject.ID, gameObject);
+    onObjectCreate(gameObject) {
     }
-    removeGameObject(gameObject) {
-        this.gameObjectsMapById.delete(gameObject.ID);
+    onObjectDestroy(gameObject) {
     }
-    removeGameObjectById(id) {
-        if (this.gameObjectsMapById.has(id)) {
-            this.removeGameObject(this.gameObjectsMapById.get(id));
-        }
-    }
-    onDestroy(id) {
-        this.removeGameObjectById(id);
+    get GameObjectsMapById() {
+        return ObjectsFactory_1.GameObjectsContainer.gameObjectsMapById;
     }
     getGameObject(id) {
-        return this.gameObjectsMapById.get(id);
-    }
-    has(id) {
-        return this.gameObjectsMapById.has(id);
+        return ObjectsFactory_1.GameObjectsContainer.gameObjectsMapById.get(id);
     }
 }
-exports.GameObjectsHolder = GameObjectsHolder;
+exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{}],36:[function(require,module,exports){
+},{"./ObjectsFactory":36}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -1680,6 +1663,13 @@ const Enemy_1 = require("./Enemy");
 const Obstacle_1 = require("./Obstacle");
 const Bullet_1 = require("./Bullet");
 const GameObjectTypes_1 = require("./GameObjectTypes");
+class GameObjectsContainer {
+    constructor() {
+        throw new Error("Cannot instatiate this class");
+    }
+}
+GameObjectsContainer.gameObjectsMapById = new Map();
+exports.GameObjectsContainer = GameObjectsContainer;
 class GameObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
@@ -1708,21 +1698,20 @@ class GameObjectsFactory {
         if (data) {
             gameObject.deserialize(data);
         }
-        GameObjectsFactory.ObjectHolderSubscribers.forEach((subscriber) => {
-            subscriber.addGameObject(gameObject);
-        });
+        GameObjectsContainer.gameObjectsMapById.set(gameObject.ID, gameObject);
         GameObjectsFactory.CreateCallbacks.forEach((callback) => {
             callback(gameObject);
         });
         GameObjectsFactory.DestroyCallbacks.forEach((callback) => {
             gameObject.addDestroyListener(callback);
         });
-        // console.log("New object " + gameObject.ID);
+        gameObject.addDestroyListener(() => {
+            GameObjectsContainer.gameObjectsMapById.delete(gameObject.ID);
+        });
         return gameObject;
     }
 }
 GameObjectsFactory.NEXT_ID = 0;
-GameObjectsFactory.ObjectHolderSubscribers = [];
 GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
@@ -2130,6 +2119,7 @@ class Transform extends Serializable_1.Serializable {
             this.shape.r = this.width;
             this.height = this.shape.r;
         }
+        this.addChange(ChangesDict_1.ChangesDict.WIDTH);
     }
     get Width() {
         return this.width;
@@ -2150,6 +2140,7 @@ class Transform extends Serializable_1.Serializable {
             this.shape.r = this.height;
             this.width = this.shape.r;
         }
+        this.addChange(ChangesDict_1.ChangesDict.HEIGHT);
     }
     get Height() {
         return this.height;

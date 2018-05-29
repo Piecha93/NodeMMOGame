@@ -1,7 +1,7 @@
 import {GameObject} from "../utils/game/GameObject";
-import {GameObjectsHolder} from "../utils/game/GameObjectsHolder";
+import {GameObjectsSubscriber} from "../utils/game/GameObjectsSubscriber";
 
-export class NetObjectsManager extends GameObjectsHolder{
+export class NetObjectsManager extends GameObjectsSubscriber {
     private static instance: NetObjectsManager;
 
     private constructor() {
@@ -19,7 +19,7 @@ export class NetObjectsManager extends GameObjectsHolder{
 
     collectUpdate(complete: boolean = false): string {
         let serializedObjects: string = '';
-        this.gameObjectsMapById.forEach((gameObject: GameObject, id: string) => {
+        this.GameObjectsMapById.forEach((gameObject: GameObject, id: string) => {
             let objectUpdate: string = gameObject.serialize(complete);
             if(objectUpdate != '') {
                 serializedObjects += '$' + id + '=' + objectUpdate;
@@ -28,9 +28,5 @@ export class NetObjectsManager extends GameObjectsHolder{
 
         serializedObjects = serializedObjects.slice(1);
         return serializedObjects;
-    }
-
-    getObject(id: string) {
-        return this.gameObjectsMapById.get(id);
     }
 }
