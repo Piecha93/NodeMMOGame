@@ -27,32 +27,26 @@ export abstract class Serializable {
 
         let updateArray: Array<string> = [];
 
-        if(this[PropName.SerializeFunctions]) {
-            if (complete) {
-                this[PropName.SerializeFunctions].forEach((serializeFunc: Function, short_key: string) => {
-                    let index: number = this[PropName.SerializeEncodeOrder].get(short_key);
-                    updateArray[index] = serializeFunc(this);
-                });
-            } else {
-                this.changes.forEach((shortKey: string) => {
-                    if (this[PropName.SerializeFunctions].has(shortKey)) {
-                        let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
-                        updateArray[index] = this[PropName.SerializeFunctions].get(shortKey)(this);
-                        this.changes.delete(shortKey);
-                    }
-                });
-            }
-        }
-
-        if(this[PropName.NestedNetworkObjects]) {
-            this[PropName.NestedNetworkObjects].forEach((key: string, short_key: string) => {
+        if (complete) {
+            this[PropName.SerializeFunctions].forEach((serializeFunc: Function, short_key: string) => {
                 let index: number = this[PropName.SerializeEncodeOrder].get(short_key);
-                let data: string = this[key].serialize(complete);
-                if(data != "") {
-                    updateArray[index] = "<" + data +">";
-                }
+                updateArray[index] = serializeFunc(this);
+            });
+        } else {
+            this.changes.forEach((shortKey: string) => {
+                let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+                updateArray[index] = this[PropName.SerializeFunctions].get(shortKey)(this);
+                this.changes.delete(shortKey);
             });
         }
+
+        this[PropName.NestedNetworkObjects].forEach((key: string, short_key: string) => {
+            let index: number = this[PropName.SerializeEncodeOrder].get(short_key);
+            let data: string = this[key].serialize(complete);
+            if(data != "") {
+                updateArray[index] = "<" + data +">";
+            }
+        });
 
         let update: string = "";
         let lastFiledIndex = 0;

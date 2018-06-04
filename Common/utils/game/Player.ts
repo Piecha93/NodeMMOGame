@@ -125,33 +125,13 @@ export class Player extends Actor {
         super.serverUpdate(delta);
     }
 
+    private static cornerDir: number = 0.7071;
+
+    private static moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir, -1, -Player.cornerDir];
+    private static moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
+
     private parseMoveDir(): [number, number] {
-        let xFactor: number = 0;
-        let yFactor: number = 0;
-        if(this.moveDirection != 0) {
-            if (this.moveDirection == 1) {
-                yFactor = -1;
-            } else if (this.moveDirection == 2) {
-                xFactor = 0.7071;
-                yFactor = -0.7071;
-            } else if (this.moveDirection == 3) {
-                xFactor = 1;
-            } else if (this.moveDirection == 4) {
-                xFactor = 0.7071;
-                yFactor = 0.7071;
-            } else if (this.moveDirection == 5) {
-                yFactor = 1;
-            } else if (this.moveDirection == 6) {
-                xFactor = -0.7071;
-                yFactor = 0.7071;
-            } else if (this.moveDirection == 7) {
-                xFactor = -1;
-            } else if (this.moveDirection == 8) {
-                xFactor = -0.7071;
-                yFactor = -0.7071;
-            }
-        }
-        return [xFactor, yFactor]
+        return [Player.moveDirsX[this.moveDirection], Player.moveDirsY[this.moveDirection]]
     }
 
     get LastInputSnapshot(): InputSnapshot{

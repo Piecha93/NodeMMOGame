@@ -8,12 +8,12 @@ export enum INPUT {
     WALL
 }
 
-export const InputMap: Map<number, INPUT> = new Map<number, INPUT>([
-    [87, INPUT.UP],
-    [83, INPUT.DOWN],
+export const InputMap: Map<string, INPUT> = new Map<string, INPUT>([
+    ['KeyW', INPUT.UP],
+    ['KeyS', INPUT.DOWN],
 
-    [65, INPUT.LEFT],
-    [68, INPUT.RIGHT],
+    ['KeyA', INPUT.LEFT],
+    ['KeyD', INPUT.RIGHT],
 
-    [70, INPUT.WALL],
+    ['KeyF', INPUT.WALL],
 ]);

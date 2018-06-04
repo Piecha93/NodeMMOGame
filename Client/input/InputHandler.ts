@@ -3,17 +3,17 @@ import {INPUT, InputMap} from "./InputMap";
 import {INPUT_COMMAND} from "../../Common/input/InputCommands";
 
 export class InputHandler {
-    private releasedKeys: Set<number>;
+    private releasedKeys: Set<string>;
     private clickPosition: [number, number];
     private mousePosition: [number, number];
     private lastDirection: number = 0;
 
     private snapshotCallbacks: Array<Function>;
-    private pressedKeys: Set<number>;
+    private pressedKeys: Set<string>;
 
     constructor() {
-        this.pressedKeys =  new Set<number>();
-        this.releasedKeys =  new Set<number>();
+        this.pressedKeys = new Set<string>();
+        this.releasedKeys = new Set<string>();
         this.clickPosition = null;
         this.mousePosition = [0,0];
 
@@ -24,7 +24,6 @@ export class InputHandler {
 
         window.addEventListener("mousedown", this.onMouseClick.bind(this));
         window.addEventListener("mousemove", this.onMouseMove.bind(this));
-
     }
 
     public addSnapshotCallback(callback: Function) {
@@ -33,17 +32,17 @@ export class InputHandler {
 
 
     private onKeyDown(event : KeyboardEvent) {
-        if(InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
-            this.releasedKeys.delete(event.keyCode);
-            this.pressedKeys.add(event.keyCode);
+        if(InputMap.has(event.code) && !this.pressedKeys.has(event.code)) {
+            this.releasedKeys.delete(event.code);
+            this.pressedKeys.add(event.code);
             this.invokeSnapshotCallbacks();
         }
     }
 
     private onKeyUp(event : KeyboardEvent) {
-        if(InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
-            this.pressedKeys.delete(event.keyCode);
-            this.releasedKeys.add(event.keyCode);
+        if(InputMap.has(event.code) && this.pressedKeys.has(event.code)) {
+            this.pressedKeys.delete(event.code);
+            this.releasedKeys.add(event.code);
             this.invokeSnapshotCallbacks();
         }
     }
@@ -77,7 +76,7 @@ export class InputHandler {
         let inputSnapshot: InputSnapshot = new InputSnapshot;
 
         let directionBuffor: Array<INPUT> = [];
-        this.pressedKeys.forEach((key: number) => {
+        this.pressedKeys.forEach((key: string) => {
             let input: INPUT = InputMap.get(key);
 
             if(input == INPUT.UP || input == INPUT.DOWN || input == INPUT.LEFT || input == INPUT.RIGHT) {

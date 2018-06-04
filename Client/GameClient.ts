@@ -105,6 +105,7 @@ export class GameClient {
         });
         deltaAvg /= this.deltaHistory.length;
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+        DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
 
         this.renderer.update();
         requestAnimationFrame(this.startGameLoop.bind(this));

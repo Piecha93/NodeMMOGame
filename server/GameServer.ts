@@ -46,34 +46,34 @@ export class GameServer {
                     {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
             }
         });
-        let o: Obstacle;
+        let o: GameObject;
         ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
         for (let i = 0; i < this.world.Height / 48; i++) {
-            o= GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o= GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = 0;
             o.Transform.Y = i * o.Transform.Height;
 
-            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = this.world.Width - o.Transform.Width + this.world.Width % 48;
             o.Transform.Y = i * o.Transform.Height;
         }
 
         for (let i = 1; i < this.world.Width / 48; i++) {
-            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = 0;
 
-            o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+            o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = this.world.Height - this.world.Width % 48;
         }
 
-        o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        o = GameObjectsFactory.Instatiate("Obstacle");
         o.Transform.X = 150;
         o.Transform.Y = 150;
         o.Transform.Width = 150;
 
-        o = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        o = GameObjectsFactory.Instatiate("Obstacle");
         o.Transform.X = 350;
         o.Transform.Y = 450;
         o.Transform.Width = 150;
@@ -91,7 +91,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 30; i++) {
             createEnemy();
         }
         ///////////////////////////////////////////////////////////////////TEST

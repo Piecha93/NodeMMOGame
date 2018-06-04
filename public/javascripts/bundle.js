@@ -199,6 +199,7 @@ class GameClient {
         });
         deltaAvg /= this.deltaHistory.length;
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
         this.renderer.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
@@ -471,10 +472,13 @@ class DebugWindowHtmlHandler {
         this.debugWindowDiv = document.getElementById("debug-window");
         this.pingSpan = document.createElement("span");
         this.fpsSpan = document.createElement("span");
+        this.gameObjectCounterSpan = document.createElement("span");
         this.Ping = "";
         this.Fps = "";
+        this.GameObjectCounter = "0";
         this.debugWindowDiv.appendChild(this.pingSpan);
         this.debugWindowDiv.appendChild(this.fpsSpan);
+        this.debugWindowDiv.appendChild(this.gameObjectCounterSpan);
     }
     static get Instance() {
         if (DebugWindowHtmlHandler.instance) {
@@ -490,6 +494,9 @@ class DebugWindowHtmlHandler {
     }
     set Fps(fps) {
         this.fpsSpan.innerHTML = "<br>" + "Fps: " + fps;
+    }
+    set GameObjectCounter(gameObjects) {
+        this.fpsSpan.innerHTML = "<br>" + "GameObjects: " + gameObjects;
     }
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
@@ -688,16 +695,16 @@ class InputHandler {
         this.snapshotCallbacks.push(callback);
     }
     onKeyDown(event) {
-        if (InputMap_1.InputMap.has(event.keyCode) && !this.pressedKeys.has(event.keyCode)) {
-            this.releasedKeys.delete(event.keyCode);
-            this.pressedKeys.add(event.keyCode);
+        if (InputMap_1.InputMap.has(event.code) && !this.pressedKeys.has(event.code)) {
+            this.releasedKeys.delete(event.code);
+            this.pressedKeys.add(event.code);
             this.invokeSnapshotCallbacks();
         }
     }
     onKeyUp(event) {
-        if (InputMap_1.InputMap.has(event.keyCode) && this.pressedKeys.has(event.keyCode)) {
-            this.pressedKeys.delete(event.keyCode);
-            this.releasedKeys.add(event.keyCode);
+        if (InputMap_1.InputMap.has(event.code) && this.pressedKeys.has(event.code)) {
+            this.pressedKeys.delete(event.code);
+            this.releasedKeys.add(event.code);
             this.invokeSnapshotCallbacks();
         }
     }
@@ -801,11 +808,11 @@ var INPUT;
     INPUT[INPUT["WALL"] = 6] = "WALL";
 })(INPUT = exports.INPUT || (exports.INPUT = {}));
 exports.InputMap = new Map([
-    [87, INPUT.UP],
-    [83, INPUT.DOWN],
-    [65, INPUT.LEFT],
-    [68, INPUT.RIGHT],
-    [70, INPUT.WALL],
+    ['KeyW', INPUT.UP],
+    ['KeyS', INPUT.DOWN],
+    ['KeyA', INPUT.LEFT],
+    ['KeyD', INPUT.RIGHT],
+    ['KeyF', INPUT.WALL],
 ]);
 
 },{}],17:[function(require,module,exports){
@@ -885,9 +892,17 @@ var Origin;
     Origin[Origin["SERVER"] = 1] = "SERVER";
     Origin[Origin["UNKNOWN"] = 2] = "UNKNOWN";
 })(Origin = exports.Origin || (exports.Origin = {}));
+function getOrigin() {
+    if (typeof window !== 'undefined') {
+        return Origin.CLIENT;
+    }
+    else {
+        return Origin.SERVER;
+    }
+}
 class CommonConfig {
 }
-CommonConfig.ORIGIN = Origin.UNKNOWN;
+CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
 },{}],21:[function(require,module,exports){
@@ -1115,11 +1130,7 @@ var PropName;
 })(PropName = exports.PropName || (exports.PropName = {}));
 function NetworkProperty(shortKey) {
     function decorator(target, key) {
-        createMapProperty(target, PropName.SerializeFunctions);
-        createMapProperty(target, PropName.DeserializeFunctions);
-        createMapProperty(target, PropName.SerializeEncodeOrder);
-        createMapProperty(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
+        addNetworkProperties(target);
         let counter = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
@@ -1145,10 +1156,7 @@ function NetworkProperty(shortKey) {
 exports.NetworkProperty = NetworkProperty;
 function NetworkObject(shortKey) {
     function decorator(target, key) {
-        createMapProperty(target, PropName.NestedNetworkObjects);
-        createMapProperty(target, PropName.SerializeEncodeOrder);
-        createMapProperty(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
+        addNetworkProperties(target);
         let counter = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
@@ -1157,6 +1165,14 @@ function NetworkObject(shortKey) {
     return decorator;
 }
 exports.NetworkObject = NetworkObject;
+function addNetworkProperties(target) {
+    createMapProperty(target, PropName.SerializeFunctions);
+    createMapProperty(target, PropName.DeserializeFunctions);
+    createMapProperty(target, PropName.SerializeEncodeOrder);
+    createMapProperty(target, PropName.SerializeDecodeOrder);
+    createMapProperty(target, PropName.NestedNetworkObjects);
+    addDcecodeCounter(target);
+}
 function createMapProperty(target, propertyName) {
     if (!target.hasOwnProperty(propertyName)) {
         let propertyVal = getPrototypePropertyVal(target, propertyName, null);
@@ -1187,12 +1203,6 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
         return defaultVal;
     }
 }
-function parseArray(arr, data) {
-    let splited = data.split(',');
-    for (let i = 0; i < splited.length; i++) {
-        arr[i] = Number(splited[i]);
-    }
-}
 
 },{}],29:[function(require,module,exports){
 "use strict";
@@ -1216,32 +1226,26 @@ class Serializable {
             complete = true;
         }
         let updateArray = [];
-        if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
-            if (complete) {
-                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
-                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                    updateArray[index] = serializeFunc(this);
-                });
-            }
-            else {
-                this.changes.forEach((shortKey) => {
-                    if (this[NetworkDecorators_1.PropName.SerializeFunctions].has(shortKey)) {
-                        let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
-                        updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
-                        this.changes.delete(shortKey);
-                    }
-                });
-            }
-        }
-        if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
-            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+        if (complete) {
+            this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
                 let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                let data = this[key].serialize(complete);
-                if (data != "") {
-                    updateArray[index] = "<" + data + ">";
-                }
+                updateArray[index] = serializeFunc(this);
             });
         }
+        else {
+            this.changes.forEach((shortKey) => {
+                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+                updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
+                this.changes.delete(shortKey);
+            });
+        }
+        this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+            let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
+            let data = this[key].serialize(complete);
+            if (data != "") {
+                updateArray[index] = "<" + data + ">";
+            }
+        });
         let update = "";
         let lastFiledIndex = 0;
         for (let i = 0; i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size; i++) {
@@ -1472,7 +1476,6 @@ exports.Bullet = Bullet;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
-const ChangesDict_1 = require("../../serialize/ChangesDict");
 class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
@@ -1493,21 +1496,21 @@ class Enemy extends Actor_1.Actor {
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
             for (let i = 0; i < 2; i++) {
-                this.shot(Math.floor(Math.random() * 360));
+                // this.shot(Math.floor(Math.random() * 360));
             }
         }
         this.moveAngle += Math.random() * 0.5 - 0.25;
         let sinAngle = Math.sin(this.moveAngle);
         let cosAngle = Math.cos(this.moveAngle);
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
-        this.transform.addChange(ChangesDict_1.ChangesDict.X);
-        this.transform.addChange(ChangesDict_1.ChangesDict.Y);
+        // this.transform.X += cosAngle * this.velocity * delta;
+        // this.transform.Y += sinAngle * this.velocity * delta;
+        // this.transform.addChange(ChangesDict.X);
+        // this.transform.addChange(ChangesDict.Y);
     }
 }
 exports.Enemy = Enemy;
 
-},{"../../serialize/ChangesDict":27,"./Actor":30}],33:[function(require,module,exports){
+},{"./Actor":30}],33:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -1849,39 +1852,7 @@ class Player extends Actor_1.Actor {
         super.serverUpdate(delta);
     }
     parseMoveDir() {
-        let xFactor = 0;
-        let yFactor = 0;
-        if (this.moveDirection != 0) {
-            if (this.moveDirection == 1) {
-                yFactor = -1;
-            }
-            else if (this.moveDirection == 2) {
-                xFactor = 0.7071;
-                yFactor = -0.7071;
-            }
-            else if (this.moveDirection == 3) {
-                xFactor = 1;
-            }
-            else if (this.moveDirection == 4) {
-                xFactor = 0.7071;
-                yFactor = 0.7071;
-            }
-            else if (this.moveDirection == 5) {
-                yFactor = 1;
-            }
-            else if (this.moveDirection == 6) {
-                xFactor = -0.7071;
-                yFactor = 0.7071;
-            }
-            else if (this.moveDirection == 7) {
-                xFactor = -1;
-            }
-            else if (this.moveDirection == 8) {
-                xFactor = -0.7071;
-                yFactor = -0.7071;
-            }
-        }
-        return [xFactor, yFactor];
+        return [Player.moveDirsX[this.moveDirection], Player.moveDirsY[this.moveDirection]];
     }
     get LastInputSnapshot() {
         return this.lastInputSnapshot;
@@ -1895,6 +1866,9 @@ class Player extends Actor_1.Actor {
         return this.moveDirection;
     }
 }
+Player.cornerDir = 0.7071;
+Player.moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir, -1, -Player.cornerDir];
+Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
 exports.Player = Player;
 
 },{"../../CommonConfig":20,"../../input/InputCommands":23,"../../serialize/ChangesDict":27,"./Actor":30}],39:[function(require,module,exports){

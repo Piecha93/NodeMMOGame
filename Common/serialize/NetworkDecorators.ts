@@ -9,11 +9,7 @@ export namespace PropName {
 
 export function NetworkProperty(shortKey: string) {
     function decorator(target: Object, key: string) {
-        createMapProperty<string, Function>(target, PropName.SerializeFunctions);
-        createMapProperty<string, Function>(target, PropName.DeserializeFunctions);
-        createMapProperty<string, number>(target, PropName.SerializeEncodeOrder);
-        createMapProperty<number, string>(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
+        addNetworkProperties(target);
 
         let counter: number = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
@@ -35,22 +31,31 @@ export function NetworkProperty(shortKey: string) {
             }
         });
     }
+
     return decorator;
 }
 
 export function NetworkObject(shortKey: string) {
     function decorator(target: Object, key: string) {
-        createMapProperty<string, number>(target, PropName.NestedNetworkObjects);
-        createMapProperty<string, number>(target, PropName.SerializeEncodeOrder);
-        createMapProperty<number, string>(target, PropName.SerializeDecodeOrder);
-        addDcecodeCounter(target);
+        addNetworkProperties(target);
 
         let counter: number = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
         target[PropName.NestedNetworkObjects].set(shortKey, key);
     }
+
     return decorator;
+}
+
+function addNetworkProperties(target: Object) {
+    createMapProperty<string, Function>(target, PropName.SerializeFunctions);
+    createMapProperty<string, Function>(target, PropName.DeserializeFunctions);
+    createMapProperty<string, number>(target, PropName.SerializeEncodeOrder);
+    createMapProperty<number, string>(target, PropName.SerializeDecodeOrder);
+    createMapProperty<string, number>(target, PropName.NestedNetworkObjects);
+
+    addDcecodeCounter(target);
 }
 
 
@@ -84,12 +89,5 @@ function getPrototypePropertyVal(target: Object, propertyName: string, defaultVa
         return prototype[propertyName]
     } else {
         return defaultVal;
-    }
-}
-
-function parseArray(arr: Array<any>, data: string) {
-    let splited: Array<string> = data.split(',');
-    for(let i = 0; i < splited.length; i++) {
-        arr[i] = Number(splited[i]);
     }
 }
