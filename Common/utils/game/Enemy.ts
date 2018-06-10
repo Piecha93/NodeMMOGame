@@ -27,7 +27,7 @@ export class Enemy extends Actor {
         if(this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
             for(let i = 0; i < 2; i++) {
-                this.shot(Math.floor(Math.random() * 360));
+                // this.shot(Math.floor(Math.random() * 360));
             }
         }
 
@@ -36,11 +36,11 @@ export class Enemy extends Actor {
         let sinAngle: number = Math.sin(this.moveAngle);
         let cosAngle: number = Math.cos(this.moveAngle);
 
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
+        // this.transform.X += cosAngle * this.velocity * delta;
+        // this.transform.Y += sinAngle * this.velocity * delta;
 
-        this.transform.addChange(ChangesDict.X);
-        this.transform.addChange(ChangesDict.Y);
+        // this.transform.addChange(ChangesDict.X);
+        // this.transform.addChange(ChangesDict.Y);
     }
 }
 

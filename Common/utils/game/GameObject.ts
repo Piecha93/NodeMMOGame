@@ -16,6 +16,8 @@ export abstract class GameObject extends Serializable implements Collidable {
     @NetworkProperty(ChangesDict.VELOCITY)
     protected velocity: number = 0;
 
+    protected invisible: boolean = false;
+
     private destroyListeners: Set<Function>;
 
     public spatialGridCells: Array<Cell> = [];
@@ -107,5 +109,9 @@ export abstract class GameObject extends Serializable implements Collidable {
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
         this.addChange(ChangesDict.SPRITE_NAME);
+    }
+
+    get Invisible(): boolean {
+        return this.invisible;
     }
 }

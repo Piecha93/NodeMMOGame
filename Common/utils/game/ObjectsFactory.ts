@@ -1,11 +1,11 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {GameObjectsSubscriber} from "./GameObjectsSubscriber";
 import {Player} from "./Player";
 import {Enemy} from "./Enemy";
 import {Obstacle} from "./Obstacle";
 import {Bullet} from "./Bullet";
 import {Types} from "./GameObjectTypes";
+import {Cursor} from "../../../Client/input/Cursor";
 
 export class GameObjectsContainer {
     constructor() {
@@ -25,20 +25,19 @@ export class GameObjectsFactory {
     static CreateCallbacks: Array<Function> = [];
     static DestroyCallbacks: Array<Function> = [];
 
-    static Instatiate(type: string, id?: string, data?: string): GameObject {
+    private static ObjectTypes: Map<string, new (position: Transform) => GameObject> =
+        new Map<string, new (position: Transform) => GameObject>([
+        ["Player", Player],
+        ["Enemy", Enemy],
+        ["Bullet", Bullet],
+        ["Obstacle", Obstacle],
+        ["Cursor", Cursor],
+    ]);
 
-        let position: Transform = new Transform(0,0,32,32);
+    static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: string): GameObject {
         let gameObject: GameObject;
 
-        if(type == "Player") {
-            gameObject = new Player(position);
-        } else if(type == "Enemy") {
-            gameObject = new Enemy(position);
-        } else if(type == "Bullet") {
-            gameObject = new Bullet(position);
-        } else if(type == "Obstacle") {
-            gameObject = new Obstacle(position);
-        }
+        gameObject = new (GameObjectsFactory.ObjectTypes.get(type))(transform);
 
         if(id) {
             gameObject.ID = id;
@@ -64,5 +63,11 @@ export class GameObjectsFactory {
         });
 
         return gameObject;
+    }
+
+    static Instatiate(type: string, id?: string, data?: string): GameObject {
+        let position: Transform = new Transform(0,0,32,32);
+
+        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
     }
 }

@@ -39,6 +39,6 @@ export class DebugWindowHtmlHandler {
     }
 
     set GameObjectCounter(gameObjects: string) {
-        this.fpsSpan.innerHTML = "<br>" + "GameObjects: " + gameObjects;
+        this.gameObjectCounterSpan.innerHTML = "<br>" + "GameObjects: " + gameObjects;
     }
 }

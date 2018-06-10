@@ -17,6 +17,8 @@ import {InputSnapshot} from "../Common/input/InputSnapshot";
 import {Types} from "../Common/utils/game/GameObjectTypes";
 import * as LZString from "lz-string";
 import * as io from "socket.io-client"
+import {Cursor} from "./input/Cursor";
+import {Transform} from "../Common/utils/physics/Transform";
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -26,6 +28,7 @@ export class GameClient {
     private inputHandler: InputHandler;
     private heartBeatSender: HeartBeatSender;
     private inputSender: InputSender;
+    private cursor: Cursor;
 
     private localPlayer: Player = null;
 
@@ -36,14 +39,6 @@ export class GameClient {
         this.chat = new Chat(this.socket);
 
         this.renderer = new Renderer(() => {
-            this.inputHandler = new InputHandler();
-            this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
-                if(this.localPlayer) {
-                    this.localPlayer.setInput(snapshot);
-                }
-            });
-
             this.socket.emit(SocketMsgs.CLIENT_READY);
         });
     }
@@ -62,7 +57,6 @@ export class GameClient {
 
     private configureSocket() {
         this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
-            console.log(data);
             let worldInfo: Array<string> = data['world'].split(',');
             let width: number = Number(worldInfo[0]);
             let height: number = Number(worldInfo[1]);
@@ -87,6 +81,16 @@ export class GameClient {
     }
 
     private startGame() {
+        this.cursor = GameObjectsFactory.InstatiateWithTransform("Cursor", new Transform(1,1,1)) as Cursor;
+        this.inputHandler = new InputHandler(this.cursor);
+
+        this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
+        this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
+            if(this.localPlayer) {
+                this.localPlayer.setInput(snapshot);
+            }
+        });
+
         this.startGameLoop();
     }
 
@@ -108,6 +112,11 @@ export class GameClient {
         DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
 
         this.renderer.update();
+
+        let deviation: [number, number] = this.renderer.CameraDeviation;
+        this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
+        this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
+
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
 

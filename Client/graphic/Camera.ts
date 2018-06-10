@@ -5,10 +5,10 @@ import {Renderer} from "../../Client/graphic/Renderer";
 export class Camera extends PIXI.Container {
 
     private follower: PIXI.Point | PIXI.ObservablePoint;
-    private dt: number = 0.1;
+    private dt: number = 0.8;
 
-    private mouseX: number = 0;
-    private mouseY: number = 0;
+    private mouseDeviationX: number = 0;
+    private mouseDeviationY: number = 0;
 
     private deviationRate: number = 6;
 
@@ -25,8 +25,8 @@ export class Camera extends PIXI.Container {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
 
-        this.mouseX = (event.x - rect.left - Renderer.WIDTH / 2) / this.deviationRate;
-        this.mouseY = (event.y - rect.top - Renderer.HEIGHT / 2) / this.deviationRate;
+        this.mouseDeviationX = (event.x - rect.left - Renderer.WIDTH / 2) / this.deviationRate;
+        this.mouseDeviationY = (event.y - rect.top - Renderer.HEIGHT / 2) / this.deviationRate;
     }
 
     set Follower(follower: PIXI.Point | PIXI.ObservablePoint) {
@@ -36,7 +36,11 @@ export class Camera extends PIXI.Container {
     }
 
     update() {
-        this.pivot.x += (this.follower.x + this.mouseX - this.pivot.x) * this.dt;
-        this.pivot.y += (this.follower.y + this.mouseY - this.pivot.y) * this.dt;
+        this.pivot.x += (this.follower.x + this.mouseDeviationX - this.pivot.x) * this.dt;
+        this.pivot.y += (this.follower.y + this.mouseDeviationY - this.pivot.y) * this.dt;
+    }
+
+    get MouseDeviation(): [number, number] {
+        return [this.mouseDeviationX * (this.deviationRate + 1), this.mouseDeviationY * (this.deviationRate + 1)];
     }
 }

@@ -48,24 +48,24 @@ export class GameServer {
         });
         let o: GameObject;
         ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
-        for (let i = 0; i < this.world.Height / 48; i++) {
+        for (let i = 0; i < (this.world.Height - 48) / 48; i++) {
             o= GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = 0;
             o.Transform.Y = i * o.Transform.Height;
 
             o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = this.world.Width - o.Transform.Width + this.world.Width % 48;
+            o.Transform.X = this.world.Width - o.Transform.Width;
             o.Transform.Y = i * o.Transform.Height;
         }
 
-        for (let i = 1; i < this.world.Width / 48; i++) {
+        for (let i = 1; i < (this.world.Width - 48) / 48; i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = 0;
 
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = this.world.Height - this.world.Width % 48;
+            o.Transform.Y = this.world.Height - 52;
         }
 
         o = GameObjectsFactory.Instatiate("Obstacle");
@@ -79,12 +79,20 @@ export class GameServer {
         o.Transform.Width = 150;
         o.Transform.Rotation = 3;
 
+        o = GameObjectsFactory.Instatiate("Obstacle");
+        o.Transform.X = 600;
+        o.Transform.Y = 600;
+        o.Transform.Width = 5;
+        o.Transform.Height = 300;
+
+        let monsterCounter = 0;
         let createEnemy: Function = () => {
+            monsterCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
             e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
             e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
 
-            e.Name = "Monster";
+            e.Name = "Monster " + monsterCounter.toString();
 
             e.addDestroyListener(() => {
                 createEnemy();

@@ -118,4 +118,8 @@ export class Renderer extends GameObjectsSubscriber {
     set CameraFollower(gameObject: GameObject) {
         this.camera.Follower = this.renderObjects.get(gameObject).position;
     }
+
+    get CameraDeviation(): [number, number] {
+        return this.camera.MouseDeviation;
+    }
 }

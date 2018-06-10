@@ -17,18 +17,20 @@ export abstract class GameObjectRender extends PIXI.Container {
     }
 
     public update() {
-       let transform: Transform = this.objectRef.Transform;
+        this.visible = !this.objectRef.Invisible;
 
-       let distance: number = Math.sqrt(Math.pow(transform.X - this.x, 2) + Math.pow(transform.Y - this.y, 2));
-       if(distance > 200) {
-           this.x = transform.X;
-           this.y = transform.Y;
-       } else {
-           this.x = (transform.X - this.x) * this.dt + this.x;
-           this.y = (transform.Y - this.y) * this.dt + this.y;
-       }
+        let transform: Transform = this.objectRef.Transform;
 
-       this.rotation = this.objectRef.Transform.Rotation;
+        let distance: number = Math.sqrt(Math.pow(transform.X - this.x, 2) + Math.pow(transform.Y - this.y, 2));
+        if (distance > 200) {
+            this.x = transform.X;
+            this.y = transform.Y;
+        } else {
+            this.x = (transform.X - this.x) * this.dt + this.x;
+            this.y = (transform.Y - this.y) * this.dt + this.y;
+        }
+
+        this.rotation = this.objectRef.Transform.Rotation;
     }
 
     public destroy() {

@@ -1,7 +1,6 @@
-
-
 import {SocketMsgs} from "../../Common/net/SocketMsgs";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
+
 export class HeartBeatSender {
     private socket: SocketIOClient.Socket;
     private heartBeats: Map<number, number>;

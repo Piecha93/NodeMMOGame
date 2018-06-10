@@ -120,12 +120,12 @@ export class SpatialGrid {
         collidable.spatialGridCells.forEach((cell: Cell) => {
            cell.removeObject(collidable);
         });
-        let xs: number = collidable.Transform.X / this.cellSize ;
-        let xe: number = Math.floor(xs + (collidable.Transform.Width / this.cellSize)) + 1;
+        let xs: number = collidable.Transform.X / this.cellSize - 1;
+        let xe: number = Math.floor(xs + (collidable.Transform.Width / this.cellSize)) + 2;
         xs = Math.floor(xs);
 
-        let ys: number = collidable.Transform.Y / this.cellSize;
-        let ye: number = Math.floor(ys + (collidable.Transform.Height / this.cellSize)) + 1;
+        let ys: number = collidable.Transform.Y / this.cellSize - 1;
+        let ye: number = Math.floor(ys + (collidable.Transform.Height / this.cellSize)) + 2;
         ys = Math.floor(ys);
 
         let cells: Array<Cell> = [];

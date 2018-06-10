@@ -1,6 +1,7 @@
 import {InputSnapshot} from "../../Common/input/InputSnapshot";
 import {INPUT, InputMap} from "./InputMap";
 import {INPUT_COMMAND} from "../../Common/input/InputCommands";
+import {Cursor} from "./Cursor";
 
 export class InputHandler {
     private releasedKeys: Set<string>;
@@ -11,7 +12,11 @@ export class InputHandler {
     private snapshotCallbacks: Array<Function>;
     private pressedKeys: Set<string>;
 
-    constructor() {
+    private cursor: Cursor;
+
+    constructor(cursor: Cursor) {
+        this.cursor = cursor;
+
         this.pressedKeys = new Set<string>();
         this.releasedKeys = new Set<string>();
         this.clickPosition = null;
@@ -51,6 +56,8 @@ export class InputHandler {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
         this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
+
+        // this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
 
         this.invokeSnapshotCallbacks();
     }
