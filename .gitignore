@@ -6,4 +6,4 @@ azure.err
 js.map
 npm-debug.log
 /.idea
-/Client/libs
+/client/libs

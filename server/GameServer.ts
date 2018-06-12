@@ -1,21 +1,21 @@
 import Socket = SocketIOClient.Socket;
 
 import {ServerClient} from "./ServerClient";
-import {GameWorld} from "../Common/GameWorld";
-import {Player} from "../Common/utils/game/Player";
-import {InputSnapshot} from "../Common/input/InputSnapshot";
-import {NetObjectsManager} from "../Common/net/NetObjectsManager";
-import {GameObject} from "../Common/utils/game/GameObject";
+import {GameWorld} from "../common/GameWorld";
+import {Player} from "../common/utils/game/Player";
+import {InputSnapshot} from "../common/input/InputSnapshot";
+import {NetObjectsManager} from "../common/net/NetObjectsManager";
+import {GameObject} from "../common/utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
-import {SocketMsgs} from "../Common/net/SocketMsgs";
-import {GameObjectsFactory} from "../Common/utils/game/ObjectsFactory";
-import {DeltaTimer} from "../Common/DeltaTimer";
-import {Obstacle} from "../Common/utils/game/Obstacle";
+import {SocketMsgs} from "../common/net/SocketMsgs";
+import {GameObjectsFactory} from "../common/utils/game/ObjectsFactory";
+import {DeltaTimer} from "../common/DeltaTimer";
+import {Obstacle} from "../common/utils/game/Obstacle";
 import Session = Express.Session;
 import {Database, IUserModel} from "./database/Database";
-import {Enemy} from "../Common/utils/game/Enemy";
+import {Enemy} from "../common/utils/game/Enemy";
 import * as LZString from "lz-string";
-import {Actor} from "../Common/utils/game/Actor";
+import {Actor} from "../common/utils/game/Actor";
 
 export class GameServer {
     private sockets: SocketIO.Server;

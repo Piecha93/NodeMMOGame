@@ -9,7 +9,7 @@ import * as bodyParser from 'body-parser'
 import {Request, Response} from "express";
 import {MongoStore} from "connect-mongo";
 import {GameServer} from "./server/GameServer";
-import {CommonConfig, Origin} from "./Common/CommonConfig";
+import {CommonConfig, Origin} from "./common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import shortid = require("shortid");
 
