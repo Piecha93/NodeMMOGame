@@ -231,6 +231,8 @@ class GameClient {
                 gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
+            if (this.localPlayer != null)
+                console.log(lastSnapshotData + " id local: " + this.localPlayer.ID + " id update: " + id);
             if (lastSnapshotData && this.localPlayer.ID == id) {
                 this.localPlayer.reconciliation(lastSnapshotData, this.world.SpatialGrid);
             }
@@ -1813,8 +1815,8 @@ class Player extends Actor_1.Actor {
     }
     pushSnapshotToHistory(inputSnapshot) {
         //only client need snapshots history
+        this.lastInputSnapshot = inputSnapshot;
         if (CommonConfig_1.CommonConfig.IS_CLIENT) {
-            this.lastInputSnapshot = inputSnapshot;
             if (this.inputHistory.indexOf(inputSnapshot) == -1) {
                 this.inputHistory.push(inputSnapshot);
             }
@@ -1868,7 +1870,9 @@ class Player extends Actor_1.Actor {
         let serverSnapshotId = serverSnapshotData[0];
         let serverSnapshotDelta = serverSnapshotData[1];
         let histElemsToRemove = 0;
+        console.log("reconciliation" + this.inputHistory);
         for (let i = 0; i < this.inputHistory.length; i++) {
+            console.log("i: " + i);
             if (this.inputHistory[i].ID < serverSnapshotId) {
                 histElemsToRemove++;
                 continue;

@@ -26,9 +26,9 @@ export class Player extends Actor {
     }
 
     private pushSnapshotToHistory(inputSnapshot: InputSnapshot) {
+        this.lastInputSnapshot = inputSnapshot;
         //only client need snapshots history
         if(CommonConfig.IS_CLIENT) {
-            this.lastInputSnapshot = inputSnapshot;
             if(this.inputHistory.indexOf(inputSnapshot) == -1) {
                 this.inputHistory.push(inputSnapshot);
             }
@@ -90,6 +90,7 @@ export class Player extends Actor {
         let serverSnapshotId: number = serverSnapshotData[0];
         let serverSnapshotDelta: number = serverSnapshotData[1];
         let histElemsToRemove: number = 0;
+
         for(let i: number = 0; i < this.inputHistory.length; i++) {
             if(this.inputHistory[i].ID < serverSnapshotId) {
                 histElemsToRemove++;
