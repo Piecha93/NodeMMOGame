@@ -1,13 +1,13 @@
 export class SocketMsgs {
     public static CONNECTION = 'connection';
     public static DISCONNECT = 'disconnect';
-    public static CLIENT_READY = 'cr';
-    public static START_GAME = 'sg';
-    public static INITIALIZE_GAME = 'ig';
-    public static HEARTBEAT = 'hb';
-    public static HEARTBEAT_RESPONSE = 'hbr';
-    public static UPDATE_GAME = 'ug';
-    public static INPUT_SNAPSHOT = 'is';
-    public static CHAT_MESSAGE = 'ch';
-    public static ERROR = 'err';
+    public static CLIENT_READY = '0';
+    public static START_GAME = '1';
+    public static INITIALIZE_GAME = '2';
+    public static HEARTBEAT = '3';
+    public static HEARTBEAT_RESPONSE = '4';
+    public static UPDATE_GAME = '5';
+    public static INPUT_SNAPSHOT = '6';
+    public static CHAT_MESSAGE = '7';
+    public static ERROR = '8';
 }

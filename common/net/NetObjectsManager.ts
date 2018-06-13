@@ -1,8 +1,11 @@
 import {GameObject} from "../utils/game/GameObject";
 import {GameObjectsSubscriber} from "../utils/game/GameObjectsSubscriber";
+import {CommonConfig} from "../CommonConfig";
 
 export class NetObjectsManager extends GameObjectsSubscriber {
     private static instance: NetObjectsManager;
+
+    private destroyedObjects: string = "";
 
     private constructor() {
         super();
@@ -17,6 +20,12 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         }
     }
 
+    protected onObjectDestroy(gameObject: GameObject) {
+        if(CommonConfig.IS_SERVER) {
+            this.destroyedObjects += '$' + '!' + gameObject.ID;
+        }
+    }
+
     collectUpdate(complete: boolean = false): string {
         let serializedObjects: string = '';
         this.GameObjectsMapById.forEach((gameObject: GameObject, id: string) => {
@@ -27,6 +36,10 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         });
 
         serializedObjects = serializedObjects.slice(1);
+
+        serializedObjects += this.destroyedObjects;
+        this.destroyedObjects = "";
+
         return serializedObjects;
     }
 }

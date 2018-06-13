@@ -11,11 +11,12 @@ import {SocketMsgs} from "../common/net/SocketMsgs";
 import {GameObjectsFactory} from "../common/utils/game/ObjectsFactory";
 import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/utils/game/Obstacle";
-import Session = Express.Session;
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
 import * as LZString from "lz-string";
 import {Actor} from "../common/utils/game/Actor";
+
+NetObjectsManager.Instance;
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -23,8 +24,6 @@ export class GameServer {
     private socketsIds: Map<string, Socket> = new Map<string, Socket>();
 
     private world: GameWorld;
-
-    private destroyedObjects: string = '';
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -39,8 +38,6 @@ export class GameServer {
         this.world = new GameWorld(2048, 1156);
 
         GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
-            this.destroyedObjects += '$' + '!' + gameObject.ID;
-
             if(gameObject instanceof Actor) {
                 this.sockets.emit(SocketMsgs.CHAT_MESSAGE,
                     {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
@@ -206,31 +203,50 @@ export class GameServer {
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
     }
 
+    private bandwithHistory: Array<number> = [];
+
+    private calculateAverageBandwith(updateSize): number {
+        this.bandwithHistory.push(updateSize);
+        if(this.bandwithHistory.length > 50) this.bandwithHistory.splice(0, 1);
+        let avgBandwith: number = 0;
+        this.bandwithHistory.forEach((bandwith: number) => {
+            avgBandwith += bandwith;
+        });
+        avgBandwith /= this.bandwithHistory.length;
+        return avgBandwith;
+    }
+
     private sendUpdate() {
         let update: string = NetObjectsManager.Instance.collectUpdate();
-        update += this.destroyedObjects;
-        this.destroyedObjects = '';
 
         if(update[0] == "$") {
             update = update.slice(1);
         }
 
-        if(update != '') {
-            update = LZString.compressToUTF16(update);
-            this.clients.forEach((client: ServerClient) => {
-                if (client.IsReady) {
-                    let player: Player = this.world.getGameObject(client.PlayerId) as Player;
-                    if(player) {
-                        let snapshot: InputSnapshot = player.LastInputSnapshot;
-                        if(snapshot && snapshot.isMoving()) {
-                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
-                        } else {
-                            client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
-                        }
-                    }
-                }
-            });
+        if(update == '') {
+            return;
         }
+
+        update = LZString.compressToUTF16(update);
+
+        // let updateSize: number = getUTF8Size(update);
+        // console.log("avgBandwith " +  this.calculateAverageBandwith(updateSize).toFixed(3) + " latest(" + updateSize + ") ");
+
+        this.clients.forEach((client: ServerClient) => {
+            if (client.IsReady) {
+                let player: Player = this.world.getGameObject(client.PlayerId) as Player;
+                if(player == null) {
+                    return;
+                }
+
+                let snapshot: InputSnapshot = player.LastInputSnapshot;
+                if(snapshot && snapshot.isMoving()) {
+                    client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
+                } else {
+                    client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
+                }
+            }
+        });
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {

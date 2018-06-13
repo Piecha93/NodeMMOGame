@@ -17,7 +17,8 @@ export function NetworkProperty(shortKey: string) {
 
         target[PropName.SerializeFunctions].set(shortKey, (object) => {
             if (typeof object[key] == "number") {
-                return object[key].toFixed(4);
+                //+ is for transform 1.1000 -> 1.1
+                return +object[key].toFixed(4);
             }  else {
                 return object[key];
             }

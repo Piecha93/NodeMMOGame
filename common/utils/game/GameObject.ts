@@ -20,6 +20,8 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     private destroyListeners: Set<Function>;
 
+    private destroyed: boolean = false;
+
     public spatialGridCells: Array<Cell> = [];
 
     constructor(transform: Transform) {
@@ -76,9 +78,14 @@ export abstract class GameObject extends Serializable implements Collidable {
     }
 
     destroy() {
+        if(this.destroyed) {
+            return;
+        }
+
         for(let listener of this.destroyListeners) {
             listener(this);
         }
+        this.destroyed = true;
         // console.log("Object destroyed " + this.ID);
     }
 

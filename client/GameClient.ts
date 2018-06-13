@@ -32,6 +32,9 @@ export class GameClient {
 
     private localPlayer: Player = null;
 
+    private timer: DeltaTimer = new DeltaTimer;
+    private deltaHistory: Array<number> = [];
+
     constructor() {
         this.connect();
         this.inputSender = new InputSender(this.socket);
@@ -93,9 +96,6 @@ export class GameClient {
 
         this.startGameLoop();
     }
-
-    timer: DeltaTimer = new DeltaTimer;
-    deltaHistory: Array<number> = [];
 
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
