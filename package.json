@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "author": "Tomasz Piecha",
   "engines": {
-    "node": "6.10.3",
+    "node": "8.11.3",
     "npm": "4.0.5"
   },
   "dependencies": {
@@ -15,7 +15,7 @@
     "@types/lz-string": "^1.3.32",
     "@types/mongodb": "^2.2.9",
     "@types/mongoose": "^4.7.19",
-    "@types/node": "^7.0.27",
+    "@types/node": "^8.10.20",
     "@types/pixi.js": "^4.4.4",
     "@types/sat": "0.0.28",
     "@types/shortid": "0.0.29",

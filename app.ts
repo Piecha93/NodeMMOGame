@@ -16,7 +16,7 @@ import shortid = require("shortid");
 
 CommonConfig.ORIGIN = Origin.SERVER;
 
-const port: number = process.env.PORT || 3000;
+const port: number = Number(process.env.PORT) || 3000;
 const app: express.Application = express();
 const httpServer: http.Server = http.createServer(app);
 const sockets: SocketIO.Server = io.listen(httpServer);
