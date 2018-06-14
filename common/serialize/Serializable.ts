@@ -1,4 +1,5 @@
 import {PropName} from "./NetworkDecorators";
+import {CommonConfig} from "../CommonConfig";
 
 export abstract class Serializable {
     protected forceComplete: boolean;
@@ -12,7 +13,9 @@ export abstract class Serializable {
     }
 
     public addChange(change: string) {
-        this.changes.add(change);
+        if(CommonConfig.IS_SERVER) {
+            this.changes.add(change);
+        }
     }
 
     get DeserializedFields():Set<string> {

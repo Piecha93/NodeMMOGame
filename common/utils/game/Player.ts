@@ -2,9 +2,8 @@ import {INPUT_COMMAND} from "../../input/InputCommands";
 import {Transform} from "../physics/Transform";
 import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {CommonConfig, Origin} from "../../CommonConfig";
+import {CommonConfig} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
-import {SpatialGrid} from "../physics/SpatialGrid";
 import {Obstacle} from "./Obstacle";
 import {GameObjectsFactory} from "./ObjectsFactory";
 
@@ -75,6 +74,10 @@ export class Player extends Actor {
             this.lastInputSnapshot.setSnapshotDelta();
         }
 
+        this.updatePosition(delta);
+    }
+
+    protected updatePosition(delta: number) {
         let moveFactors: [number, number] = this.parseMoveDir();
         if (moveFactors[0] != 0) {
             this.Transform.X += moveFactors[0] * this.velocity * delta;
@@ -86,7 +89,9 @@ export class Player extends Actor {
         }
     }
 
-    public reconciliation(serverSnapshotData: [number, number], spatialGrid: SpatialGrid) {
+    //TODO investigate and fix
+    public reconciliation(serverSnapshotData: [number, number]) {
+        // console.log("start");
         let serverSnapshotId: number = serverSnapshotData[0];
         let serverSnapshotDelta: number = serverSnapshotData[1];
         let histElemsToRemove: number = 0;
@@ -107,7 +112,7 @@ export class Player extends Actor {
                 delta -= serverSnapshotDelta;
             }
             this.setInput(this.inputHistory[i]);
-            let moveFactors: [number, number] = this.parseMoveDir();
+            // let moveFactors: [number, number] = this.parseMoveDir();
 
             let stepSize = 25;
             let steps: number = Math.floor(delta / stepSize);
@@ -120,19 +125,17 @@ export class Player extends Actor {
                 } else {
                     step = stepSize;
                 }
+                // console.log("update pos " + step + " " + moveFactors);
 
-                if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
-                    this.Transform.X += moveFactors[0] * this.velocity * step;
-                }
-                if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
-                    this.Transform.Y += moveFactors[1] * this.velocity * step;
-                }
-                spatialGrid.insertObject(this);
-                for (let cell of this.spatialGridCells) {
-                    cell.checkCollisionsForObject(this);
-                }
+                this.updatePosition(step);
+
+                // spatialGrid.insertObject(this);
+                // for (let cell of this.spatialGridCells) {
+                //     cell.checkCollisionsForObject(this);
+                // }
             }
         }
+        // console.log("stop "+ histElemsToRemove);
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
     }
 

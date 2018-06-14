@@ -1,11 +1,10 @@
-import * as SAT from 'sat';
-
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable} from "../../serialize/Serializable"
+import {Polygon, Circle} from "detect-collisions";
 
 export class Transform extends Serializable {
-    private shape: SAT.Polygon | SAT.Circle;
+    private shape: Polygon | Circle;
 
     private width: number;
     private height: number;
@@ -13,71 +12,52 @@ export class Transform extends Serializable {
 
     constructor(x?: number, y?: number, width?: number, height?: number) {
         super();
+
         x = x || 0;
         y = y || 0;
 
         this.width = width || 32;
         this.height = height || this.width;
 
-        let position: SAT.Vector = new SAT.Vector(x, y);
-
         if(!height) {
-            this.shape = new SAT.Circle(position, this.width);
+            this.shape = new Circle(x, y, width);
         } else {
             let w: number = this.Width / 2;
             let h: number = this.Height / 2;
 
-            this.shape = new SAT.Polygon(position, [
-                new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-                new SAT.Vector(w, h), new SAT.Vector(-w, h)
-            ]);
+            this.shape = new Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
         }
     }
-
-    static testCollision(t1: Transform, t2: Transform, response?: SAT.Response) {
-        let result: boolean;
-        if(t1.Body instanceof SAT.Polygon && t2.Body instanceof SAT.Polygon) {
-            result = SAT.testPolygonPolygon(t1.Body, t2.Body, response);
-        } else if(t1.Body instanceof SAT.Circle && t2.Body instanceof SAT.Circle) {
-            result = SAT.testCircleCircle(t1.Body, t2.Body, response);
-        } else if(t1.Body instanceof SAT.Polygon && t2.Body instanceof SAT.Circle) {
-            result = SAT.testPolygonCircle(t1.Body, t2.Body, response);
-        } else if(t1.Body instanceof SAT.Circle && t2.Body instanceof SAT.Polygon) {
-            result = SAT.testCirclePolygon(t1.Body, t2.Body, response);
-        }
-
-        return result;
-    }
-
 
     rotate(angle: number) {
         this.Rotation += angle;
     }
 
     get Magnitude(): number {
-        return this.shape.pos.len();
+        return 0;
+        // return this.shape.pos.len();
     }
 
-    get Body(): SAT.Polygon | SAT.Circle {
+    get Body(): Polygon | Circle {
         return this.shape;
     }
 
     get X(): number {
-        return this.shape.pos.x;
+        return this.shape.x;
     }
 
     @NetworkProperty(ChangesDict.X,)
     set X(x: number) {
-        this.shape.pos.x = x;
+        this.shape.x = x;
     }
 
     get Y(): number {
-        return this.shape.pos.y;
+        return this.shape.y;
     }
 
     @NetworkProperty(ChangesDict.Y)
     set Y(y: number) {
-        this.shape.pos.y = y;
+        this.shape.y = y;
     }
 
     @NetworkProperty(ChangesDict.WIDTH)
@@ -85,16 +65,13 @@ export class Transform extends Serializable {
         if(this.width == width) return;
         this.width = width;
 
-        if(this.shape instanceof SAT.Polygon) {
+        if(this.shape instanceof Polygon) {
             let w: number = this.Width / 2;
             let h: number = this.Height / 2;
-            this.shape = new SAT.Polygon(this.shape.pos, [
-                new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-                new SAT.Vector(w, h), new SAT.Vector(-w, h)
-            ]);
-        } else if(this.shape instanceof SAT.Circle) {
-            this.shape.r = this.width;
-            this.height = this.shape.r;
+            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
+        } else { //circle
+            this.shape.radius = this.width;
+            this.height = this.shape.radius;
         }
 
         this.addChange(ChangesDict.WIDTH);
@@ -109,16 +86,13 @@ export class Transform extends Serializable {
         if(this.height == height) return;
         this.height = height;
 
-        if(this.shape instanceof SAT.Polygon) {
+        if(this.shape instanceof Polygon) {
             let w: number = this.Width / 2;
             let h: number = this.Height / 2;
-            this.shape = new SAT.Polygon(this.shape.pos, [
-                new SAT.Vector(-w, -h), new SAT.Vector(w, -h),
-                new SAT.Vector(w, h), new SAT.Vector(-w, h)
-            ]);
-        } else if(this.shape instanceof SAT.Circle) {
-            this.shape.r = this.height;
-            this.width = this.shape.r;
+            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
+        } else { //circle
+            this.shape.radius = this.width;
+            this.height = this.shape.radius;
         }
         this.addChange(ChangesDict.HEIGHT);
     }
@@ -129,8 +103,8 @@ export class Transform extends Serializable {
 
     @NetworkProperty(ChangesDict.ROTATION)
     set Rotation(angle: number) {
-        if(this.Body instanceof SAT.Polygon) {
-            this.Body.setAngle(angle);
+        if(this.shape instanceof Polygon) {
+            this.shape.angle = angle;
         }
         this.angle = angle;
     }

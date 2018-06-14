@@ -33,6 +33,7 @@
     "sat": "^0.6.0",
     "shortid": "^2.2.8",
     "socket.io": "^2.1.1",
+    "detect-collisions": "latest",
     "typescript": "next"
   },
   "scripts": {
