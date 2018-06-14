@@ -2150,9 +2150,9 @@ class GameClient {
                 gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
-            // if (lastSnapshotData && this.localPlayer.ID == id) {
-            // this.localPlayer.reconciliation(lastSnapshotData, this.world.SpatialGrid);
-            // }
+            if (lastSnapshotData && this.localPlayer.ID == id) {
+                this.localPlayer.reconciliation(lastSnapshotData);
+            }
         }
     }
 }
@@ -3187,6 +3187,7 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
+const CommonConfig_1 = require("../CommonConfig");
 class Serializable {
     constructor() {
         this.changes = new Set();
@@ -3194,7 +3195,9 @@ class Serializable {
         this.forceComplete = true;
     }
     addChange(change) {
-        this.changes.add(change);
+        if (CommonConfig_1.CommonConfig.IS_SERVER) {
+            this.changes.add(change);
+        }
     }
     get DeserializedFields() {
         return this.deserializedFields;
@@ -3277,7 +3280,7 @@ class Serializable {
 }
 exports.Serializable = Serializable;
 
-},{"./NetworkDecorators":33}],35:[function(require,module,exports){
+},{"../CommonConfig":25,"./NetworkDecorators":33}],35:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3713,9 +3716,7 @@ exports.GameObjectsFactory = GameObjectsFactory;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const ChangesDict_1 = require("../../../common/serialize/ChangesDict");
 class Obstacle extends GameObject_1.GameObject {
-    //private lifeSpan: number = -1;
     constructor(transform) {
         super(transform);
         transform.Height = 48;
@@ -3723,10 +3724,14 @@ class Obstacle extends GameObject_1.GameObject {
         this.SpriteName = "wall";
     }
     serverCollision(gameObject, result) {
-        this.Transform.X -= result.overlap * result.overlap_x;
-        this.Transform.Y -= result.overlap * result.overlap_y;
-        this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-        this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
+        // this.Transform.X -= result.overlap * result.overlap_x;
+        // this.Transform.Y -= result.overlap * result.overlap_y;
+        //
+        // this.Transform.Rotation -= Math.cos(result.overlap_x) + Math.sin(result.overlap_y);
+        //
+        // this.Transform.addChange(ChangesDict.X);
+        // this.Transform.addChange(ChangesDict.Y);
+        // this.Transform.addChange(ChangesDict.ROTATION);
     }
     commonCollision(gameObject, result) {
     }
@@ -3740,7 +3745,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"../../../common/serialize/ChangesDict":32,"./GameObject":38}],43:[function(require,module,exports){
+},{"./GameObject":38}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
@@ -3797,6 +3802,9 @@ class Player extends Actor_1.Actor {
         if (this.lastInputSnapshot) {
             this.lastInputSnapshot.setSnapshotDelta();
         }
+        this.updatePosition(delta);
+    }
+    updatePosition(delta) {
         let moveFactors = this.parseMoveDir();
         if (moveFactors[0] != 0) {
             this.Transform.X += moveFactors[0] * this.velocity * delta;
@@ -3807,55 +3815,55 @@ class Player extends Actor_1.Actor {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    // public reconciliation(serverSnapshotData: [number, number], spatialGrid: SpatialGrid) {
-    //     let serverSnapshotId: number = serverSnapshotData[0];
-    //     let serverSnapshotDelta: number = serverSnapshotData[1];
-    //     let histElemsToRemove: number = 0;
-    //
-    //     for(let i: number = 0; i < this.inputHistory.length; i++) {
-    //         if(this.inputHistory[i].ID < serverSnapshotId) {
-    //             histElemsToRemove++;
-    //             continue;
-    //         }
-    //         let delta: number = 0;
-    //
-    //         if(i < this.inputHistory.length - 1) {
-    //             delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
-    //         } else {
-    //             delta = this.inputHistory[i].SnapshotDelta;
-    //         }
-    //         if(this.inputHistory[i].ID == serverSnapshotId) {
-    //             delta -= serverSnapshotDelta;
-    //         }
-    //         this.setInput(this.inputHistory[i]);
-    //         let moveFactors: [number, number] = this.parseMoveDir();
-    //
-    //         let stepSize = 25;
-    //         let steps: number = Math.floor(delta / stepSize);
-    //         let rest: number = delta % stepSize;
-    //
-    //         for (let i = 0; i <= steps; i++) {
-    //             let step: number;
-    //             if (i == steps) {
-    //                 step = rest;
-    //             } else {
-    //                 step = stepSize;
-    //             }
-    //
-    //             if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
-    //                 this.Transform.X += moveFactors[0] * this.velocity * step;
-    //             }
-    //             if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
-    //                 this.Transform.Y += moveFactors[1] * this.velocity * step;
-    //             }
-    //             spatialGrid.insertObject(this);
-    //             for (let cell of this.spatialGridCells) {
-    //                 cell.checkCollisionsForObject(this);
-    //             }
-    //         }
-    //     }
-    //     this.inputHistory = this.inputHistory.splice(histElemsToRemove);
-    // }
+    reconciliation(serverSnapshotData) {
+        console.log("start");
+        let serverSnapshotId = serverSnapshotData[0];
+        let serverSnapshotDelta = serverSnapshotData[1];
+        let histElemsToRemove = 0;
+        for (let i = 0; i < this.inputHistory.length; i++) {
+            if (this.inputHistory[i].ID < serverSnapshotId) {
+                histElemsToRemove++;
+                continue;
+            }
+            let delta = 0;
+            if (i < this.inputHistory.length - 1) {
+                delta = this.inputHistory[i + 1].CreateTime - this.inputHistory[i].CreateTime;
+            }
+            else {
+                delta = this.inputHistory[i].SnapshotDelta;
+            }
+            if (this.inputHistory[i].ID == serverSnapshotId) {
+                delta -= serverSnapshotDelta;
+            }
+            this.setInput(this.inputHistory[i]);
+            let moveFactors = this.parseMoveDir();
+            let stepSize = 25;
+            let steps = delta / stepSize;
+            // let rest: number = delta % stepSize;
+            for (let i = 0; i <= steps; i++) {
+                let step;
+                // if (i == steps) {
+                //     step = rest;
+                // } else {
+                step = stepSize;
+                // }
+                console.log("update pos " + step + " " + moveFactors);
+                this.updatePosition(step);
+                // if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
+                //     this.Transform.X += moveFactors[0] * this.velocity * step;
+                // }
+                // if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
+                //     this.Transform.Y += moveFactors[1] * this.velocity * step;
+                // }
+                // spatialGrid.insertObject(this);
+                // for (let cell of this.spatialGridCells) {
+                //     cell.checkCollisionsForObject(this);
+                // }
+            }
+        }
+        console.log("stop " + histElemsToRemove);
+        this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+    }
     serverUpdate(delta) {
         super.serverUpdate(delta);
     }

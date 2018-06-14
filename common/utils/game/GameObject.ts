@@ -1,12 +1,11 @@
 import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig} from "../../CommonConfig";
-import {Collidable} from "../physics/Collidable";
 import {Serializable} from "../../serialize/Serializable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 
-export abstract class GameObject extends Serializable implements Collidable {
+export abstract class GameObject extends Serializable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME)
     protected spriteName: string;

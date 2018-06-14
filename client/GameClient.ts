@@ -147,9 +147,9 @@ export class GameClient {
                 gameObject = GameObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
-            // if (lastSnapshotData && this.localPlayer.ID == id) {
-                // this.localPlayer.reconciliation(lastSnapshotData, this.world.SpatialGrid);
-            // }
+            if (lastSnapshotData && this.localPlayer.ID == id) {
+                this.localPlayer.reconciliation(lastSnapshotData);
+            }
         }
     }
 }

@@ -5,8 +5,6 @@ import {ChangesDict} from "../../../common/serialize/ChangesDict";
 
 export class Obstacle extends GameObject {
 
-    //private lifeSpan: number = -1;
-
     constructor(transform: Transform) {
         super(transform);
 
@@ -17,11 +15,14 @@ export class Obstacle extends GameObject {
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {
-        this.Transform.X -= result.overlap * result.overlap_x;
-        this.Transform.Y -= result.overlap * result.overlap_y;
-
-        this.Transform.addChange(ChangesDict.X);
-        this.Transform.addChange(ChangesDict.Y);
+        // this.Transform.X -= result.overlap * result.overlap_x;
+        // this.Transform.Y -= result.overlap * result.overlap_y;
+        //
+        // this.Transform.Rotation -= Math.cos(result.overlap_x) + Math.sin(result.overlap_y);
+        //
+        // this.Transform.addChange(ChangesDict.X);
+        // this.Transform.addChange(ChangesDict.Y);
+        // this.Transform.addChange(ChangesDict.ROTATION);
     }
 
     protected commonCollision(gameObject: GameObject, result: Result) {

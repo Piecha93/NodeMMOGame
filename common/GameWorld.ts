@@ -5,8 +5,8 @@ import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: Collisions = new Collisions();
 
-    private height: number;
     private width: number;
+    private height: number;
 
     constructor(width: number, height: number) {
         super();
