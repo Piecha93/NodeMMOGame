@@ -1,10 +1,10 @@
 import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {CommonConfig, Origin} from "../../CommonConfig";
+import {CommonConfig} from "../../CommonConfig";
 import {Collidable} from "../physics/Collidable";
 import {Serializable} from "../../serialize/Serializable";
-import {Cell} from "../physics/SpatialGrid";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Result} from "detect-collisions";
 
 export abstract class GameObject extends Serializable implements Collidable {
     protected id: string = "";
@@ -22,8 +22,6 @@ export abstract class GameObject extends Serializable implements Collidable {
 
     private destroyed: boolean = false;
 
-    public spatialGridCells: Array<Cell> = [];
-
     constructor(transform: Transform) {
         super();
         this.transform = transform;
@@ -32,22 +30,18 @@ export abstract class GameObject extends Serializable implements Collidable {
         this.destroyListeners = new Set<Function>();
     }
 
-    onCollisionEnter(gameObject: GameObject, response: SAT.Response) {
-        if(response.a == this.Transform.Body) {
-            response.overlapV = response.overlapV.clone().reverse();
-        }
-
+    onCollisionEnter(gameObject: GameObject, result: Result) {
         if(CommonConfig.IS_SERVER) {
-            this.serverCollision(gameObject, response);
+            this.serverCollision(gameObject, result);
         }
-        this.commonCollision(gameObject, response);
+        this.commonCollision(gameObject, result);
     }
 
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
+    protected serverCollision(gameObject: GameObject, result: Result) {
 
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+    protected commonCollision(gameObject: GameObject, result: Result) {
 
     }
 

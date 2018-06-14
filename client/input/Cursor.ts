@@ -1,6 +1,7 @@
 import {Transform} from "../../common/utils/physics/Transform";
 import {GameObject} from "../../common/utils/game/GameObject";
 import {Enemy} from "../../common/utils/game/Enemy";
+import {Result} from "detect-collisions";
 
 export class Cursor extends GameObject {
     constructor(transform: Transform) {
@@ -14,7 +15,7 @@ export class Cursor extends GameObject {
 
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
+    protected commonCollision(gameObject: GameObject, result: Result) {
         if(gameObject instanceof Enemy) {
             console.log("Cursor is on " + (gameObject as Enemy).Name);
         } else {

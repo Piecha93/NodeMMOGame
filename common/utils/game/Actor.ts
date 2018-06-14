@@ -5,6 +5,7 @@ import {Bullet} from "./Bullet";
 import {Obstacle} from "./Obstacle";
 import {GameObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Result} from "detect-collisions";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
@@ -36,8 +37,8 @@ export abstract class Actor extends GameObject {
         bullet.Owner = this.ID;
     }
 
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        super.serverCollision(gameObject, response);
+    protected serverCollision(gameObject: GameObject, result: Result) {
+        super.serverCollision(gameObject, result);
         if(gameObject instanceof Bullet) {
             let bullet: Bullet = gameObject as Bullet;
             if(bullet.Owner == this.ID) {
@@ -47,12 +48,12 @@ export abstract class Actor extends GameObject {
         }
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        super.commonCollision(gameObject, response);
+    protected commonCollision(gameObject: GameObject, result: Result) {
+        super.commonCollision(gameObject, result);
 
         if(gameObject instanceof Obstacle) {
-            this.transform.X += response.overlapV.x * 1.2;
-            this.transform.Y += response.overlapV.y * 1.2;
+            this.Transform.X -= result.overlap * result.overlap_x;
+            this.Transform.Y -= result.overlap * result.overlap_y;
         }
     }
 

@@ -4,6 +4,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Result} from "detect-collisions";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
@@ -33,8 +34,8 @@ export class Bullet extends GameObject {
         this.addChange(ChangesDict.VELOCITY);
     }
 
-    protected serverCollision(gameObject: GameObject, response: SAT.Response) {
-        super.serverCollision(gameObject, response);
+    protected serverCollision(gameObject: GameObject, result: Result) {
+        super.serverCollision(gameObject, result);
         if(gameObject instanceof Bullet) {
             if((gameObject as Bullet).owner != this.owner) {
                 this.destroy();
@@ -48,8 +49,8 @@ export class Bullet extends GameObject {
         }
     }
 
-    protected commonCollision(gameObject: GameObject, response: SAT.Response) {
-        super.commonCollision(gameObject, response);
+    protected commonCollision(gameObject: GameObject, result: Result) {
+        super.commonCollision(gameObject, result);
     }
 
     get Power(): number {

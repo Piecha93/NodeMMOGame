@@ -1,5 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
+import {Result} from "detect-collisions";
+import {ChangesDict} from "../../../common/serialize/ChangesDict";
 
 export class Obstacle extends GameObject {
 
@@ -14,7 +16,15 @@ export class Obstacle extends GameObject {
         this.SpriteName = "wall";
     }
 
-    onCollisionEnter(gameObject: GameObject) {
+    protected serverCollision(gameObject: GameObject, result: Result) {
+        this.Transform.X -= result.overlap * result.overlap_x;
+        this.Transform.Y -= result.overlap * result.overlap_y;
+
+        this.Transform.addChange(ChangesDict.X);
+        this.Transform.addChange(ChangesDict.Y);
+    }
+
+    protected commonCollision(gameObject: GameObject, result: Result) {
 
     }
 

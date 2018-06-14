@@ -15,6 +15,7 @@ import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
 import * as LZString from "lz-string";
 import {Actor} from "../common/utils/game/Actor";
+import {Transform} from "../common/utils/physics/Transform";
 
 NetObjectsManager.Instance;
 
@@ -44,7 +45,7 @@ export class GameServer {
             }
         });
         let o: GameObject;
-        ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
+        // ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
         for (let i = 0; i < (this.world.Height - 48) / 48; i++) {
             o= GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = 0;
@@ -76,10 +77,8 @@ export class GameServer {
         o.Transform.Width = 150;
         o.Transform.Rotation = 3;
 
-        o = GameObjectsFactory.Instatiate("Obstacle");
-        o.Transform.X = 600;
-        o.Transform.Y = 600;
-        o.Transform.Width = 5;
+        o = GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform(600, 600, 5, 300));
+        o.Transform.Width = 1;
         o.Transform.Height = 300;
 
         let monsterCounter = 0;
@@ -96,9 +95,9 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 30; i++) {
-            createEnemy();
-        }
+        // for (let i = 0; i < 300; i++) {
+        //     createEnemy();
+        // }
         ///////////////////////////////////////////////////////////////////TEST
 
         this.startGameLoop();
