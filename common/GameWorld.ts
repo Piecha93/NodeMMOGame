@@ -1,9 +1,9 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsSubscriber} from "./utils/game/GameObjectsSubscriber";
-import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
+import {CollisionsSystem} from "./utils/physics/CollisionsSystem";
 
 export class GameWorld extends GameObjectsSubscriber {
-    private collistionsSystem: Collisions = new Collisions();
+    private collistionsSystem: CollisionsSystem = new CollisionsSystem();
 
     private width: number;
     private height: number;
@@ -20,31 +20,16 @@ export class GameWorld extends GameObjectsSubscriber {
             object.update(delta);
         });
 
-        this.collistionsSystem.update();
-
-        let result = new Result();
-
-        this.GameObjectsMapById.forEach((object: GameObject) => {
-            let potentials: Body[] = object.Transform.Body.potentials();
-
-            for(let body of potentials) {
-                if(object.Transform.Body.collides(body, result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), result)
-                }
-            }
-        });
+        this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
     }
 
-    private bodyToObjectMap: Map<Body, GameObject> = new Map<Body, GameObject>();
 
     public onObjectCreate(gameObject: GameObject) {
-        this.collistionsSystem.insert(gameObject.Transform.Body);
-        this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+        this.collistionsSystem.insertObject(gameObject);
     }
 
     public onObjectDestroy(gameObject: GameObject) {
-        this.collistionsSystem.remove(gameObject.Transform.Body);
-        this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        this.collistionsSystem.removeObject(gameObject);
     }
 
     get Width(): number {
@@ -53,6 +38,10 @@ export class GameWorld extends GameObjectsSubscriber {
 
     get Height(): number {
         return this.height;
+    }
+
+    get CollisionsSystem(): CollisionsSystem {
+        return this.collistionsSystem;
     }
 
     deserialize(world: string) {

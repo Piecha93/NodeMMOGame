@@ -2151,14 +2151,14 @@ class GameClient {
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {
-                this.localPlayer.reconciliation(lastSnapshotData);
+                this.localPlayer.reconciliation(lastSnapshotData, this.world.CollisionsSystem);
             }
         }
     }
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":41,"../common/utils/physics/Transform":44,".//net/InputSender":23,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/InputHandler":19,"./net/HeartBeatSender":22,"lz-string":80,"socket.io-client":84}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":41,"../common/utils/physics/Transform":45,".//net/InputSender":23,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/InputHandler":19,"./net/HeartBeatSender":22,"lz-string":81,"socket.io-client":85}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
@@ -2891,12 +2891,11 @@ exports.DeltaTimer = DeltaTimer;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./utils/game/GameObjectsSubscriber");
-const detect_collisions_1 = require("detect-collisions");
+const CollisionsSystem_1 = require("./utils/physics/CollisionsSystem");
 class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(width, height) {
         super();
-        this.collistionsSystem = new detect_collisions_1.Collisions();
-        this.bodyToObjectMap = new Map();
+        this.collistionsSystem = new CollisionsSystem_1.CollisionsSystem();
         this.width = width;
         this.height = height;
         console.log("create game instance");
@@ -2905,30 +2904,22 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.GameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
-        this.collistionsSystem.update();
-        let result = new detect_collisions_1.Result();
-        this.GameObjectsMapById.forEach((object) => {
-            let potentials = object.Transform.Body.potentials();
-            for (let body of potentials) {
-                if (object.Transform.Body.collides(body, result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), result);
-                }
-            }
-        });
+        this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
     }
     onObjectCreate(gameObject) {
-        this.collistionsSystem.insert(gameObject.Transform.Body);
-        this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+        this.collistionsSystem.insertObject(gameObject);
     }
     onObjectDestroy(gameObject) {
-        this.collistionsSystem.remove(gameObject.Transform.Body);
-        this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        this.collistionsSystem.removeObject(gameObject);
     }
     get Width() {
         return this.width;
     }
     get Height() {
         return this.height;
+    }
+    get CollisionsSystem() {
+        return this.collistionsSystem;
     }
     deserialize(world) {
     }
@@ -2938,7 +2929,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"./utils/game/GameObjectsSubscriber":40,"detect-collisions":53}],28:[function(require,module,exports){
+},{"./utils/game/GameObjectsSubscriber":40,"./utils/physics/CollisionsSystem":44}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -3369,7 +3360,7 @@ __decorate([
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":44,"./Bullet":36,"./GameObject":38,"./ObjectsFactory":41,"./Obstacle":42}],36:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":45,"./Bullet":36,"./GameObject":38,"./ObjectsFactory":41,"./Obstacle":42}],36:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3605,7 +3596,7 @@ __decorate([
 ], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":44}],39:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":45}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Types {
@@ -3712,7 +3703,7 @@ GameObjectsFactory.ObjectTypes = new Map([
 ]);
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../../../client/input/Cursor":24,"../physics/Transform":44,"./Bullet":36,"./Enemy":37,"./GameObjectTypes":39,"./Obstacle":42,"./Player":43}],42:[function(require,module,exports){
+},{"../../../client/input/Cursor":24,"../physics/Transform":45,"./Bullet":36,"./Enemy":37,"./GameObjectTypes":39,"./Obstacle":42,"./Player":43}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3815,8 +3806,7 @@ class Player extends Actor_1.Actor {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    reconciliation(serverSnapshotData) {
-        console.log("start");
+    reconciliation(serverSnapshotData, collisionsSystem) {
         let serverSnapshotId = serverSnapshotData[0];
         let serverSnapshotDelta = serverSnapshotData[1];
         let histElemsToRemove = 0;
@@ -3836,32 +3826,27 @@ class Player extends Actor_1.Actor {
                 delta -= serverSnapshotDelta;
             }
             this.setInput(this.inputHistory[i]);
-            let moveFactors = this.parseMoveDir();
             let stepSize = 25;
-            let steps = delta / stepSize;
-            // let rest: number = delta % stepSize;
+            let steps = Math.floor(delta / stepSize);
+            let rest = delta % stepSize;
             for (let i = 0; i <= steps; i++) {
                 let step;
-                // if (i == steps) {
-                //     step = rest;
-                // } else {
-                step = stepSize;
-                // }
-                console.log("update pos " + step + " " + moveFactors);
-                this.updatePosition(step);
-                // if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
-                //     this.Transform.X += moveFactors[0] * this.velocity * step;
-                // }
-                // if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
-                //     this.Transform.Y += moveFactors[1] * this.velocity * step;
-                // }
-                // spatialGrid.insertObject(this);
-                // for (let cell of this.spatialGridCells) {
-                //     cell.checkCollisionsForObject(this);
-                // }
+                if (i == steps) {
+                    step = rest;
+                }
+                else {
+                    step = stepSize;
+                }
+                let moveFactors = this.parseMoveDir();
+                if (this.Transform.DeserializedFields.has(ChangesDict_1.ChangesDict.X)) {
+                    this.Transform.X += moveFactors[0] * this.velocity * step;
+                }
+                if (this.Transform.DeserializedFields.has(ChangesDict_1.ChangesDict.Y)) {
+                    this.Transform.Y += moveFactors[1] * this.velocity * step;
+                }
+                collisionsSystem.updateCollisionsForObject(this);
             }
         }
-        console.log("stop " + histElemsToRemove);
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
     }
     serverUpdate(delta) {
@@ -3892,6 +3877,48 @@ Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cor
 exports.Player = Player;
 
 },{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"./Actor":35}],44:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const detect_collisions_1 = require("detect-collisions");
+class CollisionsSystem extends detect_collisions_1.Collisions {
+    constructor() {
+        super();
+        this.bodyToObjectMap = new Map();
+    }
+    insertObject(gameObject) {
+        super.insert(gameObject.Transform.Body);
+        this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+    }
+    removeObject(gameObject) {
+        super.remove(gameObject.Transform.Body);
+        this.bodyToObjectMap.delete(gameObject.Transform.Body);
+    }
+    updateCollisions(gameObjectsMapById) {
+        super.update();
+        let result = new detect_collisions_1.Result();
+        gameObjectsMapById.forEach((object) => {
+            let potentials = object.Transform.Body.potentials();
+            for (let body of potentials) {
+                if (object.Transform.Body.collides(body, result)) {
+                    object.onCollisionEnter(this.bodyToObjectMap.get(body), result);
+                }
+            }
+        });
+    }
+    updateCollisionsForObject(gameObject) {
+        super.update();
+        let result = new detect_collisions_1.Result();
+        let potentials = gameObject.Transform.Body.potentials();
+        for (let body of potentials) {
+            if (gameObject.Transform.Body.collides(body, result)) {
+                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), result);
+            }
+        }
+    }
+}
+exports.CollisionsSystem = CollisionsSystem;
+
+},{"detect-collisions":54}],45:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4019,7 +4046,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":53}],45:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":54}],46:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -4049,7 +4076,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],46:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -4080,7 +4107,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -4167,7 +4194,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -4236,7 +4263,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -4336,7 +4363,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -4361,7 +4388,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -4526,7 +4553,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -4534,7 +4561,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 const BVH = require('./modules/BVH.js')
 const Circle = require('./modules/Circle.js')
 const Polygon = require('./modules/Polygon.js')
@@ -4699,7 +4726,7 @@ module.exports = {
   Point
 }
 
-},{"./modules/BVH.js":54,"./modules/Circle.js":57,"./modules/Point.js":58,"./modules/Polygon.js":59,"./modules/Result.js":60,"./modules/SAT.js":61}],54:[function(require,module,exports){
+},{"./modules/BVH.js":55,"./modules/Circle.js":58,"./modules/Point.js":59,"./modules/Polygon.js":60,"./modules/Result.js":61,"./modules/SAT.js":62}],55:[function(require,module,exports){
 const BVHBranch = require('./BVHBranch')
 
 /**
@@ -5105,7 +5132,7 @@ module.exports = BVH
 
 module.exports.default = module.exports
 
-},{"./BVHBranch":55}],55:[function(require,module,exports){
+},{"./BVHBranch":56}],56:[function(require,module,exports){
 /**
  * @private
  */
@@ -5184,7 +5211,7 @@ module.exports = BVHBranch
 
 module.exports.default = module.exports
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 const Result = require('./Result')
 const SAT = require('./SAT')
 
@@ -5308,7 +5335,7 @@ module.exports = Body
 
 module.exports.default = module.exports
 
-},{"./Result":60,"./SAT":61}],57:[function(require,module,exports){
+},{"./Result":61,"./SAT":62}],58:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5358,7 +5385,7 @@ module.exports = Circle
 
 module.exports.default = module.exports
 
-},{"./Body":56}],58:[function(require,module,exports){
+},{"./Body":57}],59:[function(require,module,exports){
 const Polygon = require('./Polygon')
 
 /**
@@ -5386,7 +5413,7 @@ module.exports = Point
 
 module.exports.default = module.exports
 
-},{"./Polygon":59}],59:[function(require,module,exports){
+},{"./Polygon":60}],60:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5632,7 +5659,7 @@ module.exports = Polygon
 
 module.exports.default = module.exports
 
-},{"./Body":56}],60:[function(require,module,exports){
+},{"./Body":57}],61:[function(require,module,exports){
 /**
  * An object used to collect the detailed results of a collision test
  *
@@ -5698,7 +5725,7 @@ module.exports = Result
 
 module.exports.default = module.exports
 
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 /**
  * Determines if two bodies are colliding using the Separating Axis Theorem
  * @private
@@ -6110,7 +6137,7 @@ module.exports = SAT
 
 module.exports.default = module.exports
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -6122,7 +6149,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":63,"engine.io-parser":73}],63:[function(require,module,exports){
+},{"./socket":64,"engine.io-parser":74}],64:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -6869,7 +6896,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":64,"./transports/index":65,"component-emitter":51,"debug":71,"engine.io-parser":73,"indexof":79,"parseqs":82,"parseuri":83}],64:[function(require,module,exports){
+},{"./transport":65,"./transports/index":66,"component-emitter":52,"debug":72,"engine.io-parser":74,"indexof":80,"parseqs":83,"parseuri":84}],65:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7028,7 +7055,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":51,"engine.io-parser":73}],65:[function(require,module,exports){
+},{"component-emitter":52,"engine.io-parser":74}],66:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -7085,7 +7112,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":66,"./polling-xhr":67,"./websocket":69,"xmlhttprequest-ssl":70}],66:[function(require,module,exports){
+},{"./polling-jsonp":67,"./polling-xhr":68,"./websocket":70,"xmlhttprequest-ssl":71}],67:[function(require,module,exports){
 (function (global){
 
 /**
@@ -7320,7 +7347,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":68,"component-inherit":52}],67:[function(require,module,exports){
+},{"./polling":69,"component-inherit":53}],68:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -7736,7 +7763,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":68,"component-emitter":51,"component-inherit":52,"debug":71,"xmlhttprequest-ssl":70}],68:[function(require,module,exports){
+},{"./polling":69,"component-emitter":52,"component-inherit":53,"debug":72,"xmlhttprequest-ssl":71}],69:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7983,7 +8010,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":64,"component-inherit":52,"debug":71,"engine.io-parser":73,"parseqs":82,"xmlhttprequest-ssl":70,"yeast":98}],69:[function(require,module,exports){
+},{"../transport":65,"component-inherit":53,"debug":72,"engine.io-parser":74,"parseqs":83,"xmlhttprequest-ssl":71,"yeast":99}],70:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8273,7 +8300,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":64,"component-inherit":52,"debug":71,"engine.io-parser":73,"parseqs":82,"ws":1,"yeast":98}],70:[function(require,module,exports){
+},{"../transport":65,"component-inherit":53,"debug":72,"engine.io-parser":74,"parseqs":83,"ws":1,"yeast":99}],71:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -8314,7 +8341,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":78}],71:[function(require,module,exports){
+},{"has-cors":79}],72:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -8513,7 +8540,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":72,"_process":6}],72:[function(require,module,exports){
+},{"./debug":73,"_process":6}],73:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -8740,7 +8767,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":81}],73:[function(require,module,exports){
+},{"ms":82}],74:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9350,7 +9377,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":74,"./utf8":75,"after":45,"arraybuffer.slice":46,"base64-arraybuffer":48,"blob":49,"has-binary2":76}],74:[function(require,module,exports){
+},{"./keys":75,"./utf8":76,"after":46,"arraybuffer.slice":47,"base64-arraybuffer":49,"blob":50,"has-binary2":77}],75:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -9371,7 +9398,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -9630,7 +9657,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 (function (Buffer){
 /* global Blob File */
 
@@ -9698,9 +9725,9 @@ function hasBinary (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"isarray":77}],77:[function(require,module,exports){
+},{"buffer":2,"isarray":78}],78:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],78:[function(require,module,exports){
+},{"dup":5}],79:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -9719,7 +9746,7 @@ try {
   module.exports = false;
 }
 
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -9730,7 +9757,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 // Copyright (c) 2013 Pieroxy <pieroxy@pieroxy.net>
 // This work is free. You can redistribute it and/or modify it
 // under the terms of the WTFPL, Version 2
@@ -10233,7 +10260,7 @@ if (typeof define === 'function' && define.amd) {
   module.exports = LZString
 }
 
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -10387,7 +10414,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -10426,7 +10453,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -10467,7 +10494,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],84:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10563,7 +10590,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":85,"./socket":87,"./url":88,"debug":89,"socket.io-parser":92}],85:[function(require,module,exports){
+},{"./manager":86,"./socket":88,"./url":89,"debug":90,"socket.io-parser":93}],86:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11138,7 +11165,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":86,"./socket":87,"backo2":47,"component-bind":50,"component-emitter":51,"debug":89,"engine.io-client":62,"indexof":79,"socket.io-parser":92}],86:[function(require,module,exports){
+},{"./on":87,"./socket":88,"backo2":48,"component-bind":51,"component-emitter":52,"debug":90,"engine.io-client":63,"indexof":80,"socket.io-parser":93}],87:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -11164,7 +11191,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],87:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11604,7 +11631,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":86,"component-bind":50,"component-emitter":51,"debug":89,"has-binary2":76,"parseqs":82,"socket.io-parser":92,"to-array":97}],88:[function(require,module,exports){
+},{"./on":87,"component-bind":51,"component-emitter":52,"debug":90,"has-binary2":77,"parseqs":83,"socket.io-parser":93,"to-array":98}],89:[function(require,module,exports){
 (function (global){
 
 /**
@@ -11683,11 +11710,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":89,"parseuri":83}],89:[function(require,module,exports){
-arguments[4][71][0].apply(exports,arguments)
-},{"./debug":90,"_process":6,"dup":71}],90:[function(require,module,exports){
+},{"debug":90,"parseuri":84}],90:[function(require,module,exports){
 arguments[4][72][0].apply(exports,arguments)
-},{"dup":72,"ms":81}],91:[function(require,module,exports){
+},{"./debug":91,"_process":6,"dup":72}],91:[function(require,module,exports){
+arguments[4][73][0].apply(exports,arguments)
+},{"dup":73,"ms":82}],92:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -11832,7 +11859,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":93,"isarray":96}],92:[function(require,module,exports){
+},{"./is-buffer":94,"isarray":97}],93:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12251,7 +12278,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":91,"./is-buffer":93,"component-emitter":51,"debug":94,"isarray":96}],93:[function(require,module,exports){
+},{"./binary":92,"./is-buffer":94,"component-emitter":52,"debug":95,"isarray":97}],94:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -12279,13 +12306,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],94:[function(require,module,exports){
-arguments[4][71][0].apply(exports,arguments)
-},{"./debug":95,"_process":6,"dup":71}],95:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 arguments[4][72][0].apply(exports,arguments)
-},{"dup":72,"ms":81}],96:[function(require,module,exports){
+},{"./debug":96,"_process":6,"dup":72}],96:[function(require,module,exports){
+arguments[4][73][0].apply(exports,arguments)
+},{"dup":73,"ms":82}],97:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],97:[function(require,module,exports){
+},{"dup":5}],98:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -12300,7 +12327,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],98:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')

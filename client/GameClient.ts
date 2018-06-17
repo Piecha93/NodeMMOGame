@@ -148,7 +148,7 @@ export class GameClient {
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {
-                this.localPlayer.reconciliation(lastSnapshotData);
+                this.localPlayer.reconciliation(lastSnapshotData, this.world.CollisionsSystem);
             }
         }
     }

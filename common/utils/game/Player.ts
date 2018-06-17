@@ -6,6 +6,7 @@ import {CommonConfig} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
 import {Obstacle} from "./Obstacle";
 import {GameObjectsFactory} from "./ObjectsFactory";
+import {CollisionsSystem} from "..//physics/CollisionsSystem";
 
 export class Player extends Actor {
     private moveDirection: number = 0;
@@ -43,7 +44,7 @@ export class Player extends Actor {
             if(key == INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
                 this.pushSnapshotToHistory(inputSnapshot);
-            } else if(key ==  INPUT_COMMAND.FIRE) {
+            } else if(key == INPUT_COMMAND.FIRE) {
                 this.fireAction(value);
             }
         });
@@ -89,9 +90,7 @@ export class Player extends Actor {
         }
     }
 
-    //TODO investigate and fix
-    public reconciliation(serverSnapshotData: [number, number]) {
-        // console.log("start");
+    public reconciliation(serverSnapshotData: [number, number], collisionsSystem: CollisionsSystem) {
         let serverSnapshotId: number = serverSnapshotData[0];
         let serverSnapshotDelta: number = serverSnapshotData[1];
         let histElemsToRemove: number = 0;
@@ -112,7 +111,6 @@ export class Player extends Actor {
                 delta -= serverSnapshotDelta;
             }
             this.setInput(this.inputHistory[i]);
-            // let moveFactors: [number, number] = this.parseMoveDir();
 
             let stepSize = 25;
             let steps: number = Math.floor(delta / stepSize);
@@ -125,17 +123,19 @@ export class Player extends Actor {
                 } else {
                     step = stepSize;
                 }
-                // console.log("update pos " + step + " " + moveFactors);
 
-                this.updatePosition(step);
+                let moveFactors: [number, number] = this.parseMoveDir();
 
-                // spatialGrid.insertObject(this);
-                // for (let cell of this.spatialGridCells) {
-                //     cell.checkCollisionsForObject(this);
-                // }
+                if (this.Transform.DeserializedFields.has(ChangesDict.X)) {
+                    this.Transform.X += moveFactors[0] * this.velocity * step;
+                }
+                if (this.Transform.DeserializedFields.has(ChangesDict.Y)) {
+                    this.Transform.Y += moveFactors[1] * this.velocity * step;
+                }
+
+                collisionsSystem.updateCollisionsForObject(this);
             }
         }
-        // console.log("stop "+ histElemsToRemove);
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
     }
 
