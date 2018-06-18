@@ -3039,6 +3039,9 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         serializedObjects = serializedObjects.slice(1);
         serializedObjects += this.destroyedObjects;
         this.destroyedObjects = "";
+        if (serializedObjects[0] == "$") {
+            serializedObjects = serializedObjects.slice(1);
+        }
         return serializedObjects;
     }
 }
@@ -3474,8 +3477,8 @@ class Enemy extends Actor_1.Actor {
         this.timeSinceLastShot -= delta;
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
-            for (let i = 0; i < 2; i++) {
-                // this.shot(Math.floor(Math.random() * 360));
+            for (let i = 0; i < 1; i++) {
+                this.shot(Math.floor(Math.random() * 360));
             }
         }
         this.moveAngle += Math.random() * 0.5 - 0.25;
@@ -3787,6 +3790,9 @@ class Player extends Actor_1.Actor {
     }
     fireAction(angle) {
         this.shot(parseFloat(angle));
+        for (let i = 0; i < 300; i++) {
+            this.shot(Math.floor(Math.random() * 360));
+        }
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);

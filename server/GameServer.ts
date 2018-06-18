@@ -17,6 +17,13 @@ import * as LZString from "lz-string";
 import {Actor} from "../common/utils/game/Actor";
 import {Transform} from "../common/utils/physics/Transform";
 
+const spawn = require('threads').spawn;
+
+let compress = function (update, done) {
+    const LZString = require("lz-string");
+    done(LZString.compressToUTF16(update));
+};
+
 NetObjectsManager.Instance;
 
 export class GameServer {
@@ -26,8 +33,12 @@ export class GameServer {
 
     private world: GameWorld;
 
+    private sendAndCompressUpdateThread = spawn(compress);
+
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
+
+        this.sendAndCompressUpdateThread.on("done", this.sendUpdate.bind(this));
     }
 
     public start() {
@@ -44,61 +55,8 @@ export class GameServer {
                     {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
             }
         });
-        let o: GameObject;
-        // ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
-        for (let i = 0; i < (this.world.Height - 48) / 48; i++) {
-            o= GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = 0;
-            o.Transform.Y = i * o.Transform.Height;
 
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = this.world.Width - o.Transform.Width;
-            o.Transform.Y = i * o.Transform.Height;
-        }
-
-        for (let i = 1; i < (this.world.Width - 48) / 48; i++) {
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = 0;
-
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = this.world.Height - 52;
-        }
-
-        o = GameObjectsFactory.Instatiate("Obstacle");
-        o.Transform.X = 150;
-        o.Transform.Y = 150;
-        o.Transform.Width = 150;
-
-        o = GameObjectsFactory.Instatiate("Obstacle");
-        o.Transform.X = 350;
-        o.Transform.Y = 450;
-        o.Transform.Width = 150;
-        o.Transform.Rotation = 3;
-
-        o = GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform(600, 600, 5, 300));
-        o.Transform.Width = 1;
-        o.Transform.Height = 300;
-
-        let monsterCounter = 0;
-        let createEnemy: Function = () => {
-            monsterCounter++;
-            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
-            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
-
-            e.Name = "Monster " + monsterCounter.toString();
-
-            e.addDestroyListener(() => {
-                createEnemy();
-            })
-        };
-
-        // for (let i = 0; i < 300; i++) {
-        //     createEnemy();
-        // }
-        ///////////////////////////////////////////////////////////////////TEST
+        this.initTestObjects();
 
         this.startGameLoop();
     }
@@ -112,7 +70,7 @@ export class GameServer {
 
 
         if(this.updateResolution++ % 5 == 0) {
-            this.sendUpdate();
+            this.collectAndCompressUpdate();
         }
         setTimeout(() => {
             this.startGameLoop();
@@ -215,22 +173,7 @@ export class GameServer {
         return avgBandwith;
     }
 
-    private sendUpdate() {
-        let update: string = NetObjectsManager.Instance.collectUpdate();
-
-        if(update[0] == "$") {
-            update = update.slice(1);
-        }
-
-        if(update == '') {
-            return;
-        }
-
-        update = LZString.compressToUTF16(update);
-
-        // let updateSize: number = getUTF8Size(update);
-        // console.log("avgBandwith " +  this.calculateAverageBandwith(updateSize).toFixed(3) + " latest(" + updateSize + ") ");
-
+    private sendUpdate(update) {
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
                 let player: Player = this.world.getGameObject(client.PlayerId) as Player;
@@ -248,6 +191,20 @@ export class GameServer {
         });
     }
 
+    private collectAndCompressUpdate() {
+        let update: string = NetObjectsManager.Instance.collectUpdate();
+
+        if(update[0] == "$") {
+            update = update.slice(1);
+        }
+
+        if(update == '') {
+            return;
+        }
+
+        this.sendAndCompressUpdateThread.send(update);
+    }
+
     private clientDisconnected(client: ServerClient, reason?: string) {
         if(!client) return;
 
@@ -263,6 +220,64 @@ export class GameServer {
             gameObject.destroy();
         }
         this.clients.delete(client.Socket);
+    }
+
+    private initTestObjects() {
+        let o: GameObject;
+        // ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
+        for (let i = 0; i < (this.world.Height - 48) / 48; i++) {
+            o= GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = 0;
+            o.Transform.Y = i * o.Transform.Height;
+
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = this.world.Width - o.Transform.Width;
+            o.Transform.Y = i * o.Transform.Height;
+        }
+
+        for (let i = 1; i < (this.world.Width - 48) / 48; i++) {
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = i * o.Transform.Width;
+            o.Transform.Y = 0;
+
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = i * o.Transform.Width;
+            o.Transform.Y = this.world.Height - 52;
+        }
+
+        o = GameObjectsFactory.Instatiate("Obstacle");
+        o.Transform.X = 150;
+        o.Transform.Y = 150;
+        o.Transform.Width = 150;
+
+        o = GameObjectsFactory.Instatiate("Obstacle");
+        o.Transform.X = 350;
+        o.Transform.Y = 450;
+        o.Transform.Width = 150;
+        o.Transform.Rotation = 3;
+
+        o = GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform(600, 600, 5, 300));
+        o.Transform.Width = 1;
+        o.Transform.Height = 300;
+
+        let monsterCounter = 0;
+        let createEnemy: Function = () => {
+            monsterCounter++;
+            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
+            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
+            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
+
+            e.Name = "Monster " + monsterCounter.toString();
+
+            e.addDestroyListener(() => {
+                createEnemy();
+            })
+        };
+
+        for (let i = 0; i < 300; i++) {
+            createEnemy();
+        }
+        ///////////////////////////////////////////////////////////////////TEST
     }
 }
 

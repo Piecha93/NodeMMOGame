@@ -23,6 +23,7 @@
     "@types/socket.io-client": "^1.4.32",
     "body-parser": "^1.17.2",
     "connect-mongo": "^1.3.2",
+    "detect-collisions": "latest",
     "ejs": "^2.5.5",
     "express": "^4.14.0",
     "express-session": "^1.15.2",
@@ -33,7 +34,6 @@
     "sat": "^0.6.0",
     "shortid": "^2.2.8",
     "socket.io": "^2.1.1",
-    "detect-collisions": "latest",
     "typescript": "next"
   },
   "scripts": {

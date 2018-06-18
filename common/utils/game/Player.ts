@@ -66,6 +66,9 @@ export class Player extends Actor {
 
     private fireAction(angle: string) {
         this.shot(parseFloat(angle));
+        for(let i = 0; i < 300; i++) {
+            this.shot(Math.floor(Math.random() * 360));
+        }
     }
 
     protected commonUpdate(delta: number) {

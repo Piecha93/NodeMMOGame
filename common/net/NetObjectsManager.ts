@@ -40,6 +40,10 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         serializedObjects += this.destroyedObjects;
         this.destroyedObjects = "";
 
+        if(serializedObjects[0] == "$") {
+            serializedObjects = serializedObjects.slice(1);
+        }
+
         return serializedObjects;
     }
 }
