@@ -46,18 +46,10 @@ export class Player extends Actor {
                 this.pushSnapshotToHistory(inputSnapshot);
             } else if(key == INPUT_COMMAND.FIRE) {
                 this.fireAction(value);
+            } else if(key == INPUT_COMMAND.WALL) {
+                this.wallAction(value);
             }
         });
-
-        // if(inputCommands.has(INPUT_COMMAND.WALL)) {
-        //     let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
-        //     let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
-        //     o.Transform.X = Number(splited[0]) + this.Transform.X;
-        //     o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-        //
-        //     this.Transform.addChange(ChangesDict.X);
-        //     this.Transform.addChange(ChangesDict.Y);
-        // }
     }
 
     private moveDirectionAction(direction: string) {
@@ -66,9 +58,21 @@ export class Player extends Actor {
 
     private fireAction(angle: string) {
         this.shot(parseFloat(angle));
-        for(let i = 0; i < 300; i++) {
-            this.shot(Math.floor(Math.random() * 360));
-        }
+        // for(let i = 0; i < 300; i++) {
+        //     this.shot(Math.floor(Math.random() * 360));
+        // }
+    }
+
+    private wallAction(coords) {
+        // FOR TEST
+
+        // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        // let splited = value.split(',');
+        // o.Transform.X = Number(splited[0]) + this.Transform.X;
+        // o.Transform.Y = Number(splited[1]) + this.Transform.Y;
+        //
+        // this.Transform.addChange(ChangesDict.X);
+        // this.Transform.addChange(ChangesDict.Y);
     }
 
     protected commonUpdate(delta: number) {

@@ -16,6 +16,10 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public update(delta: number) {
+        if(delta > 40) {
+            console.log("delta " + delta);
+            delta = 40;
+        }
         this.GameObjectsMapById.forEach((object: GameObject) => {
             object.update(delta);
         });

@@ -2,6 +2,7 @@ import {Transform} from "../../common/utils/physics/Transform";
 import {GameObject} from "../../common/utils/game/GameObject";
 import {Enemy} from "../../common/utils/game/Enemy";
 import {Result} from "detect-collisions";
+import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 
 export class Cursor extends GameObject {
     constructor(transform: Transform) {
@@ -17,9 +18,9 @@ export class Cursor extends GameObject {
 
     protected commonCollision(gameObject: GameObject, result: Result) {
         if(gameObject instanceof Enemy) {
-            console.log("Cursor is on " + (gameObject as Enemy).Name);
+            DebugWindowHtmlHandler.Instance.CursorObjectSpan = (gameObject as Enemy).Name;
         } else {
-            console.log("Cursor is on " + gameObject.SpriteName);
+            DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.SpriteName;
         }
     }
 }

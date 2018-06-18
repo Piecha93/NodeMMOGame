@@ -48,6 +48,7 @@ export class Renderer extends GameObjectsSubscriber {
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
+            .add('hp_potion', 'resources/images/hp_potion.png')
             .add('flame', 'resources/animations/flame/flame.json')
             .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);

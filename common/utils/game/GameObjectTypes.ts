@@ -1,12 +1,10 @@
 export class Types {
-    // static IdToClass: Map<string, string>;
-    // static ClassToId: Map<string, string>;
-
     static ClassToId = new Map<string, string>([
             ["Player", "P"],
             ["Enemy", "E"],
             ["Bullet", "B"],
             ["Obstacle", "O"],
+            ["Item", "I"],
         ]);
 
     static IdToClass = Types.reverseMap(Types.ClassToId);

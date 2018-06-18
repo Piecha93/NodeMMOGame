@@ -5,7 +5,7 @@ import {Enemy} from "./Enemy";
 import {Obstacle} from "./Obstacle";
 import {Bullet} from "./Bullet";
 import {Types} from "./GameObjectTypes";
-import {Cursor} from "../../../client/input/Cursor";
+import {Item} from "./Item";
 
 export class GameObjectsContainer {
     constructor() {
@@ -31,7 +31,7 @@ export class GameObjectsFactory {
         ["Enemy", Enemy],
         ["Bullet", Bullet],
         ["Obstacle", Obstacle],
-        ["Cursor", Cursor],
+        ["Item", Item]
     ]);
 
     static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: string): GameObject {
@@ -49,6 +49,24 @@ export class GameObjectsFactory {
             gameObject.deserialize(data);
         }
 
+        GameObjectsFactory.AddToListeners(gameObject);
+
+        return gameObject;
+    }
+
+    static Instatiate(type: string, id?: string, data?: string): GameObject {
+        let position: Transform = new Transform(0,0,32,32);
+
+        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
+    }
+
+    static InstatiateManually(gameObject: GameObject) {
+        GameObjectsFactory.AddToListeners(gameObject);
+
+        return gameObject;
+    }
+
+    private static AddToListeners(gameObject: GameObject) {
         GameObjectsContainer.gameObjectsMapById.set(gameObject.ID, gameObject);
 
         GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
@@ -61,13 +79,5 @@ export class GameObjectsFactory {
         gameObject.addDestroyListener(() => {
             GameObjectsContainer.gameObjectsMapById.delete(gameObject.ID);
         });
-
-        return gameObject;
-    }
-
-    static Instatiate(type: string, id?: string, data?: string): GameObject {
-        let position: Transform = new Transform(0,0,32,32);
-
-        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
     }
 }

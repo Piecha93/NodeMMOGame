@@ -13,9 +13,9 @@ import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/utils/game/Obstacle";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
-import * as LZString from "lz-string";
 import {Actor} from "../common/utils/game/Actor";
 import {Transform} from "../common/utils/physics/Transform";
+import {Item} from "../common/utils/game/Item";
 
 const spawn = require('threads').spawn;
 
@@ -37,8 +37,6 @@ export class GameServer {
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
-
-        this.sendAndCompressUpdateThread.on("done", this.sendUpdate.bind(this));
     }
 
     public start() {
@@ -49,12 +47,12 @@ export class GameServer {
     private startGame() {
         this.world = new GameWorld(2048, 1156);
 
-        GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
-            if(gameObject instanceof Actor) {
-                this.sockets.emit(SocketMsgs.CHAT_MESSAGE,
-                    {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
-            }
-        });
+        // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
+        //     if(gameObject instanceof Actor) {
+        //         this.sockets.emit(SocketMsgs.CHAT_MESSAGE,
+        //             {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
+        //     }
+        // });
 
         this.initTestObjects();
 
@@ -68,9 +66,8 @@ export class GameServer {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
 
-
         if(this.updateResolution++ % 5 == 0) {
-            this.collectAndCompressUpdate();
+            this.collectAndCompressUpdate(this.sendUpdate.bind(this));
         }
         setTimeout(() => {
             this.startGameLoop();
@@ -112,13 +109,15 @@ export class GameServer {
 
                 serverClient.PlayerId = player.ID;
 
-                let update: string = LZString.compressToUTF16(NetObjectsManager.Instance.collectUpdate(true));
-                let world: string = this.world.serialize();
-                socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
-                player.forceCompleteUpdate();
-                serverClient.IsReady = true;
+                // let update: string = LZString.compressToUTF16(NetObjectsManager.Instance.collectUpdate(true));
+                this.collectAndCompressUpdate((update) => {
+                    let world: string = this.world.serialize();
+                    socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
+                    player.forceCompleteUpdate();
+                    serverClient.IsReady = true;
 
-                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
+                    this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
+                }, true);
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
@@ -191,8 +190,8 @@ export class GameServer {
         });
     }
 
-    private collectAndCompressUpdate() {
-        let update: string = NetObjectsManager.Instance.collectUpdate();
+    private collectAndCompressUpdate(callback: Function, complete: boolean = false) {
+        let update: string = NetObjectsManager.Instance.collectUpdate(complete);
 
         if(update[0] == "$") {
             update = update.slice(1);
@@ -202,7 +201,7 @@ export class GameServer {
             return;
         }
 
-        this.sendAndCompressUpdateThread.send(update);
+        this.sendAndCompressUpdateThread.send(update).once("done", callback);
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {
@@ -261,7 +260,7 @@ export class GameServer {
         o.Transform.Height = 300;
 
         let monsterCounter = 0;
-        let createEnemy: Function = () => {
+        let spawnEnemy: Function = () => {
             monsterCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
             e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
@@ -270,12 +269,26 @@ export class GameServer {
             e.Name = "Monster " + monsterCounter.toString();
 
             e.addDestroyListener(() => {
-                createEnemy();
+                spawnEnemy();
             })
         };
 
-        for (let i = 0; i < 300; i++) {
-            createEnemy();
+        for (let i = 0; i < 10; i++) {
+            spawnEnemy();
+        }
+
+        let spawnItem: Function = () => {
+            let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
+            i.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
+            i.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
+
+            i.addDestroyListener(() => {
+                spawnItem();
+            })
+        };
+
+        for (let i = 0; i < 10; i++) {
+            spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST
     }

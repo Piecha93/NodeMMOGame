@@ -2053,6 +2053,7 @@ const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtml
 const GameObjectTypes_1 = require("../common/utils/game/GameObjectTypes");
 const LZString = require("lz-string");
 const io = require("socket.io-client");
+const Cursor_1 = require("./input/Cursor");
 const Transform_1 = require("../common/utils/physics/Transform");
 class GameClient {
     constructor() {
@@ -2097,7 +2098,7 @@ class GameClient {
         });
     }
     startGame() {
-        this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Cursor", new Transform_1.Transform(1, 1, 1));
+        this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
         this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
         this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
         this.inputHandler.addSnapshotCallback((snapshot) => {
@@ -2158,7 +2159,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":41,"../common/utils/physics/Transform":45,".//net/InputSender":23,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/InputHandler":19,"./net/HeartBeatSender":22,"lz-string":81,"socket.io-client":85}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":42,"../common/utils/physics/Transform":46,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"lz-string":82,"socket.io-client":86}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
@@ -2400,30 +2401,32 @@ class DebugWindowHtmlHandler {
         this.pingSpan = document.createElement("span");
         this.fpsSpan = document.createElement("span");
         this.gameObjectCounterSpan = document.createElement("span");
+        this.cursorObjectSpan = document.createElement("span");
         this.Ping = "";
         this.Fps = "";
         this.GameObjectCounter = "0";
         this.debugWindowDiv.appendChild(this.pingSpan);
         this.debugWindowDiv.appendChild(this.fpsSpan);
         this.debugWindowDiv.appendChild(this.gameObjectCounterSpan);
+        this.debugWindowDiv.appendChild(this.cursorObjectSpan);
     }
     static get Instance() {
-        if (DebugWindowHtmlHandler.instance) {
-            return DebugWindowHtmlHandler.instance;
+        if (!DebugWindowHtmlHandler.instance) {
+            DebugWindowHtmlHandler.instance = new DebugWindowHtmlHandler();
         }
-        else {
-            DebugWindowHtmlHandler.instance = new DebugWindowHtmlHandler;
-            return DebugWindowHtmlHandler.instance;
-        }
+        return DebugWindowHtmlHandler.instance;
     }
     set Ping(ping) {
-        this.pingSpan.textContent = "Ping(ms): " + ping;
+        this.pingSpan.textContent = "Ping(ms):         " + ping;
     }
     set Fps(fps) {
         this.fpsSpan.innerHTML = "<br>" + "Fps: " + fps;
     }
     set GameObjectCounter(gameObjects) {
         this.gameObjectCounterSpan.innerHTML = "<br>" + "GameObjects: " + gameObjects;
+    }
+    set CursorObjectSpan(cursorObject) {
+        this.cursorObjectSpan.innerHTML = "<br>" + "cursorObject: " + cursorObject;
     }
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
@@ -2496,6 +2499,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
+            .add('hp_potion', 'resources/images/hp_potion.png')
             .add('flame', 'resources/animations/flame/flame.json')
             .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);
@@ -2603,6 +2607,31 @@ exports.TileMap = TileMap;
 // }
 
 },{}],19:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObject_1 = require("../../common/utils/game/GameObject");
+const Enemy_1 = require("../../common/utils/game/Enemy");
+const DebugWindowHtmlHandler_1 = require("../graphic/HtmlHandlers/DebugWindowHtmlHandler");
+class Cursor extends GameObject_1.GameObject {
+    constructor(transform) {
+        super(transform);
+        this.invisible = true;
+    }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
+    }
+    commonCollision(gameObject, result) {
+        if (gameObject instanceof Enemy_1.Enemy) {
+            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.Name;
+        }
+        else {
+            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.SpriteName;
+        }
+    }
+}
+exports.Cursor = Cursor;
+
+},{"../../common/utils/game/Enemy":37,"../../common/utils/game/GameObject":38,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -2726,7 +2755,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../common/input/InputCommands":28,"../../common/input/InputSnapshot":29,"./InputMap":20}],20:[function(require,module,exports){
+},{"../../common/input/InputCommands":28,"../../common/input/InputSnapshot":29,"./InputMap":21}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -2747,17 +2776,17 @@ exports.InputMap = new Map([
     ['KeyF', INPUT.WALL],
 ]);
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameClient_1 = require("./GameClient");
 const CommonConfig_1 = require("../common/CommonConfig");
+const GameClient_1 = require("./GameClient");
 CommonConfig_1.CommonConfig.ORIGIN = CommonConfig_1.Origin.CLIENT;
 window.onload = () => {
     new GameClient_1.GameClient();
 };
 
-},{"../common/CommonConfig":25,"./GameClient":8}],22:[function(require,module,exports){
+},{"../common/CommonConfig":25,"./GameClient":8}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -2797,7 +2826,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../common/net/SocketMsgs":31,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],23:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":31,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -2815,31 +2844,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../common/net/SocketMsgs":31}],24:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const GameObject_1 = require("../../common/utils/game/GameObject");
-const Enemy_1 = require("../../common/utils/game/Enemy");
-class Cursor extends GameObject_1.GameObject {
-    constructor(transform) {
-        super(transform);
-        this.invisible = true;
-    }
-    commonUpdate(delta) {
-        super.commonUpdate(delta);
-    }
-    commonCollision(gameObject, result) {
-        if (gameObject instanceof Enemy_1.Enemy) {
-            console.log("Cursor is on " + gameObject.Name);
-        }
-        else {
-            console.log("Cursor is on " + gameObject.SpriteName);
-        }
-    }
-}
-exports.Cursor = Cursor;
-
-},{"../../common/utils/game/Enemy":37,"../../common/utils/game/GameObject":38}],25:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":31}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -2901,6 +2906,10 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         console.log("create game instance");
     }
     update(delta) {
+        if (delta > 40) {
+            console.log("delta " + delta);
+            delta = 40;
+        }
         this.GameObjectsMapById.forEach((object) => {
             object.update(delta);
         });
@@ -2929,7 +2938,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"./utils/game/GameObjectsSubscriber":40,"./utils/physics/CollisionsSystem":44}],28:[function(require,module,exports){
+},{"./utils/game/GameObjectsSubscriber":40,"./utils/physics/CollisionsSystem":45}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -3293,6 +3302,7 @@ const Bullet_1 = require("./Bullet");
 const Obstacle_1 = require("./Obstacle");
 const ObjectsFactory_1 = require("./ObjectsFactory");
 const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const Item_1 = require("./Item");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -3320,6 +3330,12 @@ class Actor extends GameObject_1.GameObject {
             }
             this.hit(bullet.Power);
         }
+        else if (gameObject instanceof Item_1.Item) {
+            let item = gameObject;
+            if (item.Claim()) {
+                this.heal(50);
+            }
+        }
     }
     commonCollision(gameObject, result) {
         super.commonCollision(gameObject, result);
@@ -3332,6 +3348,13 @@ class Actor extends GameObject_1.GameObject {
         this.hp -= power;
         if (this.hp < 0) {
             this.hp = 0;
+        }
+        this.addChange(ChangesDict_1.ChangesDict.HP);
+    }
+    heal(power) {
+        this.hp += power;
+        if (this.hp > this.maxHp) {
+            this.hp = this.maxHp;
         }
         this.addChange(ChangesDict_1.ChangesDict.HP);
     }
@@ -3363,7 +3386,7 @@ __decorate([
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":45,"./Bullet":36,"./GameObject":38,"./ObjectsFactory":41,"./Obstacle":42}],36:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":46,"./Bullet":36,"./GameObject":38,"./Item":41,"./ObjectsFactory":42,"./Obstacle":43}],36:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3453,7 +3476,7 @@ __decorate([
 ], Bullet.prototype, "owner", void 0);
 exports.Bullet = Bullet;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"./Actor":35,"./GameObject":38,"./Obstacle":42}],37:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"./Actor":35,"./GameObject":38,"./Obstacle":43}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3599,7 +3622,7 @@ __decorate([
 ], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":45}],39:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":46}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Types {
@@ -3611,13 +3634,12 @@ class Types {
         return reverseMap;
     }
 }
-// static IdToClass: Map<string, string>;
-// static ClassToId: Map<string, string>;
 Types.ClassToId = new Map([
     ["Player", "P"],
     ["Enemy", "E"],
     ["Bullet", "B"],
     ["Obstacle", "O"],
+    ["Item", "I"],
 ]);
 Types.IdToClass = Types.reverseMap(Types.ClassToId);
 exports.Types = Types;
@@ -3644,7 +3666,40 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./ObjectsFactory":41}],41:[function(require,module,exports){
+},{"./ObjectsFactory":42}],41:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObject_1 = require("./GameObject");
+class Item extends GameObject_1.GameObject {
+    constructor(transform) {
+        super(transform);
+        this.isClaimed = false;
+        this.spriteName = "hp_potion";
+    }
+    serverCollision(gameObject, result) {
+        super.serverCollision(gameObject, result);
+        this.destroy();
+    }
+    commonCollision(gameObject, result) {
+        super.commonCollision(gameObject, result);
+    }
+    serverUpdate(delta) {
+        super.serverUpdate(delta);
+    }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
+    }
+    Claim() {
+        if (this.isClaimed == false) {
+            this.isClaimed = true;
+            return true;
+        }
+        return false;
+    }
+}
+exports.Item = Item;
+
+},{"./GameObject":38}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -3653,7 +3708,7 @@ const Enemy_1 = require("./Enemy");
 const Obstacle_1 = require("./Obstacle");
 const Bullet_1 = require("./Bullet");
 const GameObjectTypes_1 = require("./GameObjectTypes");
-const Cursor_1 = require("../../../client/input/Cursor");
+const Item_1 = require("./Item");
 class GameObjectsContainer {
     constructor() {
         throw new Error("Cannot instatiate this class");
@@ -3677,6 +3732,18 @@ class GameObjectsFactory {
         if (data) {
             gameObject.deserialize(data);
         }
+        GameObjectsFactory.AddToListeners(gameObject);
+        return gameObject;
+    }
+    static Instatiate(type, id, data) {
+        let position = new Transform_1.Transform(0, 0, 32, 32);
+        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
+    }
+    static InstatiateManually(gameObject) {
+        GameObjectsFactory.AddToListeners(gameObject);
+        return gameObject;
+    }
+    static AddToListeners(gameObject) {
         GameObjectsContainer.gameObjectsMapById.set(gameObject.ID, gameObject);
         GameObjectsFactory.CreateCallbacks.forEach((callback) => {
             callback(gameObject);
@@ -3687,11 +3754,6 @@ class GameObjectsFactory {
         gameObject.addDestroyListener(() => {
             GameObjectsContainer.gameObjectsMapById.delete(gameObject.ID);
         });
-        return gameObject;
-    }
-    static Instatiate(type, id, data) {
-        let position = new Transform_1.Transform(0, 0, 32, 32);
-        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
     }
 }
 GameObjectsFactory.NEXT_ID = 0;
@@ -3702,11 +3764,11 @@ GameObjectsFactory.ObjectTypes = new Map([
     ["Enemy", Enemy_1.Enemy],
     ["Bullet", Bullet_1.Bullet],
     ["Obstacle", Obstacle_1.Obstacle],
-    ["Cursor", Cursor_1.Cursor],
+    ["Item", Item_1.Item]
 ]);
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../../../client/input/Cursor":24,"../physics/Transform":45,"./Bullet":36,"./Enemy":37,"./GameObjectTypes":39,"./Obstacle":42,"./Player":43}],42:[function(require,module,exports){
+},{"../physics/Transform":46,"./Bullet":36,"./Enemy":37,"./GameObjectTypes":39,"./Item":41,"./Obstacle":43,"./Player":44}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3739,7 +3801,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":38}],43:[function(require,module,exports){
+},{"./GameObject":38}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
@@ -3774,25 +3836,29 @@ class Player extends Actor_1.Actor {
             else if (key == InputCommands_1.INPUT_COMMAND.FIRE) {
                 this.fireAction(value);
             }
+            else if (key == InputCommands_1.INPUT_COMMAND.WALL) {
+                this.wallAction(value);
+            }
         });
-        // if(inputCommands.has(INPUT_COMMAND.WALL)) {
-        //     let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
-        //     let splited = inputCommands.get(INPUT_COMMAND.WALL).split(',');
-        //     o.Transform.X = Number(splited[0]) + this.Transform.X;
-        //     o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-        //
-        //     this.Transform.addChange(ChangesDict.X);
-        //     this.Transform.addChange(ChangesDict.Y);
-        // }
     }
     moveDirectionAction(direction) {
         this.moveDirection = parseInt(direction);
     }
     fireAction(angle) {
         this.shot(parseFloat(angle));
-        for (let i = 0; i < 300; i++) {
-            this.shot(Math.floor(Math.random() * 360));
-        }
+        // for(let i = 0; i < 300; i++) {
+        //     this.shot(Math.floor(Math.random() * 360));
+        // }
+    }
+    wallAction(coords) {
+        // FOR TEST
+        // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        // let splited = value.split(',');
+        // o.Transform.X = Number(splited[0]) + this.Transform.X;
+        // o.Transform.Y = Number(splited[1]) + this.Transform.Y;
+        //
+        // this.Transform.addChange(ChangesDict.X);
+        // this.Transform.addChange(ChangesDict.Y);
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
@@ -3882,7 +3948,7 @@ Player.moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.corn
 Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
 exports.Player = Player;
 
-},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"./Actor":35}],44:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"./Actor":35}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -3924,7 +3990,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"detect-collisions":54}],45:[function(require,module,exports){
+},{"detect-collisions":55}],46:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4052,7 +4118,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":54}],46:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":55}],47:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -4082,7 +4148,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -4113,7 +4179,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -4200,7 +4266,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -4269,7 +4335,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -4369,7 +4435,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -4394,7 +4460,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -4559,7 +4625,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -4567,7 +4633,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 const BVH = require('./modules/BVH.js')
 const Circle = require('./modules/Circle.js')
 const Polygon = require('./modules/Polygon.js')
@@ -4732,7 +4798,7 @@ module.exports = {
   Point
 }
 
-},{"./modules/BVH.js":55,"./modules/Circle.js":58,"./modules/Point.js":59,"./modules/Polygon.js":60,"./modules/Result.js":61,"./modules/SAT.js":62}],55:[function(require,module,exports){
+},{"./modules/BVH.js":56,"./modules/Circle.js":59,"./modules/Point.js":60,"./modules/Polygon.js":61,"./modules/Result.js":62,"./modules/SAT.js":63}],56:[function(require,module,exports){
 const BVHBranch = require('./BVHBranch')
 
 /**
@@ -5138,7 +5204,7 @@ module.exports = BVH
 
 module.exports.default = module.exports
 
-},{"./BVHBranch":56}],56:[function(require,module,exports){
+},{"./BVHBranch":57}],57:[function(require,module,exports){
 /**
  * @private
  */
@@ -5217,7 +5283,7 @@ module.exports = BVHBranch
 
 module.exports.default = module.exports
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 const Result = require('./Result')
 const SAT = require('./SAT')
 
@@ -5341,7 +5407,7 @@ module.exports = Body
 
 module.exports.default = module.exports
 
-},{"./Result":61,"./SAT":62}],58:[function(require,module,exports){
+},{"./Result":62,"./SAT":63}],59:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5391,7 +5457,7 @@ module.exports = Circle
 
 module.exports.default = module.exports
 
-},{"./Body":57}],59:[function(require,module,exports){
+},{"./Body":58}],60:[function(require,module,exports){
 const Polygon = require('./Polygon')
 
 /**
@@ -5419,7 +5485,7 @@ module.exports = Point
 
 module.exports.default = module.exports
 
-},{"./Polygon":60}],60:[function(require,module,exports){
+},{"./Polygon":61}],61:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5665,7 +5731,7 @@ module.exports = Polygon
 
 module.exports.default = module.exports
 
-},{"./Body":57}],61:[function(require,module,exports){
+},{"./Body":58}],62:[function(require,module,exports){
 /**
  * An object used to collect the detailed results of a collision test
  *
@@ -5731,7 +5797,7 @@ module.exports = Result
 
 module.exports.default = module.exports
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 /**
  * Determines if two bodies are colliding using the Separating Axis Theorem
  * @private
@@ -6143,7 +6209,7 @@ module.exports = SAT
 
 module.exports.default = module.exports
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -6155,7 +6221,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":64,"engine.io-parser":74}],64:[function(require,module,exports){
+},{"./socket":65,"engine.io-parser":75}],65:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -6902,7 +6968,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":65,"./transports/index":66,"component-emitter":52,"debug":72,"engine.io-parser":74,"indexof":80,"parseqs":83,"parseuri":84}],65:[function(require,module,exports){
+},{"./transport":66,"./transports/index":67,"component-emitter":53,"debug":73,"engine.io-parser":75,"indexof":81,"parseqs":84,"parseuri":85}],66:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7061,7 +7127,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":52,"engine.io-parser":74}],66:[function(require,module,exports){
+},{"component-emitter":53,"engine.io-parser":75}],67:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -7118,7 +7184,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":67,"./polling-xhr":68,"./websocket":70,"xmlhttprequest-ssl":71}],67:[function(require,module,exports){
+},{"./polling-jsonp":68,"./polling-xhr":69,"./websocket":71,"xmlhttprequest-ssl":72}],68:[function(require,module,exports){
 (function (global){
 
 /**
@@ -7353,7 +7419,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":69,"component-inherit":53}],68:[function(require,module,exports){
+},{"./polling":70,"component-inherit":54}],69:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -7769,7 +7835,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":69,"component-emitter":52,"component-inherit":53,"debug":72,"xmlhttprequest-ssl":71}],69:[function(require,module,exports){
+},{"./polling":70,"component-emitter":53,"component-inherit":54,"debug":73,"xmlhttprequest-ssl":72}],70:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -8016,7 +8082,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":65,"component-inherit":53,"debug":72,"engine.io-parser":74,"parseqs":83,"xmlhttprequest-ssl":71,"yeast":99}],70:[function(require,module,exports){
+},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":84,"xmlhttprequest-ssl":72,"yeast":100}],71:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8306,7 +8372,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":65,"component-inherit":53,"debug":72,"engine.io-parser":74,"parseqs":83,"ws":1,"yeast":99}],71:[function(require,module,exports){
+},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":84,"ws":1,"yeast":100}],72:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -8347,7 +8413,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":79}],72:[function(require,module,exports){
+},{"has-cors":80}],73:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -8546,7 +8612,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":73,"_process":6}],73:[function(require,module,exports){
+},{"./debug":74,"_process":6}],74:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -8773,7 +8839,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":82}],74:[function(require,module,exports){
+},{"ms":83}],75:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9383,7 +9449,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":75,"./utf8":76,"after":46,"arraybuffer.slice":47,"base64-arraybuffer":49,"blob":50,"has-binary2":77}],75:[function(require,module,exports){
+},{"./keys":76,"./utf8":77,"after":47,"arraybuffer.slice":48,"base64-arraybuffer":50,"blob":51,"has-binary2":78}],76:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -9404,7 +9470,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -9663,7 +9729,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 (function (Buffer){
 /* global Blob File */
 
@@ -9731,9 +9797,9 @@ function hasBinary (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"isarray":78}],78:[function(require,module,exports){
+},{"buffer":2,"isarray":79}],79:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],79:[function(require,module,exports){
+},{"dup":5}],80:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -9752,7 +9818,7 @@ try {
   module.exports = false;
 }
 
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -9763,7 +9829,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 // Copyright (c) 2013 Pieroxy <pieroxy@pieroxy.net>
 // This work is free. You can redistribute it and/or modify it
 // under the terms of the WTFPL, Version 2
@@ -10266,7 +10332,7 @@ if (typeof define === 'function' && define.amd) {
   module.exports = LZString
 }
 
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -10420,7 +10486,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -10459,7 +10525,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],84:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -10500,7 +10566,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],85:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10596,7 +10662,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":86,"./socket":88,"./url":89,"debug":90,"socket.io-parser":93}],86:[function(require,module,exports){
+},{"./manager":87,"./socket":89,"./url":90,"debug":91,"socket.io-parser":94}],87:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11171,7 +11237,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":87,"./socket":88,"backo2":48,"component-bind":51,"component-emitter":52,"debug":90,"engine.io-client":63,"indexof":80,"socket.io-parser":93}],87:[function(require,module,exports){
+},{"./on":88,"./socket":89,"backo2":49,"component-bind":52,"component-emitter":53,"debug":91,"engine.io-client":64,"indexof":81,"socket.io-parser":94}],88:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -11197,7 +11263,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],88:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11637,7 +11703,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":87,"component-bind":51,"component-emitter":52,"debug":90,"has-binary2":77,"parseqs":83,"socket.io-parser":93,"to-array":98}],89:[function(require,module,exports){
+},{"./on":88,"component-bind":52,"component-emitter":53,"debug":91,"has-binary2":78,"parseqs":84,"socket.io-parser":94,"to-array":99}],90:[function(require,module,exports){
 (function (global){
 
 /**
@@ -11716,11 +11782,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":90,"parseuri":84}],90:[function(require,module,exports){
-arguments[4][72][0].apply(exports,arguments)
-},{"./debug":91,"_process":6,"dup":72}],91:[function(require,module,exports){
+},{"debug":91,"parseuri":85}],91:[function(require,module,exports){
 arguments[4][73][0].apply(exports,arguments)
-},{"dup":73,"ms":82}],92:[function(require,module,exports){
+},{"./debug":92,"_process":6,"dup":73}],92:[function(require,module,exports){
+arguments[4][74][0].apply(exports,arguments)
+},{"dup":74,"ms":83}],93:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -11865,7 +11931,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":94,"isarray":97}],93:[function(require,module,exports){
+},{"./is-buffer":95,"isarray":98}],94:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12284,7 +12350,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":92,"./is-buffer":94,"component-emitter":52,"debug":95,"isarray":97}],94:[function(require,module,exports){
+},{"./binary":93,"./is-buffer":95,"component-emitter":53,"debug":96,"isarray":98}],95:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -12312,13 +12378,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],95:[function(require,module,exports){
-arguments[4][72][0].apply(exports,arguments)
-},{"./debug":96,"_process":6,"dup":72}],96:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 arguments[4][73][0].apply(exports,arguments)
-},{"dup":73,"ms":82}],97:[function(require,module,exports){
+},{"./debug":97,"_process":6,"dup":73}],97:[function(require,module,exports){
+arguments[4][74][0].apply(exports,arguments)
+},{"dup":74,"ms":83}],98:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],98:[function(require,module,exports){
+},{"dup":5}],99:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -12333,7 +12399,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],99:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
@@ -12403,4 +12469,4 @@ yeast.encode = encode;
 yeast.decode = decode;
 module.exports = yeast;
 
-},{}]},{},[21]);
+},{}]},{},[22]);

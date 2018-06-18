@@ -84,7 +84,7 @@ export class GameClient {
     }
 
     private startGame() {
-        this.cursor = GameObjectsFactory.InstatiateWithTransform("Cursor", new Transform(1,1,1)) as Cursor;
+        this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
         this.inputHandler = new InputHandler(this.cursor);
 
         this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));

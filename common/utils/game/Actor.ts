@@ -6,6 +6,7 @@ import {Obstacle} from "./Obstacle";
 import {GameObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
+import {Item} from "./Item";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME)
@@ -41,10 +42,15 @@ export abstract class Actor extends GameObject {
         super.serverCollision(gameObject, result);
         if(gameObject instanceof Bullet) {
             let bullet: Bullet = gameObject as Bullet;
-            if(bullet.Owner == this.ID) {
+            if (bullet.Owner == this.ID) {
                 return;
             }
             this.hit(bullet.Power);
+        } else if(gameObject instanceof Item) {
+            let item: Item = gameObject as Item;
+            if(item.Claim()) {
+                this.heal(50);
+            }
         }
     }
 
@@ -61,6 +67,14 @@ export abstract class Actor extends GameObject {
         this.hp -= power;
         if(this.hp < 0) {
             this.hp = 0;
+        }
+        this.addChange(ChangesDict.HP);
+    }
+
+    heal(power: number) {
+        this.hp += power;
+        if(this.hp > this.maxHp) {
+            this.hp = this.maxHp;
         }
         this.addChange(ChangesDict.HP);
     }
