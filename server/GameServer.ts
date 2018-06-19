@@ -266,7 +266,7 @@ export class GameServer {
             e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
             e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
 
-            e.Name = "Monster " + monsterCounter.toString();
+            e.Name = "Michau " + monsterCounter.toString();
 
             e.addDestroyListener(() => {
                 spawnEnemy();
