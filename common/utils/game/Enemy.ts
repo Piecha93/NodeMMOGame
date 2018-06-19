@@ -9,7 +9,9 @@ export class Enemy extends Actor {
     constructor(transform: Transform) {
         super(transform);
         this.moveAngle = Math.random() * 3;
-        this.velocity = 0.3
+        this.velocity = 0.3;
+
+        this.spriteName = "michau";
     }
 
     protected commonUpdate(delta: number) {

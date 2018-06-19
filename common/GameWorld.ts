@@ -16,15 +16,19 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public update(delta: number) {
-        if(delta > 40) {
-            console.log("delta " + delta);
-            delta = 40;
-        }
-        this.GameObjectsMapById.forEach((object: GameObject) => {
-            object.update(delta);
-        });
+        const maxDelta = 40;
+        const maxDeltaLoops = 3;
 
-        this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
+        let loops: number = 0;
+        while(delta > 0 && loops < maxDeltaLoops) {
+            this.GameObjectsMapById.forEach((object: GameObject) => {
+                object.update(delta % maxDelta);
+            });
+
+            this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
+            delta -= maxDelta;
+            loops++;
+        }
     }
 
 

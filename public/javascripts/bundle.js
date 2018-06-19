@@ -2451,8 +2451,8 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
         this.addChild(this.nameText);
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-this.objectRef.Transform.Width / 2, -this.objectRef.Transform.Height / 2, this.objectRef.Transform.Width, 7);
-        this.sprite.addChild(this.hpBar);
+        this.hpBar.drawRect(-this.objectRef.Transform.Width / 2, -this.objectRef.Transform.Height / 2 - 13, this.objectRef.Transform.Width, 7);
+        this.addChild(this.hpBar);
     }
     update() {
         super.update();
@@ -2495,6 +2495,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             .add('bunny', 'resources/images/bunny.png')
             .add('dyzma', 'resources/images/dyzma.jpg')
             .add('kamis', 'resources/images/kamis.jpg')
+            .add('michau', 'resources/images/michau.png')
             .add('panda', 'resources/images/panda.png')
             .add('bullet', 'resources/images/bullet.png')
             .add('fireball', 'resources/images/fireball.png')
@@ -2906,14 +2907,17 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         console.log("create game instance");
     }
     update(delta) {
-        if (delta > 40) {
-            console.log("delta " + delta);
-            delta = 40;
+        const maxDelta = 40;
+        const maxDeltaLoops = 3;
+        let loops = 0;
+        while (delta > 0 && loops < maxDeltaLoops) {
+            this.GameObjectsMapById.forEach((object) => {
+                object.update(delta % maxDelta);
+            });
+            this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
+            delta -= maxDelta;
+            loops++;
         }
-        this.GameObjectsMapById.forEach((object) => {
-            object.update(delta);
-        });
-        this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
     }
     onObjectCreate(gameObject) {
         this.collistionsSystem.insertObject(gameObject);
@@ -3488,6 +3492,7 @@ class Enemy extends Actor_1.Actor {
         this.moveAngle = 0;
         this.moveAngle = Math.random() * 3;
         this.velocity = 0.3;
+        this.spriteName = "michau";
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
@@ -3846,9 +3851,9 @@ class Player extends Actor_1.Actor {
     }
     fireAction(angle) {
         this.shot(parseFloat(angle));
-        // for(let i = 0; i < 300; i++) {
-        //     this.shot(Math.floor(Math.random() * 360));
-        // }
+        for (let i = 0; i < 30; i++) {
+            this.shot(Math.floor(Math.random() * 360));
+        }
     }
     wallAction(coords) {
         // FOR TEST

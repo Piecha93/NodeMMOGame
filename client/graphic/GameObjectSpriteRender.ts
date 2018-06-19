@@ -6,8 +6,6 @@ import {GameObjectRender} from "../graphic/GameObjectRender";
 
 export class GameObjectSpriteRender extends GameObjectRender {
     protected sprite: PIXI.Sprite;
-    protected objectRef: GameObject;
-
 
     constructor() {
         super();
