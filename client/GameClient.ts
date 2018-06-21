@@ -79,6 +79,7 @@ export class GameClient {
 
             this.socket.on(SocketMsgs.ERROR, (err: string) => {
                 console.log(err);
+                alert(err);
             });
         });
     }
@@ -125,7 +126,7 @@ export class GameClient {
         data = LZString.decompressFromUTF16(data);
 
         let update: Array<string> = data.split('$');
-        // console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject: string[] = update[object].split('=');
             let id: string = splitObject[0];
@@ -144,7 +145,7 @@ export class GameClient {
             gameObject = NetObjectsManager.Instance.getGameObject(id);
 
             if (gameObject == null) {
-                gameObject = GameObjectsFactory.Instatiate(Types.IdToClass.get(id[0]), id, data);
+                gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {

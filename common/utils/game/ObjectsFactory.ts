@@ -1,18 +1,9 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {Player} from "./Player";
-import {Enemy} from "./Enemy";
-import {Obstacle} from "./Obstacle";
-import {Bullet} from "./Bullet";
 import {Types} from "./GameObjectTypes";
-import {Item} from "./Item";
 
-export class GameObjectsContainer {
-    constructor() {
-        throw new Error("Cannot instatiate this class");
-    }
-
-    static gameObjectsMapById: Map<string, GameObject> = new Map<string, GameObject>();
+export namespace GameObjectsContainer {
+    export let gameObjectsMapById: Map<string, GameObject> = new Map<string, GameObject>();
 }
 
 export class GameObjectsFactory {
@@ -25,24 +16,15 @@ export class GameObjectsFactory {
     static CreateCallbacks: Array<Function> = [];
     static DestroyCallbacks: Array<Function> = [];
 
-    private static ObjectTypes: Map<string, new (position: Transform) => GameObject> =
-        new Map<string, new (position: Transform) => GameObject>([
-        ["Player", Player],
-        ["Enemy", Enemy],
-        ["Bullet", Bullet],
-        ["Obstacle", Obstacle],
-        ["Item", Item]
-    ]);
-
     static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: string): GameObject {
         let gameObject: GameObject;
 
-        gameObject = new (GameObjectsFactory.ObjectTypes.get(type))(transform);
+        gameObject = new (Types.ClassNamesToTypes.get(type))(transform);
 
         if(id) {
             gameObject.ID = id;
         } else {
-            gameObject.ID = Types.ClassToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
+            gameObject.ID = Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
         }
 
         if(data) {

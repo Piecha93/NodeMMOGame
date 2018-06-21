@@ -1,6 +1,6 @@
 //TODO refacor to typescript
-export let getUTF8Size = function( str ) {
-    let sizeInBytes = str.split('')
+export function getUTF8Size( str ) {
+    return str.split('')
         .map(function( ch ) {
             return ch.charCodeAt(0);
         }).map(function( uchar ) {
@@ -10,6 +10,4 @@ export let getUTF8Size = function( str ) {
         }).reduce(function( curr, next ) {
             return curr + next;
         });
-
-    return sizeInBytes;
-};
+}

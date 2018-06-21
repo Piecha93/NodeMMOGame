@@ -11,6 +11,7 @@ import {TileMap} from "./TileMap";
 import Container = PIXI.Container;
 import DisplayObject = PIXI.DisplayObject;
 import Sprite = PIXI.Sprite;
+import {Types} from "../../common/utils/game/GameObjectTypes";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -98,10 +99,11 @@ export class Renderer extends GameObjectsSubscriber {
     public onObjectCreate(gameObject: GameObject) {
         let gameObjectRender: GameObjectRender;
 
-        let type: string = gameObject.ID[0];
-        if(type == "P" || type == "E") {
+        let type: string = Types.IdToClassNames.get(gameObject.ID[0]);
+
+        if(type == "Player" || type == "Enemy") {
             gameObjectRender = new PlayerRender();
-        } else if(type == "B") {
+        } else if(type == "Bullet") {
             gameObjectRender = new BulletRender();
         } else {
             gameObjectRender = new GameObjectSpriteRender();

@@ -2094,6 +2094,7 @@ class GameClient {
             this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
             this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
                 console.log(err);
+                alert(err);
             });
         });
     }
@@ -2132,7 +2133,7 @@ class GameClient {
             return;
         data = LZString.decompressFromUTF16(data);
         let update = data.split('$');
-        // console.log(update);
+        console.log(update);
         for (let object in update) {
             let splitObject = update[object].split('=');
             let id = splitObject[0];
@@ -2148,7 +2149,7 @@ class GameClient {
             }
             gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
             if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClass.get(id[0]), id, data);
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id, data);
             }
             gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {
@@ -2475,6 +2476,7 @@ const BulletRender_1 = require("./BulletRender");
 const Camera_1 = require("./Camera");
 const GameObjectSpriteRender_1 = require("./GameObjectSpriteRender");
 const TileMap_1 = require("./TileMap");
+const GameObjectTypes_1 = require("../../common/utils/game/GameObjectTypes");
 class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(afterCreateCallback) {
         super();
@@ -2536,11 +2538,11 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     }
     onObjectCreate(gameObject) {
         let gameObjectRender;
-        let type = gameObject.ID[0];
-        if (type == "P" || type == "E") {
+        let type = GameObjectTypes_1.Types.IdToClassNames.get(gameObject.ID[0]);
+        if (type == "Player" || type == "Enemy") {
             gameObjectRender = new PlayerRender_1.PlayerRender();
         }
-        else if (type == "B") {
+        else if (type == "Bullet") {
             gameObjectRender = new BulletRender_1.BulletRender();
         }
         else {
@@ -2565,7 +2567,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../common/utils/game/GameObjectsSubscriber":40,"./BulletRender":9,"./Camera":10,"./GameObjectSpriteRender":13,"./PlayerRender":16,"./TileMap":18}],18:[function(require,module,exports){
+},{"../../common/utils/game/GameObjectTypes":39,"../../common/utils/game/GameObjectsSubscriber":40,"./BulletRender":9,"./Camera":10,"./GameObjectSpriteRender":13,"./PlayerRender":16,"./TileMap":18}],18:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3630,26 +3632,32 @@ exports.GameObject = GameObject;
 },{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":46}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Obstacle_1 = require("./Obstacle");
+const Item_1 = require("./Item");
+const Player_1 = require("./Player");
+const Bullet_1 = require("./Bullet");
+const Enemy_1 = require("./Enemy");
 class Types {
-    static reverseMap(map) {
-        let reverseMap = new Map();
-        map.forEach((val, key) => {
-            reverseMap.set(val, key);
-        });
-        return reverseMap;
-    }
 }
-Types.ClassToId = new Map([
-    ["Player", "P"],
-    ["Enemy", "E"],
-    ["Bullet", "B"],
-    ["Obstacle", "O"],
-    ["Item", "I"],
-]);
-Types.IdToClass = Types.reverseMap(Types.ClassToId);
+Types.ClassNamesToId = new Map();
+Types.IdToClassNames = new Map();
+Types.ClassNamesToTypes = new Map();
+Types.shortIdCounter = 1;
+Types.RegisterGameObject = function (gameObjectType) {
+    Types.ClassNamesToTypes.set(gameObjectType.name, gameObjectType);
+    let shortId;
+    shortId = String.fromCharCode(Types.shortIdCounter++);
+    Types.ClassNamesToId.set(gameObjectType.name, shortId);
+    Types.IdToClassNames.set(shortId, gameObjectType.name);
+};
 exports.Types = Types;
+Types.RegisterGameObject(Player_1.Player);
+Types.RegisterGameObject(Enemy_1.Enemy);
+Types.RegisterGameObject(Bullet_1.Bullet);
+Types.RegisterGameObject(Obstacle_1.Obstacle);
+Types.RegisterGameObject(Item_1.Item);
 
-},{}],40:[function(require,module,exports){
+},{"./Bullet":36,"./Enemy":37,"./Item":41,"./Obstacle":43,"./Player":44}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3708,31 +3716,23 @@ exports.Item = Item;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
-const Player_1 = require("./Player");
-const Enemy_1 = require("./Enemy");
-const Obstacle_1 = require("./Obstacle");
-const Bullet_1 = require("./Bullet");
 const GameObjectTypes_1 = require("./GameObjectTypes");
-const Item_1 = require("./Item");
-class GameObjectsContainer {
-    constructor() {
-        throw new Error("Cannot instatiate this class");
-    }
-}
-GameObjectsContainer.gameObjectsMapById = new Map();
-exports.GameObjectsContainer = GameObjectsContainer;
+var GameObjectsContainer;
+(function (GameObjectsContainer) {
+    GameObjectsContainer.gameObjectsMapById = new Map();
+})(GameObjectsContainer = exports.GameObjectsContainer || (exports.GameObjectsContainer = {}));
 class GameObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
     }
     static InstatiateWithTransform(type, transform, id, data) {
         let gameObject;
-        gameObject = new (GameObjectsFactory.ObjectTypes.get(type))(transform);
+        gameObject = new (GameObjectTypes_1.Types.ClassNamesToTypes.get(type))(transform);
         if (id) {
             gameObject.ID = id;
         }
         else {
-            gameObject.ID = GameObjectTypes_1.Types.ClassToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString();
+            gameObject.ID = GameObjectTypes_1.Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString();
         }
         if (data) {
             gameObject.deserialize(data);
@@ -3764,16 +3764,9 @@ class GameObjectsFactory {
 GameObjectsFactory.NEXT_ID = 0;
 GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
-GameObjectsFactory.ObjectTypes = new Map([
-    ["Player", Player_1.Player],
-    ["Enemy", Enemy_1.Enemy],
-    ["Bullet", Bullet_1.Bullet],
-    ["Obstacle", Obstacle_1.Obstacle],
-    ["Item", Item_1.Item]
-]);
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":46,"./Bullet":36,"./Enemy":37,"./GameObjectTypes":39,"./Item":41,"./Obstacle":43,"./Player":44}],43:[function(require,module,exports){
+},{"../physics/Transform":46,"./GameObjectTypes":39}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");

@@ -1,7 +1,6 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {GameObject} from "../../common/utils/game/GameObject";
-import {Transform} from "../../common/utils/physics/Transform";
 import {GameObjectRender} from "../graphic/GameObjectRender";
 
 export class GameObjectSpriteRender extends GameObjectRender {

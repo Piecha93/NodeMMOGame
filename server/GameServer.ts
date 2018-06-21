@@ -66,7 +66,7 @@ export class GameServer {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
 
-        if(this.updateResolution++ % 5 == 0) {
+        if(this.updateResolution++ % 3 == 0) {
             this.collectAndCompressUpdate(this.sendUpdate.bind(this));
         }
         setTimeout(() => {
@@ -151,7 +151,11 @@ export class GameServer {
 
         setInterval(() => {
             this.clients.forEach((client: ServerClient) => {
-                client.LastHbInterval -= 1000;
+                if(client.IsReady) {
+                    client.LastHbInterval -= 1000;
+                } else {
+                    client.LastHbInterval -= 500;
+                }
                 if (client.LastHbInterval <= 0) {
                     this.clientDisconnected(client, "timeout");
                 }
