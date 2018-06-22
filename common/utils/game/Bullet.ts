@@ -6,11 +6,15 @@ import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 
+import { Message, Type, Field, OneOf } from "protobufjs/light";
+
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
-    @NetworkProperty(ChangesDict.POWER)
+    // @NetworkProperty(ChangesDict.POWER)
+    @Field.d(4, "int32", "optional", "power")
     private power: number = 10;
-    @NetworkProperty(ChangesDict.OWNER)
+    // @NetworkProperty(ChangesDict.OWNER)
+    @Field.d(5, "string", "optional", "spriteName")
     private owner: string;
 
     constructor(transform: Transform) {
@@ -31,7 +35,7 @@ export class Bullet extends GameObject {
         this.transform.Height = 20;
 
         this.lifeSpan = 5000;
-        this.addChange(ChangesDict.VELOCITY);
+        // this.addChange(ChangesDict.VELOCITY);
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {

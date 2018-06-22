@@ -5,14 +5,20 @@ import {Serializable} from "../../serialize/Serializable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 
-export abstract class GameObject extends Serializable {
+import { Message, Type, Field, OneOf } from "protobufjs/light";
+
+@Type.d("GameObjectMessage")
+export class GameObject extends Message<GameObject> { //extends Serializable {
+    @Field.d(1, "string", "required", "spriteName")
     protected id: string = "";
-    @NetworkProperty(ChangesDict.SPRITE_NAME)
+    // @NetworkProperty(ChangesDict.SPRITE_NAME)
+    @Field.d(2, "string", "optional", "spriteName")
     protected spriteName: string;
-    @NetworkObject("pos")
+    // @NetworkObject("pos")
+    @Field.d(3, Transform)
     protected transform: Transform;
 
-    @NetworkProperty(ChangesDict.VELOCITY)
+    // @NetworkProperty(ChangesDict.VELOCITY)
     protected velocity: number = 0;
 
     protected invisible: boolean = false;
@@ -45,7 +51,7 @@ export abstract class GameObject extends Serializable {
     }
 
     public forceCompleteUpdate() {
-        this.forceComplete = true;
+        // this.forceComplete = true;
     }
 
     public update(delta: number) {
@@ -108,7 +114,7 @@ export abstract class GameObject extends Serializable {
 
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
-        this.addChange(ChangesDict.SPRITE_NAME);
+        // this.addChange(ChangesDict.SPRITE_NAME);
     }
 
     get Invisible(): boolean {

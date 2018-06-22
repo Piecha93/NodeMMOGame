@@ -27,9 +27,9 @@ export class GameObjectsFactory {
             gameObject.ID = Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
         }
 
-        if(data) {
-            gameObject.deserialize(data);
-        }
+        // if(data) {
+        //     gameObject.deserialize(data);
+        // }
 
         GameObjectsFactory.AddToListeners(gameObject);
 

@@ -147,7 +147,7 @@ export class GameClient {
             if (gameObject == null) {
                 gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id, data);
             }
-            gameObject.deserialize(data);
+            // gameObject.deserialize(data);
             if (lastSnapshotData && this.localPlayer.ID == id) {
                 this.localPlayer.reconciliation(lastSnapshotData, this.world.CollisionsSystem);
             }

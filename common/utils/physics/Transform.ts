@@ -3,10 +3,15 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable} from "../../serialize/Serializable"
 import {Polygon, Circle} from "detect-collisions";
 
-export class Transform extends Serializable {
+import { Message, Type, Field, OneOf } from "protobufjs/light";
+
+// @Type.d("TransformMessage")
+export class Transform  extends Message<Transform>{ //extends Serializable {
     private shape: Polygon | Circle;
 
+    @Field.d(13, "float", "optional")
     private width: number;
+    @Field.d(14, "float", "optional")
     private height: number;
     private angle = 0;
 
@@ -46,21 +51,22 @@ export class Transform extends Serializable {
         return this.shape.x;
     }
 
-    @NetworkProperty(ChangesDict.X,)
+    // @NetworkProperty(ChangesDict.X,)
     set X(x: number) {
         this.shape.x = x;
     }
 
+    // @Field.d(12, "float", "optional")
     get Y(): number {
         return this.shape.y;
     }
 
-    @NetworkProperty(ChangesDict.Y)
+    // @NetworkProperty(ChangesDict.Y)
     set Y(y: number) {
         this.shape.y = y;
     }
 
-    @NetworkProperty(ChangesDict.WIDTH)
+    // @NetworkProperty(ChangesDict.WIDTH)
     set Width(width: number) {
         if(this.width == width) return;
         this.width = width;
@@ -74,14 +80,14 @@ export class Transform extends Serializable {
             this.height = this.shape.radius;
         }
 
-        this.addChange(ChangesDict.WIDTH);
+        // this.addChange(ChangesDict.WIDTH);
     }
 
     get Width(): number {
         return this.width;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT)
+    // @NetworkProperty(ChangesDict.HEIGHT)
     set Height(height: number) {
         if(this.height == height) return;
         this.height = height;
@@ -94,14 +100,14 @@ export class Transform extends Serializable {
             this.shape.radius = this.width;
             this.height = this.shape.radius;
         }
-        this.addChange(ChangesDict.HEIGHT);
+        // this.addChange(ChangesDict.HEIGHT);
     }
 
     get Height(): number {
         return this.height;
     }
 
-    @NetworkProperty(ChangesDict.ROTATION)
+    // @NetworkProperty(ChangesDict.ROTATION)
     set Rotation(angle: number) {
         if(this.shape instanceof Polygon) {
             this.shape.angle = angle;

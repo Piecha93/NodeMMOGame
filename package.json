@@ -31,6 +31,7 @@
     "lz-string": "^1.4.4",
     "mongodb": "^2.2.31",
     "mongoose": "^4.11.6",
+    "protobufjs": "~6.8.6",
     "sat": "^0.6.0",
     "shortid": "^2.2.8",
     "socket.io": "^2.1.1",

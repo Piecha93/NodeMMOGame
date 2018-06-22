@@ -6,17 +6,21 @@ import {GameObject} from "./GameObject";
 import {Bullet} from "./Bullet";
 import {Enemy} from "./Enemy";
 
+export interface Constructor<T> extends Function {
+    new(...params: any[]): T; prototype: T;
+}
+
 export class Types {
     static ClassNamesToId = new Map<string, string>();
 
     static IdToClassNames = new Map<string, string>();
 
-    static ClassNamesToTypes: Map<string, new (position: Transform) => GameObject> =
-        new Map<string, new (position: Transform) => GameObject>();
+    static ClassNamesToTypes: Map<string, Constructor<GameObject> > =
+        new Map<string, Constructor<GameObject> >();
 
     private static shortIdCounter = 1;
 
-    static RegisterGameObject: Function = function (gameObjectType: new (position: Transform) => GameObject) {
+    static RegisterGameObject: Function = function (gameObjectType: Constructor<GameObject>) {
         Types.ClassNamesToTypes.set(gameObjectType.name, gameObjectType);
         let shortId: string;
         shortId = String.fromCharCode(Types.shortIdCounter++);
