@@ -15,20 +15,23 @@ let player: Player = GameObjectsFactory.Instatiate("Player") as Player;
 player["forceComplete"] = false;
 player.Transform["forceComplete"] = false;
 
-
+let complete: boolean = false;
 // let buffer: ArrayBuffer = new ArrayBuffer(player.calcNeededBufferSize(true));
 
 player.addChange(ChangesDict.HP);
 player.hit(54);
-let neededSize: number = player.calcNeededBufferSize(true);
+let neededSize: number = player.calcNeededBufferSize(complete);
 let buffer: ArrayBuffer = new ArrayBuffer(neededSize);
 let view: DataView = new DataView(buffer);
 
-console.log(player.serialize(view, 0, true));
+console.log("neededSize " + neededSize);
+console.log("offset after " + player.serialize(view, 0, complete));
 
-for(let i = 0; i < neededSize; i++) {
-    console.log(view.getUint8(i));
-}
+player.hit(100);
+
+// for(let i = 0; i < neededSize; i++) {
+//     console.log(view.getUint8(i));
+// }
 
 player.deserialize(view, 0);
 

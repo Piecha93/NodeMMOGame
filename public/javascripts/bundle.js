@@ -2051,15 +2051,16 @@ const InputSender_1 = require(".//net/InputSender");
 const DeltaTimer_1 = require("../common/DeltaTimer");
 const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtmlHandler");
 const GameObjectTypes_1 = require("../common/utils/game/GameObjectTypes");
-const LZString = require("lz-string");
 const io = require("socket.io-client");
 const Cursor_1 = require("./input/Cursor");
 const Transform_1 = require("../common/utils/physics/Transform");
 class GameClient {
     constructor() {
         this.localPlayer = null;
+        this.localPlayerId = "";
         this.timer = new DeltaTimer_1.DeltaTimer;
         this.deltaHistory = [];
+        this.lastSnapshotData = null;
         this.connect();
         this.inputSender = new InputSender_1.InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
@@ -2080,22 +2081,28 @@ class GameClient {
         }
     }
     configureSocket() {
-        this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
-            let worldInfo = data['world'].split(',');
-            let width = Number(worldInfo[0]);
-            let height = Number(worldInfo[1]);
-            this.world = new GameWorld_1.GameWorld(width, height);
-            this.renderer.setMap();
-            this.onServerUpdate(data['update']);
-            this.localPlayer = this.world.getGameObject(data['id']);
+        this.socket.on(SocketMsgs_1.SocketMsgs.FIRST_UPDATE_GAME, (data) => {
+            this.onServerUpdate(data);
+            this.localPlayer = this.world.getGameObject(this.localPlayerId);
             this.renderer.CameraFollower = this.localPlayer;
             this.heartBeatSender.sendHeartBeat();
             this.startGame();
             this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
-            this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
-                console.log(err);
-                alert(err);
-            });
+        });
+        this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
+            // let worldInfo: Array<string> = data['world'].split(',');
+            // let width: number = Number(worldInfo[0]);
+            // let height: number = Number(worldInfo[1]);
+            this.localPlayerId = data['id'];
+            this.world = new GameWorld_1.GameWorld();
+            this.renderer.setMap();
+        });
+        this.socket.on(SocketMsgs_1.SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData) => {
+            this.lastSnapshotData = lastSnapshotData;
+        });
+        this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
+            console.log(err);
+            alert(err);
         });
     }
     startGame() {
@@ -2128,39 +2135,46 @@ class GameClient {
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
-    onServerUpdate(data, lastSnapshotData) {
-        if (!data)
-            return;
-        data = LZString.decompressFromUTF16(data);
-        let update = data.split('$');
-        console.log(update);
-        for (let object in update) {
-            let splitObject = update[object].split('=');
-            let id = splitObject[0];
-            let data = splitObject[1];
-            let gameObject = null;
-            if (id[0] == '!') {
-                id = id.slice(1);
-                gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
-                if (gameObject) {
-                    gameObject.destroy();
-                }
-                continue;
+    removeObjectsUpdate(updateBufferView, offset) {
+        while (offset < updateBufferView.byteLength) {
+            let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
+                updateBufferView.getUint32(offset + 1).toString();
+            let gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(idToRemove);
+            if (gameObject) {
+                gameObject.destroy();
             }
-            gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
+            offset += 5;
+        }
+    }
+    onServerUpdate(updateBuffer) {
+        // if(!updateBuffer) return;
+        // updateBuffer = LZString.decompressFromUTF16(updateBuffer);
+        let updateBufferView = new DataView(updateBuffer);
+        let offset = 0;
+        // console.log(updateBufferView.byteLength);
+        while (offset < updateBufferView.byteLength) {
+            let id = String.fromCharCode(updateBufferView.getUint8(offset));
+            if (id == String.fromCharCode(255)) {
+                this.removeObjectsUpdate(updateBufferView, offset + 1);
+                break;
+            }
+            id += updateBufferView.getUint32(offset + 1).toString();
+            offset += 5;
+            let gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
             if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id, data);
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
             }
-            gameObject.deserialize(data);
-            if (lastSnapshotData && this.localPlayer.ID == id) {
-                this.localPlayer.reconciliation(lastSnapshotData, this.world.CollisionsSystem);
+            offset = gameObject.deserialize(updateBufferView, offset);
+            if (this.localPlayer && this.localPlayer.ID == id && this.lastSnapshotData != null) {
+                this.localPlayer.reconciliation(this.lastSnapshotData, this.world.CollisionsSystem);
+                this.lastSnapshotData = null;
             }
         }
     }
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":42,"../common/utils/physics/Transform":46,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"lz-string":82,"socket.io-client":86}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":42,"../common/utils/physics/Transform":46,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"socket.io-client":85}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
@@ -2901,11 +2915,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./utils/game/GameObjectsSubscriber");
 const CollisionsSystem_1 = require("./utils/physics/CollisionsSystem");
 class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
-    constructor(width, height) {
+    // private width: number;
+    // private height: number;
+    constructor() {
         super();
         this.collistionsSystem = new CollisionsSystem_1.CollisionsSystem();
-        this.width = width;
-        this.height = height;
+        // this.width = width;
+        // this.height = height;
         console.log("create game instance");
     }
     update(delta) {
@@ -2927,19 +2943,17 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     onObjectDestroy(gameObject) {
         this.collistionsSystem.removeObject(gameObject);
     }
-    get Width() {
-        return this.width;
-    }
-    get Height() {
-        return this.height;
-    }
+    // get Width(): number {
+    //     return this.width;
+    // }
+    //
+    // get Height(): number {
+    //     return this.height;
+    // }
     get CollisionsSystem() {
         return this.collistionsSystem;
     }
     deserialize(world) {
-    }
-    serialize() {
-        return this.width.toString() + ',' + this.height.toString();
     }
 }
 exports.GameWorld = GameWorld;
@@ -3027,7 +3041,7 @@ const CommonConfig_1 = require("../CommonConfig");
 class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
-        this.destroyedObjects = "";
+        this.destroyedObjects = [];
     }
     static get Instance() {
         if (NetObjectsManager.instance) {
@@ -3040,26 +3054,45 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     }
     onObjectDestroy(gameObject) {
         if (CommonConfig_1.CommonConfig.IS_SERVER) {
-            this.destroyedObjects += '$' + '!' + gameObject.ID;
+            this.destroyedObjects.push(gameObject.ID);
         }
     }
     collectUpdate(complete = false) {
-        let serializedObjects = '';
-        this.GameObjectsMapById.forEach((gameObject, id) => {
-            let objectUpdate = gameObject.serialize(complete);
-            if (objectUpdate != '') {
-                serializedObjects += '$' + id + '=' + objectUpdate;
+        let neededBufferSize = 0;
+        let objectsToUpdateMap = new Map();
+        this.GameObjectsMapById.forEach((gameObject) => {
+            let objectNeededSize = gameObject.calcNeededBufferSize(complete);
+            if (objectNeededSize > 0) {
+                objectsToUpdateMap.set(gameObject, neededBufferSize);
+                //need 5 bits for obj ID
+                neededBufferSize += objectNeededSize + 5;
             }
         });
-        serializedObjects = serializedObjects.slice(1);
-        serializedObjects += this.destroyedObjects;
-        this.destroyedObjects = "";
-        if (serializedObjects[0] == "$") {
-            serializedObjects = serializedObjects.slice(1);
+        let destrotObjectsOffset = neededBufferSize;
+        if (this.destroyedObjects.length > 0) {
+            neededBufferSize += (this.destroyedObjects.length * 5) + 1;
         }
-        return serializedObjects;
+        console.log("neededBufferSize for all objects " + neededBufferSize);
+        let updateBuffer = new ArrayBuffer(neededBufferSize);
+        let updateBufferView = new DataView(updateBuffer);
+        objectsToUpdateMap.forEach((offset, gameObject) => {
+            updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+            updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+            gameObject.serialize(updateBufferView, offset + 5, complete);
+        });
+        if (this.destroyedObjects.length > 0) {
+            updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsManager.DESTROY_OBJECTS_ID);
+            this.destroyedObjects.forEach((id) => {
+                updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
+                updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
+                destrotObjectsOffset += 5;
+            });
+        }
+        this.destroyedObjects = [];
+        return updateBuffer;
     }
 }
+NetObjectsManager.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsManager = NetObjectsManager;
 
 },{"../CommonConfig":25,"../utils/game/GameObjectsSubscriber":40}],31:[function(require,module,exports){
@@ -3075,9 +3108,11 @@ SocketMsgs.INITIALIZE_GAME = '2';
 SocketMsgs.HEARTBEAT = '3';
 SocketMsgs.HEARTBEAT_RESPONSE = '4';
 SocketMsgs.UPDATE_GAME = '5';
-SocketMsgs.INPUT_SNAPSHOT = '6';
-SocketMsgs.CHAT_MESSAGE = '7';
-SocketMsgs.ERROR = '8';
+SocketMsgs.FIRST_UPDATE_GAME = '6';
+SocketMsgs.INPUT_SNAPSHOT = '7';
+SocketMsgs.CHAT_MESSAGE = '8';
+SocketMsgs.LAST_SNAPSHOT_DATA = '9';
+SocketMsgs.ERROR = '10';
 exports.SocketMsgs = SocketMsgs;
 
 },{}],32:[function(require,module,exports){
@@ -3106,36 +3141,120 @@ exports.ChangesDict = ChangesDict;
 },{}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Serializable_1 = require("./Serializable");
 var PropName;
 (function (PropName) {
     PropName.SerializeFunctions = "SerializeFunctions";
     PropName.DeserializeFunctions = "DeserializeFunctions";
+    PropName.CalcBytesFunctions = "CalcBytesFunctions";
     PropName.SerializeEncodeOrder = "SerializeEncodeOrder";
     PropName.SerializeDecodeOrder = "SerializeDecodeOrder";
+    PropName.PropertyTypes = "PropertyType";
     PropName.DecodeCounter = "DecodeCounter";
     PropName.NestedNetworkObjects = "NestedNetworkObjects";
 })(PropName = exports.PropName || (exports.PropName = {}));
-function NetworkProperty(shortKey) {
+function fillString(str, view, offset) {
+    view.setUint8(offset, str.length);
+    for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i + 1, str.charCodeAt(i));
+    }
+}
+function decodeString(view, offset) {
+    let len = view.getUint8(offset);
+    let str = "";
+    for (let i = 1; i <= len; i++) {
+        str += String.fromCharCode(view.getUint8(i + offset));
+    }
+    return str;
+}
+let allowedTypes = ["Int8", "Int16", "Int32", "Uint8", "Uint16", "Uint32", "Float32", "Float64", "string"];
+function NetworkProperty(shortKey, type) {
+    if (allowedTypes.indexOf(type) == -1) {
+        throw new Error("Invalid property type " + type + ". Allowed types " + allowedTypes);
+    }
     function decorator(target, key) {
         addNetworkProperties(target);
         let counter = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.SerializeFunctions].set(shortKey, (object) => {
-            if (typeof object[key] == "number") {
-                //+ is for transform 1.1000 -> 1.1
-                return +object[key].toFixed(4);
+        target[PropName.PropertyTypes].set(shortKey, type);
+        target[PropName.SerializeFunctions].set(shortKey, (object, view, offset) => {
+            let type = object[PropName.PropertyTypes].get(shortKey);
+            if (type == "string") {
+                fillString(object[key], view, offset);
+                return object[key].length + 1;
             }
-            else {
-                return object[key];
+            else if (type == "Int8") {
+                view.setInt8(offset, object[key]);
             }
+            else if (type == "Int16") {
+                view.setInt16(offset, object[key]);
+            }
+            else if (type == "Int32") {
+                view.setInt32(offset, object[key]);
+            }
+            else if (type == "Uint8") {
+                view.setUint8(offset, object[key]);
+            }
+            else if (type == "Uint16") {
+                view.setUint16(offset, object[key]);
+            }
+            else if (type == "Uint32") {
+                view.setUint32(offset, object[key]);
+            }
+            else if (type == "Float32") {
+                view.setFloat32(offset, object[key]);
+            }
+            else if (type == "Float64") {
+                view.setFloat64(offset, object[key]);
+            }
+            return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
-        target[PropName.DeserializeFunctions].set(shortKey, (object, data) => {
-            if (typeof object[key] == "number") {
-                object[key] = Number(data);
+        target[PropName.DeserializeFunctions].set(shortKey, (object, view, offset) => {
+            if (type == "string") {
+                object[key] = decodeString(view, offset);
+                return object[key].length + 1;
+            }
+            else if (type == "Int8") {
+                object[key] = view.getInt8(offset);
+            }
+            else if (type == "Int16") {
+                object[key] = view.getInt16(offset);
+            }
+            else if (type == "Int32") {
+                object[key] = view.getInt32(offset);
+            }
+            else if (type == "Uint8") {
+                object[key] = view.getUint8(offset);
+            }
+            else if (type == "Uint16") {
+                object[key] = view.getUint16(offset);
+            }
+            else if (type == "Uint32") {
+                object[key] = view.getUint32(offset);
+            }
+            else if (type == "Float32") {
+                object[key] = view.getFloat32(offset);
+            }
+            else if (type == "Float64") {
+                object[key] = view.getFloat64(offset);
+            }
+            return Serializable_1.Serializable.TypesToBytesSize.get(type);
+        });
+        target[PropName.CalcBytesFunctions].set(shortKey, (object, complete) => {
+            let type = target[PropName.PropertyTypes].get(shortKey);
+            if (object[key] == undefined) {
+                console.log("return 0 (undef)");
+                return 0;
+            }
+            if (type == "string") {
+                return object[key].length + 1;
+                // } else if(type == "object") {
+                // console.log("return object! " + (object[key] as Serializable).calcNeedenBufferSize(complete));
+                // return (object[key] as Serializable).calcNeedenBufferSize(complete);
             }
             else {
-                object[key] = data;
+                return Serializable_1.Serializable.TypesToBytesSize.get(type);
             }
         });
     }
@@ -3145,6 +3264,7 @@ exports.NetworkProperty = NetworkProperty;
 function NetworkObject(shortKey) {
     function decorator(target, key) {
         addNetworkProperties(target);
+        target[PropName.PropertyTypes].set(shortKey, "object");
         let counter = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
@@ -3156,8 +3276,10 @@ exports.NetworkObject = NetworkObject;
 function addNetworkProperties(target) {
     createMapProperty(target, PropName.SerializeFunctions);
     createMapProperty(target, PropName.DeserializeFunctions);
+    createMapProperty(target, PropName.CalcBytesFunctions);
     createMapProperty(target, PropName.SerializeEncodeOrder);
     createMapProperty(target, PropName.SerializeDecodeOrder);
+    createMapProperty(target, PropName.PropertyTypes);
     createMapProperty(target, PropName.NestedNetworkObjects);
     addDcecodeCounter(target);
 }
@@ -3192,11 +3314,14 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     }
 }
 
-},{}],34:[function(require,module,exports){
+},{"./Serializable":34}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
 const CommonConfig_1 = require("../CommonConfig");
+function byteSize(num) {
+    return Math.ceil(num.toString(2).length / 8);
+}
 class Serializable {
     constructor() {
         this.changes = new Set();
@@ -3211,82 +3336,136 @@ class Serializable {
     get DeserializedFields() {
         return this.deserializedFields;
     }
-    serialize(complete = false) {
+    calcNeededBufferSize(complete) {
+        if (this.forceComplete) {
+            complete = true;
+        }
+        let neededSize = 0;
+        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
+        this[NetworkDecorators_1.PropName.CalcBytesFunctions].forEach((func, shortKey) => {
+            if (!complete && !this.changes.has(shortKey)) {
+                return;
+            }
+            neededSize += func(this, complete);
+        });
+        this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+            neededSize += this[key].calcNeededBufferSize(complete);
+        });
+        if (neededSize != 0) {
+            neededSize += byteSize(propsSize);
+        }
+        return neededSize;
+    }
+    setBit(val, bitIndex) {
+        val |= (1 << bitIndex);
+        return val;
+    }
+    serialize(updateBufferView, offset, complete = false) {
         if (this.forceComplete) {
             this.forceComplete = false;
             complete = true;
         }
-        let updateArray = [];
+        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
+        let propsByteSize = byteSize(propsSize);
+        let updatedOffset = offset + propsByteSize;
+        let presentMask = 0;
         if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
             if (complete) {
-                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, short_key) => {
-                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                    updateArray[index] = serializeFunc(this);
+                // set all data present
+                for (let i = 0; i < propsByteSize; i++) {
+                    updateBufferView.setUint8(offset + i, 255);
+                }
+                presentMask = Math.pow(2, propsByteSize * 8) - 1;
+                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, shortKey) => {
+                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                 });
             }
             else {
                 this.changes.forEach((shortKey) => {
                     let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
-                    updateArray[index] = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey)(this);
-                    this.changes.delete(shortKey);
+                    presentMask = this.setBit(presentMask, index);
+                    let serializeFunc = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey);
+                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
+                    // this.changes.delete(shortKey);
                 });
             }
         }
         if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
-            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
-                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(short_key);
-                let data = this[key].serialize(complete);
-                if (data != "") {
-                    updateArray[index] = "<" + data + ">";
+            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, shortKey) => {
+                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+                let tmpOffset = updatedOffset;
+                updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
+                if (!complete && tmpOffset < updatedOffset) {
+                    presentMask = this.setBit(presentMask, index);
                 }
             });
         }
-        let update = "";
-        let lastFiledIndex = 0;
-        for (let i = 0; i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size; i++) {
-            if (updateArray[i] != null) {
-                update += updateArray[i];
-                lastFiledIndex = update.length + 1;
-            }
-            if (i < this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size - 1) {
-                update += "|";
-            }
+        if (propsByteSize == 1) {
+            updateBufferView.setUint8(offset, presentMask);
+        }
+        else if (propsByteSize == 2) {
+            updateBufferView.setUint16(offset, presentMask);
+        }
+        else if (propsByteSize == 3) {
+            updateBufferView.setUint32(offset, presentMask);
         }
         this.changes.clear();
-        return update.substr(0, lastFiledIndex);
+        return updatedOffset;
     }
-    deserialize(update) {
-        let decodeIdx = 0;
+    deserialize(updateBufferView, offset) {
         this.deserializedFields.clear();
-        while (update) {
-            let short_key = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(decodeIdx++);
-            let idx1 = update.indexOf('|');
-            let idx2 = update.indexOf('<');
-            if (idx2 == -1 || idx1 <= idx2) {
-                let data = update.split('|', 1)[0];
-                if (data) {
-                    this[NetworkDecorators_1.PropName.DeserializeFunctions].get(short_key)(this, data);
-                    this.deserializedFields.add(short_key);
-                }
-                if (idx1 != -1) {
-                    update = update.substr(idx1 + 1, update.length);
-                }
-                else {
-                    update = null;
-                }
+        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
+        let propsByteSize = byteSize(propsSize);
+        let presentMask;
+        if (propsByteSize == 1) {
+            presentMask = updateBufferView.getUint8(offset);
+            offset += 1;
+        }
+        else if (propsByteSize == 2) {
+            presentMask = updateBufferView.getUint16(offset);
+            offset += 2;
+        }
+        else if (propsByteSize == 3) {
+            presentMask = updateBufferView.getUint32(offset);
+            offset += 4;
+        }
+        let objectsToDecode = [];
+        let index = 0;
+        while (presentMask && propsSize > index) {
+            let bitMask = (1 << index);
+            if ((presentMask & bitMask) == 0) {
+                index++;
+                continue;
+            }
+            presentMask &= ~bitMask;
+            let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
+            let type = this[NetworkDecorators_1.PropName.PropertyTypes].get(shortKey);
+            if (type == "object") {
+                objectsToDecode.push(index);
             }
             else {
-                let bracketEnd = update.indexOf('>', idx2);
-                let data = update.split('>', 1)[0].slice(1);
-                if (data) {
-                    let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(short_key);
-                    this[key].deserialize(data);
-                }
-                update = update.substr(bracketEnd + 2, update.length);
+                offset += this[NetworkDecorators_1.PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
             }
+            index++;
         }
+        objectsToDecode.forEach((index) => {
+            let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
+            let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(shortKey);
+            offset = this[key].deserialize(updateBufferView, offset);
+        });
+        return offset;
     }
 }
+Serializable.TypesToBytesSize = new Map([
+    ["Int8", 1],
+    ["Int16", 2],
+    ["Int32", 4],
+    ["Uint8", 1],
+    ["Uint16", 2],
+    ["Uint32", 4],
+    ["Float32", 4],
+    ["Float64", 8],
+]);
 exports.Serializable = Serializable;
 
 },{"../CommonConfig":25,"./NetworkDecorators":33}],35:[function(require,module,exports){
@@ -3315,7 +3494,7 @@ class Actor extends GameObject_1.GameObject {
         this.maxHp = 200;
         this.hp = this.maxHp;
         this.velocity = 0.3;
-        this.name = '';
+        this.name = "";
         this.transform.Width = 40;
         this.transform.Height = 64;
         this.spriteName = "bunny";
@@ -3379,15 +3558,15 @@ class Actor extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, "string"),
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, "Uint16"),
     __metadata("design:type", Number)
 ], Actor.prototype, "maxHp", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, "Uint16"),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
@@ -3473,11 +3652,11 @@ class Bullet extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, "Uint16"),
     __metadata("design:type", Number)
 ], Bullet.prototype, "power", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, "string"),
     __metadata("design:type", String)
 ], Bullet.prototype, "owner", void 0);
 exports.Bullet = Bullet;
@@ -3507,9 +3686,9 @@ class Enemy extends Actor_1.Actor {
         this.timeSinceLastShot -= delta;
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
-            for (let i = 0; i < 1; i++) {
-                this.shot(Math.floor(Math.random() * 360));
-            }
+            // for(let i = 0; i < 1; i++) {
+            //     this.shot(Math.floor(Math.random() * 360));
+            // }
         }
         this.moveAngle += Math.random() * 0.5 - 0.25;
         let sinAngle = Math.sin(this.moveAngle);
@@ -3616,7 +3795,7 @@ class GameObject extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME, "string"),
     __metadata("design:type", String)
 ], GameObject.prototype, "spriteName", void 0);
 __decorate([
@@ -3624,7 +3803,7 @@ __decorate([
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, "Float32"),
     __metadata("design:type", Number)
 ], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
@@ -3734,9 +3913,9 @@ class GameObjectsFactory {
         else {
             gameObject.ID = GameObjectTypes_1.Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString();
         }
-        if (data) {
-            gameObject.deserialize(data);
-        }
+        // if(data) {
+        //     gameObject.deserialize(data);
+        // }
         GameObjectsFactory.AddToListeners(gameObject);
         return gameObject;
     }
@@ -4090,27 +4269,27 @@ class Transform extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, "Float32"),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "X", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, "Float32"),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Y", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, "Uint16"),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Width", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, "Uint16"),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Height", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, "Float32"),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Rotation", null);
@@ -6966,7 +7145,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":66,"./transports/index":67,"component-emitter":53,"debug":73,"engine.io-parser":75,"indexof":81,"parseqs":84,"parseuri":85}],66:[function(require,module,exports){
+},{"./transport":66,"./transports/index":67,"component-emitter":53,"debug":73,"engine.io-parser":75,"indexof":81,"parseqs":83,"parseuri":84}],66:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -8080,7 +8259,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":84,"xmlhttprequest-ssl":72,"yeast":100}],71:[function(require,module,exports){
+},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":83,"xmlhttprequest-ssl":72,"yeast":99}],71:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8370,7 +8549,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":84,"ws":1,"yeast":100}],72:[function(require,module,exports){
+},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":83,"ws":1,"yeast":99}],72:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -8837,7 +9016,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":83}],75:[function(require,module,exports){
+},{"ms":82}],75:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9828,509 +10007,6 @@ module.exports = function(arr, obj){
   return -1;
 };
 },{}],82:[function(require,module,exports){
-// Copyright (c) 2013 Pieroxy <pieroxy@pieroxy.net>
-// This work is free. You can redistribute it and/or modify it
-// under the terms of the WTFPL, Version 2
-// For more information see LICENSE.txt or http://www.wtfpl.net/
-//
-// For more information, the home page:
-// http://pieroxy.net/blog/pages/lz-string/testing.html
-//
-// LZ-based compression algorithm, version 1.4.4
-var LZString = (function() {
-
-// private property
-var f = String.fromCharCode;
-var keyStrBase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-var keyStrUriSafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$";
-var baseReverseDic = {};
-
-function getBaseValue(alphabet, character) {
-  if (!baseReverseDic[alphabet]) {
-    baseReverseDic[alphabet] = {};
-    for (var i=0 ; i<alphabet.length ; i++) {
-      baseReverseDic[alphabet][alphabet.charAt(i)] = i;
-    }
-  }
-  return baseReverseDic[alphabet][character];
-}
-
-var LZString = {
-  compressToBase64 : function (input) {
-    if (input == null) return "";
-    var res = LZString._compress(input, 6, function(a){return keyStrBase64.charAt(a);});
-    switch (res.length % 4) { // To produce valid Base64
-    default: // When could this happen ?
-    case 0 : return res;
-    case 1 : return res+"===";
-    case 2 : return res+"==";
-    case 3 : return res+"=";
-    }
-  },
-
-  decompressFromBase64 : function (input) {
-    if (input == null) return "";
-    if (input == "") return null;
-    return LZString._decompress(input.length, 32, function(index) { return getBaseValue(keyStrBase64, input.charAt(index)); });
-  },
-
-  compressToUTF16 : function (input) {
-    if (input == null) return "";
-    return LZString._compress(input, 15, function(a){return f(a+32);}) + " ";
-  },
-
-  decompressFromUTF16: function (compressed) {
-    if (compressed == null) return "";
-    if (compressed == "") return null;
-    return LZString._decompress(compressed.length, 16384, function(index) { return compressed.charCodeAt(index) - 32; });
-  },
-
-  //compress into uint8array (UCS-2 big endian format)
-  compressToUint8Array: function (uncompressed) {
-    var compressed = LZString.compress(uncompressed);
-    var buf=new Uint8Array(compressed.length*2); // 2 bytes per character
-
-    for (var i=0, TotalLen=compressed.length; i<TotalLen; i++) {
-      var current_value = compressed.charCodeAt(i);
-      buf[i*2] = current_value >>> 8;
-      buf[i*2+1] = current_value % 256;
-    }
-    return buf;
-  },
-
-  //decompress from uint8array (UCS-2 big endian format)
-  decompressFromUint8Array:function (compressed) {
-    if (compressed===null || compressed===undefined){
-        return LZString.decompress(compressed);
-    } else {
-        var buf=new Array(compressed.length/2); // 2 bytes per character
-        for (var i=0, TotalLen=buf.length; i<TotalLen; i++) {
-          buf[i]=compressed[i*2]*256+compressed[i*2+1];
-        }
-
-        var result = [];
-        buf.forEach(function (c) {
-          result.push(f(c));
-        });
-        return LZString.decompress(result.join(''));
-
-    }
-
-  },
-
-
-  //compress into a string that is already URI encoded
-  compressToEncodedURIComponent: function (input) {
-    if (input == null) return "";
-    return LZString._compress(input, 6, function(a){return keyStrUriSafe.charAt(a);});
-  },
-
-  //decompress from an output of compressToEncodedURIComponent
-  decompressFromEncodedURIComponent:function (input) {
-    if (input == null) return "";
-    if (input == "") return null;
-    input = input.replace(/ /g, "+");
-    return LZString._decompress(input.length, 32, function(index) { return getBaseValue(keyStrUriSafe, input.charAt(index)); });
-  },
-
-  compress: function (uncompressed) {
-    return LZString._compress(uncompressed, 16, function(a){return f(a);});
-  },
-  _compress: function (uncompressed, bitsPerChar, getCharFromInt) {
-    if (uncompressed == null) return "";
-    var i, value,
-        context_dictionary= {},
-        context_dictionaryToCreate= {},
-        context_c="",
-        context_wc="",
-        context_w="",
-        context_enlargeIn= 2, // Compensate for the first entry which should not count
-        context_dictSize= 3,
-        context_numBits= 2,
-        context_data=[],
-        context_data_val=0,
-        context_data_position=0,
-        ii;
-
-    for (ii = 0; ii < uncompressed.length; ii += 1) {
-      context_c = uncompressed.charAt(ii);
-      if (!Object.prototype.hasOwnProperty.call(context_dictionary,context_c)) {
-        context_dictionary[context_c] = context_dictSize++;
-        context_dictionaryToCreate[context_c] = true;
-      }
-
-      context_wc = context_w + context_c;
-      if (Object.prototype.hasOwnProperty.call(context_dictionary,context_wc)) {
-        context_w = context_wc;
-      } else {
-        if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
-          if (context_w.charCodeAt(0)<256) {
-            for (i=0 ; i<context_numBits ; i++) {
-              context_data_val = (context_data_val << 1);
-              if (context_data_position == bitsPerChar-1) {
-                context_data_position = 0;
-                context_data.push(getCharFromInt(context_data_val));
-                context_data_val = 0;
-              } else {
-                context_data_position++;
-              }
-            }
-            value = context_w.charCodeAt(0);
-            for (i=0 ; i<8 ; i++) {
-              context_data_val = (context_data_val << 1) | (value&1);
-              if (context_data_position == bitsPerChar-1) {
-                context_data_position = 0;
-                context_data.push(getCharFromInt(context_data_val));
-                context_data_val = 0;
-              } else {
-                context_data_position++;
-              }
-              value = value >> 1;
-            }
-          } else {
-            value = 1;
-            for (i=0 ; i<context_numBits ; i++) {
-              context_data_val = (context_data_val << 1) | value;
-              if (context_data_position ==bitsPerChar-1) {
-                context_data_position = 0;
-                context_data.push(getCharFromInt(context_data_val));
-                context_data_val = 0;
-              } else {
-                context_data_position++;
-              }
-              value = 0;
-            }
-            value = context_w.charCodeAt(0);
-            for (i=0 ; i<16 ; i++) {
-              context_data_val = (context_data_val << 1) | (value&1);
-              if (context_data_position == bitsPerChar-1) {
-                context_data_position = 0;
-                context_data.push(getCharFromInt(context_data_val));
-                context_data_val = 0;
-              } else {
-                context_data_position++;
-              }
-              value = value >> 1;
-            }
-          }
-          context_enlargeIn--;
-          if (context_enlargeIn == 0) {
-            context_enlargeIn = Math.pow(2, context_numBits);
-            context_numBits++;
-          }
-          delete context_dictionaryToCreate[context_w];
-        } else {
-          value = context_dictionary[context_w];
-          for (i=0 ; i<context_numBits ; i++) {
-            context_data_val = (context_data_val << 1) | (value&1);
-            if (context_data_position == bitsPerChar-1) {
-              context_data_position = 0;
-              context_data.push(getCharFromInt(context_data_val));
-              context_data_val = 0;
-            } else {
-              context_data_position++;
-            }
-            value = value >> 1;
-          }
-
-
-        }
-        context_enlargeIn--;
-        if (context_enlargeIn == 0) {
-          context_enlargeIn = Math.pow(2, context_numBits);
-          context_numBits++;
-        }
-        // Add wc to the dictionary.
-        context_dictionary[context_wc] = context_dictSize++;
-        context_w = String(context_c);
-      }
-    }
-
-    // Output the code for w.
-    if (context_w !== "") {
-      if (Object.prototype.hasOwnProperty.call(context_dictionaryToCreate,context_w)) {
-        if (context_w.charCodeAt(0)<256) {
-          for (i=0 ; i<context_numBits ; i++) {
-            context_data_val = (context_data_val << 1);
-            if (context_data_position == bitsPerChar-1) {
-              context_data_position = 0;
-              context_data.push(getCharFromInt(context_data_val));
-              context_data_val = 0;
-            } else {
-              context_data_position++;
-            }
-          }
-          value = context_w.charCodeAt(0);
-          for (i=0 ; i<8 ; i++) {
-            context_data_val = (context_data_val << 1) | (value&1);
-            if (context_data_position == bitsPerChar-1) {
-              context_data_position = 0;
-              context_data.push(getCharFromInt(context_data_val));
-              context_data_val = 0;
-            } else {
-              context_data_position++;
-            }
-            value = value >> 1;
-          }
-        } else {
-          value = 1;
-          for (i=0 ; i<context_numBits ; i++) {
-            context_data_val = (context_data_val << 1) | value;
-            if (context_data_position == bitsPerChar-1) {
-              context_data_position = 0;
-              context_data.push(getCharFromInt(context_data_val));
-              context_data_val = 0;
-            } else {
-              context_data_position++;
-            }
-            value = 0;
-          }
-          value = context_w.charCodeAt(0);
-          for (i=0 ; i<16 ; i++) {
-            context_data_val = (context_data_val << 1) | (value&1);
-            if (context_data_position == bitsPerChar-1) {
-              context_data_position = 0;
-              context_data.push(getCharFromInt(context_data_val));
-              context_data_val = 0;
-            } else {
-              context_data_position++;
-            }
-            value = value >> 1;
-          }
-        }
-        context_enlargeIn--;
-        if (context_enlargeIn == 0) {
-          context_enlargeIn = Math.pow(2, context_numBits);
-          context_numBits++;
-        }
-        delete context_dictionaryToCreate[context_w];
-      } else {
-        value = context_dictionary[context_w];
-        for (i=0 ; i<context_numBits ; i++) {
-          context_data_val = (context_data_val << 1) | (value&1);
-          if (context_data_position == bitsPerChar-1) {
-            context_data_position = 0;
-            context_data.push(getCharFromInt(context_data_val));
-            context_data_val = 0;
-          } else {
-            context_data_position++;
-          }
-          value = value >> 1;
-        }
-
-
-      }
-      context_enlargeIn--;
-      if (context_enlargeIn == 0) {
-        context_enlargeIn = Math.pow(2, context_numBits);
-        context_numBits++;
-      }
-    }
-
-    // Mark the end of the stream
-    value = 2;
-    for (i=0 ; i<context_numBits ; i++) {
-      context_data_val = (context_data_val << 1) | (value&1);
-      if (context_data_position == bitsPerChar-1) {
-        context_data_position = 0;
-        context_data.push(getCharFromInt(context_data_val));
-        context_data_val = 0;
-      } else {
-        context_data_position++;
-      }
-      value = value >> 1;
-    }
-
-    // Flush the last char
-    while (true) {
-      context_data_val = (context_data_val << 1);
-      if (context_data_position == bitsPerChar-1) {
-        context_data.push(getCharFromInt(context_data_val));
-        break;
-      }
-      else context_data_position++;
-    }
-    return context_data.join('');
-  },
-
-  decompress: function (compressed) {
-    if (compressed == null) return "";
-    if (compressed == "") return null;
-    return LZString._decompress(compressed.length, 32768, function(index) { return compressed.charCodeAt(index); });
-  },
-
-  _decompress: function (length, resetValue, getNextValue) {
-    var dictionary = [],
-        next,
-        enlargeIn = 4,
-        dictSize = 4,
-        numBits = 3,
-        entry = "",
-        result = [],
-        i,
-        w,
-        bits, resb, maxpower, power,
-        c,
-        data = {val:getNextValue(0), position:resetValue, index:1};
-
-    for (i = 0; i < 3; i += 1) {
-      dictionary[i] = i;
-    }
-
-    bits = 0;
-    maxpower = Math.pow(2,2);
-    power=1;
-    while (power!=maxpower) {
-      resb = data.val & data.position;
-      data.position >>= 1;
-      if (data.position == 0) {
-        data.position = resetValue;
-        data.val = getNextValue(data.index++);
-      }
-      bits |= (resb>0 ? 1 : 0) * power;
-      power <<= 1;
-    }
-
-    switch (next = bits) {
-      case 0:
-          bits = 0;
-          maxpower = Math.pow(2,8);
-          power=1;
-          while (power!=maxpower) {
-            resb = data.val & data.position;
-            data.position >>= 1;
-            if (data.position == 0) {
-              data.position = resetValue;
-              data.val = getNextValue(data.index++);
-            }
-            bits |= (resb>0 ? 1 : 0) * power;
-            power <<= 1;
-          }
-        c = f(bits);
-        break;
-      case 1:
-          bits = 0;
-          maxpower = Math.pow(2,16);
-          power=1;
-          while (power!=maxpower) {
-            resb = data.val & data.position;
-            data.position >>= 1;
-            if (data.position == 0) {
-              data.position = resetValue;
-              data.val = getNextValue(data.index++);
-            }
-            bits |= (resb>0 ? 1 : 0) * power;
-            power <<= 1;
-          }
-        c = f(bits);
-        break;
-      case 2:
-        return "";
-    }
-    dictionary[3] = c;
-    w = c;
-    result.push(c);
-    while (true) {
-      if (data.index > length) {
-        return "";
-      }
-
-      bits = 0;
-      maxpower = Math.pow(2,numBits);
-      power=1;
-      while (power!=maxpower) {
-        resb = data.val & data.position;
-        data.position >>= 1;
-        if (data.position == 0) {
-          data.position = resetValue;
-          data.val = getNextValue(data.index++);
-        }
-        bits |= (resb>0 ? 1 : 0) * power;
-        power <<= 1;
-      }
-
-      switch (c = bits) {
-        case 0:
-          bits = 0;
-          maxpower = Math.pow(2,8);
-          power=1;
-          while (power!=maxpower) {
-            resb = data.val & data.position;
-            data.position >>= 1;
-            if (data.position == 0) {
-              data.position = resetValue;
-              data.val = getNextValue(data.index++);
-            }
-            bits |= (resb>0 ? 1 : 0) * power;
-            power <<= 1;
-          }
-
-          dictionary[dictSize++] = f(bits);
-          c = dictSize-1;
-          enlargeIn--;
-          break;
-        case 1:
-          bits = 0;
-          maxpower = Math.pow(2,16);
-          power=1;
-          while (power!=maxpower) {
-            resb = data.val & data.position;
-            data.position >>= 1;
-            if (data.position == 0) {
-              data.position = resetValue;
-              data.val = getNextValue(data.index++);
-            }
-            bits |= (resb>0 ? 1 : 0) * power;
-            power <<= 1;
-          }
-          dictionary[dictSize++] = f(bits);
-          c = dictSize-1;
-          enlargeIn--;
-          break;
-        case 2:
-          return result.join('');
-      }
-
-      if (enlargeIn == 0) {
-        enlargeIn = Math.pow(2, numBits);
-        numBits++;
-      }
-
-      if (dictionary[c]) {
-        entry = dictionary[c];
-      } else {
-        if (c === dictSize) {
-          entry = w + w.charAt(0);
-        } else {
-          return null;
-        }
-      }
-      result.push(entry);
-
-      // Add w+entry[0] to the dictionary.
-      dictionary[dictSize++] = w + entry.charAt(0);
-      enlargeIn--;
-
-      w = entry;
-
-      if (enlargeIn == 0) {
-        enlargeIn = Math.pow(2, numBits);
-        numBits++;
-      }
-
-    }
-  }
-};
-  return LZString;
-})();
-
-if (typeof define === 'function' && define.amd) {
-  define(function () { return LZString; });
-} else if( typeof module !== 'undefined' && module != null ) {
-  module.exports = LZString
-}
-
-},{}],83:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -10484,7 +10160,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],84:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -10523,7 +10199,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],85:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -10564,7 +10240,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],86:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10660,7 +10336,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":87,"./socket":89,"./url":90,"debug":91,"socket.io-parser":94}],87:[function(require,module,exports){
+},{"./manager":86,"./socket":88,"./url":89,"debug":90,"socket.io-parser":93}],86:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11235,7 +10911,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":88,"./socket":89,"backo2":49,"component-bind":52,"component-emitter":53,"debug":91,"engine.io-client":64,"indexof":81,"socket.io-parser":94}],88:[function(require,module,exports){
+},{"./on":87,"./socket":88,"backo2":49,"component-bind":52,"component-emitter":53,"debug":90,"engine.io-client":64,"indexof":81,"socket.io-parser":93}],87:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -11261,7 +10937,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],89:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11701,7 +11377,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":88,"component-bind":52,"component-emitter":53,"debug":91,"has-binary2":78,"parseqs":84,"socket.io-parser":94,"to-array":99}],90:[function(require,module,exports){
+},{"./on":87,"component-bind":52,"component-emitter":53,"debug":90,"has-binary2":78,"parseqs":83,"socket.io-parser":93,"to-array":98}],89:[function(require,module,exports){
 (function (global){
 
 /**
@@ -11780,11 +11456,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":91,"parseuri":85}],91:[function(require,module,exports){
+},{"debug":90,"parseuri":84}],90:[function(require,module,exports){
 arguments[4][73][0].apply(exports,arguments)
-},{"./debug":92,"_process":6,"dup":73}],92:[function(require,module,exports){
+},{"./debug":91,"_process":6,"dup":73}],91:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"dup":74,"ms":83}],93:[function(require,module,exports){
+},{"dup":74,"ms":82}],92:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -11929,7 +11605,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":95,"isarray":98}],94:[function(require,module,exports){
+},{"./is-buffer":94,"isarray":97}],93:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12348,7 +12024,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":93,"./is-buffer":95,"component-emitter":53,"debug":96,"isarray":98}],95:[function(require,module,exports){
+},{"./binary":92,"./is-buffer":94,"component-emitter":53,"debug":95,"isarray":97}],94:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -12376,13 +12052,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],96:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 arguments[4][73][0].apply(exports,arguments)
-},{"./debug":97,"_process":6,"dup":73}],97:[function(require,module,exports){
+},{"./debug":96,"_process":6,"dup":73}],96:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"dup":74,"ms":83}],98:[function(require,module,exports){
+},{"dup":74,"ms":82}],97:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],99:[function(require,module,exports){
+},{"dup":5}],98:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -12397,7 +12073,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],100:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')

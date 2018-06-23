@@ -69,7 +69,6 @@ export abstract class Serializable {
     }
 
     private setBit(val: number, bitIndex: number): number {
-        console.log("set bit idx " + bitIndex);
         val |= (1 << bitIndex);
         return val;
     }
@@ -79,11 +78,6 @@ export abstract class Serializable {
             this.forceComplete = false;
             complete = true;
         }
-
-        // let neededBufferSize = this.calcNeededBufferSize(complete);
-
-        // let updateBuffer: ArrayBuffer = new ArrayBuffer(neededBufferSize);
-        // let updateBufferView: DataView = new DataView(updateBuffer);
 
         let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
         let propsByteSize: number = byteSize(propsSize);
@@ -96,13 +90,11 @@ export abstract class Serializable {
             if (complete) {
                 // set all data present
                 for(let i = 0; i < propsByteSize; i++) {
-                    updateBufferView.setUint8(i, 255);
+                    updateBufferView.setUint8(offset + i, 255);
                 }
                 presentMask = Math.pow(2, propsByteSize * 8) - 1;
 
                 this[PropName.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
-                    let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
-
                     updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                 });
             } else {
@@ -123,17 +115,15 @@ export abstract class Serializable {
             this[PropName.NestedNetworkObjects].forEach((key: string, shortKey: string) => {
                 let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
 
-                let tmpOffset: number = this[key].serialize(updateBufferView, updatedOffset, complete);
-                if(!complete && tmpOffset > updatedOffset) {
-                    console.log("presentMask!! " + presentMask);
+                let tmpOffset: number = updatedOffset;
+                updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
+
+                if(!complete && tmpOffset < updatedOffset) {
                     presentMask = this.setBit(presentMask, index);
-                    updatedOffset = tmpOffset;
-                    console.log("presentMask@@ " + presentMask);
                 }
             });
         }
 
-        console.log("set presentMask " + presentMask);
         if(propsByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
         } else if(propsByteSize == 2) {
@@ -148,8 +138,6 @@ export abstract class Serializable {
     }
 
     public deserialize(updateBufferView: DataView, offset: number) {
-        // let decodeIdx: number = 0;
-        console.log("DESERIALIZE");
         this.deserializedFields.clear();
 
         let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
@@ -166,8 +154,6 @@ export abstract class Serializable {
             presentMask = updateBufferView.getUint32(offset);
             offset += 4;
         }
-
-        console.log("presentMask " + presentMask + " propsSize " + propsSize);
 
         let objectsToDecode: Array<number> = [];
 
@@ -186,7 +172,7 @@ export abstract class Serializable {
             if(type == "object") {
                 objectsToDecode.push(index);
             } else {
-                offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset)
+                offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
             }
 
             index++;
@@ -196,7 +182,8 @@ export abstract class Serializable {
             let shortKey = this[PropName.SerializeDecodeOrder].get(index);
 
             let key: string = this[PropName.NestedNetworkObjects].get(shortKey);
-            offset += this[key].deserialize(updateBufferView, offset);
+
+            offset = this[key].deserialize(updateBufferView, offset);
         });
 
         return offset;

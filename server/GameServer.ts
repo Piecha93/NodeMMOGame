@@ -17,12 +17,12 @@ import {Actor} from "../common/utils/game/Actor";
 import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
 
-const spawn = require('threads').spawn;
-
-let compress = function (update, done) {
-    const LZString = require("lz-string");
-    done(LZString.compressToUTF16(update));
-};
+// const spawn = require('threads').spawn;
+//
+// let compress = function (update, done) {
+//     const LZString = require("lz-string");
+//     done(LZString.compressToUTF16(update));
+// };
 
 NetObjectsManager.Instance;
 
@@ -33,7 +33,7 @@ export class GameServer {
 
     private world: GameWorld;
 
-    private sendAndCompressUpdateThread = spawn(compress);
+    // private sendAndCompressUpdateThread = spawn(compress);
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -45,7 +45,7 @@ export class GameServer {
     }
 
     private startGame() {
-        this.world = new GameWorld(2048, 1156);
+        this.world = new GameWorld();
 
         // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
         //     if(gameObject instanceof Actor) {
@@ -67,7 +67,7 @@ export class GameServer {
         this.world.update(delta);
 
         if(this.updateResolution++ % 3 == 0) {
-            this.collectAndCompressUpdate(this.sendUpdate.bind(this));
+            this.collectAndCompressUpdate();
         }
         setTimeout(() => {
             this.startGameLoop();
@@ -102,22 +102,21 @@ export class GameServer {
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = GameObjectsFactory.Instatiate("Player") as Player;
-                player.Transform.X = Math.floor(Math.random() * (this.world.Width - 100)) + 50;
-                player.Transform.Y = Math.floor(Math.random() * (this.world.Height - 100) + 50);
+                player.Transform.X = Math.floor(Math.random() * 300) + 50;
+                player.Transform.Y = Math.floor(Math.random() * 300) + 50;
 
                 player.Name = serverClient.Name;
 
                 serverClient.PlayerId = player.ID;
 
-                // let update: string = LZString.compressToUTF16(NetObjectsManager.Instance.collectUpdate(true));
-                this.collectAndCompressUpdate((update) => {
-                    let world: string = this.world.serialize();
-                    socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID, update: update, world: world });
-                    player.forceCompleteUpdate();
-                    serverClient.IsReady = true;
+                socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
-                    this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
-                }, true);
+                player.forceCompleteUpdate();
+                let updateBuffer: ArrayBuffer = NetObjectsManager.Instance.collectUpdate(true);
+                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, updateBuffer);
+                serverClient.IsReady = true;
+
+                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
             });
 
             socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
@@ -176,7 +175,7 @@ export class GameServer {
         return avgBandwith;
     }
 
-    private sendUpdate(update) {
+    private sendUpdate(updateBuffer: ArrayBuffer) {
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
                 let player: Player = this.world.getGameObject(client.PlayerId) as Player;
@@ -186,26 +185,21 @@ export class GameServer {
 
                 let snapshot: InputSnapshot = player.LastInputSnapshot;
                 if(snapshot && snapshot.isMoving()) {
-                    client.Socket.emit(SocketMsgs.UPDATE_GAME, update, [snapshot.ID, snapshot.SnapshotDelta]);
-                } else {
-                    client.Socket.emit(SocketMsgs.UPDATE_GAME, update);
+                    client.Socket.emit(SocketMsgs.LAST_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }
+                client.Socket.emit(SocketMsgs.UPDATE_GAME, updateBuffer);
             }
         });
     }
 
-    private collectAndCompressUpdate(callback: Function, complete: boolean = false) {
-        let update: string = NetObjectsManager.Instance.collectUpdate(complete);
+    private collectAndCompressUpdate(complete: boolean = false) {
+        let updateBuffer: ArrayBuffer = NetObjectsManager.Instance.collectUpdate(complete);
 
-        if(update[0] == "$") {
-            update = update.slice(1);
-        }
-
-        if(update == '') {
+        if(updateBuffer.byteLength == 0) {
             return;
         }
 
-        this.sendAndCompressUpdateThread.send(update).once("done", callback);
+        this.sendUpdate(updateBuffer);
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {
@@ -227,25 +221,27 @@ export class GameServer {
 
     private initTestObjects() {
         let o: GameObject;
-        // ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
-        for (let i = 0; i < (this.world.Height - 48) / 48; i++) {
+        let height: number = 1156;
+        let width: number = 2048;
+        ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
+        for (let i = 0; i < (height - 48) / 48; i++) {
             o= GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = 0;
             o.Transform.Y = i * o.Transform.Height;
 
             o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = this.world.Width - o.Transform.Width;
+            o.Transform.X = width - o.Transform.Width;
             o.Transform.Y = i * o.Transform.Height;
         }
 
-        for (let i = 1; i < (this.world.Width - 48) / 48; i++) {
+        for (let i = 1; i < (width - 48) / 48; i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
             o.Transform.Y = 0;
 
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = this.world.Height - 52;
+            o.Transform.Y = height - 52;
         }
 
         o = GameObjectsFactory.Instatiate("Obstacle");
@@ -267,8 +263,8 @@ export class GameServer {
         let spawnEnemy: Function = () => {
             monsterCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
-            e.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
+            e.Transform.X = Math.floor(Math.random() * 200) + 100;
+            e.Transform.Y = Math.floor(Math.random() * 200) + 100;
 
             e.Name = "Michau " + monsterCounter.toString();
 
@@ -277,21 +273,21 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 0; i++) {
             spawnEnemy();
         }
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * (this.world.Width - 200)) + 100;
-            i.Transform.Y = Math.floor(Math.random() * (this.world.Height - 200) + 100);
+            i.Transform.X = Math.floor(Math.random() * 200) + 100;
+            i.Transform.Y = Math.floor(Math.random() * 200) + 100;
 
             i.addDestroyListener(() => {
                 spawnItem();
             })
         };
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 0; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

@@ -60,7 +60,7 @@ export class Transform extends Serializable {
         this.shape.y = y;
     }
 
-    @NetworkProperty(ChangesDict.WIDTH, "Uint8")
+    @NetworkProperty(ChangesDict.WIDTH, "Uint16")
     set Width(width: number) {
         if(this.width == width) return;
         this.width = width;
@@ -81,7 +81,7 @@ export class Transform extends Serializable {
         return this.width;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT, "Uint8")
+    @NetworkProperty(ChangesDict.HEIGHT, "Uint16")
     set Height(height: number) {
         if(this.height == height) return;
         this.height = height;

@@ -20,11 +20,11 @@ function fillString(str: string, view: DataView, offset: number) {
 
 function decodeString(view: DataView, offset: number): string {
     let len: number = view.getUint8(offset);
+
     let str: string = "";
     for(let i = 1; i <= len; i++) {
         str += String.fromCharCode(view.getUint8(i + offset));
     }
-
     return str;
 }
 
@@ -73,38 +73,31 @@ export function NetworkProperty(shortKey: string, type: string) {
 
         target[PropName.DeserializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number): number => {
             if(type == "string") {
-                object[type] = decodeString(view, offset);
-                console.log("decoded param " +  object[type])
+                object[key] = decodeString(view, offset);
                 return (object[key] as string).length + 1;
             } else if(type == "Int8") {
-                object[type] = view.getInt8(offset);
+                object[key] = view.getInt8(offset);
             } else if(type == "Int16") {
-                object[type] = view.getInt16(offset);
+                object[key] = view.getInt16(offset);
             } else if(type == "Int32") {
-                object[type] = view.getInt32(offset);
+                object[key] = view.getInt32(offset);
             } else if(type == "Uint8") {
-                object[type] = view.getUint8(offset);
+                object[key] = view.getUint8(offset);
             } else if(type == "Uint16") {
-                object[type] = view.getUint16(offset);
+                object[key] = view.getUint16(offset);
             } else if(type == "Uint32") {
-                object[type] = view.getUint32(offset);
+                object[key] = view.getUint32(offset);
             } else if(type == "Float32") {
-                object[type] = view.getFloat32(offset);
+                object[key] = view.getFloat32(offset);
             } else if(type == "Float64") {
-                object[type] = view.getFloat64(offset);
+                object[key] = view.getFloat64(offset);
             }
-
-            console.log("decoded param " +  object[type])
 
             return Serializable.TypesToBytesSize.get(type);
         });
 
         target[PropName.CalcBytesFunctions].set(shortKey, (object: Serializable, complete: boolean): number => {
             let type: string = target[PropName.PropertyTypes].get(shortKey);
-
-            // console.log("type " + type + " key " + key + " val " + object[key]);
-
-            // console.log("type " + type);
 
             if(object[key] == undefined)  {
                 console.log("return 0 (undef)");
@@ -132,6 +125,7 @@ export function NetworkObject(shortKey: string) {
         target[PropName.PropertyTypes].set(shortKey, "object");
 
         let counter: number = target[PropName.DecodeCounter]++;
+
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
         target[PropName.NestedNetworkObjects].set(shortKey, key);
@@ -157,16 +151,6 @@ function createMapProperty<T, R>(target: Object, propertyName: string) {
     if (!target.hasOwnProperty(propertyName)) {
         let propertyVal: Map<T, R> = getPrototypePropertyVal(target, propertyName, null);
         propertyVal = new Map<T, R>(propertyVal);
-        createProperty(target, propertyName, propertyVal);
-    }
-}
-
-function createArrayProperty<T>(target: Object, propertyName: string) {
-    if (!target.hasOwnProperty(propertyName)) {
-        let propertyVal: Array<T> = getPrototypePropertyVal(target, propertyName, null);
-        if(propertyVal == null) {
-            propertyVal = [];
-        }
         createProperty(target, propertyName, propertyVal);
     }
 }

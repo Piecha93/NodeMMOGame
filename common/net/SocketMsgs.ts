@@ -7,7 +7,9 @@ export class SocketMsgs {
     public static HEARTBEAT = '3';
     public static HEARTBEAT_RESPONSE = '4';
     public static UPDATE_GAME = '5';
-    public static INPUT_SNAPSHOT = '6';
-    public static CHAT_MESSAGE = '7';
-    public static ERROR = '8';
+    public static FIRST_UPDATE_GAME = '6';
+    public static INPUT_SNAPSHOT = '7';
+    public static CHAT_MESSAGE = '8';
+    public static LAST_SNAPSHOT_DATA = '9';
+    public static ERROR = '10';
 }

@@ -5,13 +5,13 @@ import {CollisionsSystem} from "./utils/physics/CollisionsSystem";
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: CollisionsSystem = new CollisionsSystem();
 
-    private width: number;
-    private height: number;
+    // private width: number;
+    // private height: number;
 
-    constructor(width: number, height: number) {
+    constructor() {
         super();
-        this.width = width;
-        this.height = height;
+        // this.width = width;
+        // this.height = height;
         console.log("create game instance");
     }
 
@@ -40,13 +40,13 @@ export class GameWorld extends GameObjectsSubscriber {
         this.collistionsSystem.removeObject(gameObject);
     }
 
-    get Width(): number {
-        return this.width;
-    }
-
-    get Height(): number {
-        return this.height;
-    }
+    // get Width(): number {
+    //     return this.width;
+    // }
+    //
+    // get Height(): number {
+    //     return this.height;
+    // }
 
     get CollisionsSystem(): CollisionsSystem {
         return this.collistionsSystem;
@@ -56,7 +56,7 @@ export class GameWorld extends GameObjectsSubscriber {
 
     }
 
-    serialize(): string {
-        return this.width.toString() + ',' + this.height.toString();
-    }
+    // serialize(): string {
+    //     return this.width.toString() + ',' + this.height.toString();
+    // }
 }

@@ -31,9 +31,12 @@ export class GameClient {
     private cursor: Cursor;
 
     private localPlayer: Player = null;
+    private localPlayerId: string = "";
 
     private timer: DeltaTimer = new DeltaTimer;
     private deltaHistory: Array<number> = [];
+
+    private lastSnapshotData: [number, number] = null;
 
     constructor() {
         this.connect();
@@ -59,28 +62,34 @@ export class GameClient {
     }
 
     private configureSocket() {
-        this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
-            let worldInfo: Array<string> = data['world'].split(',');
-            let width: number = Number(worldInfo[0]);
-            let height: number = Number(worldInfo[1]);
+        this.socket.on(SocketMsgs.FIRST_UPDATE_GAME, (data) => {
+            this.onServerUpdate(data);
 
-            this.world = new GameWorld(width, height);
-
-            this.renderer.setMap();
-
-            this.onServerUpdate(data['update']);
-            this.localPlayer = this.world.getGameObject(data['id']) as Player;
+            this.localPlayer = this.world.getGameObject(this.localPlayerId) as Player;
             this.renderer.CameraFollower = this.localPlayer;
-
             this.heartBeatSender.sendHeartBeat();
 
             this.startGame();
             this.socket.on(SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
 
-            this.socket.on(SocketMsgs.ERROR, (err: string) => {
-                console.log(err);
-                alert(err);
-            });
+        });
+        this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
+            // let worldInfo: Array<string> = data['world'].split(',');
+            // let width: number = Number(worldInfo[0]);
+            // let height: number = Number(worldInfo[1]);
+
+            this.localPlayerId = data['id'];
+            this.world = new GameWorld();
+            this.renderer.setMap();
+        });
+
+        this.socket.on(SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData?: [number, number]) => {
+            this.lastSnapshotData = lastSnapshotData;
+        });
+
+        this.socket.on(SocketMsgs.ERROR, (err: string) => {
+            console.log(err);
+            alert(err);
         });
     }
 
@@ -121,35 +130,49 @@ export class GameClient {
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
 
-    private onServerUpdate(data, lastSnapshotData?: [number, number]) {
-        if(!data) return;
-        data = LZString.decompressFromUTF16(data);
+    private removeObjectsUpdate(updateBufferView: DataView, offset: number) {
+        while(offset < updateBufferView.byteLength) {
+            let idToRemove: string = String.fromCharCode(updateBufferView.getUint8(offset)) +
+                updateBufferView.getUint32(offset + 1).toString();
 
-        let update: Array<string> = data.split('$');
-        console.log(update);
-        for (let object in update) {
-            let splitObject: string[] = update[object].split('=');
-            let id: string = splitObject[0];
-            let data: string = splitObject[1];
+            let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(idToRemove);
+            if (gameObject) {
+                gameObject.destroy();
+            }
+            offset += 5;
+        }
+    }
 
-            let gameObject: GameObject = null;
-            if (id[0] == '!') {
-                id = id.slice(1);
-                gameObject = NetObjectsManager.Instance.getGameObject(id);
-                if (gameObject) {
-                    gameObject.destroy();
-                }
-                continue;
+    private onServerUpdate(updateBuffer: ArrayBuffer) {
+        // if(!updateBuffer) return;
+        // updateBuffer = LZString.decompressFromUTF16(updateBuffer);
+        let updateBufferView: DataView = new DataView(updateBuffer);
+
+        let offset: number = 0;
+
+        // console.log(updateBufferView.byteLength);
+        while(offset < updateBufferView.byteLength) {
+            let id: string = String.fromCharCode(updateBufferView.getUint8(offset));
+
+            if(id == String.fromCharCode(255)) {
+                this.removeObjectsUpdate(updateBufferView, offset + 1);
+                break;
             }
 
-            gameObject = NetObjectsManager.Instance.getGameObject(id);
+            id += updateBufferView.getUint32(offset + 1).toString();
+
+            offset += 5;
+
+            let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(id);
 
             if (gameObject == null) {
-                gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id, data);
+                gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id);
             }
-            gameObject.deserialize(data);
-            if (lastSnapshotData && this.localPlayer.ID == id) {
-                this.localPlayer.reconciliation(lastSnapshotData, this.world.CollisionsSystem);
+            offset = gameObject.deserialize(updateBufferView, offset);
+
+            if (this.localPlayer && this.localPlayer.ID == id && this.lastSnapshotData != null) {
+                this.localPlayer.reconciliation(this.lastSnapshotData, this.world.CollisionsSystem);
+                this.lastSnapshotData = null;
             }
         }
     }
