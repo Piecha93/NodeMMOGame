@@ -9,11 +9,11 @@ import {Result} from "detect-collisions";
 import {Item} from "./Item";
 
 export abstract class Actor extends GameObject {
-    @NetworkProperty(ChangesDict.NAME)
+    @NetworkProperty(ChangesDict.NAME, "string")
     private name: string;
-    @NetworkProperty(ChangesDict.MAX_HP)
+    @NetworkProperty(ChangesDict.MAX_HP, "Uint16")
     private maxHp: number;
-    @NetworkProperty(ChangesDict.HP)
+    @NetworkProperty(ChangesDict.HP, "Uint16")
     private hp: number;
 
     constructor(transform: Transform) {
@@ -22,7 +22,7 @@ export abstract class Actor extends GameObject {
         this.maxHp = 200;
         this.hp = this.maxHp;
         this.velocity = 0.3;
-        this.name = '';
+        this.name = "";
 
         this.transform.Width = 40;
         this.transform.Height = 64;

@@ -8,9 +8,9 @@ import {Result} from "detect-collisions";
 
 export class Bullet extends GameObject {
     private lifeSpan: number = 50;
-    @NetworkProperty(ChangesDict.POWER)
+    @NetworkProperty(ChangesDict.POWER, "Uint16")
     private power: number = 10;
-    @NetworkProperty(ChangesDict.OWNER)
+    @NetworkProperty(ChangesDict.OWNER, "string")
     private owner: string;
 
     constructor(transform: Transform) {

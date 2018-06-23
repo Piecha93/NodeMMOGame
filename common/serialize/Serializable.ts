@@ -1,12 +1,30 @@
 import {PropName} from "./NetworkDecorators";
 import {CommonConfig} from "../CommonConfig";
 
+
+function byteSize(num: number) {
+    return Math.ceil(num.toString(2).length / 8);
+}
+
 export abstract class Serializable {
+    public static TypesToBytesSize: Map<string, number> = new Map<string, number>(
+        [
+            ["Int8", 1],
+            ["Int16", 2],
+            ["Int32", 4],
+            ["Uint8", 1],
+            ["Uint16", 2],
+            ["Uint32", 4],
+            ["Float32", 4],
+            ["Float64", 8],
+        ]
+    );
+
     protected forceComplete: boolean;
     protected changes: Set<string>;
     protected deserializedFields: Set<string>;
 
-    constructor() {
+    protected constructor() {
         this.changes = new Set<string>();
         this.deserializedFields = new Set<string>();
         this.forceComplete = true;
@@ -22,82 +40,165 @@ export abstract class Serializable {
         return this.deserializedFields;
     }
 
-    public serialize(complete: boolean = false): string {
+    public calcNeededBufferSize(complete: boolean): number {
+        if (this.forceComplete) {
+            complete = true;
+        }
+
+        let neededSize: number = 0;
+
+        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+
+        (this[PropName.CalcBytesFunctions] as Map<string, Function>).forEach((func: Function, shortKey: string) => {
+            if(!complete && !this.changes.has(shortKey)) {
+                return;
+            }
+
+            neededSize += func(this, complete);
+        });
+
+        this[PropName.NestedNetworkObjects].forEach((key: string, short_key: string) => {
+            neededSize += (this[key] as Serializable).calcNeededBufferSize(complete);
+        });
+
+        if(neededSize != 0) {
+            neededSize += byteSize(propsSize);
+        }
+
+        return neededSize;
+    }
+
+    private setBit(val: number, bitIndex: number): number {
+        console.log("set bit idx " + bitIndex);
+        val |= (1 << bitIndex);
+        return val;
+    }
+
+    public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
         if (this.forceComplete) {
             this.forceComplete = false;
             complete = true;
         }
 
-        let updateArray: Array<string> = [];
+        // let neededBufferSize = this.calcNeededBufferSize(complete);
+
+        // let updateBuffer: ArrayBuffer = new ArrayBuffer(neededBufferSize);
+        // let updateBufferView: DataView = new DataView(updateBuffer);
+
+        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+        let propsByteSize: number = byteSize(propsSize);
+
+        let updatedOffset: number = offset + propsByteSize;
+
+        let presentMask: number = 0;
 
         if(this[PropName.SerializeFunctions]) {
             if (complete) {
-                this[PropName.SerializeFunctions].forEach((serializeFunc: Function, short_key: string) => {
-                    let index: number = this[PropName.SerializeEncodeOrder].get(short_key);
-                    updateArray[index] = serializeFunc(this);
+                // set all data present
+                for(let i = 0; i < propsByteSize; i++) {
+                    updateBufferView.setUint8(i, 255);
+                }
+                presentMask = Math.pow(2, propsByteSize * 8) - 1;
+
+                this[PropName.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
+                    let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+
+                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                 });
             } else {
                 this.changes.forEach((shortKey: string) => {
                     let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
-                    updateArray[index] = this[PropName.SerializeFunctions].get(shortKey)(this);
-                    this.changes.delete(shortKey);
+
+                    presentMask = this.setBit(presentMask, index);
+
+                    let serializeFunc: Function = this[PropName.SerializeFunctions].get(shortKey);
+                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
+
+                    // this.changes.delete(shortKey);
                 });
             }
         }
 
         if(this[PropName.NestedNetworkObjects]) {
-            this[PropName.NestedNetworkObjects].forEach((key: string, short_key: string) => {
-                let index: number = this[PropName.SerializeEncodeOrder].get(short_key);
-                let data: string = this[key].serialize(complete);
-                if(data != "") {
-                    updateArray[index] = "<" + data +">";
+            this[PropName.NestedNetworkObjects].forEach((key: string, shortKey: string) => {
+                let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+
+                let tmpOffset: number = this[key].serialize(updateBufferView, updatedOffset, complete);
+                if(!complete && tmpOffset > updatedOffset) {
+                    console.log("presentMask!! " + presentMask);
+                    presentMask = this.setBit(presentMask, index);
+                    updatedOffset = tmpOffset;
+                    console.log("presentMask@@ " + presentMask);
                 }
             });
         }
 
-        let update: string = "";
-        let lastFiledIndex = 0;
-        for(let i = 0; i < this[PropName.SerializeEncodeOrder].size; i++) {
-            if(updateArray[i] != null) {
-                update += updateArray[i];
-                lastFiledIndex = update.length + 1;
-            }
-            if(i < this[PropName.SerializeEncodeOrder].size - 1) {
-                update += "|";
-            }
+        console.log("set presentMask " + presentMask);
+        if(propsByteSize == 1) {
+            updateBufferView.setUint8(offset, presentMask);
+        } else if(propsByteSize == 2) {
+            updateBufferView.setUint16(offset, presentMask);
+        } else if(propsByteSize == 3) {
+            updateBufferView.setUint32(offset, presentMask);
         }
 
         this.changes.clear();
-        return update.substr(0, lastFiledIndex);
+
+        return updatedOffset;
     }
 
-    public deserialize(update: string) {
-        let decodeIdx: number = 0;
+    public deserialize(updateBufferView: DataView, offset: number) {
+        // let decodeIdx: number = 0;
+        console.log("DESERIALIZE");
         this.deserializedFields.clear();
-        while (update) {
-            let short_key = this[PropName.SerializeDecodeOrder].get(decodeIdx++);
-            let idx1 = update.indexOf('|');
-            let idx2 = update.indexOf('<');
-            if (idx2 == -1 || idx1 <= idx2) {
-                let data: string = update.split('|', 1)[0];
-                if(data) {
-                    this[PropName.DeserializeFunctions].get(short_key)(this, data);
-                    this.deserializedFields.add(short_key);
-                }
-                if(idx1 != -1) {
-                    update = update.substr(idx1 + 1, update.length);
-                } else {
-                    update = null;
-                }
-            } else {
-                let bracketEnd: number = update.indexOf('>', idx2);
-                let data: string = update.split('>', 1)[0].slice(1);
-                if(data) {
-                    let key: string = this[PropName.NestedNetworkObjects].get(short_key);
-                    this[key].deserialize(data);
-                }
-                update = update.substr(bracketEnd + 2, update.length)
-            }
+
+        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+        let propsByteSize: number = byteSize(propsSize);
+
+        let presentMask: number;
+        if(propsByteSize == 1) {
+            presentMask = updateBufferView.getUint8(offset);
+            offset += 1;
+        } else if(propsByteSize == 2) {
+            presentMask = updateBufferView.getUint16(offset);
+            offset += 2;
+        } else if(propsByteSize == 3) {
+            presentMask = updateBufferView.getUint32(offset);
+            offset += 4;
         }
+
+        console.log("presentMask " + presentMask + " propsSize " + propsSize);
+
+        let objectsToDecode: Array<number> = [];
+
+        let index: number = 0;
+        while (presentMask && propsSize > index) {
+            let bitMask: number = (1 << index);
+            if ((presentMask & bitMask) == 0) {
+                index++;
+                continue;
+            }
+            presentMask &= ~bitMask;
+
+            let shortKey = this[PropName.SerializeDecodeOrder].get(index);
+            let type: string = this[PropName.PropertyTypes].get(shortKey);
+
+            if(type == "object") {
+                objectsToDecode.push(index);
+            } else {
+                offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset)
+            }
+
+            index++;
+        }
+
+        objectsToDecode.forEach((index: number) => {
+            let shortKey = this[PropName.SerializeDecodeOrder].get(index);
+
+            let key: string = this[PropName.NestedNetworkObjects].get(shortKey);
+            offset += this[key].deserialize(updateBufferView, offset);
+        });
+
+        return offset;
     }
 }

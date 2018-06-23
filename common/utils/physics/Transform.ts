@@ -46,7 +46,7 @@ export class Transform extends Serializable {
         return this.shape.x;
     }
 
-    @NetworkProperty(ChangesDict.X,)
+    @NetworkProperty(ChangesDict.X, "Float32")
     set X(x: number) {
         this.shape.x = x;
     }
@@ -55,12 +55,12 @@ export class Transform extends Serializable {
         return this.shape.y;
     }
 
-    @NetworkProperty(ChangesDict.Y)
+    @NetworkProperty(ChangesDict.Y, "Float32")
     set Y(y: number) {
         this.shape.y = y;
     }
 
-    @NetworkProperty(ChangesDict.WIDTH)
+    @NetworkProperty(ChangesDict.WIDTH, "Uint8")
     set Width(width: number) {
         if(this.width == width) return;
         this.width = width;
@@ -81,7 +81,7 @@ export class Transform extends Serializable {
         return this.width;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT)
+    @NetworkProperty(ChangesDict.HEIGHT, "Uint8")
     set Height(height: number) {
         if(this.height == height) return;
         this.height = height;
@@ -101,7 +101,7 @@ export class Transform extends Serializable {
         return this.height;
     }
 
-    @NetworkProperty(ChangesDict.ROTATION)
+    @NetworkProperty(ChangesDict.ROTATION, "Float32")
     set Rotation(angle: number) {
         if(this.shape instanceof Polygon) {
             this.shape.angle = angle;
