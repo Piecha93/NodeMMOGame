@@ -6,6 +6,7 @@ export class InputSnapshot {
     private id: number;
     private time: number;
     private commandList: Map<INPUT_COMMAND, string>;
+    private snapshotDelta: number = 0;
 
     constructor(serializedSnapshot?: string) {
         this.time = DeltaTimer.getTimestamp();
@@ -51,7 +52,6 @@ export class InputSnapshot {
         return this.time;
     }
 
-    private snapshotDelta: number = 0;
     setSnapshotDelta() {
         this.snapshotDelta = Date.now() - this.time;
     }

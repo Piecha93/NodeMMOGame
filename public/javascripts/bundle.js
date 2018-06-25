@@ -3441,6 +3441,7 @@ class Serializable {
             }
             else {
                 offset += this[NetworkDecorators_1.PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                this.deserializedFields.add(shortKey);
             }
             index++;
         }

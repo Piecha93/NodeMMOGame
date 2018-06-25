@@ -170,7 +170,7 @@ export class Player extends Actor {
     }
 
     set LastServerSnapshotData(lastSnapshotData: [number, number]){
-        this.lastServerSnapshotData= lastSnapshotData;
+        this.lastServerSnapshotData = lastSnapshotData;
     }
 
     set Direction(direction: number) {

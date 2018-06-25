@@ -160,6 +160,7 @@ export abstract class Serializable {
                 objectsToDecode.push(index);
             } else {
                 offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                this.deserializedFields.add(shortKey);
             }
 
             index++;

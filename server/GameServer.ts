@@ -59,7 +59,7 @@ export class GameServer {
         this.world.update(delta);
 
         if(this.updateResolution++ % 5 == 0) {
-            this.collectAndCompressUpdate(false);
+            this.collectAndSendUpdate(false);
         }
         setTimeout(() => {
             this.startGameLoop();
@@ -171,7 +171,7 @@ export class GameServer {
         });
     }
 
-    private collectAndCompressUpdate(complete: boolean = false) {
+    private collectAndSendUpdate(complete: boolean = false) {
         let updateBuffer: ArrayBuffer = NetObjectsManager.Instance.collectUpdate(complete);
 
         if(updateBuffer.byteLength == 0) {
