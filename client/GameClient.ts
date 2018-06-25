@@ -17,7 +17,8 @@ import {Cursor} from "./input/Cursor";
 import {Transform} from "../common/utils/physics/Transform";
 
 const customParser = require('socket.io-msgpack-parser');
-import * as io from "socket.io-client"
+// import * as io from "socket.io-client"
+const io = require('socket.io-client');
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
@@ -47,10 +48,15 @@ export class GameClient {
     }
 
     private connect() {
-        this.socket = io.connect({
-            reconnection: false,
-            parser: customParser
-        });
+        // this.socket = io.connect({
+        //     reconnection: false,
+        //     parser: customParser
+        // });
+        // workaround to lack off parser type in socketio types
+        this.socket = io({
+                reconnection: false,
+                parser: customParser
+            });
 
         if(this.socket != null) {
             this.configureSocket();

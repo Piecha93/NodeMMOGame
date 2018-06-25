@@ -13,15 +13,16 @@ import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import shortid = require("shortid");
-const customParser = require('socket.io-msgpack-parser');
-
+const customParser: any = require('socket.io-msgpack-parser');
 
 CommonConfig.ORIGIN = Origin.SERVER;
 
 const port: number = Number(process.env.PORT) || 3000;
 const app: express.Application = express();
 const httpServer: http.Server = http.createServer(app);
-const sockets: SocketIO.Server = io.listen(httpServer, {parser: customParser});
+// const sockets = (httpServer, {parser: customParser});
+// workaround to lack off parser type in socketio types
+const sockets: SocketIO.Server = require('socket.io')(httpServer, {parser: customParser});
 const database: Database = Database.Instance;
 const MongoStoreExpress = connectMongo(express_session);
 const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});

@@ -2053,7 +2053,8 @@ const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtml
 const Cursor_1 = require("./input/Cursor");
 const Transform_1 = require("../common/utils/physics/Transform");
 const customParser = require('socket.io-msgpack-parser');
-const io = require("socket.io-client");
+// import * as io from "socket.io-client"
+const io = require('socket.io-client');
 class GameClient {
     constructor() {
         this.localPlayer = null;
@@ -2069,7 +2070,12 @@ class GameClient {
         });
     }
     connect() {
-        this.socket = io.connect({
+        // this.socket = io.connect({
+        //     reconnection: false,
+        //     parser: customParser
+        // });
+        // workaround to lack off parser type in socketio types
+        this.socket = io({
             reconnection: false,
             parser: customParser
         });
@@ -2085,7 +2091,7 @@ class GameClient {
             console.log("on FIRST_UPDATE_GAME");
             this.onServerUpdate(data);
             this.localPlayer = this.world.getGameObject(this.localPlayerId);
-            // this.renderer.CameraFollower = this.localPlayer;
+            this.renderer.CameraFollower = this.localPlayer;
             this.heartBeatSender.sendHeartBeat();
             this.startGame();
             this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
@@ -2096,7 +2102,6 @@ class GameClient {
             this.world = new GameWorld_1.GameWorld();
             this.renderer.setMap();
             this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
-            this.renderer.CameraFollower = this.cursor;
             this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
             this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
             this.inputHandler.addSnapshotCallback((snapshot) => {
