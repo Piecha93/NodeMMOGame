@@ -1,7 +1,10 @@
 import {GameObject} from "../utils/game/GameObject";
 import {GameObjectsSubscriber} from "../utils/game/GameObjectsSubscriber";
 import {CommonConfig} from "../CommonConfig";
-import {Data} from "ejs";
+import {CollisionsSystem} from "../utils/physics/CollisionsSystem";
+import {Player} from "../utils/game/Player";
+import {GameObjectsFactory} from "../utils/game/ObjectsFactory";
+import {Types} from "../utils/game/GameObjectTypes";
 
 export class NetObjectsManager extends GameObjectsSubscriber {
     private static instance: NetObjectsManager;
@@ -59,7 +62,6 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         });
 
         if(this.destroyedObjects.length > 0) {
-            // console.log("remove offset " + destrotObjectsOffset);
             updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsManager.DESTROY_OBJECTS_ID);
             this.destroyedObjects.forEach((id: string) => {
                 updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
@@ -71,5 +73,49 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         this.destroyedObjects = [];
 
         return updateBuffer;
+    }
+
+    public decodeUpdate(updateBufferView: DataView, localPlayer: Player, collisionsSystem: CollisionsSystem) {
+        let offset: number = 0;
+
+        while(offset < updateBufferView.byteLength) {
+            let id: string = String.fromCharCode(updateBufferView.getUint8(offset));
+
+            if(id == String.fromCharCode(255)) {
+                offset = NetObjectsManager.decodeDestroyedObjects(updateBufferView, offset + 1);
+                break;
+            }
+
+            id += updateBufferView.getUint32(offset + 1).toString();
+
+            offset += 5;
+
+            let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(id);
+
+            if (gameObject == null) {
+                gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id);
+            }
+
+            offset = gameObject.deserialize(updateBufferView, offset);
+
+            if (localPlayer && localPlayer.ID == id) {
+                localPlayer.reconciliation(collisionsSystem);
+            }
+        }
+    }
+
+    private static decodeDestroyedObjects(updateBufferView: DataView, offset: number) {
+        while(offset < updateBufferView.byteLength) {
+            let idToRemove: string = String.fromCharCode(updateBufferView.getUint8(offset)) +
+                updateBufferView.getUint32(offset + 1).toString();
+
+            let gameObject: GameObject = NetObjectsManager.Instance.getGameObject(idToRemove);
+            if (gameObject) {
+                gameObject.destroy();
+            }
+            offset += 5;
+        }
+
+        return offset;
     }
 }

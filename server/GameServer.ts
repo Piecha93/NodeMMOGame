@@ -13,7 +13,6 @@ import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/utils/game/Obstacle";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
-import {Actor} from "../common/utils/game/Actor";
 import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
 
@@ -155,19 +154,6 @@ export class GameServer {
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
     }
 
-    private bandwithHistory: Array<number> = [];
-
-    private calculateAverageBandwith(updateSize): number {
-        this.bandwithHistory.push(updateSize);
-        if(this.bandwithHistory.length > 50) this.bandwithHistory.splice(0, 1);
-        let avgBandwith: number = 0;
-        this.bandwithHistory.forEach((bandwith: number) => {
-            avgBandwith += bandwith;
-        });
-        avgBandwith /= this.bandwithHistory.length;
-        return avgBandwith;
-    }
-
     private sendUpdate(updateBuffer: ArrayBuffer) {
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
@@ -256,8 +242,8 @@ export class GameServer {
         let spawnEnemy: Function = () => {
             monsterCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * 200) + 100;
-            e.Transform.Y = Math.floor(Math.random() * 200) + 100;
+            e.Transform.X = Math.floor(Math.random() * 1400) + 100;
+            e.Transform.Y = Math.floor(Math.random() * 800) + 100;
 
             e.Name = "Michau " + monsterCounter.toString();
 
@@ -272,15 +258,15 @@ export class GameServer {
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * 1000) + 100;
-            i.Transform.Y = Math.floor(Math.random() * 1000) + 100;
+            i.Transform.X = Math.floor(Math.random() * 1400) + 100;
+            i.Transform.Y = Math.floor(Math.random() * 800) + 100;
 
             i.addDestroyListener(() => {
                 spawnItem();
             })
         };
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 50; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

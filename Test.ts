@@ -105,11 +105,6 @@ function decodeString(view: DataView, offset: number): string {
 }
 
 
-
-player.printSerializeOrder();
-player.Transform.printSerializeOrder();
-
-
 let testData1: Array<number> = [1, 0, 0, 0, 18, 2, 5, 69, 38, 39, 13, 67, 188, 120, 105];
 let testData2: Array<number> =[1, 0, 0, 0, 21, 2, 3, 69, 55, 29, 23, 67, 165, 91, 102];
 let testData3: Array<number> =[1, 0, 0, 0, 21, 2, 3, 69, 55, 29, 23, 67, 165, 91, 102];

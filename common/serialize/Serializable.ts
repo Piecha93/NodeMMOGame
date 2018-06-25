@@ -86,8 +86,6 @@ export abstract class Serializable {
         }
 
         if(this[PropName.SerializeFunctions]) {
-            // set all data present
-
             this[PropName.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
                 if(this.changes.has(shortKey) || complete) {
                     let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
@@ -95,18 +93,6 @@ export abstract class Serializable {
                     presentMask = setBit(presentMask, index);
                 }
             });
-            // else {
-            //     this.changes.forEach((shortKey: string) => {
-            //         let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
-            //
-            //         presentMask = setBit(presentMask, index);
-            //
-            //         let serializeFunc: Function = this[PropName.SerializeFunctions].get(shortKey);
-            //         updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
-            //
-            //         // this.changes.delete(shortKey);
-            //     });
-            // }
         }
 
         if(this[PropName.NestedNetworkObjects]) {
@@ -116,14 +102,12 @@ export abstract class Serializable {
                 let tmpOffset: number = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
 
-                // console.log("tmpOffset " + tmpOffset + "updatedOffset " + updatedOffset);
-                if(!complete && tmpOffset < updatedOffset) {
+                if(tmpOffset < updatedOffset) {
                     presentMask = setBit(presentMask, index);
                 }
             });
         }
 
-        // console.log("updatedOffset " + updatedOffset + "propsSize " + propsByteSize + " offset " + offset);
         if(updatedOffset == (offset + propsByteSize)) {
             return offset;
         }
@@ -161,7 +145,6 @@ export abstract class Serializable {
         let objectsToDecode: Array<number> = [];
 
         let index: number = 0;
-        // console.log("present mask " + presentMask);
         while (presentMask && propsSize > index) {
             let bitMask: number = (1 << index);
             if ((presentMask & bitMask) == 0) {
@@ -169,8 +152,6 @@ export abstract class Serializable {
                 continue;
             }
             presentMask &= ~bitMask;
-
-            // console.log("present bit " + index);
 
             let shortKey = this[PropName.SerializeDecodeOrder].get(index);
             let type: string = this[PropName.PropertyTypes].get(shortKey);
@@ -188,25 +169,9 @@ export abstract class Serializable {
             let shortKey = this[PropName.SerializeDecodeOrder].get(index);
 
             let key: string = this[PropName.NestedNetworkObjects].get(shortKey);
-            // console.log("inside " + index);
             offset = this[key].deserialize(updateBufferView, offset);
-            // console.log("outside " + offset);
         });
 
         return offset;
-    }
-
-    public printSerializeOrder() {
-        console.log("SerializeEncodeOrder");
-        (this[PropName.SerializeEncodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
-            console.log(key + " : " + val);
-        });
-    }
-
-    public printDeserializeOrder() {
-        console.log("SerializeDecodeOrder");
-        (this[PropName.SerializeDecodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
-            console.log(key + " : " + val);
-        });
     }
 }

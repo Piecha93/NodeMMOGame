@@ -2050,7 +2050,6 @@ const Chat_1 = require("./Chat");
 const InputSender_1 = require(".//net/InputSender");
 const DeltaTimer_1 = require("../common/DeltaTimer");
 const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtmlHandler");
-const GameObjectTypes_1 = require("../common/utils/game/GameObjectTypes");
 const Cursor_1 = require("./input/Cursor");
 const Transform_1 = require("../common/utils/physics/Transform");
 const customParser = require('socket.io-msgpack-parser');
@@ -2061,7 +2060,6 @@ class GameClient {
         this.localPlayerId = "";
         this.timer = new DeltaTimer_1.DeltaTimer;
         this.deltaHistory = [];
-        this.lastSnapshotData = null;
         this.connect();
         this.inputSender = new InputSender_1.InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
@@ -2087,38 +2085,37 @@ class GameClient {
             console.log("on FIRST_UPDATE_GAME");
             this.onServerUpdate(data);
             this.localPlayer = this.world.getGameObject(this.localPlayerId);
-            this.renderer.CameraFollower = this.localPlayer;
+            // this.renderer.CameraFollower = this.localPlayer;
             this.heartBeatSender.sendHeartBeat();
             this.startGame();
             this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
             console.log("on INITIALIZE_GAME");
-            // let worldInfo: Array<string> = data['world'].split(',');
-            // let width: number = Number(worldInfo[0]);
-            // let height: number = Number(worldInfo[1]);
             this.localPlayerId = data['id'];
             this.world = new GameWorld_1.GameWorld();
             this.renderer.setMap();
+            this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
+            this.renderer.CameraFollower = this.cursor;
+            this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
+            this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
+            this.inputHandler.addSnapshotCallback((snapshot) => {
+                if (this.localPlayer) {
+                    this.localPlayer.setInput(snapshot);
+                }
+            });
         });
-        // this.socket.on(SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData?: [number, number]) => {
-        //     console.log("on LAST_SNAPSHOT_DATA");
-        //     this.lastSnapshotData = lastSnapshotData;
-        // });
+        this.socket.on(SocketMsgs_1.SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData) => {
+            if (this.localPlayer) {
+                this.localPlayer.LastServerSnapshotData = lastSnapshotData;
+            }
+        });
         this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
             console.log(err);
             alert(err);
         });
     }
     startGame() {
-        this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
-        this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
-        this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-        this.inputHandler.addSnapshotCallback((snapshot) => {
-            if (this.localPlayer) {
-                this.localPlayer.setInput(snapshot);
-            }
-        });
         this.startGameLoop();
     }
     startGameLoop() {
@@ -2140,55 +2137,14 @@ class GameClient {
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
-    removeObjectsUpdate(updateBufferView, offset) {
-        // console.log("removeObjectsUpdate ");
-        while (offset < updateBufferView.byteLength) {
-            let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
-                updateBufferView.getUint32(offset + 1).toString();
-            let gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(idToRemove);
-            if (gameObject) {
-                gameObject.destroy();
-            }
-            // console.log("destroy " + idToRemove);
-            offset += 5;
-        }
-    }
     onServerUpdate(updateBuffer) {
-        // if(!updateBuffer) return;
-        // updateBuffer = LZString.decompressFromUTF16(updateBuffer);
-        // console.log(updateBuffer);
         let updateBufferView = new DataView(updateBuffer[1]);
-        // console.log("on FIRST_UPDATE_GAME " + updateBufferView.byteLength);
-        let offset = 0;
-        let chuj = "";
-        for (let i = 0; i < updateBufferView.byteLength; i++) {
-            chuj += updateBufferView.getUint8(i) + ", ";
-        }
-        // console.log("CHUJ DUPA " + chuj);
-        while (offset < updateBufferView.byteLength) {
-            let id = String.fromCharCode(updateBufferView.getUint8(offset));
-            if (id == String.fromCharCode(255)) {
-                // console.log("remove offset " + offset);
-                this.removeObjectsUpdate(updateBufferView, offset + 1);
-                break;
-            }
-            id += updateBufferView.getUint32(offset + 1).toString();
-            offset += 5;
-            let gameObject = NetObjectsManager_1.NetObjectsManager.Instance.getGameObject(id);
-            if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
-            }
-            offset = gameObject.deserialize(updateBufferView, offset);
-            if (this.localPlayer && this.localPlayer.ID == id && this.lastSnapshotData != null) {
-                this.localPlayer.reconciliation(this.lastSnapshotData, this.world.CollisionsSystem);
-                this.lastSnapshotData = null;
-            }
-        }
+        NetObjectsManager_1.NetObjectsManager.Instance.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
     }
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":40,"../common/utils/game/ObjectsFactory":43,"../common/utils/physics/Transform":47,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"socket.io-client":89,"socket.io-msgpack-parser":96}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/ObjectsFactory":43,"../common/utils/physics/Transform":47,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"socket.io-client":89,"socket.io-msgpack-parser":96}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
@@ -3052,6 +3008,8 @@ exports.InputSnapshot = InputSnapshot;
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../utils/game/GameObjectsSubscriber");
 const CommonConfig_1 = require("../CommonConfig");
+const ObjectsFactory_1 = require("../utils/game/ObjectsFactory");
+const GameObjectTypes_1 = require("../utils/game/GameObjectTypes");
 class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
@@ -3094,7 +3052,6 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             gameObject.serialize(updateBufferView, offset + 5, complete);
         });
         if (this.destroyedObjects.length > 0) {
-            console.log("remove offset " + destrotObjectsOffset);
             updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsManager.DESTROY_OBJECTS_ID);
             this.destroyedObjects.forEach((id) => {
                 updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
@@ -3105,11 +3062,43 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.destroyedObjects = [];
         return updateBuffer;
     }
+    decodeUpdate(updateBufferView, localPlayer, collisionsSystem) {
+        let offset = 0;
+        while (offset < updateBufferView.byteLength) {
+            let id = String.fromCharCode(updateBufferView.getUint8(offset));
+            if (id == String.fromCharCode(255)) {
+                offset = NetObjectsManager.decodeDestroyedObjects(updateBufferView, offset + 1);
+                break;
+            }
+            id += updateBufferView.getUint32(offset + 1).toString();
+            offset += 5;
+            let gameObject = NetObjectsManager.Instance.getGameObject(id);
+            if (gameObject == null) {
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
+            }
+            offset = gameObject.deserialize(updateBufferView, offset);
+            if (localPlayer && localPlayer.ID == id) {
+                localPlayer.reconciliation(collisionsSystem);
+            }
+        }
+    }
+    static decodeDestroyedObjects(updateBufferView, offset) {
+        while (offset < updateBufferView.byteLength) {
+            let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
+                updateBufferView.getUint32(offset + 1).toString();
+            let gameObject = NetObjectsManager.Instance.getGameObject(idToRemove);
+            if (gameObject) {
+                gameObject.destroy();
+            }
+            offset += 5;
+        }
+        return offset;
+    }
 }
 NetObjectsManager.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../CommonConfig":25,"../utils/game/GameObjectsSubscriber":41}],31:[function(require,module,exports){
+},{"../CommonConfig":25,"../utils/game/GameObjectTypes":40,"../utils/game/GameObjectsSubscriber":41,"../utils/game/ObjectsFactory":43}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -3227,7 +3216,6 @@ function NetworkProperty(shortKey, type) {
         target[PropName.DeserializeFunctions].set(shortKey, (object, view, offset) => {
             if (type == "string") {
                 object[key] = decodeString(view, offset);
-                // console.log("deserialize str " + key + " " + object[key]);
                 return object[key].length + 1;
             }
             else if (type == "Int8") {
@@ -3254,22 +3242,16 @@ function NetworkProperty(shortKey, type) {
             else if (type == "Float64") {
                 object[key] = view.getFloat64(offset);
             }
-            // if(key == "width" || key == "height") {
-            // console.log("deserialize " + key + " " + object[key]);
-            // }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
         target[PropName.CalcBytesFunctions].set(shortKey, (object, complete) => {
             let type = target[PropName.PropertyTypes].get(shortKey);
-            if (object[key] == undefined) {
-                // console.log("return 0 (undef)");
-                return 0;
-            }
             if (type == "string") {
                 return object[key].length + 1;
-                // } else if(type == "object") {
-                // console.log("return object! " + (object[key] as Serializable).calcNeedenBufferSize(complete));
-                // return (object[key] as Serializable).calcNeedenBufferSize(complete);
+            }
+            else if (type == "object") {
+                console.log("return object! " + object[key].calcNeededBufferSize(complete));
+                return object[key].calcNeededBufferSize(complete);
             }
             else {
                 return Serializable_1.Serializable.TypesToBytesSize.get(type);
@@ -3388,7 +3370,6 @@ class Serializable {
             }
         }
         if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
-            // set all data present
             this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, shortKey) => {
                 if (this.changes.has(shortKey) || complete) {
                     let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
@@ -3396,31 +3377,17 @@ class Serializable {
                     presentMask = BitOperations_1.setBit(presentMask, index);
                 }
             });
-            // else {
-            //     this.changes.forEach((shortKey: string) => {
-            //         let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
-            //
-            //         presentMask = setBit(presentMask, index);
-            //
-            //         let serializeFunc: Function = this[PropName.SerializeFunctions].get(shortKey);
-            //         updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
-            //
-            //         // this.changes.delete(shortKey);
-            //     });
-            // }
         }
         if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
             this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, shortKey) => {
                 let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
                 let tmpOffset = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
-                // console.log("tmpOffset " + tmpOffset + "updatedOffset " + updatedOffset);
-                if (!complete && tmpOffset < updatedOffset) {
+                if (tmpOffset < updatedOffset) {
                     presentMask = BitOperations_1.setBit(presentMask, index);
                 }
             });
         }
-        // console.log("updatedOffset " + updatedOffset + "propsSize " + propsByteSize + " offset " + offset);
         if (updatedOffset == (offset + propsByteSize)) {
             return offset;
         }
@@ -3455,7 +3422,6 @@ class Serializable {
         }
         let objectsToDecode = [];
         let index = 0;
-        // console.log("present mask " + presentMask);
         while (presentMask && propsSize > index) {
             let bitMask = (1 << index);
             if ((presentMask & bitMask) == 0) {
@@ -3463,7 +3429,6 @@ class Serializable {
                 continue;
             }
             presentMask &= ~bitMask;
-            // console.log("present bit " + index);
             let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
             let type = this[NetworkDecorators_1.PropName.PropertyTypes].get(shortKey);
             if (type == "object") {
@@ -3477,23 +3442,9 @@ class Serializable {
         objectsToDecode.forEach((index) => {
             let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
             let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(shortKey);
-            // console.log("inside " + index);
             offset = this[key].deserialize(updateBufferView, offset);
-            // console.log("outside " + offset);
         });
         return offset;
-    }
-    printSerializeOrder() {
-        console.log("SerializeEncodeOrder");
-        this[NetworkDecorators_1.PropName.SerializeEncodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
-    }
-    printDeserializeOrder() {
-        console.log("SerializeDecodeOrder");
-        this[NetworkDecorators_1.PropName.SerializeDecodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
     }
 }
 Serializable.TypesToBytesSize = new Map([
@@ -4038,20 +3989,12 @@ const InputCommands_1 = require("../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
-const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
-const BitOperations_1 = require("../functions/BitOperations");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.moveDirection = 0;
         this.inputHistory = [];
         this.velocity = 0.5;
-    }
-    serialize(updateBufferView, offset, complete = false) {
-        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
-        let propsByteSize = BitOperations_1.byteSize(propsSize);
-        console.log("propsByteSize for player " + propsByteSize);
-        return super.serialize(updateBufferView, offset, complete);
     }
     pushSnapshotToHistory(inputSnapshot) {
         this.lastInputSnapshot = inputSnapshot;
@@ -4116,9 +4059,12 @@ class Player extends Actor_1.Actor {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    reconciliation(serverSnapshotData, collisionsSystem) {
-        let serverSnapshotId = serverSnapshotData[0];
-        let serverSnapshotDelta = serverSnapshotData[1];
+    reconciliation(collisionsSystem) {
+        if (this.lastServerSnapshotData == null) {
+            return;
+        }
+        let serverSnapshotId = this.lastServerSnapshotData[0];
+        let serverSnapshotDelta = this.lastServerSnapshotData[1];
         let histElemsToRemove = 0;
         for (let i = 0; i < this.inputHistory.length; i++) {
             if (this.inputHistory[i].ID < serverSnapshotId) {
@@ -4158,6 +4104,7 @@ class Player extends Actor_1.Actor {
             }
         }
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+        this.lastServerSnapshotData = null;
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -4167,6 +4114,9 @@ class Player extends Actor_1.Actor {
     }
     get LastInputSnapshot() {
         return this.lastInputSnapshot;
+    }
+    set LastServerSnapshotData(lastSnapshotData) {
+        this.lastServerSnapshotData = lastSnapshotData;
     }
     set Direction(direction) {
         if (direction >= 0 && direction <= 8) {
@@ -4186,7 +4136,7 @@ Player.moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.corn
 Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
 exports.Player = Player;
 
-},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../functions/BitOperations":35,"./Actor":36}],46:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"./Actor":36}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");

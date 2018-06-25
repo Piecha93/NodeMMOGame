@@ -12,23 +12,15 @@ export class Player extends Actor {
     private moveDirection: number = 0;
     private inputHistory: Array<InputSnapshot>;
     private lastInputSnapshot: InputSnapshot;
+    private lastServerSnapshotData: [number, number];
 
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
         INPUT_COMMAND.FIRE,
         INPUT_COMMAND.WALL
     ]);
 
-    public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
-        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
-        let propsByteSize: number = byteSize(propsSize);
 
-        console.log("propsByteSize for player " + propsByteSize);
-
-        return super.serialize(updateBufferView, offset, complete);
-    }
-
-
-        constructor(transform: Transform) {
+    constructor(transform: Transform) {
         super(transform);
 
         this.inputHistory = [];
@@ -107,9 +99,12 @@ export class Player extends Actor {
         }
     }
 
-    public reconciliation(serverSnapshotData: [number, number], collisionsSystem: CollisionsSystem) {
-        let serverSnapshotId: number = serverSnapshotData[0];
-        let serverSnapshotDelta: number = serverSnapshotData[1];
+    public reconciliation(collisionsSystem: CollisionsSystem) {
+        if(this.lastServerSnapshotData == null) {
+            return;
+        }
+        let serverSnapshotId: number = this.lastServerSnapshotData[0];
+        let serverSnapshotDelta: number = this.lastServerSnapshotData[1];
         let histElemsToRemove: number = 0;
 
         for(let i: number = 0; i < this.inputHistory.length; i++) {
@@ -154,6 +149,7 @@ export class Player extends Actor {
             }
         }
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
+        this.lastServerSnapshotData = null;
     }
 
     protected serverUpdate(delta: number) {
@@ -171,6 +167,10 @@ export class Player extends Actor {
 
     get LastInputSnapshot(): InputSnapshot{
         return this.lastInputSnapshot;
+    }
+
+    set LastServerSnapshotData(lastSnapshotData: [number, number]){
+        this.lastServerSnapshotData= lastSnapshotData;
     }
 
     set Direction(direction: number) {

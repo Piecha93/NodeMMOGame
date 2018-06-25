@@ -74,7 +74,6 @@ export function NetworkProperty(shortKey: string, type: string) {
         target[PropName.DeserializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number): number => {
             if(type == "string") {
                 object[key] = decodeString(view, offset);
-                // console.log("deserialize str " + key + " " + object[key]);
                 return (object[key] as string).length + 1;
             } else if(type == "Int8") {
                 object[key] = view.getInt8(offset);
@@ -94,26 +93,17 @@ export function NetworkProperty(shortKey: string, type: string) {
                 object[key] = view.getFloat64(offset);
             }
 
-            // if(key == "width" || key == "height") {
-            // console.log("deserialize " + key + " " + object[key]);
-            // }
-
             return Serializable.TypesToBytesSize.get(type);
         });
 
         target[PropName.CalcBytesFunctions].set(shortKey, (object: Serializable, complete: boolean): number => {
             let type: string = target[PropName.PropertyTypes].get(shortKey);
 
-            if(object[key] == undefined)  {
-                // console.log("return 0 (undef)");
-                return 0;
-            }
-
             if(type == "string") {
                 return (object[key] as string).length + 1;
-            // } else if(type == "object") {
-                // console.log("return object! " + (object[key] as Serializable).calcNeedenBufferSize(complete));
-                // return (object[key] as Serializable).calcNeedenBufferSize(complete);
+            } else if(type == "object") {
+                console.log("return object! " + (object[key] as Serializable).calcNeededBufferSize(complete));
+                return (object[key] as Serializable).calcNeededBufferSize(complete);
             } else {
                 return Serializable.TypesToBytesSize.get(type);
             }
