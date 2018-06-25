@@ -59,6 +59,7 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         });
 
         if(this.destroyedObjects.length > 0) {
+            // console.log("remove offset " + destrotObjectsOffset);
             updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsManager.DESTROY_OBJECTS_ID);
             this.destroyedObjects.forEach((id: string) => {
                 updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
@@ -68,8 +69,6 @@ export class NetObjectsManager extends GameObjectsSubscriber {
         }
 
         this.destroyedObjects = [];
-
-
 
         return updateBuffer;
     }

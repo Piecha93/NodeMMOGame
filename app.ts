@@ -5,6 +5,7 @@ import * as io from 'socket.io';
 import * as path from 'path'
 import * as connectMongo from 'connect-mongo';
 import * as bodyParser from 'body-parser'
+import * as SocketIO from 'socket.io';
 
 import {Request, Response} from "express";
 import {MongoStore} from "connect-mongo";
@@ -12,6 +13,7 @@ import {GameServer} from "./server/GameServer";
 import {CommonConfig, Origin} from "./common/CommonConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import shortid = require("shortid");
+const customParser = require('socket.io-msgpack-parser');
 
 
 CommonConfig.ORIGIN = Origin.SERVER;
@@ -19,7 +21,7 @@ CommonConfig.ORIGIN = Origin.SERVER;
 const port: number = Number(process.env.PORT) || 3000;
 const app: express.Application = express();
 const httpServer: http.Server = http.createServer(app);
-const sockets: SocketIO.Server = io.listen(httpServer);
+const sockets: SocketIO.Server = io.listen(httpServer, {parser: customParser});
 const database: Database = Database.Instance;
 const MongoStoreExpress = connectMongo(express_session);
 const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});

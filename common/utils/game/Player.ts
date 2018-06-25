@@ -4,9 +4,9 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
-import {Obstacle} from "./Obstacle";
-import {GameObjectsFactory} from "./ObjectsFactory";
 import {CollisionsSystem} from "..//physics/CollisionsSystem";
+import {PropName} from "../../serialize/NetworkDecorators";
+import {byteSize} from "../functions/BitOperations";
 
 export class Player extends Actor {
     private moveDirection: number = 0;
@@ -18,7 +18,17 @@ export class Player extends Actor {
         INPUT_COMMAND.WALL
     ]);
 
-    constructor(transform: Transform) {
+    public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
+        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+        let propsByteSize: number = byteSize(propsSize);
+
+        console.log("propsByteSize for player " + propsByteSize);
+
+        return super.serialize(updateBufferView, offset, complete);
+    }
+
+
+        constructor(transform: Transform) {
         super(transform);
 
         this.inputHistory = [];

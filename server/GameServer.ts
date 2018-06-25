@@ -1,4 +1,4 @@
-import Socket = SocketIOClient.Socket;
+import * as SocketIO from 'socket.io';
 
 import {ServerClient} from "./ServerClient";
 import {GameWorld} from "../common/GameWorld";
@@ -17,19 +17,12 @@ import {Actor} from "../common/utils/game/Actor";
 import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
 
-// const spawn = require('threads').spawn;
-//
-// let compress = function (update, done) {
-//     const LZString = require("lz-string");
-//     done(LZString.compressToUTF16(update));
-// };
-
 NetObjectsManager.Instance;
 
 export class GameServer {
     private sockets: SocketIO.Server;
-    private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
-    private socketsIds: Map<string, Socket> = new Map<string, Socket>();
+    private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
+    private socketsIds: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
 
     private world: GameWorld;
 
@@ -66,8 +59,8 @@ export class GameServer {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
 
-        if(this.updateResolution++ % 3 == 0) {
-            this.collectAndCompressUpdate();
+        if(this.updateResolution++ % 5 == 0) {
+            this.collectAndCompressUpdate(false);
         }
         setTimeout(() => {
             this.startGameLoop();
@@ -75,7 +68,7 @@ export class GameServer {
     }
 
     private configureSockets() {
-        this.sockets.on(SocketMsgs.CONNECTION, (socket: Socket) => {
+        this.sockets.on(SocketMsgs.CONNECTION, (socket: SocketIO.Server) => {
             let socketSession = (socket as any).request.session;
 
             if(this.socketsIds.has(socketSession.user_id)) {
@@ -273,21 +266,21 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 300; i++) {
             spawnEnemy();
         }
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * 200) + 100;
-            i.Transform.Y = Math.floor(Math.random() * 200) + 100;
+            i.Transform.X = Math.floor(Math.random() * 1000) + 100;
+            i.Transform.Y = Math.floor(Math.random() * 1000) + 100;
 
             i.addDestroyListener(() => {
                 spawnItem();
             })
         };
 
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 20; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

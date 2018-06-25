@@ -1,15 +1,14 @@
-import Socket = SocketIOClient.Socket;
-import Timer = NodeJS.Timer;
+import * as SocketIO from 'socket.io';
 import {ServerConfig} from "./ServerConfig";
 
 export class ServerClient {
-    private socket: Socket;
+    private socket: SocketIO.Server;
     private name: string = "";
     private isReady: boolean = false;
     private lastHbInterval: number = ServerConfig.CLIENT_TIMEOUT;
     private playerId: string = "";
 
-    constructor(socket: Socket) {
+    constructor(socket: SocketIO.Server) {
         this.socket = socket;
     }
 
@@ -17,7 +16,7 @@ export class ServerClient {
         return this.name;
     }
 
-    get Socket(): Socket {
+    get Socket(): SocketIO.Server {
         return this.socket;
     }
 

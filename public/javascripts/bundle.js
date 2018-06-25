@@ -2051,9 +2051,10 @@ const InputSender_1 = require(".//net/InputSender");
 const DeltaTimer_1 = require("../common/DeltaTimer");
 const DebugWindowHtmlHandler_1 = require("./graphic/HtmlHandlers/DebugWindowHtmlHandler");
 const GameObjectTypes_1 = require("../common/utils/game/GameObjectTypes");
-const io = require("socket.io-client");
 const Cursor_1 = require("./input/Cursor");
 const Transform_1 = require("../common/utils/physics/Transform");
+const customParser = require('socket.io-msgpack-parser');
+const io = require("socket.io-client");
 class GameClient {
     constructor() {
         this.localPlayer = null;
@@ -2071,7 +2072,8 @@ class GameClient {
     }
     connect() {
         this.socket = io.connect({
-            reconnection: false
+            reconnection: false,
+            parser: customParser
         });
         if (this.socket != null) {
             this.configureSocket();
@@ -2082,6 +2084,7 @@ class GameClient {
     }
     configureSocket() {
         this.socket.on(SocketMsgs_1.SocketMsgs.FIRST_UPDATE_GAME, (data) => {
+            console.log("on FIRST_UPDATE_GAME");
             this.onServerUpdate(data);
             this.localPlayer = this.world.getGameObject(this.localPlayerId);
             this.renderer.CameraFollower = this.localPlayer;
@@ -2090,6 +2093,7 @@ class GameClient {
             this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.INITIALIZE_GAME, (data) => {
+            console.log("on INITIALIZE_GAME");
             // let worldInfo: Array<string> = data['world'].split(',');
             // let width: number = Number(worldInfo[0]);
             // let height: number = Number(worldInfo[1]);
@@ -2097,9 +2101,10 @@ class GameClient {
             this.world = new GameWorld_1.GameWorld();
             this.renderer.setMap();
         });
-        this.socket.on(SocketMsgs_1.SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData) => {
-            this.lastSnapshotData = lastSnapshotData;
-        });
+        // this.socket.on(SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData?: [number, number]) => {
+        //     console.log("on LAST_SNAPSHOT_DATA");
+        //     this.lastSnapshotData = lastSnapshotData;
+        // });
         this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (err) => {
             console.log(err);
             alert(err);
@@ -2136,6 +2141,7 @@ class GameClient {
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
     removeObjectsUpdate(updateBufferView, offset) {
+        // console.log("removeObjectsUpdate ");
         while (offset < updateBufferView.byteLength) {
             let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
                 updateBufferView.getUint32(offset + 1).toString();
@@ -2143,18 +2149,26 @@ class GameClient {
             if (gameObject) {
                 gameObject.destroy();
             }
+            // console.log("destroy " + idToRemove);
             offset += 5;
         }
     }
     onServerUpdate(updateBuffer) {
         // if(!updateBuffer) return;
         // updateBuffer = LZString.decompressFromUTF16(updateBuffer);
-        let updateBufferView = new DataView(updateBuffer);
+        // console.log(updateBuffer);
+        let updateBufferView = new DataView(updateBuffer[1]);
+        // console.log("on FIRST_UPDATE_GAME " + updateBufferView.byteLength);
         let offset = 0;
-        // console.log(updateBufferView.byteLength);
+        let chuj = "";
+        for (let i = 0; i < updateBufferView.byteLength; i++) {
+            chuj += updateBufferView.getUint8(i) + ", ";
+        }
+        // console.log("CHUJ DUPA " + chuj);
         while (offset < updateBufferView.byteLength) {
             let id = String.fromCharCode(updateBufferView.getUint8(offset));
             if (id == String.fromCharCode(255)) {
+                // console.log("remove offset " + offset);
                 this.removeObjectsUpdate(updateBufferView, offset + 1);
                 break;
             }
@@ -2174,7 +2188,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":39,"../common/utils/game/ObjectsFactory":42,"../common/utils/physics/Transform":46,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"socket.io-client":85}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":26,"../common/GameWorld":27,"../common/net/NetObjectsManager":30,"../common/net/SocketMsgs":31,"../common/utils/game/GameObjectTypes":40,"../common/utils/game/ObjectsFactory":43,"../common/utils/physics/Transform":47,".//net/InputSender":24,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":17,"./input/Cursor":19,"./input/InputHandler":20,"./net/HeartBeatSender":23,"socket.io-client":89,"socket.io-msgpack-parser":96}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
@@ -2581,7 +2595,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../common/utils/game/GameObjectTypes":39,"../../common/utils/game/GameObjectsSubscriber":40,"./BulletRender":9,"./Camera":10,"./GameObjectSpriteRender":13,"./PlayerRender":16,"./TileMap":18}],18:[function(require,module,exports){
+},{"../../common/utils/game/GameObjectTypes":40,"../../common/utils/game/GameObjectsSubscriber":41,"./BulletRender":9,"./Camera":10,"./GameObjectSpriteRender":13,"./PlayerRender":16,"./TileMap":18}],18:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2648,7 +2662,7 @@ class Cursor extends GameObject_1.GameObject {
 }
 exports.Cursor = Cursor;
 
-},{"../../common/utils/game/Enemy":37,"../../common/utils/game/GameObject":38,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],20:[function(require,module,exports){
+},{"../../common/utils/game/Enemy":38,"../../common/utils/game/GameObject":39,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -2958,7 +2972,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"./utils/game/GameObjectsSubscriber":40,"./utils/physics/CollisionsSystem":45}],28:[function(require,module,exports){
+},{"./utils/game/GameObjectsSubscriber":41,"./utils/physics/CollisionsSystem":46}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -3072,7 +3086,6 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         if (this.destroyedObjects.length > 0) {
             neededBufferSize += (this.destroyedObjects.length * 5) + 1;
         }
-        console.log("neededBufferSize for all objects " + neededBufferSize);
         let updateBuffer = new ArrayBuffer(neededBufferSize);
         let updateBufferView = new DataView(updateBuffer);
         objectsToUpdateMap.forEach((offset, gameObject) => {
@@ -3081,6 +3094,7 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             gameObject.serialize(updateBufferView, offset + 5, complete);
         });
         if (this.destroyedObjects.length > 0) {
+            console.log("remove offset " + destrotObjectsOffset);
             updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsManager.DESTROY_OBJECTS_ID);
             this.destroyedObjects.forEach((id) => {
                 updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
@@ -3095,7 +3109,7 @@ class NetObjectsManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 NetObjectsManager.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsManager = NetObjectsManager;
 
-},{"../CommonConfig":25,"../utils/game/GameObjectsSubscriber":40}],31:[function(require,module,exports){
+},{"../CommonConfig":25,"../utils/game/GameObjectsSubscriber":41}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -3213,6 +3227,7 @@ function NetworkProperty(shortKey, type) {
         target[PropName.DeserializeFunctions].set(shortKey, (object, view, offset) => {
             if (type == "string") {
                 object[key] = decodeString(view, offset);
+                // console.log("deserialize str " + key + " " + object[key]);
                 return object[key].length + 1;
             }
             else if (type == "Int8") {
@@ -3239,12 +3254,15 @@ function NetworkProperty(shortKey, type) {
             else if (type == "Float64") {
                 object[key] = view.getFloat64(offset);
             }
+            // if(key == "width" || key == "height") {
+            // console.log("deserialize " + key + " " + object[key]);
+            // }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
         target[PropName.CalcBytesFunctions].set(shortKey, (object, complete) => {
             let type = target[PropName.PropertyTypes].get(shortKey);
             if (object[key] == undefined) {
-                console.log("return 0 (undef)");
+                // console.log("return 0 (undef)");
                 return 0;
             }
             if (type == "string") {
@@ -3319,9 +3337,7 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
 const CommonConfig_1 = require("../CommonConfig");
-function byteSize(num) {
-    return Math.ceil(num.toString(2).length / 8);
-}
+const BitOperations_1 = require("../utils/functions/BitOperations");
 class Serializable {
     constructor() {
         this.changes = new Set();
@@ -3352,13 +3368,9 @@ class Serializable {
             neededSize += this[key].calcNeededBufferSize(complete);
         });
         if (neededSize != 0) {
-            neededSize += byteSize(propsSize);
+            neededSize += BitOperations_1.byteSize(propsSize);
         }
         return neededSize;
-    }
-    setBit(val, bitIndex) {
-        val |= (1 << bitIndex);
-        return val;
     }
     serialize(updateBufferView, offset, complete = false) {
         if (this.forceComplete) {
@@ -3366,39 +3378,51 @@ class Serializable {
             complete = true;
         }
         let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
-        let propsByteSize = byteSize(propsSize);
+        let propsByteSize = BitOperations_1.byteSize(propsSize);
         let updatedOffset = offset + propsByteSize;
         let presentMask = 0;
+        if (complete) {
+            presentMask = Math.pow(2, propsByteSize * 8) - 1;
+            for (let i = 0; i < propsByteSize; i++) {
+                updateBufferView.setUint8(offset + i, 255);
+            }
+        }
         if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
-            if (complete) {
-                // set all data present
-                for (let i = 0; i < propsByteSize; i++) {
-                    updateBufferView.setUint8(offset + i, 255);
-                }
-                presentMask = Math.pow(2, propsByteSize * 8) - 1;
-                this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, shortKey) => {
-                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
-                });
-            }
-            else {
-                this.changes.forEach((shortKey) => {
+            // set all data present
+            this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, shortKey) => {
+                if (this.changes.has(shortKey) || complete) {
                     let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
-                    presentMask = this.setBit(presentMask, index);
-                    let serializeFunc = this[NetworkDecorators_1.PropName.SerializeFunctions].get(shortKey);
                     updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
-                    // this.changes.delete(shortKey);
-                });
-            }
+                    presentMask = BitOperations_1.setBit(presentMask, index);
+                }
+            });
+            // else {
+            //     this.changes.forEach((shortKey: string) => {
+            //         let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+            //
+            //         presentMask = setBit(presentMask, index);
+            //
+            //         let serializeFunc: Function = this[PropName.SerializeFunctions].get(shortKey);
+            //         updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
+            //
+            //         // this.changes.delete(shortKey);
+            //     });
+            // }
         }
         if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
             this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, shortKey) => {
                 let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
                 let tmpOffset = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
+                // console.log("tmpOffset " + tmpOffset + "updatedOffset " + updatedOffset);
                 if (!complete && tmpOffset < updatedOffset) {
-                    presentMask = this.setBit(presentMask, index);
+                    presentMask = BitOperations_1.setBit(presentMask, index);
                 }
             });
+        }
+        // console.log("updatedOffset " + updatedOffset + "propsSize " + propsByteSize + " offset " + offset);
+        if (updatedOffset == (offset + propsByteSize)) {
+            return offset;
         }
         if (propsByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
@@ -3415,7 +3439,7 @@ class Serializable {
     deserialize(updateBufferView, offset) {
         this.deserializedFields.clear();
         let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
-        let propsByteSize = byteSize(propsSize);
+        let propsByteSize = BitOperations_1.byteSize(propsSize);
         let presentMask;
         if (propsByteSize == 1) {
             presentMask = updateBufferView.getUint8(offset);
@@ -3431,6 +3455,7 @@ class Serializable {
         }
         let objectsToDecode = [];
         let index = 0;
+        // console.log("present mask " + presentMask);
         while (presentMask && propsSize > index) {
             let bitMask = (1 << index);
             if ((presentMask & bitMask) == 0) {
@@ -3438,6 +3463,7 @@ class Serializable {
                 continue;
             }
             presentMask &= ~bitMask;
+            // console.log("present bit " + index);
             let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
             let type = this[NetworkDecorators_1.PropName.PropertyTypes].get(shortKey);
             if (type == "object") {
@@ -3451,9 +3477,23 @@ class Serializable {
         objectsToDecode.forEach((index) => {
             let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
             let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(shortKey);
+            // console.log("inside " + index);
             offset = this[key].deserialize(updateBufferView, offset);
+            // console.log("outside " + offset);
         });
         return offset;
+    }
+    printSerializeOrder() {
+        console.log("SerializeEncodeOrder");
+        this[NetworkDecorators_1.PropName.SerializeEncodeOrder].forEach((val, key) => {
+            console.log(key + " : " + val);
+        });
+    }
+    printDeserializeOrder() {
+        console.log("SerializeDecodeOrder");
+        this[NetworkDecorators_1.PropName.SerializeDecodeOrder].forEach((val, key) => {
+            console.log(key + " : " + val);
+        });
     }
 }
 Serializable.TypesToBytesSize = new Map([
@@ -3468,7 +3508,20 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../CommonConfig":25,"./NetworkDecorators":33}],35:[function(require,module,exports){
+},{"../CommonConfig":25,"../utils/functions/BitOperations":35,"./NetworkDecorators":33}],35:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function byteSize(num) {
+    return Math.ceil(num.toString(2).length / 8);
+}
+exports.byteSize = byteSize;
+function setBit(val, bitIndex) {
+    val |= (1 << bitIndex);
+    return val;
+}
+exports.setBit = setBit;
+
+},{}],36:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3571,7 +3624,7 @@ __decorate([
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":46,"./Bullet":36,"./GameObject":38,"./Item":41,"./ObjectsFactory":42,"./Obstacle":43}],36:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../physics/Transform":47,"./Bullet":37,"./GameObject":39,"./Item":42,"./ObjectsFactory":43,"./Obstacle":44}],37:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3661,7 +3714,7 @@ __decorate([
 ], Bullet.prototype, "owner", void 0);
 exports.Bullet = Bullet;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"./Actor":35,"./GameObject":38,"./Obstacle":43}],37:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"./Actor":36,"./GameObject":39,"./Obstacle":44}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3686,9 +3739,9 @@ class Enemy extends Actor_1.Actor {
         this.timeSinceLastShot -= delta;
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
-            // for(let i = 0; i < 1; i++) {
-            //     this.shot(Math.floor(Math.random() * 360));
-            // }
+            for (let i = 0; i < 1; i++) {
+                this.shot(Math.floor(Math.random() * 360));
+            }
         }
         this.moveAngle += Math.random() * 0.5 - 0.25;
         let sinAngle = Math.sin(this.moveAngle);
@@ -3701,7 +3754,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../serialize/ChangesDict":32,"./Actor":35}],38:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"./Actor":36}],39:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3808,7 +3861,7 @@ __decorate([
 ], GameObject.prototype, "velocity", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":46}],39:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"../physics/Transform":47}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("./Obstacle");
@@ -3836,7 +3889,7 @@ Types.RegisterGameObject(Bullet_1.Bullet);
 Types.RegisterGameObject(Obstacle_1.Obstacle);
 Types.RegisterGameObject(Item_1.Item);
 
-},{"./Bullet":36,"./Enemy":37,"./Item":41,"./Obstacle":43,"./Player":44}],40:[function(require,module,exports){
+},{"./Bullet":37,"./Enemy":38,"./Item":42,"./Obstacle":44,"./Player":45}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3858,7 +3911,7 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./ObjectsFactory":42}],41:[function(require,module,exports){
+},{"./ObjectsFactory":43}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3891,7 +3944,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./GameObject":38}],42:[function(require,module,exports){
+},{"./GameObject":39}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -3945,7 +3998,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":46,"./GameObjectTypes":39}],43:[function(require,module,exports){
+},{"../physics/Transform":47,"./GameObjectTypes":40}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3978,19 +4031,27 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":38}],44:[function(require,module,exports){
+},{"./GameObject":39}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const CommonConfig_1 = require("../../CommonConfig");
+const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const BitOperations_1 = require("../functions/BitOperations");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.moveDirection = 0;
         this.inputHistory = [];
         this.velocity = 0.5;
+    }
+    serialize(updateBufferView, offset, complete = false) {
+        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
+        let propsByteSize = BitOperations_1.byteSize(propsSize);
+        console.log("propsByteSize for player " + propsByteSize);
+        return super.serialize(updateBufferView, offset, complete);
     }
     pushSnapshotToHistory(inputSnapshot) {
         this.lastInputSnapshot = inputSnapshot;
@@ -4125,7 +4186,7 @@ Player.moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.corn
 Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
 exports.Player = Player;
 
-},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"./Actor":35}],45:[function(require,module,exports){
+},{"../../CommonConfig":25,"../../input/InputCommands":28,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../functions/BitOperations":35,"./Actor":36}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4167,7 +4228,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"detect-collisions":55}],46:[function(require,module,exports){
+},{"detect-collisions":56}],47:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4295,7 +4356,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":55}],47:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":33,"../../serialize/Serializable":34,"detect-collisions":56}],48:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -4325,7 +4386,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -4356,7 +4417,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],49:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -4443,7 +4504,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -4512,7 +4573,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -4612,7 +4673,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -4637,7 +4698,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -4802,7 +4863,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],54:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -4810,7 +4871,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 const BVH = require('./modules/BVH.js')
 const Circle = require('./modules/Circle.js')
 const Polygon = require('./modules/Polygon.js')
@@ -4975,7 +5036,7 @@ module.exports = {
   Point
 }
 
-},{"./modules/BVH.js":56,"./modules/Circle.js":59,"./modules/Point.js":60,"./modules/Polygon.js":61,"./modules/Result.js":62,"./modules/SAT.js":63}],56:[function(require,module,exports){
+},{"./modules/BVH.js":57,"./modules/Circle.js":60,"./modules/Point.js":61,"./modules/Polygon.js":62,"./modules/Result.js":63,"./modules/SAT.js":64}],57:[function(require,module,exports){
 const BVHBranch = require('./BVHBranch')
 
 /**
@@ -5381,7 +5442,7 @@ module.exports = BVH
 
 module.exports.default = module.exports
 
-},{"./BVHBranch":57}],57:[function(require,module,exports){
+},{"./BVHBranch":58}],58:[function(require,module,exports){
 /**
  * @private
  */
@@ -5460,7 +5521,7 @@ module.exports = BVHBranch
 
 module.exports.default = module.exports
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 const Result = require('./Result')
 const SAT = require('./SAT')
 
@@ -5584,7 +5645,7 @@ module.exports = Body
 
 module.exports.default = module.exports
 
-},{"./Result":62,"./SAT":63}],59:[function(require,module,exports){
+},{"./Result":63,"./SAT":64}],60:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5634,7 +5695,7 @@ module.exports = Circle
 
 module.exports.default = module.exports
 
-},{"./Body":58}],60:[function(require,module,exports){
+},{"./Body":59}],61:[function(require,module,exports){
 const Polygon = require('./Polygon')
 
 /**
@@ -5662,7 +5723,7 @@ module.exports = Point
 
 module.exports.default = module.exports
 
-},{"./Polygon":61}],61:[function(require,module,exports){
+},{"./Polygon":62}],62:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5908,7 +5969,7 @@ module.exports = Polygon
 
 module.exports.default = module.exports
 
-},{"./Body":58}],62:[function(require,module,exports){
+},{"./Body":59}],63:[function(require,module,exports){
 /**
  * An object used to collect the detailed results of a collision test
  *
@@ -5974,7 +6035,7 @@ module.exports = Result
 
 module.exports.default = module.exports
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /**
  * Determines if two bodies are colliding using the Separating Axis Theorem
  * @private
@@ -6386,7 +6447,7 @@ module.exports = SAT
 
 module.exports.default = module.exports
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -6398,7 +6459,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":65,"engine.io-parser":75}],65:[function(require,module,exports){
+},{"./socket":66,"engine.io-parser":76}],66:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -7145,7 +7206,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":66,"./transports/index":67,"component-emitter":53,"debug":73,"engine.io-parser":75,"indexof":81,"parseqs":83,"parseuri":84}],66:[function(require,module,exports){
+},{"./transport":67,"./transports/index":68,"component-emitter":54,"debug":74,"engine.io-parser":76,"indexof":82,"parseqs":87,"parseuri":88}],67:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7304,7 +7365,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":53,"engine.io-parser":75}],67:[function(require,module,exports){
+},{"component-emitter":54,"engine.io-parser":76}],68:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -7361,7 +7422,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":68,"./polling-xhr":69,"./websocket":71,"xmlhttprequest-ssl":72}],68:[function(require,module,exports){
+},{"./polling-jsonp":69,"./polling-xhr":70,"./websocket":72,"xmlhttprequest-ssl":73}],69:[function(require,module,exports){
 (function (global){
 
 /**
@@ -7596,7 +7657,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":70,"component-inherit":54}],69:[function(require,module,exports){
+},{"./polling":71,"component-inherit":55}],70:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -8012,7 +8073,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":70,"component-emitter":53,"component-inherit":54,"debug":73,"xmlhttprequest-ssl":72}],70:[function(require,module,exports){
+},{"./polling":71,"component-emitter":54,"component-inherit":55,"debug":74,"xmlhttprequest-ssl":73}],71:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -8259,7 +8320,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":83,"xmlhttprequest-ssl":72,"yeast":99}],71:[function(require,module,exports){
+},{"../transport":67,"component-inherit":55,"debug":74,"engine.io-parser":76,"parseqs":87,"xmlhttprequest-ssl":73,"yeast":104}],72:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8549,7 +8610,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":66,"component-inherit":54,"debug":73,"engine.io-parser":75,"parseqs":83,"ws":1,"yeast":99}],72:[function(require,module,exports){
+},{"../transport":67,"component-inherit":55,"debug":74,"engine.io-parser":76,"parseqs":87,"ws":1,"yeast":104}],73:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -8590,7 +8651,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":80}],73:[function(require,module,exports){
+},{"has-cors":81}],74:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -8789,7 +8850,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":74,"_process":6}],74:[function(require,module,exports){
+},{"./debug":75,"_process":6}],75:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -9016,7 +9077,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":82}],75:[function(require,module,exports){
+},{"ms":83}],76:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9626,7 +9687,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":76,"./utf8":77,"after":47,"arraybuffer.slice":48,"base64-arraybuffer":50,"blob":51,"has-binary2":78}],76:[function(require,module,exports){
+},{"./keys":77,"./utf8":78,"after":48,"arraybuffer.slice":49,"base64-arraybuffer":51,"blob":52,"has-binary2":79}],77:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -9647,7 +9708,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -9906,7 +9967,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],78:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 (function (Buffer){
 /* global Blob File */
 
@@ -9974,9 +10035,9 @@ function hasBinary (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"isarray":79}],79:[function(require,module,exports){
+},{"buffer":2,"isarray":80}],80:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],80:[function(require,module,exports){
+},{"dup":5}],81:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -9995,7 +10056,7 @@ try {
   module.exports = false;
 }
 
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -10006,7 +10067,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -10160,7 +10221,601 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
+'use strict';
+
+function Decoder(buffer) {
+  this.offset = 0;
+  if (buffer instanceof ArrayBuffer) {
+    this.buffer = buffer;
+    this.view = new DataView(this.buffer);
+  } else if (ArrayBuffer.isView(buffer)) {
+    this.buffer = buffer.buffer;
+    this.view = new DataView(this.buffer, buffer.byteOffset, buffer.byteLength);
+  } else {
+    throw new Error('Invalid argument');
+  }
+}
+
+function utf8Read(view, offset, length) {
+  var string = '', chr = 0;
+  for (var i = offset, end = offset + length; i < end; i++) {
+    var byte = view.getUint8(i);
+    if ((byte & 0x80) === 0x00) {
+      string += String.fromCharCode(byte);
+      continue;
+    }
+    if ((byte & 0xe0) === 0xc0) {
+      string += String.fromCharCode(
+        ((byte & 0x1f) << 6) |
+        (view.getUint8(++i) & 0x3f)
+      );
+      continue;
+    }
+    if ((byte & 0xf0) === 0xe0) {
+      string += String.fromCharCode(
+        ((byte & 0x0f) << 12) |
+        ((view.getUint8(++i) & 0x3f) << 6) |
+        ((view.getUint8(++i) & 0x3f) << 0)
+      );
+      continue;
+    }
+    if ((byte & 0xf8) === 0xf0) {
+      chr = ((byte & 0x07) << 18) |
+        ((view.getUint8(++i) & 0x3f) << 12) |
+        ((view.getUint8(++i) & 0x3f) << 6) |
+        ((view.getUint8(++i) & 0x3f) << 0);
+      if (chr >= 0x010000) { // surrogate pair
+        chr -= 0x010000;
+        string += String.fromCharCode((chr >>> 10) + 0xD800, (chr & 0x3FF) + 0xDC00);
+      } else {
+        string += String.fromCharCode(chr);
+      }
+      continue;
+    }
+    throw new Error('Invalid byte ' + byte.toString(16));
+  }
+  return string;
+}
+
+Decoder.prototype.array = function (length) {
+  var value = new Array(length);
+  for (var i = 0; i < length; i++) {
+    value[i] = this.parse();
+  }
+  return value;
+};
+
+Decoder.prototype.map = function (length) {
+  var key = '', value = {};
+  for (var i = 0; i < length; i++) {
+    key = this.parse();
+    value[key] = this.parse();
+  }
+  return value;
+};
+
+Decoder.prototype.str = function (length) {
+  var value = utf8Read(this.view, this.offset, length);
+  this.offset += length;
+  return value;
+};
+
+Decoder.prototype.bin = function (length) {
+  var value = this.buffer.slice(this.offset, this.offset + length);
+  this.offset += length;
+  return value;
+};
+
+Decoder.prototype.parse = function () {
+  var prefix = this.view.getUint8(this.offset++);
+  var value, length = 0, type = 0, hi = 0, lo = 0;
+
+  if (prefix < 0xc0) {
+    // positive fixint
+    if (prefix < 0x80) {
+      return prefix;
+    }
+    // fixmap
+    if (prefix < 0x90) {
+      return this.map(prefix & 0x0f);
+    }
+    // fixarray
+    if (prefix < 0xa0) {
+      return this.array(prefix & 0x0f);
+    }
+    // fixstr
+    return this.str(prefix & 0x1f);
+  }
+
+  // negative fixint
+  if (prefix > 0xdf) {
+    return (0xff - prefix + 1) * -1;
+  }
+
+  switch (prefix) {
+    // nil
+    case 0xc0:
+      return null;
+    // false
+    case 0xc2:
+      return false;
+    // true
+    case 0xc3:
+      return true;
+
+    // bin
+    case 0xc4:
+      length = this.view.getUint8(this.offset);
+      this.offset += 1;
+      return this.bin(length);
+    case 0xc5:
+      length = this.view.getUint16(this.offset);
+      this.offset += 2;
+      return this.bin(length);
+    case 0xc6:
+      length = this.view.getUint32(this.offset);
+      this.offset += 4;
+      return this.bin(length);
+
+    // ext
+    case 0xc7:
+      length = this.view.getUint8(this.offset);
+      type = this.view.getInt8(this.offset + 1);
+      this.offset += 2;
+      return [type, this.bin(length)];
+    case 0xc8:
+      length = this.view.getUint16(this.offset);
+      type = this.view.getInt8(this.offset + 2);
+      this.offset += 3;
+      return [type, this.bin(length)];
+    case 0xc9:
+      length = this.view.getUint32(this.offset);
+      type = this.view.getInt8(this.offset + 4);
+      this.offset += 5;
+      return [type, this.bin(length)];
+
+    // float
+    case 0xca:
+      value = this.view.getFloat32(this.offset);
+      this.offset += 4;
+      return value;
+    case 0xcb:
+      value = this.view.getFloat64(this.offset);
+      this.offset += 8;
+      return value;
+
+    // uint
+    case 0xcc:
+      value = this.view.getUint8(this.offset);
+      this.offset += 1;
+      return value;
+    case 0xcd:
+      value = this.view.getUint16(this.offset);
+      this.offset += 2;
+      return value;
+    case 0xce:
+      value = this.view.getUint32(this.offset);
+      this.offset += 4;
+      return value;
+    case 0xcf:
+      hi = this.view.getUint32(this.offset) * Math.pow(2, 32);
+      lo = this.view.getUint32(this.offset + 4);
+      this.offset += 8;
+      return hi + lo;
+
+    // int
+    case 0xd0:
+      value = this.view.getInt8(this.offset);
+      this.offset += 1;
+      return value;
+    case 0xd1:
+      value = this.view.getInt16(this.offset);
+      this.offset += 2;
+      return value;
+    case 0xd2:
+      value = this.view.getInt32(this.offset);
+      this.offset += 4;
+      return value;
+    case 0xd3:
+      hi = this.view.getInt32(this.offset) * Math.pow(2, 32);
+      lo = this.view.getUint32(this.offset + 4);
+      this.offset += 8;
+      return hi + lo;
+
+    // fixext
+    case 0xd4:
+      type = this.view.getInt8(this.offset);
+      this.offset += 1;
+      if (type === 0x00) {
+        this.offset += 1;
+        return void 0;
+      }
+      return [type, this.bin(1)];
+    case 0xd5:
+      type = this.view.getInt8(this.offset);
+      this.offset += 1;
+      return [type, this.bin(2)];
+    case 0xd6:
+      type = this.view.getInt8(this.offset);
+      this.offset += 1;
+      return [type, this.bin(4)];
+    case 0xd7:
+      type = this.view.getInt8(this.offset);
+      this.offset += 1;
+      if (type === 0x00) {
+        hi = this.view.getInt32(this.offset) * Math.pow(2, 32);
+        lo = this.view.getUint32(this.offset + 4);
+        this.offset += 8;
+        return new Date(hi + lo);
+      }
+      return [type, this.bin(8)];
+    case 0xd8:
+      type = this.view.getInt8(this.offset);
+      this.offset += 1;
+      return [type, this.bin(16)];
+
+    // str
+    case 0xd9:
+      length = this.view.getUint8(this.offset);
+      this.offset += 1;
+      return this.str(length);
+    case 0xda:
+      length = this.view.getUint16(this.offset);
+      this.offset += 2;
+      return this.str(length);
+    case 0xdb:
+      length = this.view.getUint32(this.offset);
+      this.offset += 4;
+      return this.str(length);
+
+    // array
+    case 0xdc:
+      length = this.view.getUint16(this.offset);
+      this.offset += 2;
+      return this.array(length);
+    case 0xdd:
+      length = this.view.getUint32(this.offset);
+      this.offset += 4;
+      return this.array(length);
+
+    // map
+    case 0xde:
+      length = this.view.getUint16(this.offset);
+      this.offset += 2;
+      return this.map(length);
+    case 0xdf:
+      length = this.view.getUint32(this.offset);
+      this.offset += 4;
+      return this.map(length);
+  }
+
+  throw new Error('Could not parse');
+};
+
+function decode(buffer) {
+  var decoder = new Decoder(buffer);
+  var value = decoder.parse();
+  if (decoder.offset !== buffer.byteLength) {
+    throw new Error((buffer.byteLength - decoder.offset) + ' trailing bytes');
+  }
+  return value;
+}
+
+module.exports = decode;
+
+},{}],85:[function(require,module,exports){
+'use strict';
+
+function utf8Write(view, offset, str) {
+  var c = 0;
+  for (var i = 0, l = str.length; i < l; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) {
+      view.setUint8(offset++, c);
+    }
+    else if (c < 0x800) {
+      view.setUint8(offset++, 0xc0 | (c >> 6));
+      view.setUint8(offset++, 0x80 | (c & 0x3f));
+    }
+    else if (c < 0xd800 || c >= 0xe000) {
+      view.setUint8(offset++, 0xe0 | (c >> 12));
+      view.setUint8(offset++, 0x80 | (c >> 6) & 0x3f);
+      view.setUint8(offset++, 0x80 | (c & 0x3f));
+    }
+    else {
+      i++;
+      c = 0x10000 + (((c & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff));
+      view.setUint8(offset++, 0xf0 | (c >> 18));
+      view.setUint8(offset++, 0x80 | (c >> 12) & 0x3f);
+      view.setUint8(offset++, 0x80 | (c >> 6) & 0x3f);
+      view.setUint8(offset++, 0x80 | (c & 0x3f));
+    }
+  }
+}
+
+function utf8Length(str) {
+  var c = 0, length = 0;
+  for (var i = 0, l = str.length; i < l; i++) {
+    c = str.charCodeAt(i);
+    if (c < 0x80) {
+      length += 1;
+    }
+    else if (c < 0x800) {
+      length += 2;
+    }
+    else if (c < 0xd800 || c >= 0xe000) {
+      length += 3;
+    }
+    else {
+      i++;
+      length += 4;
+    }
+  }
+  return length;
+}
+
+function _encode(bytes, defers, value) {
+  var type = typeof value, i = 0, l = 0, hi = 0, lo = 0, length = 0, size = 0;
+
+  if (type === 'string') {
+    length = utf8Length(value);
+
+    // fixstr
+    if (length < 0x20) {
+      bytes.push(length | 0xa0);
+      size = 1;
+    }
+    // str 8
+    else if (length < 0x100) {
+      bytes.push(0xd9, length);
+      size = 2;
+    }
+    // str 16
+    else if (length < 0x10000) {
+      bytes.push(0xda, length >> 8, length);
+      size = 3;
+    }
+    // str 32
+    else if (length < 0x100000000) {
+      bytes.push(0xdb, length >> 24, length >> 16, length >> 8, length);
+      size = 5;
+    } else {
+      throw new Error('String too long');
+    }
+    defers.push({ str: value, length: length, offset: bytes.length });
+    return size + length;
+  }
+  if (type === 'number') {
+    // TODO: encode to float 32?
+
+    // float 64
+    if (Math.floor(value) !== value || !isFinite(value)) {
+      bytes.push(0xcb);
+      defers.push({ float: value, length: 8, offset: bytes.length });
+      return 9;
+    }
+
+    if (value >= 0) {
+      // positive fixnum
+      if (value < 0x80) {
+        bytes.push(value);
+        return 1;
+      }
+      // uint 8
+      if (value < 0x100) {
+        bytes.push(0xcc, value);
+        return 2;
+      }
+      // uint 16
+      if (value < 0x10000) {
+        bytes.push(0xcd, value >> 8, value);
+        return 3;
+      }
+      // uint 32
+      if (value < 0x100000000) {
+        bytes.push(0xce, value >> 24, value >> 16, value >> 8, value);
+        return 5;
+      }
+      // uint 64
+      hi = (value / Math.pow(2, 32)) >> 0;
+      lo = value >>> 0;
+      bytes.push(0xcf, hi >> 24, hi >> 16, hi >> 8, hi, lo >> 24, lo >> 16, lo >> 8, lo);
+      return 9;
+    } else {
+      // negative fixnum
+      if (value >= -0x20) {
+        bytes.push(value);
+        return 1;
+      }
+      // int 8
+      if (value >= -0x80) {
+        bytes.push(0xd0, value);
+        return 2;
+      }
+      // int 16
+      if (value >= -0x8000) {
+        bytes.push(0xd1, value >> 8, value);
+        return 3;
+      }
+      // int 32
+      if (value >= -0x80000000) {
+        bytes.push(0xd2, value >> 24, value >> 16, value >> 8, value);
+        return 5;
+      }
+      // int 64
+      hi = Math.floor(value / Math.pow(2, 32));
+      lo = value >>> 0;
+      bytes.push(0xd3, hi >> 24, hi >> 16, hi >> 8, hi, lo >> 24, lo >> 16, lo >> 8, lo);
+      return 9;
+    }
+  }
+  if (type === 'object') {
+    // nil
+    if (value === null) {
+      bytes.push(0xc0);
+      return 1;
+    }
+
+    if (Array.isArray(value)) {
+      length = value.length;
+
+      // fixarray
+      if (length < 0x10) {
+        bytes.push(length | 0x90);
+        size = 1;
+      }
+      // array 16
+      else if (length < 0x10000) {
+        bytes.push(0xdc, length >> 8, length);
+        size = 3;
+      }
+      // array 32
+      else if (length < 0x100000000) {
+        bytes.push(0xdd, length >> 24, length >> 16, length >> 8, length);
+        size = 5;
+      } else {
+        throw new Error('Array too large');
+      }
+      for (i = 0; i < length; i++) {
+        size += _encode(bytes, defers, value[i]);
+      }
+      return size;
+    }
+
+    // fixext 8 / Date
+    if (value instanceof Date) {
+      var time = value.getTime();
+      hi = Math.floor(time / Math.pow(2, 32));
+      lo = time >>> 0;
+      bytes.push(0xd7, 0, hi >> 24, hi >> 16, hi >> 8, hi, lo >> 24, lo >> 16, lo >> 8, lo);
+      return 10;
+    }
+
+    if (value instanceof ArrayBuffer) {
+      length = value.byteLength;
+
+      // bin 8
+      if (length < 0x100) {
+        bytes.push(0xc4, length);
+        size = 2;
+      } else
+      // bin 16
+      if (length < 0x10000) {
+        bytes.push(0xc5, length >> 8, length);
+        size = 3;
+      } else
+      // bin 32
+      if (length < 0x100000000) {
+        bytes.push(0xc6, length >> 24, length >> 16, length >> 8, length);
+        size = 5;
+      } else {
+        throw new Error('Buffer too large');
+      }
+      defers.push({ bin: value, length: length, offset: bytes.length });
+      return size + length;
+    }
+
+    if (typeof value.toJSON === 'function') {
+      return _encode(bytes, defers, value.toJSON());
+    }
+
+    var keys = [], key = '';
+
+    var allKeys = Object.keys(value);
+    for (i = 0, l = allKeys.length; i < l; i++) {
+      key = allKeys[i];
+      if (typeof value[key] !== 'function') {
+        keys.push(key);
+      }
+    }
+    length = keys.length;
+
+    // fixmap
+    if (length < 0x10) {
+      bytes.push(length | 0x80);
+      size = 1;
+    }
+    // map 16
+    else if (length < 0x10000) {
+      bytes.push(0xde, length >> 8, length);
+      size = 3;
+    }
+    // map 32
+    else if (length < 0x100000000) {
+      bytes.push(0xdf, length >> 24, length >> 16, length >> 8, length);
+      size = 5;
+    } else {
+      throw new Error('Object too large');
+    }
+
+    for (i = 0; i < length; i++) {
+      key = keys[i];
+      size += _encode(bytes, defers, key);
+      size += _encode(bytes, defers, value[key]);
+    }
+    return size;
+  }
+  // false/true
+  if (type === 'boolean') {
+    bytes.push(value ? 0xc3 : 0xc2);
+    return 1;
+  }
+  // fixext 1 / undefined
+  if (type === 'undefined') {
+    bytes.push(0xd4, 0, 0);
+    return 3;
+  }
+  throw new Error('Could not encode');
+}
+
+function encode(value) {
+  var bytes = [];
+  var defers = [];
+  var size = _encode(bytes, defers, value);
+  var buf = new ArrayBuffer(size);
+  var view = new DataView(buf);
+
+  var deferIndex = 0;
+  var deferWritten = 0;
+  var nextOffset = -1;
+  if (defers.length > 0) {
+    nextOffset = defers[0].offset;
+  }
+
+  var defer, deferLength = 0, offset = 0;
+  for (var i = 0, l = bytes.length; i < l; i++) {
+    view.setUint8(deferWritten + i, bytes[i]);
+    if (i + 1 !== nextOffset) { continue; }
+    defer = defers[deferIndex];
+    deferLength = defer.length;
+    offset = deferWritten + nextOffset;
+    if (defer.bin) {
+      var bin = new Uint8Array(defer.bin);
+      for (var j = 0; j < deferLength; j++) {
+        view.setUint8(offset + j, bin[j]);
+      }
+    } else if (defer.str) {
+      utf8Write(view, offset, defer.str);
+    } else if (defer.float !== undefined) {
+      view.setFloat64(offset, defer.float);
+    }
+    deferIndex++;
+    deferWritten += deferLength;
+    if (defers[deferIndex]) {
+      nextOffset = defers[deferIndex].offset;
+    }
+  }
+  return buf;
+}
+
+module.exports = encode;
+
+},{}],86:[function(require,module,exports){
+exports.encode = require('./encode');
+exports.decode = require('./decode');
+
+},{"./decode":84,"./encode":85}],87:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -10199,7 +10854,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],84:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -10240,7 +10895,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],85:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10336,7 +10991,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":86,"./socket":88,"./url":89,"debug":90,"socket.io-parser":93}],86:[function(require,module,exports){
+},{"./manager":90,"./socket":92,"./url":93,"debug":94,"socket.io-parser":98}],90:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10911,7 +11566,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":87,"./socket":88,"backo2":49,"component-bind":52,"component-emitter":53,"debug":90,"engine.io-client":64,"indexof":81,"socket.io-parser":93}],87:[function(require,module,exports){
+},{"./on":91,"./socket":92,"backo2":50,"component-bind":53,"component-emitter":54,"debug":94,"engine.io-client":65,"indexof":82,"socket.io-parser":98}],91:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -10937,7 +11592,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],88:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11377,7 +12032,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":87,"component-bind":52,"component-emitter":53,"debug":90,"has-binary2":78,"parseqs":83,"socket.io-parser":93,"to-array":98}],89:[function(require,module,exports){
+},{"./on":91,"component-bind":53,"component-emitter":54,"debug":94,"has-binary2":79,"parseqs":87,"socket.io-parser":98,"to-array":103}],93:[function(require,module,exports){
 (function (global){
 
 /**
@@ -11456,11 +12111,81 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":90,"parseuri":84}],90:[function(require,module,exports){
-arguments[4][73][0].apply(exports,arguments)
-},{"./debug":91,"_process":6,"dup":73}],91:[function(require,module,exports){
+},{"debug":94,"parseuri":88}],94:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"dup":74,"ms":82}],92:[function(require,module,exports){
+},{"./debug":95,"_process":6,"dup":74}],95:[function(require,module,exports){
+arguments[4][75][0].apply(exports,arguments)
+},{"dup":75,"ms":83}],96:[function(require,module,exports){
+
+var msgpack = require('notepack.io');
+var Emitter = require('component-emitter');
+
+/**
+ * Packet types (see https://github.com/socketio/socket.io-protocol)
+ */
+
+exports.CONNECT = 0;
+exports.DISCONNECT = 1;
+exports.EVENT = 2;
+exports.ACK = 3;
+exports.ERROR = 4;
+exports.BINARY_EVENT = 5;
+exports.BINARY_ACK = 6;
+
+var errorPacket = {
+  type: exports.ERROR,
+  data: 'parser error'
+};
+
+function Encoder () {}
+
+Encoder.prototype.encode = function (packet, callback) {
+  switch (packet.type) {
+    case exports.CONNECT:
+    case exports.DISCONNECT:
+    case exports.ERROR:
+      return callback([ JSON.stringify(packet) ]);
+    default:
+      return callback([ msgpack.encode(packet) ]);
+  }
+};
+
+function Decoder () {}
+
+Emitter(Decoder.prototype);
+
+Decoder.prototype.add = function (obj) {
+  if (typeof obj === 'string') {
+    this.parseJSON(obj);
+  } else {
+    this.parseBinary(obj);
+  }
+};
+
+Decoder.prototype.parseJSON = function (obj) {
+  try {
+    var decoded = JSON.parse(obj);
+    this.emit('decoded', decoded);
+  } catch (e) {
+    this.emit('decoded', errorPacket);
+  }
+};
+
+Decoder.prototype.parseBinary = function (obj) {
+  try {
+    var decoded = msgpack.decode(obj);
+    this.emit('decoded', decoded);
+  } catch (e) {
+    this.emit('decoded', errorPacket);
+  }
+};
+
+Decoder.prototype.destroy = function () {};
+
+exports.Encoder = Encoder;
+exports.Decoder = Decoder;
+
+},{"component-emitter":54,"notepack.io":86}],97:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -11605,7 +12330,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":94,"isarray":97}],93:[function(require,module,exports){
+},{"./is-buffer":99,"isarray":102}],98:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12024,7 +12749,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":92,"./is-buffer":94,"component-emitter":53,"debug":95,"isarray":97}],94:[function(require,module,exports){
+},{"./binary":97,"./is-buffer":99,"component-emitter":54,"debug":100,"isarray":102}],99:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -12052,13 +12777,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],95:[function(require,module,exports){
-arguments[4][73][0].apply(exports,arguments)
-},{"./debug":96,"_process":6,"dup":73}],96:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 arguments[4][74][0].apply(exports,arguments)
-},{"dup":74,"ms":82}],97:[function(require,module,exports){
+},{"./debug":101,"_process":6,"dup":74}],101:[function(require,module,exports){
+arguments[4][75][0].apply(exports,arguments)
+},{"dup":75,"ms":83}],102:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],98:[function(require,module,exports){
+},{"dup":5}],103:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -12073,7 +12798,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],99:[function(require,module,exports){
+},{}],104:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
