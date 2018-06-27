@@ -65,24 +65,32 @@ export abstract class Serializable {
         return neededSize;
     }
 
+    private getPropsSize(): number {
+        return (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+    }
+
+    private getPropsMaskByteSize(): number {
+        let propsSize: number = this.getPropsSize();
+        let propsByteSize: number = byteSize(propsSize);
+        return propsByteSize == 3 ? 4 : propsByteSize
+    }
+
+
     public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
         if (this.forceComplete) {
             this.forceComplete = false;
             complete = true;
         }
 
-        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
-        let propsByteSize: number = byteSize(propsSize);
+        let propsSize: number = this.getPropsSize();
+        let propsByteSize: number = this.getPropsMaskByteSize();
 
         let updatedOffset: number = offset + propsByteSize;
 
         let presentMask: number = 0;
 
         if(complete) {
-            presentMask = Math.pow(2, propsByteSize * 8) - 1;
-            for(let i = 0; i < propsByteSize; i++) {
-                updateBufferView.setUint8(offset + i, 255);
-            }
+            presentMask = Math.pow(2, propsSize) - 1;
         }
 
         if(this[PropName.SerializeFunctions]) {
@@ -111,11 +119,12 @@ export abstract class Serializable {
         if(updatedOffset == (offset + propsByteSize)) {
             return offset;
         }
+
         if(propsByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
         } else if(propsByteSize == 2) {
             updateBufferView.setUint16(offset, presentMask);
-        } else if(propsByteSize == 3) {
+        } else if(propsByteSize == 4) {
             updateBufferView.setUint32(offset, presentMask);
         }
 
@@ -124,28 +133,26 @@ export abstract class Serializable {
         return updatedOffset;
     }
 
-    public deserialize(updateBufferView: DataView, offset: number) {
+    public deserialize(updateBufferView: DataView, offset: number): number {
         this.deserializedFields.clear();
 
-        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
-        let propsByteSize: number = byteSize(propsSize);
+        let propsMaskByteSize: number = this.getPropsMaskByteSize();
 
         let presentMask: number;
-        if(propsByteSize == 1) {
+        if(propsMaskByteSize == 1) {
             presentMask = updateBufferView.getUint8(offset);
-            offset += 1;
-        } else if(propsByteSize == 2) {
+        } else if(propsMaskByteSize == 2) {
             presentMask = updateBufferView.getUint16(offset);
-            offset += 2;
-        } else if(propsByteSize == 3) {
+        } else if(propsMaskByteSize == 4) {
             presentMask = updateBufferView.getUint32(offset);
-            offset += 4;
         }
+
+        offset += propsMaskByteSize;
 
         let objectsToDecode: Array<number> = [];
 
         let index: number = 0;
-        while (presentMask && propsSize > index) {
+        while (presentMask) {
             let bitMask: number = (1 << index);
             if ((presentMask & bitMask) == 0) {
                 index++;
@@ -174,5 +181,21 @@ export abstract class Serializable {
         });
 
         return offset;
+    }
+
+
+    //TEST FUNCTIONS
+    public printSerializeOrder() {
+        console.log("SerializeEncodeOrder");
+        (this[PropName.SerializeEncodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
+            console.log(key + " : " + val);
+        });
+    }
+
+    public printDeserializeOrder() {
+        console.log("SerializeDecodeOrder");
+        (this[PropName.SerializeDecodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
+            console.log(key + " : " + val);
+        });
     }
 }

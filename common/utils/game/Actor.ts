@@ -1,12 +1,12 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {Bullet} from "./Bullet";
+import {FireBall} from "./FireBall";
 import {Obstacle} from "./Obstacle";
-import {GameObjectsFactory} from "./ObjectsFactory";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 import {Item} from "./Item";
+import {Weapon} from "./Weapon";
 
 export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.NAME, "string")
@@ -15,6 +15,8 @@ export abstract class Actor extends GameObject {
     private maxHp: number;
     @NetworkProperty(ChangesDict.HP, "Uint16")
     private hp: number;
+
+    protected weapon: Weapon = null;
 
     constructor(transform: Transform) {
         super(transform);
@@ -31,17 +33,18 @@ export abstract class Actor extends GameObject {
     }
 
     protected shot(angle: number) {
-        let bulletPosition = new Transform(this.Transform.X, this.Transform.Y, 1);
-        bulletPosition.Rotation = angle;
+        this.weapon.use(this, angle)
+        // let bulletPosition = new Transform(this.Transform.X, this.Transform.Y, 1);
+        // bulletPosition.Rotation = angle;
         // let bullet: Bullet = GameObjectsFactory.Instatiate("Bullet") as Bullet;
-        let bullet: Bullet = GameObjectsFactory.InstatiateWithTransform("Bullet", bulletPosition) as Bullet;
-        bullet.Owner = this.ID;
+        // let bullet: Bullet = GameObjectsFactory.InstatiateWithTransform("Bullet", bulletPosition) as Bullet;
+        // bullet.Owner = this.ID;
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
-        if(gameObject instanceof Bullet) {
-            let bullet: Bullet = gameObject as Bullet;
+        if(gameObject instanceof FireBall) {
+            let bullet: FireBall = gameObject as FireBall ;
             if (bullet.Owner == this.ID) {
                 return;
             }

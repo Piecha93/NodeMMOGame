@@ -13,8 +13,8 @@ export class Transform extends Serializable {
     constructor(x?: number, y?: number, width?: number, height?: number) {
         super();
 
-        x = x || 0;
-        y = y || 0;
+        x = x || -999;
+        y = y || -999;
 
         this.width = width || 32;
         this.height = height || this.width;

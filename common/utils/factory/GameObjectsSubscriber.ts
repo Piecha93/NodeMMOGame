@@ -1,5 +1,5 @@
-import {GameObject} from "./GameObject";
-import {GameObjectsFactory, GameObjectsContainer} from  "./ObjectsFactory"
+import {GameObject} from "../game/GameObject";
+import {GameObjectsFactory, GameObjectsContainer} from "./ObjectsFactory"
 
 export abstract class GameObjectsSubscriber {
 

@@ -1,11 +1,6 @@
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
-import {Obstacle} from "./Obstacle";
-import {Actor} from "./Actor";
 import {Result} from "detect-collisions";
-import {Bullet} from "./Bullet";
 
 export class Item extends GameObject {
     private isClaimed: boolean = false;

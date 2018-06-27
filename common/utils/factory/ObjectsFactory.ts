@@ -1,4 +1,4 @@
-import {GameObject} from "./GameObject";
+import {GameObject} from "../game/GameObject";
 import {Transform} from "../physics/Transform";
 import {Types} from "./GameObjectTypes";
 
@@ -16,7 +16,7 @@ export class GameObjectsFactory {
     static CreateCallbacks: Array<Function> = [];
     static DestroyCallbacks: Array<Function> = [];
 
-    static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: string): GameObject {
+    static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: [DataView, number]): GameObject {
         let gameObject: GameObject;
 
         gameObject = new (Types.ClassNamesToTypes.get(type))(transform);
@@ -27,16 +27,16 @@ export class GameObjectsFactory {
             gameObject.ID = Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
         }
 
-        // if(data) {
-        //     gameObject.deserialize(data);
-        // }
+        if(data) {
+            gameObject.deserialize(data[0], data[1]);
+        }
 
         GameObjectsFactory.AddToListeners(gameObject);
 
         return gameObject;
     }
 
-    static Instatiate(type: string, id?: string, data?: string): GameObject {
+    static Instatiate(type: string, id?: string, data?: [DataView, number]): GameObject {
         let position: Transform = new Transform(0,0,32,32);
 
         return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);

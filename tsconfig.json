@@ -4,7 +4,12 @@
     "target": "es6",
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true
+    //TODO fix code to use this
+//    "strict": true,
+//    "noUnusedLocals": true
   },
   "exclude": [
     "node_modules"

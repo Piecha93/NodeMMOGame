@@ -1,9 +1,10 @@
-import {Obstacle} from "./Obstacle";
-import {Item} from "./Item";
-import {Player} from "./Player";
-import {GameObject} from "./GameObject";
-import {Bullet} from "./Bullet";
-import {Enemy} from "./Enemy";
+import {Obstacle} from "../game/Obstacle";
+import {Item} from "../game/Item";
+import {Player} from "../game/Player";
+import {GameObject} from "../game/GameObject";
+import {FireBall} from "../game/FireBall";
+import {Enemy} from "../game/Enemy";
+import {Portal} from "../game/Portal";
 
 export interface Constructor<T> extends Function {
     new(...params: any[]): T; prototype: T;
@@ -31,6 +32,7 @@ export class Types {
 
 Types.RegisterGameObject(Player);
 Types.RegisterGameObject(Enemy);
-Types.RegisterGameObject(Bullet);
 Types.RegisterGameObject(Obstacle);
 Types.RegisterGameObject(Item);
+Types.RegisterGameObject(FireBall);
+Types.RegisterGameObject(Portal);

@@ -3,8 +3,8 @@
 import {GameWorld} from "../common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
-import {NetObjectsManager} from "../common/net/NetObjectsManager";
-import {GameObjectsFactory} from "../common/utils/game/ObjectsFactory";
+import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
+import {GameObjectsFactory} from "../common/utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../common/net/SocketMsgs";
 import {Chat} from "./Chat";
@@ -104,7 +104,7 @@ export class GameClient {
 
         this.socket.on(SocketMsgs.ERROR, (err: string) => {
             console.log(err);
-            alert(err);
+            // alert(err);
         });
     }
 
@@ -137,6 +137,6 @@ export class GameClient {
 
     private onServerUpdate(updateBuffer: ArrayBuffer) {
         let updateBufferView: DataView = new DataView(updateBuffer[1]);
-        NetObjectsManager.Instance.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+        NetObjectsSerializer.Instance.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
     }
 }

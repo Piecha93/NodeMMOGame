@@ -1,6 +1,7 @@
 import {Transform} from "../physics/Transform";
 import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
+import {MagicWand} from "./MagicWand";
 
 export class Enemy extends Actor {
     private timeSinceLastShot = 1000;
@@ -12,6 +13,8 @@ export class Enemy extends Actor {
         this.velocity = 0.3;
 
         this.spriteName = "michau";
+
+        this.weapon = new MagicWand();
     }
 
     protected commonUpdate(delta: number) {
@@ -29,7 +32,7 @@ export class Enemy extends Actor {
         if(this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
             for(let i = 0; i < 1; i++) {
-                this.shot(Math.floor(Math.random() * 360));
+                // this.shot(Math.floor(Math.random() * 360));
             }
         }
 

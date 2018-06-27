@@ -1,3 +1,5 @@
+// TODO make function to get next character automatically
+// example public static SPRITE_NAME = getNextChar;
 export class ChangesDict {
     //GameObject
     public static SPRITE_NAME = 'S';
@@ -8,7 +10,7 @@ export class ChangesDict {
     public static MAX_HP = 'MHP';
     public static NAME = 'N';
 
-    //Bullet
+    //Projectile
     public static OWNER = 'O';
     public static POWER = 'B';
 
@@ -18,5 +20,8 @@ export class ChangesDict {
     public static HEIGHT = 'H';
     public static WIDTH = 'W';
     public static ROTATION = 'R';
+
+    //Portal
+    public static IS_ATTACHED = 'IA';
 
 }

@@ -1,5 +1,5 @@
 import {GameObject} from "./utils/game/GameObject";
-import {GameObjectsSubscriber} from "./utils/game/GameObjectsSubscriber";
+import {GameObjectsSubscriber} from "./utils/factory/GameObjectsSubscriber";
 import {CollisionsSystem} from "./utils/physics/CollisionsSystem";
 
 export class GameWorld extends GameObjectsSubscriber {

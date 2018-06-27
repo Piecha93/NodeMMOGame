@@ -102,7 +102,6 @@ export function NetworkProperty(shortKey: string, type: string) {
             if(type == "string") {
                 return (object[key] as string).length + 1;
             } else if(type == "object") {
-                console.log("return object! " + (object[key] as Serializable).calcNeededBufferSize(complete));
                 return (object[key] as Serializable).calcNeededBufferSize(complete);
             } else {
                 return Serializable.TypesToBytesSize.get(type);

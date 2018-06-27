@@ -4,11 +4,11 @@ import {ServerClient} from "./ServerClient";
 import {GameWorld} from "../common/GameWorld";
 import {Player} from "../common/utils/game/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
-import {NetObjectsManager} from "../common/net/NetObjectsManager";
+import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
 import {GameObject} from "../common/utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../common/net/SocketMsgs";
-import {GameObjectsFactory} from "../common/utils/game/ObjectsFactory";
+import {GameObjectsFactory} from "../common/utils/factory/ObjectsFactory";
 import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/utils/game/Obstacle";
 import {Database, IUserModel} from "./database/Database";
@@ -16,7 +16,7 @@ import {Enemy} from "../common/utils/game/Enemy";
 import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
 
-NetObjectsManager.Instance;
+NetObjectsSerializer.Instance;
 
 export class GameServer {
     private sockets: SocketIO.Server;
@@ -104,7 +104,7 @@ export class GameServer {
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
                 player.forceCompleteUpdate();
-                let updateBuffer: ArrayBuffer = NetObjectsManager.Instance.collectUpdate(true);
+                let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(true);
                 socket.emit(SocketMsgs.FIRST_UPDATE_GAME, updateBuffer);
                 serverClient.IsReady = true;
 
@@ -172,7 +172,7 @@ export class GameServer {
     }
 
     private collectAndSendUpdate(complete: boolean = false) {
-        let updateBuffer: ArrayBuffer = NetObjectsManager.Instance.collectUpdate(complete);
+        let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(complete);
 
         if(updateBuffer.byteLength == 0) {
             return;
@@ -252,7 +252,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 300; i++) {
+        for (let i = 0; i < 10; i++) {
             spawnEnemy();
         }
 
@@ -266,7 +266,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 10; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

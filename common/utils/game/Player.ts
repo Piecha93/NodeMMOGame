@@ -5,8 +5,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
 import {CollisionsSystem} from "..//physics/CollisionsSystem";
-import {PropName} from "../../serialize/NetworkDecorators";
-import {byteSize} from "../functions/BitOperations";
+import {PortalGun} from "./PortalGun";
 
 export class Player extends Actor {
     private moveDirection: number = 0;
@@ -25,6 +24,8 @@ export class Player extends Actor {
 
         this.inputHistory = [];
         this.velocity = 0.5;
+
+        this.weapon = new PortalGun();
     }
 
     private pushSnapshotToHistory(inputSnapshot: InputSnapshot) {
@@ -60,9 +61,10 @@ export class Player extends Actor {
 
     private fireAction(angle: string) {
         this.shot(parseFloat(angle));
-        for(let i = 0; i < 30; i++) {
-            this.shot(Math.floor(Math.random() * 360));
-        }
+        // this.shot(parseFloat(angle));
+        // for(let i = 0; i < 30; i++) {
+        //     this.shot(Math.floor(Math.random() * 360));
+        // }
     }
 
     private wallAction(coords) {

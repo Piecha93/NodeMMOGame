@@ -1,15 +1,15 @@
 import {GameObject} from "../../common/utils/game/GameObject";
-import {Bullet} from "../../common/utils/game/Bullet";
+import {Projectile} from "../../common/utils/game/Projectile";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 
 export class BulletRender extends GameObjectAnimationRender {
-    private bulletReference: Bullet;
+    private bulletReference: Projectile;
 
     constructor() {
         super();
     }
 
-    public setObject(bullet: Bullet) {
+    public setObject(bullet: Projectile) {
         super.setObject(bullet as GameObject);
         this.bulletReference = bullet;
     }

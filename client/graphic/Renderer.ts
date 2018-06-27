@@ -1,17 +1,15 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
 import {GameObject} from "../../common/utils/game/GameObject";
-import {GameObjectsSubscriber} from "../../common/utils/game/GameObjectsSubscriber";
+import {GameObjectsSubscriber} from "../../common/utils/factory/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
-import {BulletRender} from "./BulletRender";
 import {Camera} from "./Camera";
 import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
 import {TileMap} from "./TileMap";
-import Container = PIXI.Container;
-import DisplayObject = PIXI.DisplayObject;
 import Sprite = PIXI.Sprite;
-import {Types} from "../../common/utils/game/GameObjectTypes";
+import {Types} from "../../common/utils/factory/GameObjectTypes";
+import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -103,8 +101,8 @@ export class Renderer extends GameObjectsSubscriber {
 
         if(type == "Player" || type == "Enemy") {
             gameObjectRender = new PlayerRender();
-        } else if(type == "Bullet") {
-            gameObjectRender = new BulletRender();
+        } else if(type == "FireBall") {
+            gameObjectRender = new GameObjectAnimationRender();
         } else {
             gameObjectRender = new GameObjectSpriteRender();
         }
