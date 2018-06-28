@@ -26,21 +26,6 @@ export class FireBall extends Projectile {
         this.addChange(ChangesDict.VELOCITY);
     }
 
-    public deserialize(updateBufferView: DataView, offset: number) {
-        this.printSerializeOrder();
-        let arr = "";
-        console.log("asd");
-        for(let i = offset; i < updateBufferView.byteLength; i++) {
-            arr += updateBufferView.getUint8(i) + ", ";
-        }
-        console.log(arr);
-        console.log("deserialize " + [this.transform.X, this.transform.Y, this.transform.Rotation, this.velocity]);
-        let dupa = super.deserialize(updateBufferView, offset);
-        console.log("deserialize2 " + [this.transform.X, this.transform.Y, this.transform.Rotation, this.velocity]);
-
-        return dupa;
-    }
-
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
         if(gameObject instanceof FireBall) {

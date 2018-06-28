@@ -19,7 +19,7 @@ export abstract class GameObject extends Serializable {
 
     private destroyListeners: Set<Function>;
 
-    private destroyed: boolean = false;
+    private isDestroyed: boolean = false;
 
     constructor(transform: Transform) {
         super();
@@ -71,15 +71,14 @@ export abstract class GameObject extends Serializable {
     }
 
     destroy() {
-        if(this.destroyed) {
+        if(this.isDestroyed) {
             return;
         }
 
         for(let listener of this.destroyListeners) {
             listener(this);
         }
-        this.destroyed = true;
-        // console.log("Object destroyed " + this.ID);
+        this.isDestroyed = true;
     }
 
     get Transform(): Transform {
@@ -113,5 +112,9 @@ export abstract class GameObject extends Serializable {
 
     get Invisible(): boolean {
         return this.invisible;
+    }
+
+    get IsDestroyed(): boolean {
+        return this.isDestroyed;
     }
 }

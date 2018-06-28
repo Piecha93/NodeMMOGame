@@ -32,15 +32,6 @@ export abstract class Actor extends GameObject {
         this.spriteName = "bunny";
     }
 
-    protected shot(angle: number) {
-        this.weapon.use(this, angle)
-        // let bulletPosition = new Transform(this.Transform.X, this.Transform.Y, 1);
-        // bulletPosition.Rotation = angle;
-        // let bullet: Bullet = GameObjectsFactory.Instatiate("Bullet") as Bullet;
-        // let bullet: Bullet = GameObjectsFactory.InstatiateWithTransform("Bullet", bulletPosition) as Bullet;
-        // bullet.Owner = this.ID;
-    }
-
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
         if(gameObject instanceof FireBall) {

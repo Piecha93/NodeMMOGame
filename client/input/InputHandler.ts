@@ -7,6 +7,7 @@ export class InputHandler {
     private releasedKeys: Set<string>;
     private clickPosition: [number, number];
     private mousePosition: [number, number];
+    private mouseButton: number;
     private lastDirection: number = 0;
 
     private snapshotCallbacks: Array<Function>;
@@ -29,6 +30,12 @@ export class InputHandler {
 
         window.addEventListener("mousedown", this.onMouseClick.bind(this));
         window.addEventListener("mousemove", this.onMouseMove.bind(this));
+        window.addEventListener("contextmenu", (e: PointerEvent): boolean => {
+            // console.log("win context menu");
+            // console.log(e);
+            e.preventDefault();
+            return false;
+        });
     }
 
     public addSnapshotCallback(callback: Function) {
@@ -52,14 +59,15 @@ export class InputHandler {
         }
     }
 
-    private onMouseClick(mouseEvent: MouseEvent) {
+    private onMouseClick(mouseEvent: MouseEvent): boolean {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
         let rect: ClientRect = canvas.getBoundingClientRect();
         this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
-
-        // this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
+        this.mouseButton = mouseEvent.button;
 
         this.invokeSnapshotCallbacks();
+
+        return true;
     }
 
     private onMouseMove(mouseEvent: MouseEvent) {
@@ -91,7 +99,6 @@ export class InputHandler {
             }
 
             if(input == INPUT.WALL) {
-                console.log(this.mousePosition);
                 inputSnapshot.append(INPUT_COMMAND.WALL, this.mousePosition.toString())
             }
         });
@@ -101,8 +108,12 @@ export class InputHandler {
         inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
 
         if(this.clickPosition != null) {
-            let angle: string = this.parseClick();
-            inputSnapshot.append(INPUT_COMMAND.FIRE, angle);
+            let angle: string = this.getClickAngle();
+            if(this.mouseButton == 0) {
+                inputSnapshot.append(INPUT_COMMAND.FIRE, angle);
+            } else {
+                inputSnapshot.append(INPUT_COMMAND.FIRE_2, angle);
+            }
             this.clickPosition = null;
         }
 
@@ -111,7 +122,7 @@ export class InputHandler {
         return inputSnapshot;
     }
 
-    private parseClick(): string {
+    private getClickAngle(): string {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
 
         let centerX = canvas.width / 2;

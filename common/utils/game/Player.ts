@@ -15,6 +15,7 @@ export class Player extends Actor {
 
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
         INPUT_COMMAND.FIRE,
+        INPUT_COMMAND.FIRE_2,
         INPUT_COMMAND.WALL
     ]);
 
@@ -48,7 +49,9 @@ export class Player extends Actor {
                 this.moveDirectionAction(value);
                 this.pushSnapshotToHistory(inputSnapshot);
             } else if(key == INPUT_COMMAND.FIRE) {
-                this.fireAction(value);
+                this.fireAction(value, 0);
+            } else if(key == INPUT_COMMAND.FIRE_2) {
+                this.fireAction(value, 2);
             } else if(key == INPUT_COMMAND.WALL) {
                 this.wallAction(value);
             }
@@ -59,12 +62,8 @@ export class Player extends Actor {
         this.moveDirection = parseInt(direction);
     }
 
-    private fireAction(angle: string) {
-        this.shot(parseFloat(angle));
-        // this.shot(parseFloat(angle));
-        // for(let i = 0; i < 30; i++) {
-        //     this.shot(Math.floor(Math.random() * 360));
-        // }
+    private fireAction(angle: string, clickButton: number) {
+        this.weapon.use(this, parseFloat(angle), clickButton);
     }
 
     private wallAction(coords) {

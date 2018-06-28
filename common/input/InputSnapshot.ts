@@ -31,6 +31,7 @@ export class InputSnapshot {
         this.commandList.forEach((value:string, key: INPUT_COMMAND) => {
             serializedSnapshot += '#' + key.toString() + ':' + value;
         });
+
         return this.id + "=" + serializedSnapshot.slice(1);
     }
 

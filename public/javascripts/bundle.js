@@ -2621,6 +2621,12 @@ class InputHandler {
         document.addEventListener("keyup", this.onKeyUp.bind(this));
         window.addEventListener("mousedown", this.onMouseClick.bind(this));
         window.addEventListener("mousemove", this.onMouseMove.bind(this));
+        window.addEventListener("contextmenu", (e) => {
+            // console.log("win context menu");
+            // console.log(e);
+            e.preventDefault();
+            return false;
+        });
     }
     addSnapshotCallback(callback) {
         this.snapshotCallbacks.push(callback);
@@ -2643,8 +2649,9 @@ class InputHandler {
         let canvas = document.getElementById("game-canvas");
         let rect = canvas.getBoundingClientRect();
         this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
-        // this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
+        this.mouseButton = mouseEvent.button;
         this.invokeSnapshotCallbacks();
+        return true;
     }
     onMouseMove(mouseEvent) {
         let canvas = document.getElementById("game-canvas");
@@ -2669,7 +2676,6 @@ class InputHandler {
                 directionBuffor.push(input);
             }
             if (input == InputMap_1.INPUT.WALL) {
-                console.log(this.mousePosition);
                 inputSnapshot.append(InputCommands_1.INPUT_COMMAND.WALL, this.mousePosition.toString());
             }
         });
@@ -2677,14 +2683,19 @@ class InputHandler {
         this.lastDirection = newDirection;
         inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
         if (this.clickPosition != null) {
-            let angle = this.parseClick();
-            inputSnapshot.append(InputCommands_1.INPUT_COMMAND.FIRE, angle);
+            let angle = this.getClickAngle();
+            if (this.mouseButton == 0) {
+                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.FIRE, angle);
+            }
+            else {
+                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.FIRE_2, angle);
+            }
             this.clickPosition = null;
         }
         this.releasedKeys.clear();
         return inputSnapshot;
     }
-    parseClick() {
+    getClickAngle() {
         let canvas = document.getElementById("game-canvas");
         let centerX = canvas.width / 2;
         let centerY = canvas.height / 2;
@@ -2919,7 +2930,8 @@ var INPUT_COMMAND;
 (function (INPUT_COMMAND) {
     INPUT_COMMAND[INPUT_COMMAND["MOVE_DIRECTION"] = 0] = "MOVE_DIRECTION";
     INPUT_COMMAND[INPUT_COMMAND["FIRE"] = 1] = "FIRE";
-    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 2] = "WALL";
+    INPUT_COMMAND[INPUT_COMMAND["FIRE_2"] = 2] = "FIRE_2";
+    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 3] = "WALL";
 })(INPUT_COMMAND = exports.INPUT_COMMAND || (exports.INPUT_COMMAND = {}));
 // delete this later
 // export const InputCommands: Map<string, INPUT_COMMAND> = new Map<string, INPUT_COMMAND>([
@@ -3611,14 +3623,6 @@ class Actor extends GameObject_1.GameObject {
         this.transform.Height = 64;
         this.spriteName = "bunny";
     }
-    shot(angle) {
-        this.weapon.use(this, angle);
-        // let bulletPosition = new Transform(this.Transform.X, this.Transform.Y, 1);
-        // bulletPosition.Rotation = angle;
-        // let bullet: Bullet = GameObjectsFactory.Instatiate("Bullet") as Bullet;
-        // let bullet: Bullet = GameObjectsFactory.InstatiateWithTransform("Bullet", bulletPosition) as Bullet;
-        // bullet.Owner = this.ID;
-    }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
         if (gameObject instanceof FireBall_1.FireBall) {
@@ -3712,6 +3716,7 @@ class Enemy extends Actor_1.Actor {
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = 1000;
             for (let i = 0; i < 1; i++) {
+                this.weapon.use(this, Math.random() * 360, 0);
                 // this.shot(Math.floor(Math.random() * 360));
             }
         }
@@ -3752,19 +3757,6 @@ class FireBall extends Projectile_1.Projectile {
         this.transform.Width = 30;
         this.lifeSpan = 5000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
-    }
-    deserialize(updateBufferView, offset) {
-        this.printSerializeOrder();
-        let arr = "";
-        console.log("asd");
-        for (let i = offset; i < updateBufferView.byteLength; i++) {
-            arr += updateBufferView.getUint8(i) + ", ";
-        }
-        console.log(arr);
-        console.log("deserialize " + [this.transform.X, this.transform.Y, this.transform.Rotation, this.velocity]);
-        let dupa = super.deserialize(updateBufferView, offset);
-        console.log("deserialize2 " + [this.transform.X, this.transform.Y, this.transform.Rotation, this.velocity]);
-        return dupa;
     }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
@@ -3837,7 +3829,7 @@ class GameObject extends Serializable_1.Serializable {
         this.id = "";
         this.velocity = 0;
         this.invisible = false;
-        this.destroyed = false;
+        this.isDestroyed = false;
         this.transform = transform;
         this.spriteName = "none";
         this.destroyListeners = new Set();
@@ -3872,14 +3864,13 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners.delete(listener);
     }
     destroy() {
-        if (this.destroyed) {
+        if (this.isDestroyed) {
             return;
         }
         for (let listener of this.destroyListeners) {
             listener(this);
         }
-        this.destroyed = true;
-        // console.log("Object destroyed " + this.ID);
+        this.isDestroyed = true;
     }
     get Transform() {
         return this.transform;
@@ -3905,6 +3896,9 @@ class GameObject extends Serializable_1.Serializable {
     }
     get Invisible() {
         return this.invisible;
+    }
+    get IsDestroyed() {
+        return this.isDestroyed;
     }
 }
 __decorate([
@@ -3960,7 +3954,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../factory/ObjectsFactory");
 const Transform_1 = require("../physics/Transform");
 class MagicWand {
-    use(user, angle) {
+    use(user, angle, clickButton) {
         let position = new Transform_1.Transform(user.Transform.X, user.Transform.Y, 20);
         position.Rotation = angle;
         let fireBall = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("FireBall", position);
@@ -4038,7 +4032,10 @@ class Player extends Actor_1.Actor {
                 this.pushSnapshotToHistory(inputSnapshot);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.FIRE) {
-                this.fireAction(value);
+                this.fireAction(value, 0);
+            }
+            else if (key == InputCommands_1.INPUT_COMMAND.FIRE_2) {
+                this.fireAction(value, 2);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.WALL) {
                 this.wallAction(value);
@@ -4048,12 +4045,8 @@ class Player extends Actor_1.Actor {
     moveDirectionAction(direction) {
         this.moveDirection = parseInt(direction);
     }
-    fireAction(angle) {
-        this.shot(parseFloat(angle));
-        // this.shot(parseFloat(angle));
-        // for(let i = 0; i < 30; i++) {
-        //     this.shot(Math.floor(Math.random() * 360));
-        // }
+    fireAction(angle, clickButton) {
+        this.weapon.use(this, parseFloat(angle), clickButton);
     }
     wallAction(coords) {
         // FOR TEST
@@ -4153,6 +4146,7 @@ class Player extends Actor_1.Actor {
 }
 Player.onlyServerActions = new Set([
     InputCommands_1.INPUT_COMMAND.FIRE,
+    InputCommands_1.INPUT_COMMAND.FIRE_2,
     InputCommands_1.INPUT_COMMAND.WALL
 ]);
 Player.cornerDir = 0.7071;
@@ -4186,9 +4180,29 @@ class Portal extends GameObject_1.GameObject {
         // this.spriteName = "hp_potion";
     }
     get IsActive() {
-        return this.isAttached && this.couplingPortal != null;
+        if (this.couplingPortal == null) {
+            return false;
+        }
+        if (this.couplingPortal.IsDestroyed != false) {
+            this.couplingPortal = null;
+            return false;
+        }
+        return this.isAttached && this.couplingPortal.isAttached;
     }
     serverCollision(gameObject, result) {
+        if (gameObject instanceof Portal) {
+            this.destroy();
+            return;
+        }
+        else if (gameObject instanceof Obstacle_1.Obstacle) {
+            this.isAttached = true;
+            this.Transform.X -= result.overlap * result.overlap_x;
+            this.Transform.Y -= result.overlap * result.overlap_y;
+            this.transform.Rotation = gameObject.Transform.Rotation;
+            this.addChange(ChangesDict_1.ChangesDict.IS_ATTACHED);
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
+        }
         if (this.IsActive) {
             if (gameObject instanceof Actor_1.Actor) {
                 console.log(gameObject.ID + " entered portal!");
@@ -4198,14 +4212,6 @@ class Portal extends GameObject_1.GameObject {
                 gameObject.Transform.addChange(ChangesDict_1.ChangesDict.Y);
                 this.couplingPortal.destroy();
                 this.destroy();
-            }
-        }
-        else {
-            if (gameObject instanceof Obstacle_1.Obstacle) {
-                this.isAttached = true;
-                this.addChange(ChangesDict_1.ChangesDict.IS_ATTACHED);
-                this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-                this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
             }
         }
         super.serverCollision(gameObject, result);
@@ -4242,28 +4248,32 @@ const ObjectsFactory_1 = require("../factory/ObjectsFactory");
 const Transform_1 = require("../physics/Transform");
 class PortalGun {
     constructor() {
-        this.portalA = null;
-        this.portalB = null;
+        this.portals = [null, null];
     }
-    use(user, angle) {
+    use(user, angle, clickButton) {
+        let portalNum = clickButton == 0 ? 0 : 1;
         let position = new Transform_1.Transform(user.Transform.X, user.Transform.Y, 20);
         position.Rotation = angle;
-        if (this.portalA == null) {
-            this.portalA = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Portal", position);
-            this.portalA.addDestroyListener(() => {
-                this.portalA = null;
-            });
+        if (this.portals[portalNum] != null) {
+            this.portals[portalNum].destroy();
         }
-        else if (this.portalB == null) {
-            this.portalB = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Portal", position);
-            this.portalA.CouplingPortal = this.portalB;
-            this.portalB.CouplingPortal = this.portalA;
-            this.portalB.addDestroyListener(() => {
-                this.portalB = null;
-            });
+        this.portals[portalNum] = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Portal", position);
+        console.log("Portal created " + portalNum);
+        if (portalNum == 0) {
+            this.portals[portalNum].SpriteName = "hp_potion";
         }
+        this.portals[portalNum].addDestroyListener(() => {
+            this.portals[portalNum] = null;
+        });
+        this.copulePortals();
     }
     ;
+    copulePortals() {
+        if (this.portals[0] != null && this.portals[1] != null) {
+            this.portals[0].CouplingPortal = this.portals[1];
+            this.portals[1].CouplingPortal = this.portals[0];
+        }
+    }
 }
 exports.PortalGun = PortalGun;
 
@@ -4440,6 +4450,7 @@ class Transform extends Serializable_1.Serializable {
         this.angle = angle;
     }
     get Rotation() {
+        this.addChange(ChangesDict_1.ChangesDict.ROTATION);
         return this.angle;
     }
 }

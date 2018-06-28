@@ -16,17 +16,39 @@ export class Portal extends GameObject {
         super(transform);
 
         this.velocity = 2;
-        // this.spriteName = "hp_potion";
     }
 
     get IsActive(): boolean {
-        return this.isAttached && this.couplingPortal != null;
+        if(this.couplingPortal == null) {
+            return false;
+        }
+
+        if(this.couplingPortal.IsDestroyed != false) {
+            this.couplingPortal = null;
+            return false;
+        }
+
+        return this.isAttached && this.couplingPortal.isAttached;
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {
+        if(gameObject instanceof Portal) {
+            this.destroy();
+            return;
+        } else if(gameObject instanceof Obstacle) {
+            this.isAttached = true;
+
+            this.Transform.X -= result.overlap * result.overlap_x;
+            this.Transform.Y -= result.overlap * result.overlap_y;
+
+            this.transform.Rotation = gameObject.Transform.Rotation;
+
+            this.addChange(ChangesDict.IS_ATTACHED);
+            this.Transform.addChange(ChangesDict.X);
+            this.Transform.addChange(ChangesDict.Y);
+        }
         if(this.IsActive) {
             if(gameObject instanceof Actor) {
-                console.log(gameObject.ID + " entered portal!");
                 gameObject.Transform.X = this.couplingPortal.Transform.X;
                 gameObject.Transform.Y = this.couplingPortal.Transform.Y;
                 gameObject.Transform.addChange(ChangesDict.X);
@@ -34,13 +56,6 @@ export class Portal extends GameObject {
 
                 this.couplingPortal.destroy();
                 this.destroy();
-            }
-        } else {
-            if(gameObject instanceof Obstacle) {
-                this.isAttached = true;
-                this.addChange(ChangesDict.IS_ATTACHED);
-                this.Transform.addChange(ChangesDict.X);
-                this.Transform.addChange(ChangesDict.Y);
             }
         }
         super.serverCollision(gameObject, result);

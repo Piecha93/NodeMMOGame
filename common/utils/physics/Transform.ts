@@ -110,6 +110,7 @@ export class Transform extends Serializable {
     }
 
     get Rotation(): number {
+        this.addChange(ChangesDict.ROTATION);
         return this.angle;
     }
 }
