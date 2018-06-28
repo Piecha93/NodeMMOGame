@@ -16,6 +16,7 @@ export class Portal extends GameObject {
         super(transform);
 
         this.velocity = 2;
+        this.spriteName = "portal"
     }
 
     get IsActive(): boolean {

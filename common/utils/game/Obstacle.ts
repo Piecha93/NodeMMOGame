@@ -1,7 +1,6 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../physics/Transform";
 import {Result} from "detect-collisions";
-import {ChangesDict} from "../../../common/serialize/ChangesDict";
 
 export class Obstacle extends GameObject {
 

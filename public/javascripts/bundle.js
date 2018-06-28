@@ -2471,6 +2471,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             .add('fireball', 'resources/images/fireball.png')
             .add('bluebolt', 'resources/images/bluebolt.png')
             .add('hp_potion', 'resources/images/hp_potion.png')
+            .add('portal', 'resources/images/portal.png')
             .add('flame', 'resources/animations/flame/flame.json')
             .add('terrain', 'resources/maps/terrain.png')
             .load(afterCreateCallback);
@@ -4010,7 +4011,7 @@ class Player extends Actor_1.Actor {
         super(transform);
         this.moveDirection = 0;
         this.inputHistory = [];
-        this.velocity = 0.5;
+        this.velocity = 0.6;
         this.weapon = new PortalGun_1.PortalGun();
     }
     pushSnapshotToHistory(inputSnapshot) {
@@ -4177,7 +4178,7 @@ class Portal extends GameObject_1.GameObject {
         this.couplingPortal = null;
         this.isAttached = false;
         this.velocity = 2;
-        // this.spriteName = "hp_potion";
+        this.spriteName = "portal";
     }
     get IsActive() {
         if (this.couplingPortal == null) {
@@ -4205,7 +4206,6 @@ class Portal extends GameObject_1.GameObject {
         }
         if (this.IsActive) {
             if (gameObject instanceof Actor_1.Actor) {
-                console.log(gameObject.ID + " entered portal!");
                 gameObject.Transform.X = this.couplingPortal.Transform.X;
                 gameObject.Transform.Y = this.couplingPortal.Transform.Y;
                 gameObject.Transform.addChange(ChangesDict_1.ChangesDict.X);
@@ -4252,16 +4252,12 @@ class PortalGun {
     }
     use(user, angle, clickButton) {
         let portalNum = clickButton == 0 ? 0 : 1;
-        let position = new Transform_1.Transform(user.Transform.X, user.Transform.Y, 20);
+        let position = new Transform_1.Transform(user.Transform.X, user.Transform.Y, 75, 75);
         position.Rotation = angle;
         if (this.portals[portalNum] != null) {
             this.portals[portalNum].destroy();
         }
         this.portals[portalNum] = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Portal", position);
-        console.log("Portal created " + portalNum);
-        if (portalNum == 0) {
-            this.portals[portalNum].SpriteName = "hp_potion";
-        }
         this.portals[portalNum].addDestroyListener(() => {
             this.portals[portalNum] = null;
         });

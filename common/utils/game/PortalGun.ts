@@ -10,17 +10,13 @@ export class PortalGun implements Weapon {
     public use(user: Actor, angle: number, clickButton: number) {
         let portalNum = clickButton == 0 ? 0 : 1;
 
-        let position = new Transform(user.Transform.X, user.Transform.Y, 20);
+        let position = new Transform(user.Transform.X, user.Transform.Y, 75, 75);
         position.Rotation = angle;
 
         if(this.portals[portalNum] != null) {
             this.portals[portalNum].destroy();
         }
         this.portals[portalNum] = GameObjectsFactory.InstatiateWithTransform("Portal", position) as Portal;
-
-        if(portalNum == 0) {
-            this.portals[portalNum].SpriteName = "hp_potion";
-        }
 
         this.portals[portalNum].addDestroyListener(() => {
             this.portals[portalNum] = null;
