@@ -2,18 +2,30 @@ import {PropName} from "./NetworkDecorators";
 import {CommonConfig} from "../CommonConfig";
 import {byteSize, setBit} from "../utils/functions/BitOperations";
 
+export enum SerializableTypes {
+    Int8,
+    Int16,
+    Int32,
+    Uint8,
+    Uint16,
+    Uint32,
+    Float32,
+    Float64,
+    string,
+    object
+}
 
 export abstract class Serializable {
-    public static TypesToBytesSize: Map<string, number> = new Map<string, number>(
+    public static TypesToBytesSize: Map<SerializableTypes, number> = new Map<SerializableTypes, number>(
         [
-            ["Int8", 1],
-            ["Int16", 2],
-            ["Int32", 4],
-            ["Uint8", 1],
-            ["Uint16", 2],
-            ["Uint32", 4],
-            ["Float32", 4],
-            ["Float64", 8],
+            [SerializableTypes.Int8, 1],
+            [SerializableTypes.Int16, 2],
+            [SerializableTypes.Int32, 4],
+            [SerializableTypes.Uint8, 1],
+            [SerializableTypes.Uint16, 2],
+            [SerializableTypes.Uint32, 4],
+            [SerializableTypes.Float32, 4],
+            [SerializableTypes.Float64, 8],
         ]
     );
 
@@ -46,7 +58,7 @@ export abstract class Serializable {
 
         let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
 
-        (this[PropName.CalcBytesFunctions] as Map<string, Function>).forEach((func: Function, shortKey: string) => {
+        this[PropName.CalcBytesFunctions].forEach((func: Function, shortKey: string) => {
             if(!complete && !this.changes.has(shortKey)) {
                 return;
             }
@@ -66,7 +78,7 @@ export abstract class Serializable {
     }
 
     private getPropsSize(): number {
-        return (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+        return this[PropName.SerializeEncodeOrder].size;
     }
 
     private getPropsMaskByteSize(): number {
@@ -161,9 +173,9 @@ export abstract class Serializable {
             presentMask &= ~bitMask;
 
             let shortKey = this[PropName.SerializeDecodeOrder].get(index);
-            let type: string = this[PropName.PropertyTypes].get(shortKey);
+            let type: SerializableTypes = this[PropName.PropertyTypes].get(shortKey);
 
-            if(type == "object") {
+            if(type == SerializableTypes.object) {
                 objectsToDecode.push(index);
             } else {
                 offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
@@ -187,14 +199,14 @@ export abstract class Serializable {
     //TEST FUNCTIONS
     public printSerializeOrder() {
         console.log("SerializeEncodeOrder");
-        (this[PropName.SerializeEncodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
+        this[PropName.SerializeEncodeOrder].forEach((val: number, key: string) => {
             console.log(key + " : " + val);
         });
     }
 
     public printDeserializeOrder() {
         console.log("SerializeDecodeOrder");
-        (this[PropName.SerializeDecodeOrder] as Map<string, number>).forEach((val: number, key: string) => {
+        this[PropName.SerializeDecodeOrder].forEach((val: number, key: string) => {
             console.log(key + " : " + val);
         });
     }

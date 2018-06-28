@@ -5,11 +5,12 @@ import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Obstacle} from "./Obstacle";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Actor} from "./Actor";
+import {SerializableTypes} from "../../serialize/Serializable";
 
 export class Portal extends GameObject {
     private couplingPortal: Portal = null;
 
-    @NetworkProperty(ChangesDict.IS_ATTACHED, "Int8")
+    @NetworkProperty(ChangesDict.IS_ATTACHED, SerializableTypes.Int8)
     private isAttached: boolean = false;
 
     constructor(transform: Transform) {

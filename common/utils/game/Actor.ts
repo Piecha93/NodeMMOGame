@@ -7,13 +7,14 @@ import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 import {Item} from "./Item";
 import {Weapon} from "./Weapon";
+import {SerializableTypes} from "../../serialize/Serializable";
 
 export abstract class Actor extends GameObject {
-    @NetworkProperty(ChangesDict.NAME, "string")
+    @NetworkProperty(ChangesDict.NAME, SerializableTypes.string)
     private name: string;
-    @NetworkProperty(ChangesDict.MAX_HP, "Uint16")
+    @NetworkProperty(ChangesDict.MAX_HP, SerializableTypes.Uint16)
     private maxHp: number;
-    @NetworkProperty(ChangesDict.HP, "Uint16")
+    @NetworkProperty(ChangesDict.HP, SerializableTypes.Uint16)
     private hp: number;
 
     protected weapon: Weapon = null;

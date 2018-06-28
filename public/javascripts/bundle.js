@@ -3171,11 +3171,7 @@ function decodeString(view, offset) {
     }
     return str;
 }
-let allowedTypes = ["Int8", "Int16", "Int32", "Uint8", "Uint16", "Uint32", "Float32", "Float64", "string"];
 function NetworkProperty(shortKey, type) {
-    if (allowedTypes.indexOf(type) == -1) {
-        throw new Error("Invalid property type " + type + ". Allowed types " + allowedTypes);
-    }
     function decorator(target, key) {
         addNetworkProperties(target);
         let counter = target[PropName.DecodeCounter]++;
@@ -3184,73 +3180,73 @@ function NetworkProperty(shortKey, type) {
         target[PropName.PropertyTypes].set(shortKey, type);
         target[PropName.SerializeFunctions].set(shortKey, (object, view, offset) => {
             let type = object[PropName.PropertyTypes].get(shortKey);
-            if (type == "string") {
+            if (type == Serializable_1.SerializableTypes.string) {
                 fillString(object[key], view, offset);
                 return object[key].length + 1;
             }
-            else if (type == "Int8") {
+            else if (type == Serializable_1.SerializableTypes.Int8) {
                 view.setInt8(offset, object[key]);
             }
-            else if (type == "Int16") {
+            else if (type == Serializable_1.SerializableTypes.Int16) {
                 view.setInt16(offset, object[key]);
             }
-            else if (type == "Int32") {
+            else if (type == Serializable_1.SerializableTypes.Int32) {
                 view.setInt32(offset, object[key]);
             }
-            else if (type == "Uint8") {
+            else if (type == Serializable_1.SerializableTypes.Uint8) {
                 view.setUint8(offset, object[key]);
             }
-            else if (type == "Uint16") {
+            else if (type == Serializable_1.SerializableTypes.Uint16) {
                 view.setUint16(offset, object[key]);
             }
-            else if (type == "Uint32") {
+            else if (type == Serializable_1.SerializableTypes.Uint32) {
                 view.setUint32(offset, object[key]);
             }
-            else if (type == "Float32") {
+            else if (type == Serializable_1.SerializableTypes.Float32) {
                 view.setFloat32(offset, object[key]);
             }
-            else if (type == "Float64") {
+            else if (type == Serializable_1.SerializableTypes.Float64) {
                 view.setFloat64(offset, object[key]);
             }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
         target[PropName.DeserializeFunctions].set(shortKey, (object, view, offset) => {
-            if (type == "string") {
+            if (type == Serializable_1.SerializableTypes.string) {
                 object[key] = decodeString(view, offset);
                 return object[key].length + 1;
             }
-            else if (type == "Int8") {
+            else if (type == Serializable_1.SerializableTypes.Int8) {
                 object[key] = view.getInt8(offset);
             }
-            else if (type == "Int16") {
+            else if (type == Serializable_1.SerializableTypes.Int16) {
                 object[key] = view.getInt16(offset);
             }
-            else if (type == "Int32") {
+            else if (type == Serializable_1.SerializableTypes.Int32) {
                 object[key] = view.getInt32(offset);
             }
-            else if (type == "Uint8") {
+            else if (type == Serializable_1.SerializableTypes.Uint8) {
                 object[key] = view.getUint8(offset);
             }
-            else if (type == "Uint16") {
+            else if (type == Serializable_1.SerializableTypes.Uint16) {
                 object[key] = view.getUint16(offset);
             }
-            else if (type == "Uint32") {
+            else if (type == Serializable_1.SerializableTypes.Uint32) {
                 object[key] = view.getUint32(offset);
             }
-            else if (type == "Float32") {
+            else if (type == Serializable_1.SerializableTypes.Float32) {
                 object[key] = view.getFloat32(offset);
             }
-            else if (type == "Float64") {
+            else if (type == Serializable_1.SerializableTypes.Float64) {
                 object[key] = view.getFloat64(offset);
             }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
         target[PropName.CalcBytesFunctions].set(shortKey, (object, complete) => {
             let type = target[PropName.PropertyTypes].get(shortKey);
-            if (type == "string") {
+            if (type == Serializable_1.SerializableTypes.string) {
                 return object[key].length + 1;
             }
-            else if (type == "object") {
+            else if (type == Serializable_1.SerializableTypes.object) {
                 return object[key].calcNeededBufferSize(complete);
             }
             else {
@@ -3264,7 +3260,7 @@ exports.NetworkProperty = NetworkProperty;
 function NetworkObject(shortKey) {
     function decorator(target, key) {
         addNetworkProperties(target);
-        target[PropName.PropertyTypes].set(shortKey, "object");
+        target[PropName.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.object);
         let counter = target[PropName.DecodeCounter]++;
         target[PropName.SerializeEncodeOrder].set(shortKey, counter);
         target[PropName.SerializeDecodeOrder].set(counter, shortKey);
@@ -3320,6 +3316,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
 const CommonConfig_1 = require("../CommonConfig");
 const BitOperations_1 = require("../utils/functions/BitOperations");
+var SerializableTypes;
+(function (SerializableTypes) {
+    SerializableTypes[SerializableTypes["Int8"] = 0] = "Int8";
+    SerializableTypes[SerializableTypes["Int16"] = 1] = "Int16";
+    SerializableTypes[SerializableTypes["Int32"] = 2] = "Int32";
+    SerializableTypes[SerializableTypes["Uint8"] = 3] = "Uint8";
+    SerializableTypes[SerializableTypes["Uint16"] = 4] = "Uint16";
+    SerializableTypes[SerializableTypes["Uint32"] = 5] = "Uint32";
+    SerializableTypes[SerializableTypes["Float32"] = 6] = "Float32";
+    SerializableTypes[SerializableTypes["Float64"] = 7] = "Float64";
+    SerializableTypes[SerializableTypes["string"] = 8] = "string";
+    SerializableTypes[SerializableTypes["object"] = 9] = "object";
+})(SerializableTypes = exports.SerializableTypes || (exports.SerializableTypes = {}));
 class Serializable {
     constructor() {
         this.changes = new Set();
@@ -3433,7 +3442,7 @@ class Serializable {
             presentMask &= ~bitMask;
             let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
             let type = this[NetworkDecorators_1.PropName.PropertyTypes].get(shortKey);
-            if (type == "object") {
+            if (type == SerializableTypes.object) {
                 objectsToDecode.push(index);
             }
             else {
@@ -3464,14 +3473,14 @@ class Serializable {
     }
 }
 Serializable.TypesToBytesSize = new Map([
-    ["Int8", 1],
-    ["Int16", 2],
-    ["Int32", 4],
-    ["Uint8", 1],
-    ["Uint16", 2],
-    ["Uint32", 4],
-    ["Float32", 4],
-    ["Float64", 8],
+    [SerializableTypes.Int8, 1],
+    [SerializableTypes.Int16, 2],
+    [SerializableTypes.Int32, 4],
+    [SerializableTypes.Uint8, 1],
+    [SerializableTypes.Uint16, 2],
+    [SerializableTypes.Uint32, 4],
+    [SerializableTypes.Float32, 4],
+    [SerializableTypes.Float64, 8],
 ]);
 exports.Serializable = Serializable;
 
@@ -3612,6 +3621,7 @@ const FireBall_1 = require("./FireBall");
 const Obstacle_1 = require("./Obstacle");
 const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 const Item_1 = require("./Item");
+const Serializable_1 = require("../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -3676,20 +3686,20 @@ class Actor extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, "string"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.string),
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, "Uint16"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "maxHp", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, "Uint16"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"./FireBall":40,"./GameObject":41,"./Item":42,"./Obstacle":44}],39:[function(require,module,exports){
+},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./FireBall":40,"./GameObject":41,"./Item":42,"./Obstacle":44}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3749,6 +3759,7 @@ const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Obstacle_1 = require("./Obstacle");
 const Actor_1 = require("./Actor");
 const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const Serializable_1 = require("../../serialize/Serializable");
 class FireBall extends Projectile_1.Projectile {
     constructor(transform) {
         super(transform);
@@ -3798,16 +3809,16 @@ class FireBall extends Projectile_1.Projectile {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, "Uint16"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], FireBall.prototype, "power", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, "string"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.string),
     __metadata("design:type", String)
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"./Actor":38,"./Obstacle":44,"./Projectile":48}],41:[function(require,module,exports){
+},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./Actor":38,"./Obstacle":44,"./Projectile":48}],41:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3903,7 +3914,7 @@ class GameObject extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME, "string"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME, Serializable_1.SerializableTypes.string),
     __metadata("design:type", String)
 ], GameObject.prototype, "spriteName", void 0);
 __decorate([
@@ -3911,9 +3922,13 @@ __decorate([
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, "Float32"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number)
 ], GameObject.prototype, "velocity", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty("INV", Serializable_1.SerializableTypes.Uint8),
+    __metadata("design:type", Boolean)
+], GameObject.prototype, "invisible", void 0);
 exports.GameObject = GameObject;
 
 },{"../../CommonConfig":24,"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"../physics/Transform":50}],42:[function(require,module,exports){
@@ -3962,6 +3977,10 @@ class MagicWand {
         fireBall.Owner = user.ID;
     }
     ;
+    equip() {
+    }
+    hide() {
+    }
 }
 exports.MagicWand = MagicWand;
 
@@ -4011,7 +4030,7 @@ class Player extends Actor_1.Actor {
         super(transform);
         this.moveDirection = 0;
         this.inputHistory = [];
-        this.velocity = 0.6;
+        this.velocity = 0.5;
         this.weapon = new PortalGun_1.PortalGun();
     }
     pushSnapshotToHistory(inputSnapshot) {
@@ -4050,6 +4069,8 @@ class Player extends Actor_1.Actor {
         this.weapon.use(this, parseFloat(angle), clickButton);
     }
     wallAction(coords) {
+        this.invisible = !this.invisible;
+        this.addChange("INV");
         // FOR TEST
         // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
         // let splited = value.split(',');
@@ -4172,6 +4193,7 @@ const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
 const Obstacle_1 = require("./Obstacle");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Actor_1 = require("./Actor");
+const Serializable_1 = require("../../serialize/Serializable");
 class Portal extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -4236,12 +4258,12 @@ class Portal extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, "Int8"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, Serializable_1.SerializableTypes.Int8),
     __metadata("design:type", Boolean)
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"./Actor":38,"./GameObject":41,"./Obstacle":44}],47:[function(require,module,exports){
+},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./Actor":38,"./GameObject":41,"./Obstacle":44}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../factory/ObjectsFactory");
@@ -4270,6 +4292,16 @@ class PortalGun {
             this.portals[1].CouplingPortal = this.portals[0];
         }
     }
+    equip() {
+    }
+    hide() {
+        for (let i in [0, 1]) {
+            if (this.portals[i]) {
+                this.portals[i].destroy();
+                this.portals[i] = null;
+            }
+        }
+    }
 }
 exports.PortalGun = PortalGun;
 
@@ -4287,6 +4319,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
 const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const Serializable_1 = require("../../serialize/Serializable");
 class Projectile extends GameObject_1.GameObject {
     constructor() {
         super(...arguments);
@@ -4301,12 +4334,12 @@ class Projectile extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty("DEL", "Uint16"),
+    NetworkDecorators_1.NetworkProperty("DEL", Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Projectile.prototype, "lifeSpan", void 0);
 exports.Projectile = Projectile;
 
-},{"../../serialize/NetworkDecorators":32,"./GameObject":41}],49:[function(require,module,exports){
+},{"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./GameObject":41}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4451,27 +4484,27 @@ class Transform extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, "Float32"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "X", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, "Float32"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Y", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, "Uint16"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Width", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, "Uint16"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Height", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, "Float32"),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Rotation", null);

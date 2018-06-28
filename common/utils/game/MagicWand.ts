@@ -12,4 +12,10 @@ export class MagicWand implements Weapon {
         let fireBall: FireBall = GameObjectsFactory.InstatiateWithTransform("FireBall", position) as FireBall;
         fireBall.Owner = user.ID;
     };
+
+    equip() {
+    }
+
+    hide() {
+    }
 }

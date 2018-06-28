@@ -1,6 +1,6 @@
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {Serializable} from "../../serialize/Serializable"
+import {Serializable, SerializableTypes} from "../../serialize/Serializable"
 import {Polygon, Circle} from "detect-collisions";
 
 export class Transform extends Serializable {
@@ -46,7 +46,7 @@ export class Transform extends Serializable {
         return this.shape.x;
     }
 
-    @NetworkProperty(ChangesDict.X, "Float32")
+    @NetworkProperty(ChangesDict.X, SerializableTypes.Float32)
     set X(x: number) {
         this.shape.x = x;
     }
@@ -55,12 +55,12 @@ export class Transform extends Serializable {
         return this.shape.y;
     }
 
-    @NetworkProperty(ChangesDict.Y, "Float32")
+    @NetworkProperty(ChangesDict.Y, SerializableTypes.Float32)
     set Y(y: number) {
         this.shape.y = y;
     }
 
-    @NetworkProperty(ChangesDict.WIDTH, "Uint16")
+    @NetworkProperty(ChangesDict.WIDTH, SerializableTypes.Uint16)
     set Width(width: number) {
         if(this.width == width) return;
         this.width = width;
@@ -81,7 +81,7 @@ export class Transform extends Serializable {
         return this.width;
     }
 
-    @NetworkProperty(ChangesDict.HEIGHT, "Uint16")
+    @NetworkProperty(ChangesDict.HEIGHT, SerializableTypes.Uint16)
     set Height(height: number) {
         if(this.height == height) return;
         this.height = height;
@@ -101,7 +101,7 @@ export class Transform extends Serializable {
         return this.height;
     }
 
-    @NetworkProperty(ChangesDict.ROTATION, "Float32")
+    @NetworkProperty(ChangesDict.ROTATION, SerializableTypes.Float32)
     set Rotation(angle: number) {
         if(this.shape instanceof Polygon) {
             this.shape.angle = angle;

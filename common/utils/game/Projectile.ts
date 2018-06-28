@@ -2,9 +2,10 @@ import {GameObject} from "./GameObject";
 import {Result} from "detect-collisions";
 
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {SerializableTypes} from "../../serialize/Serializable";
 
 export class Projectile extends GameObject {
-    @NetworkProperty("DEL", "Uint16")
+    @NetworkProperty("DEL", SerializableTypes.Uint16)
     protected lifeSpan: number = 50;
 
     protected serverUpdate(delta: number) {

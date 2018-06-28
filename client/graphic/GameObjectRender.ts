@@ -8,7 +8,7 @@ export abstract class GameObjectRender extends PIXI.Container {
 
     private dt: number = 0.25;
 
-    constructor() {
+    protected constructor() {
         super();
     }
 

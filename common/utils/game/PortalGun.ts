@@ -31,4 +31,16 @@ export class PortalGun implements Weapon {
             this.portals[1].CouplingPortal = this.portals[0];
         }
     }
+
+    equip() {
+    }
+
+    hide() {
+        for(let i in [0,1]) {
+            if (this.portals[i]) {
+                this.portals[i].destroy();
+                this.portals[i] = null;
+            }
+        }
+    }
 }

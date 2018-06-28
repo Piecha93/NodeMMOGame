@@ -67,6 +67,8 @@ export class Player extends Actor {
     }
 
     private wallAction(coords) {
+        this.invisible = !this.invisible;
+        this.addChange("INV");
         // FOR TEST
 
         // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;

@@ -6,11 +6,12 @@ import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
+import {SerializableTypes} from "../../serialize/Serializable";
 
 export class FireBall extends Projectile {
-    @NetworkProperty(ChangesDict.POWER, "Uint16")
+    @NetworkProperty(ChangesDict.POWER, SerializableTypes.Uint16)
     private power: number = 10;
-    @NetworkProperty(ChangesDict.OWNER, "string")
+    @NetworkProperty(ChangesDict.OWNER, SerializableTypes.string)
     private owner: string;
 
     constructor(transform: Transform) {

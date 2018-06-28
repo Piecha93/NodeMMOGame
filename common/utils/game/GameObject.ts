@@ -1,20 +1,21 @@
 import {Transform} from "../physics/Transform";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig} from "../../CommonConfig";
-import {Serializable} from "../../serialize/Serializable";
+import {Serializable, SerializableTypes} from "../../serialize/Serializable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 
 export abstract class GameObject extends Serializable {
     protected id: string = "";
-    @NetworkProperty(ChangesDict.SPRITE_NAME, "string")
+    @NetworkProperty(ChangesDict.SPRITE_NAME, SerializableTypes.string)
     protected spriteName: string;
     @NetworkObject("pos")
     protected transform: Transform;
 
-    @NetworkProperty(ChangesDict.VELOCITY, "Float32")
+    @NetworkProperty(ChangesDict.VELOCITY, SerializableTypes.Float32)
     protected velocity: number = 0;
 
+    @NetworkProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
     private destroyListeners: Set<Function>;
