@@ -160,10 +160,16 @@ function addDcecodeCounter(target: Object) {
 }
 
 function getPrototypePropertyVal(target: Object, propertyName: string, defaultVal: any) {
-    let prototype: any = Object.getPrototypeOf(target);
-    if (prototype.hasOwnProperty(propertyName)) {
-        return prototype[propertyName]
-    } else {
-        return defaultVal;
+    let basePrototype: any = target;
+
+    while (basePrototype) {
+        let prototype: any = Object.getPrototypeOf(basePrototype);
+        basePrototype = prototype;
+
+        if (basePrototype && prototype.hasOwnProperty(propertyName)) {
+            return prototype[propertyName]
+        }
     }
+
+    return defaultVal;
 }

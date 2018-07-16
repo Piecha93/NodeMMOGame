@@ -23,7 +23,7 @@ export class FireBall extends Projectile {
 
         this.transform.Width = 30;
 
-        this.lifeSpan = 5000;
+        this.lifeSpan = 2000;
         this.addChange(ChangesDict.VELOCITY);
     }
 

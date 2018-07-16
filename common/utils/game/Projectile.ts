@@ -1,20 +1,19 @@
 import {GameObject} from "./GameObject";
 import {Result} from "detect-collisions";
 
-import {NetworkProperty} from "../../serialize/NetworkDecorators";
-import {SerializableTypes} from "../../serialize/Serializable";
-
 export class Projectile extends GameObject {
-    @NetworkProperty("DEL", SerializableTypes.Uint16)
     protected lifeSpan: number = 50;
 
     protected serverUpdate(delta: number) {
         super.serverUpdate(delta);
 
-        this.lifeSpan -= delta;
-
-        if(this.lifeSpan <= 0) {
-            this.destroy();
+        // lifeSpan == 0 -> infinite
+        if(this.lifeSpan != 0) {
+            if (this.lifeSpan > delta) {
+                this.lifeSpan -= delta;
+            } else {
+                this.destroy();
+            }
         }
     }
 }

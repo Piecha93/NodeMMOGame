@@ -3767,7 +3767,7 @@ class FireBall extends Projectile_1.Projectile {
         this.spriteName = "flame";
         this.velocity = 1;
         this.transform.Width = 30;
-        this.lifeSpan = 5000;
+        this.lifeSpan = 1000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
     serverCollision(gameObject, result) {
@@ -4327,14 +4327,19 @@ class Projectile extends GameObject_1.GameObject {
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
-        this.lifeSpan -= delta;
-        if (this.lifeSpan <= 0) {
-            this.destroy();
+        // lifeSpan == 0 -> infinite
+        if (this.lifeSpan != 0) {
+            if (this.lifeSpan > delta) {
+                this.lifeSpan -= delta;
+            }
+            else {
+                this.destroy();
+            }
         }
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty("DEL", Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.NetworkProperty("LSP", Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Projectile.prototype, "lifeSpan", void 0);
 exports.Projectile = Projectile;

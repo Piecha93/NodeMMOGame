@@ -5,7 +5,7 @@ import {Serializable, SerializableTypes} from "../../serialize/Serializable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 
-export abstract class GameObject extends Serializable {
+export class GameObject extends Serializable {
     protected id: string = "";
     @NetworkProperty(ChangesDict.SPRITE_NAME, SerializableTypes.string)
     protected spriteName: string;
