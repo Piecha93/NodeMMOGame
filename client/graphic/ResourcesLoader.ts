@@ -2,7 +2,7 @@
 export enum ResourceType {
     SPRITE,
     ANIMATION,
-    ACTOR_ANIMATION
+    OCTAGONAL_ANIMATION
 }
 
 export class Resource {
@@ -16,7 +16,7 @@ export class Resource {
 
         this.textures = new Map<string, Array<PIXI.Texture> >();
 
-        if(this.type == ResourceType.ACTOR_ANIMATION) {
+        if(this.type == ResourceType.OCTAGONAL_ANIMATION) {
             this.textures.set("U", []);
             this.textures.set("UR", []);
             this.textures.set("R", []);
@@ -73,7 +73,7 @@ export class ResourcesLoader {
     private postprocessResources() {
         this.resources.forEach((resource: Resource, name: string) => {
             for(let frame in PIXI.loader.resources[name].data.frames) {
-                if (resource.type == ResourceType.ACTOR_ANIMATION) {
+                if (resource.type == ResourceType.OCTAGONAL_ANIMATION) {
                     let animationDirection: string = frame.split('_')[1];
                     resource.textures.get(animationDirection).push(PIXI.Texture.fromFrame(frame));
                 } else if (resource.type == ResourceType.ANIMATION) {

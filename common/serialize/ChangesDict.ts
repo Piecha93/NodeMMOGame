@@ -9,6 +9,7 @@ export class ChangesDict {
     public static HP = "HP";
     public static MAX_HP = "MAX_HP";
     public static NAME = "NAME";
+    public static ANIMATION_TYPE = "ANIMATION_TYPE";
     public static FACE_DIR = "FACE_DIR";
 
     //Projectile

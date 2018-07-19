@@ -8,7 +8,7 @@ export class Enemy extends Actor {
 
     constructor(transform: Transform) {
         super(transform);
-        this.velocity = 0.3;
+        this.velocity = 0.2;
 
         // this.spriteName = "michau";
 

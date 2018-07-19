@@ -7,7 +7,7 @@ import {Result} from "detect-collisions";
 
 export class GameObject extends Serializable {
     protected id: string = "";
-    @NetworkProperty(ChangesDict.SPRITE_NAME, SerializableTypes.string)
+    @NetworkProperty(ChangesDict.SPRITE_NAME, SerializableTypes.String)
     protected spriteName: string;
     @NetworkObject("pos")
     protected transform: Transform;

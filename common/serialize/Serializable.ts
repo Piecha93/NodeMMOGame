@@ -1,6 +1,6 @@
 import {PropNames} from "./NetworkDecorators";
 import {CommonConfig} from "../CommonConfig";
-import {byteSize, setBit} from "../utils/functions/BitOperations";
+import {maskByteSize, setBit} from "../utils/functions/BitOperations";
 
 export enum SerializableTypes {
     Int8,
@@ -11,8 +11,8 @@ export enum SerializableTypes {
     Uint32,
     Float32,
     Float64,
-    string,
-    object
+    String,
+    Object
 }
 
 export abstract class Serializable {
@@ -71,7 +71,7 @@ export abstract class Serializable {
         });
 
         if(neededSize != 0) {
-            neededSize += byteSize(propsSize);
+            neededSize += maskByteSize(propsSize);
         }
 
         return neededSize;
@@ -83,7 +83,7 @@ export abstract class Serializable {
 
     private getPropsMaskByteSize(): number {
         let propsSize: number = this.getPropsSize();
-        let propsByteSize: number = byteSize(propsSize);
+        let propsByteSize: number = maskByteSize(propsSize);
         return propsByteSize == 3 ? 4 : propsByteSize
     }
 
@@ -95,9 +95,9 @@ export abstract class Serializable {
         }
 
         let propsSize: number = this.getPropsSize();
-        let propsByteSize: number = this.getPropsMaskByteSize();
+        let propsMaskByteSize: number = this.getPropsMaskByteSize();
 
-        let updatedOffset: number = offset + propsByteSize;
+        let updatedOffset: number = offset + propsMaskByteSize;
 
         let presentMask: number = 0;
 
@@ -128,15 +128,15 @@ export abstract class Serializable {
             });
         }
 
-        if(updatedOffset == (offset + propsByteSize)) {
+        if(updatedOffset == (offset + propsMaskByteSize)) {
             return offset;
         }
 
-        if(propsByteSize == 1) {
+        if(propsMaskByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
-        } else if(propsByteSize == 2) {
+        } else if(propsMaskByteSize == 2) {
             updateBufferView.setUint16(offset, presentMask);
-        } else if(propsByteSize == 4) {
+        } else if(propsMaskByteSize == 4) {
             updateBufferView.setUint32(offset, presentMask);
         }
 
@@ -175,7 +175,7 @@ export abstract class Serializable {
             let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
             let type: SerializableTypes = this[PropNames.PropertyTypes].get(shortKey);
 
-            if(type == SerializableTypes.object) {
+            if(type == SerializableTypes.Object) {
                 objectsToDecode.push(index);
             } else {
                 offset += this[PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);

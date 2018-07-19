@@ -46,7 +46,7 @@ export class GameObjectAnimationRender extends GameObjectRender {
     private getAnimationTextures(): Array<PIXI.Texture> {
         let resource: Resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
 
-        if(resource.type == ResourceType.ACTOR_ANIMATION) {
+        if(resource.type == ResourceType.OCTAGONAL_ANIMATION) {
             let actor: Actor = (this.objectRef as Actor);
             let resource: Resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
             let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];

@@ -11,7 +11,7 @@ import {SerializableTypes} from "../../serialize/Serializable";
 export class FireBall extends Projectile {
     @NetworkProperty(ChangesDict.POWER, SerializableTypes.Uint16)
     private power: number = 10;
-    @NetworkProperty(ChangesDict.OWNER, SerializableTypes.string)
+    @NetworkProperty(ChangesDict.OWNER, SerializableTypes.String)
     private owner: string;
 
     constructor(transform: Transform) {

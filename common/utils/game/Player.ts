@@ -23,7 +23,7 @@ export class Player extends Actor {
         super(transform);
 
         this.inputHistory = [];
-        this.velocity = 0.5;
+        this.velocity = 0.25;
 
         this.weapon = new PortalGun();
     }

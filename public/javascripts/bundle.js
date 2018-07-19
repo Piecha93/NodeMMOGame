@@ -2218,7 +2218,7 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
     }
     getAnimationTextures() {
         let resource = ResourcesLoader_1.ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
-        if (resource.type == ResourcesLoader_1.ResourceType.ACTOR_ANIMATION) {
+        if (resource.type == ResourcesLoader_1.ResourceType.OCTAGONAL_ANIMATION) {
             let actor = this.objectRef;
             let resource = ResourcesLoader_1.ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
             let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];
@@ -2518,8 +2518,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.resourcesLoader.registerResource('portal', 'resources/images/portal.png', ResourcesLoader_1.ResourceType.SPRITE);
         this.resourcesLoader.registerResource('white', 'resources/images/white.png', ResourcesLoader_1.ResourceType.SPRITE);
         this.resourcesLoader.registerResource('flame', 'resources/animations/flame/flame.json', ResourcesLoader_1.ResourceType.ANIMATION);
-        this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourcesLoader_1.ResourceType.ACTOR_ANIMATION);
-        this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourcesLoader_1.ResourceType.ACTOR_ANIMATION);
+        this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourcesLoader_1.ResourceType.OCTAGONAL_ANIMATION);
+        this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourcesLoader_1.ResourceType.OCTAGONAL_ANIMATION);
         this.resourcesLoader.registerResource('terrain', 'resources/maps/terrain.png', ResourcesLoader_1.ResourceType.SPRITE);
         this.resourcesLoader.load(afterCreateCallback);
     }
@@ -2597,14 +2597,14 @@ var ResourceType;
 (function (ResourceType) {
     ResourceType[ResourceType["SPRITE"] = 0] = "SPRITE";
     ResourceType[ResourceType["ANIMATION"] = 1] = "ANIMATION";
-    ResourceType[ResourceType["ACTOR_ANIMATION"] = 2] = "ACTOR_ANIMATION";
+    ResourceType[ResourceType["OCTAGONAL_ANIMATION"] = 2] = "OCTAGONAL_ANIMATION";
 })(ResourceType = exports.ResourceType || (exports.ResourceType = {}));
 class Resource {
     constructor(name, type) {
         this.name = name;
         this.type = type;
         this.textures = new Map();
-        if (this.type == ResourceType.ACTOR_ANIMATION) {
+        if (this.type == ResourceType.OCTAGONAL_ANIMATION) {
             this.textures.set("U", []);
             this.textures.set("UR", []);
             this.textures.set("R", []);
@@ -2652,9 +2652,8 @@ class ResourcesLoader {
     postprocessResources() {
         this.resources.forEach((resource, name) => {
             for (let frame in PIXI.loader.resources[name].data.frames) {
-                if (resource.type == ResourceType.ACTOR_ANIMATION) {
+                if (resource.type == ResourceType.OCTAGONAL_ANIMATION) {
                     let animationDirection = frame.split('_')[1];
-                    console.log("animationDirection " + animationDirection + " frame " + frame);
                     resource.textures.get(animationDirection).push(PIXI.Texture.fromFrame(frame));
                 }
                 else if (resource.type == ResourceType.ANIMATION) {
@@ -3164,6 +3163,7 @@ ChangesDict.VELOCITY = "VELOCITY";
 ChangesDict.HP = "HP";
 ChangesDict.MAX_HP = "MAX_HP";
 ChangesDict.NAME = "NAME";
+ChangesDict.ANIMATION_TYPE = "ANIMATION_TYPE";
 ChangesDict.FACE_DIR = "FACE_DIR";
 //Projectile
 ChangesDict.OWNER = "O";
@@ -3311,7 +3311,7 @@ function NetworkProperty(shortKey, type) {
         target[PropNames.PropertyTypes].set(shortKey, type);
         target[PropNames.SerializeFunctions].set(shortKey, (object, view, offset) => {
             let type = object[PropNames.PropertyTypes].get(shortKey);
-            if (type == Serializable_1.SerializableTypes.string) {
+            if (type == Serializable_1.SerializableTypes.String) {
                 fillString(object[key], view, offset);
                 return object[key].length + 1;
             }
@@ -3342,7 +3342,7 @@ function NetworkProperty(shortKey, type) {
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
         target[PropNames.DeserializeFunctions].set(shortKey, (object, view, offset) => {
-            if (type == Serializable_1.SerializableTypes.string) {
+            if (type == Serializable_1.SerializableTypes.String) {
                 object[key] = decodeString(view, offset);
                 return object[key].length + 1;
             }
@@ -3374,10 +3374,10 @@ function NetworkProperty(shortKey, type) {
         });
         target[PropNames.CalcBytesFunctions].set(shortKey, (object, complete) => {
             let type = target[PropNames.PropertyTypes].get(shortKey);
-            if (type == Serializable_1.SerializableTypes.string) {
+            if (type == Serializable_1.SerializableTypes.String) {
                 return object[key].length + 1;
             }
-            else if (type == Serializable_1.SerializableTypes.object) {
+            else if (type == Serializable_1.SerializableTypes.Object) {
                 return object[key].calcNeededBufferSize(complete);
             }
             else {
@@ -3391,7 +3391,7 @@ exports.NetworkProperty = NetworkProperty;
 function NetworkObject(shortKey) {
     function decorator(target, key) {
         addNetworkProperties(target);
-        target[PropNames.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.object);
+        target[PropNames.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.Object);
         let counter = target[PropNames.DecodeCounter]++;
         target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
         target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
@@ -3459,8 +3459,8 @@ var SerializableTypes;
     SerializableTypes[SerializableTypes["Uint32"] = 5] = "Uint32";
     SerializableTypes[SerializableTypes["Float32"] = 6] = "Float32";
     SerializableTypes[SerializableTypes["Float64"] = 7] = "Float64";
-    SerializableTypes[SerializableTypes["string"] = 8] = "string";
-    SerializableTypes[SerializableTypes["object"] = 9] = "object";
+    SerializableTypes[SerializableTypes["String"] = 8] = "String";
+    SerializableTypes[SerializableTypes["Object"] = 9] = "Object";
 })(SerializableTypes = exports.SerializableTypes || (exports.SerializableTypes = {}));
 class Serializable {
     constructor() {
@@ -3492,7 +3492,7 @@ class Serializable {
             neededSize += this[key].calcNeededBufferSize(complete);
         });
         if (neededSize != 0) {
-            neededSize += BitOperations_1.byteSize(propsSize);
+            neededSize += BitOperations_1.maskByteSize(propsSize);
         }
         return neededSize;
     }
@@ -3501,7 +3501,7 @@ class Serializable {
     }
     getPropsMaskByteSize() {
         let propsSize = this.getPropsSize();
-        let propsByteSize = BitOperations_1.byteSize(propsSize);
+        let propsByteSize = BitOperations_1.maskByteSize(propsSize);
         return propsByteSize == 3 ? 4 : propsByteSize;
     }
     serialize(updateBufferView, offset, complete = false) {
@@ -3510,8 +3510,8 @@ class Serializable {
             complete = true;
         }
         let propsSize = this.getPropsSize();
-        let propsByteSize = this.getPropsMaskByteSize();
-        let updatedOffset = offset + propsByteSize;
+        let propsMaskByteSize = this.getPropsMaskByteSize();
+        let updatedOffset = offset + propsMaskByteSize;
         let presentMask = 0;
         if (complete) {
             presentMask = Math.pow(2, propsSize) - 1;
@@ -3535,16 +3535,16 @@ class Serializable {
                 }
             });
         }
-        if (updatedOffset == (offset + propsByteSize)) {
+        if (updatedOffset == (offset + propsMaskByteSize)) {
             return offset;
         }
-        if (propsByteSize == 1) {
+        if (propsMaskByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
         }
-        else if (propsByteSize == 2) {
+        else if (propsMaskByteSize == 2) {
             updateBufferView.setUint16(offset, presentMask);
         }
-        else if (propsByteSize == 4) {
+        else if (propsMaskByteSize == 4) {
             updateBufferView.setUint32(offset, presentMask);
         }
         this.changes.clear();
@@ -3575,7 +3575,7 @@ class Serializable {
             presentMask &= ~bitMask;
             let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
             let type = this[NetworkDecorators_1.PropNames.PropertyTypes].get(shortKey);
-            if (type == SerializableTypes.object) {
+            if (type == SerializableTypes.Object) {
                 objectsToDecode.push(index);
             }
             else {
@@ -3726,10 +3726,10 @@ exports.GameObjectsFactory = GameObjectsFactory;
 },{"../physics/Transform":52,"./GameObjectTypes":36}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function byteSize(num) {
-    return Math.ceil(num.toString(2).length / 8);
+function maskByteSize(num) {
+    return Math.ceil(num / 8);
 }
-exports.byteSize = byteSize;
+exports.maskByteSize = maskByteSize;
 function setBit(val, bitIndex) {
     val |= (1 << bitIndex);
     return val;
@@ -3758,9 +3758,8 @@ const Serializable_1 = require("../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        this.moveDirection = 0;
-        // @NetworkProperty(ChangesDict.FACE_DIR, SerializableTypes.Uint8)
         this.faceDirection = 5;
+        this.moveDirection = 0;
         this.weapon = null;
         this.maxHp = 200;
         this.hp = this.maxHp;
@@ -3769,6 +3768,7 @@ class Actor extends GameObject_1.GameObject {
         this.transform.Width = 40;
         this.transform.Height = 64;
         this.spriteName = "template";
+        this.animationType = "idle";
     }
     updatePosition(delta) {
         let moveFactors = this.parseMoveDir();
@@ -3836,20 +3836,23 @@ class Actor extends GameObject_1.GameObject {
     }
     set MoveDirection(direction) {
         if (direction >= 0 && direction <= 8) {
+            if (this.moveDirection == 0 && direction != 0) {
+                this.animationType = "run";
+                this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
+            }
+            else if (this.moveDirection != 0 && direction == 0) {
+                this.animationType = "idle";
+                this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
+            }
             this.moveDirection = direction;
-            if (direction != 0) {
+            if (direction != 0 && this.faceDirection != direction) {
                 this.faceDirection = direction;
-                // this.addChange(ChangesDict.FACE_DIR)
+                this.addChange(ChangesDict_1.ChangesDict.FACE_DIR);
             }
         }
     }
     get SpriteName() {
-        if (this.moveDirection == 0) {
-            return this.spriteName + "_idle";
-        }
-        else {
-            return this.spriteName + "_run";
-        }
+        return this.spriteName + "_" + this.animationType;
     }
     get MoveDirection() {
         return this.moveDirection;
@@ -3862,7 +3865,7 @@ Actor.cornerDir = 0.7071;
 Actor.moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
 Actor.moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.string),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
@@ -3873,6 +3876,14 @@ __decorate([
     NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ANIMATION_TYPE, Serializable_1.SerializableTypes.String),
+    __metadata("design:type", String)
+], Actor.prototype, "animationType", void 0);
+__decorate([
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
+    __metadata("design:type", Number)
+], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
 },{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"./FireBall":42,"./GameObject":43,"./Item":44,"./Obstacle":46}],41:[function(require,module,exports){
@@ -3885,7 +3896,7 @@ class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.timeSinceLastShot = 1000;
-        this.velocity = 0.3;
+        this.velocity = 0.2;
         // this.spriteName = "michau";
         this.weapon = new MagicWand_1.MagicWand();
     }
@@ -3983,7 +3994,7 @@ __decorate([
     __metadata("design:type", Number)
 ], FireBall.prototype, "power", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.string),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
@@ -4084,7 +4095,7 @@ class GameObject extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME, Serializable_1.SerializableTypes.string),
+    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_NAME, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], GameObject.prototype, "spriteName", void 0);
 __decorate([
@@ -4199,7 +4210,7 @@ class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.inputHistory = [];
-        this.velocity = 0.5;
+        this.velocity = 0.25;
         this.weapon = new PortalGun_1.PortalGun();
     }
     pushSnapshotToHistory(inputSnapshot) {

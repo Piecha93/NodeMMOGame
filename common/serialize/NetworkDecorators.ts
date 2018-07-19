@@ -41,7 +41,7 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
         target[PropNames.SerializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number) => {
             let type: SerializableTypes = object[PropNames.PropertyTypes].get(shortKey);
 
-            if(type == SerializableTypes.string) {
+            if(type == SerializableTypes.String) {
                 fillString(object[key], view, offset);
                 return (object[key] as string).length + 1;
             } else if(type == SerializableTypes.Int8) {
@@ -66,7 +66,7 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
         });
 
         target[PropNames.DeserializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number): number => {
-            if(type == SerializableTypes.string) {
+            if(type == SerializableTypes.String) {
                 object[key] = decodeString(view, offset);
                 return (object[key] as string).length + 1;
             } else if(type == SerializableTypes.Int8) {
@@ -93,9 +93,9 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
         target[PropNames.CalcBytesFunctions].set(shortKey, (object: Serializable, complete: boolean): number => {
             let type: SerializableTypes = target[PropNames.PropertyTypes].get(shortKey);
 
-            if(type == SerializableTypes.string) {
+            if(type == SerializableTypes.String) {
                 return (object[key] as string).length + 1;
-            } else if(type == SerializableTypes.object) {
+            } else if(type == SerializableTypes.Object) {
                 return (object[key] as Serializable).calcNeededBufferSize(complete);
             } else {
                 return Serializable.TypesToBytesSize.get(type);
@@ -110,7 +110,7 @@ export function NetworkObject(shortKey: string) {
     function decorator(target: Object, key: string) {
         addNetworkProperties(target);
 
-        target[PropNames.PropertyTypes].set(shortKey, SerializableTypes.object);
+        target[PropNames.PropertyTypes].set(shortKey, SerializableTypes.Object);
 
         let counter: number = target[PropNames.DecodeCounter]++;
 

@@ -9,17 +9,24 @@ import {Item} from "./Item";
 import {Weapon} from "./Weapon";
 import {SerializableTypes} from "../../serialize/Serializable";
 
+
 export abstract class Actor extends GameObject {
-    @NetworkProperty(ChangesDict.NAME, SerializableTypes.string)
+    @NetworkProperty(ChangesDict.NAME, SerializableTypes.String)
     private name: string;
+
     @NetworkProperty(ChangesDict.MAX_HP, SerializableTypes.Uint16)
     private maxHp: number;
+
     @NetworkProperty(ChangesDict.HP, SerializableTypes.Uint16)
     private hp: number;
 
-    protected moveDirection: number = 0;
+    @NetworkProperty(ChangesDict.ANIMATION_TYPE, SerializableTypes.String)
+    protected animationType: string;
 
+    @NetworkProperty(ChangesDict.FACE_DIR, SerializableTypes.Uint8)
     protected faceDirection: number = 5;
+
+    protected moveDirection: number = 0;
 
     protected weapon: Weapon = null;
 
@@ -35,6 +42,7 @@ export abstract class Actor extends GameObject {
         this.transform.Height = 64;
 
         this.spriteName = "template";
+        this.animationType = "idle";
     }
 
     protected updatePosition(delta: number) {
@@ -118,19 +126,24 @@ export abstract class Actor extends GameObject {
 
     set MoveDirection(direction: number) {
         if(direction >= 0 && direction <= 8) {
+            if(this.moveDirection == 0 && direction != 0) {
+                this.animationType = "run";
+                this.addChange(ChangesDict.ANIMATION_TYPE);
+            } else if(this.moveDirection != 0 && direction == 0) {
+                this.animationType = "idle";
+                this.addChange(ChangesDict.ANIMATION_TYPE);
+            }
+
             this.moveDirection = direction;
-            if(direction != 0) {
+            if(direction != 0 && this.faceDirection != direction) {
                 this.faceDirection = direction;
+                this.addChange(ChangesDict.FACE_DIR);
             }
         }
     }
 
     get SpriteName(): string {
-        if(this.moveDirection == 0) {
-            return this.spriteName + "_idle";
-        } else {
-            return this.spriteName + "_run";
-        }
+        return this.spriteName + "_" + this.animationType;
     }
 
     get MoveDirection(): number {
