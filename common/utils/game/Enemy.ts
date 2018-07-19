@@ -6,13 +6,11 @@ import {MagicWand} from "./MagicWand";
 export class Enemy extends Actor {
     private timeSinceLastShot = 1000;
 
-    private moveAngle: number = 0;
     constructor(transform: Transform) {
         super(transform);
-        this.moveAngle = Math.random() * 3;
         this.velocity = 0.3;
 
-        this.spriteName = "michau";
+        // this.spriteName = "michau";
 
         this.weapon = new MagicWand();
     }
@@ -33,17 +31,11 @@ export class Enemy extends Actor {
             this.timeSinceLastShot = 1000;
             for(let i = 0; i < 1; i++) {
                 this.weapon.use(this, Math.random() * 360, 0);
-                // this.shot(Math.floor(Math.random() * 360));
+                this.MoveDirection = Math.round(Math.random() * 8);
             }
         }
 
-        this.moveAngle += Math.random() * 0.5 - 0.25;
-
-        let sinAngle: number = Math.sin(this.moveAngle);
-        let cosAngle: number = Math.cos(this.moveAngle);
-
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
+        this.updatePosition(delta);
 
         this.transform.addChange(ChangesDict.X);
         this.transform.addChange(ChangesDict.Y);

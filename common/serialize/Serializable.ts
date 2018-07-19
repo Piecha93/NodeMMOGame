@@ -1,4 +1,4 @@
-import {PropName} from "./NetworkDecorators";
+import {PropNames} from "./NetworkDecorators";
 import {CommonConfig} from "../CommonConfig";
 import {byteSize, setBit} from "../utils/functions/BitOperations";
 
@@ -56,9 +56,9 @@ export abstract class Serializable {
 
         let neededSize: number = 0;
 
-        let propsSize: number = (this[PropName.SerializeEncodeOrder] as Map<string, number>).size;
+        let propsSize: number = (this[PropNames.SerializeEncodeOrder] as Map<string, number>).size;
 
-        this[PropName.CalcBytesFunctions].forEach((func: Function, shortKey: string) => {
+        this[PropNames.CalcBytesFunctions].forEach((func: Function, shortKey: string) => {
             if(!complete && !this.changes.has(shortKey)) {
                 return;
             }
@@ -66,7 +66,7 @@ export abstract class Serializable {
             neededSize += func(this, complete);
         });
 
-        this[PropName.NestedNetworkObjects].forEach((key: string, short_key: string) => {
+        this[PropNames.NestedNetworkObjects].forEach((key: string, short_key: string) => {
             neededSize += (this[key] as Serializable).calcNeededBufferSize(complete);
         });
 
@@ -78,7 +78,7 @@ export abstract class Serializable {
     }
 
     private getPropsSize(): number {
-        return this[PropName.SerializeEncodeOrder].size;
+        return this[PropNames.SerializeEncodeOrder].size;
     }
 
     private getPropsMaskByteSize(): number {
@@ -105,19 +105,19 @@ export abstract class Serializable {
             presentMask = Math.pow(2, propsSize) - 1;
         }
 
-        if(this[PropName.SerializeFunctions]) {
-            this[PropName.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
+        if(this[PropNames.SerializeFunctions]) {
+            this[PropNames.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
                 if(this.changes.has(shortKey) || complete) {
-                    let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+                    let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
                     updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                     presentMask = setBit(presentMask, index);
                 }
             });
         }
 
-        if(this[PropName.NestedNetworkObjects]) {
-            this[PropName.NestedNetworkObjects].forEach((key: string, shortKey: string) => {
-                let index: number = this[PropName.SerializeEncodeOrder].get(shortKey);
+        if(this[PropNames.NestedNetworkObjects]) {
+            this[PropNames.NestedNetworkObjects].forEach((key: string, shortKey: string) => {
+                let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
 
                 let tmpOffset: number = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
@@ -172,13 +172,13 @@ export abstract class Serializable {
             }
             presentMask &= ~bitMask;
 
-            let shortKey = this[PropName.SerializeDecodeOrder].get(index);
-            let type: SerializableTypes = this[PropName.PropertyTypes].get(shortKey);
+            let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
+            let type: SerializableTypes = this[PropNames.PropertyTypes].get(shortKey);
 
             if(type == SerializableTypes.object) {
                 objectsToDecode.push(index);
             } else {
-                offset += this[PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                offset += this[PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
                 this.deserializedFields.add(shortKey);
             }
 
@@ -186,9 +186,9 @@ export abstract class Serializable {
         }
 
         objectsToDecode.forEach((index: number) => {
-            let shortKey = this[PropName.SerializeDecodeOrder].get(index);
+            let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
 
-            let key: string = this[PropName.NestedNetworkObjects].get(shortKey);
+            let key: string = this[PropNames.NestedNetworkObjects].get(shortKey);
             offset = this[key].deserialize(updateBufferView, offset);
         });
 
@@ -199,14 +199,14 @@ export abstract class Serializable {
     //TEST FUNCTIONS
     public printSerializeOrder() {
         console.log("SerializeEncodeOrder");
-        this[PropName.SerializeEncodeOrder].forEach((val: number, key: string) => {
+        this[PropNames.SerializeEncodeOrder].forEach((val: number, key: string) => {
             console.log(key + " : " + val);
         });
     }
 
     public printDeserializeOrder() {
         console.log("SerializeDecodeOrder");
-        this[PropName.SerializeDecodeOrder].forEach((val: number, key: string) => {
+        this[PropNames.SerializeDecodeOrder].forEach((val: number, key: string) => {
             console.log(key + " : " + val);
         });
     }

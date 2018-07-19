@@ -17,9 +17,13 @@ export abstract class Actor extends GameObject {
     @NetworkProperty(ChangesDict.HP, SerializableTypes.Uint16)
     private hp: number;
 
+    protected moveDirection: number = 0;
+
+    protected faceDirection: number = 5;
+
     protected weapon: Weapon = null;
 
-    constructor(transform: Transform) {
+    protected constructor(transform: Transform) {
         super(transform);
 
         this.maxHp = 200;
@@ -30,7 +34,19 @@ export abstract class Actor extends GameObject {
         this.transform.Width = 40;
         this.transform.Height = 64;
 
-        this.spriteName = "bunny";
+        this.spriteName = "template";
+    }
+
+    protected updatePosition(delta: number) {
+        let moveFactors: [number, number] = this.parseMoveDir();
+        if (moveFactors[0] != 0) {
+            this.Transform.X += moveFactors[0] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict.X);
+        }
+        if (moveFactors[1] != 0) {
+            this.Transform.Y += moveFactors[1] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict.Y);
+        }
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {
@@ -74,6 +90,15 @@ export abstract class Actor extends GameObject {
         this.addChange(ChangesDict.HP);
     }
 
+    private static cornerDir: number = 0.7071;
+
+    private static moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
+    private static moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
+
+    protected parseMoveDir(): [number, number] {
+        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]]
+    }
+
     get MaxHP(): number {
         return this.maxHp;
     }
@@ -89,6 +114,31 @@ export abstract class Actor extends GameObject {
     set Name(name: string) {
         this.name = name;
         this.addChange(ChangesDict.NAME);
+    }
+
+    set MoveDirection(direction: number) {
+        if(direction >= 0 && direction <= 8) {
+            this.moveDirection = direction;
+            if(direction != 0) {
+                this.faceDirection = direction;
+            }
+        }
+    }
+
+    get SpriteName(): string {
+        if(this.moveDirection == 0) {
+            return this.spriteName + "_idle";
+        } else {
+            return this.spriteName + "_run";
+        }
+    }
+
+    get MoveDirection(): number {
+        return this.moveDirection;
+    }
+
+    get FaceDirection(): number {
+        return this.faceDirection;
     }
 }
 

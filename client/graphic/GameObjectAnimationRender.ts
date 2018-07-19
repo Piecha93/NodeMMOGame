@@ -1,9 +1,12 @@
 import {GameObjectRender} from "./GameObjectRender";
 import {GameObject} from "../../common/utils/game/GameObject";
+import {ResourcesLoader, Resource, ResourceType} from "../graphic/ResourcesLoader";
+import {Actor} from "../../common/utils/game/Actor";
 
 export class GameObjectAnimationRender extends GameObjectRender {
-    private textures: Array<PIXI.Texture> = [];
     private animation: PIXI.extras.AnimatedSprite;
+
+    protected static Tags: Array<string> = ["U", "UR","R","DR","D","DL","L","UL"];
 
     constructor() {
         super();
@@ -12,16 +15,13 @@ export class GameObjectAnimationRender extends GameObjectRender {
     public setObject(gameObject: GameObject) {
         super.setObject(gameObject);
 
-        for (let i = 0; i < 4; i++) {
-            let texture: PIXI.Texture = PIXI.Texture.fromFrame(this.objectRef.SpriteName + '_' + (i) + '.png');
-            this.textures.push(texture);
-        }
+        this.animation = new PIXI.extras.AnimatedSprite(this.getAnimationTextures());
 
-        this.animation = new PIXI.extras.AnimatedSprite(this.textures);
+        this.updateAnimationTextures();
 
         this.addChild(this.animation);
 
-        this.animation.animationSpeed = 0.5;
+        this.animation.animationSpeed = 0.2;
         this.animation.play();
 
         this.animation.width = this.objectRef.Transform.Width;
@@ -33,8 +33,28 @@ export class GameObjectAnimationRender extends GameObjectRender {
     public update() {
         super.update();
 
+        this.updateAnimationTextures();
+
         this.animation.width = this.objectRef.Transform.Width;
         this.animation.height = this.objectRef.Transform.Height;
+    }
+
+    private updateAnimationTextures() {
+        this.animation.textures = this.getAnimationTextures();
+    }
+
+    private getAnimationTextures(): Array<PIXI.Texture> {
+        let resource: Resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
+
+        if(resource.type == ResourceType.ACTOR_ANIMATION) {
+            let actor: Actor = (this.objectRef as Actor);
+            let resource: Resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
+            let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];
+
+            return resource.textures.get(animationDirection);
+        } else {
+            return resource.textures.get(this.objectRef.SpriteName);
+        }
     }
 
     public destroy() {

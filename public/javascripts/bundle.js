@@ -2035,7 +2035,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../common/net/SocketMsgs":29,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
+},{"../common/net/SocketMsgs":31,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2066,6 +2066,7 @@ class GameClient {
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
         this.chat = new Chat_1.Chat(this.socket);
         this.renderer = new Renderer_1.Renderer(() => {
+            this.renderer.createHUD();
             this.socket.emit(SocketMsgs_1.SocketMsgs.CLIENT_READY);
         });
     }
@@ -2149,7 +2150,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":25,"../common/GameWorld":26,"../common/net/SocketMsgs":29,"../common/serialize/NetObjectsSerializer":31,"../common/utils/factory/ObjectsFactory":36,"../common/utils/physics/Transform":50,".//net/InputSender":23,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":16,"./input/Cursor":18,"./input/InputHandler":19,"./net/HeartBeatSender":22,"socket.io-client":92,"socket.io-msgpack-parser":99}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":27,"../common/GameWorld":28,"../common/net/SocketMsgs":31,"../common/serialize/NetObjectsSerializer":33,"../common/utils/factory/ObjectsFactory":38,"../common/utils/physics/Transform":52,".//net/InputSender":25,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":17,"./input/Cursor":20,"./input/InputHandler":21,"./net/HeartBeatSender":24,"socket.io-client":94,"socket.io-msgpack-parser":101}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2186,24 +2187,21 @@ class Camera extends PIXI.Container {
 }
 exports.Camera = Camera;
 
-},{"../graphic/Renderer":16}],10:[function(require,module,exports){
+},{"../graphic/Renderer":17}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
+const ResourcesLoader_1 = require("../graphic/ResourcesLoader");
 class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
     constructor() {
         super();
-        this.textures = [];
     }
     setObject(gameObject) {
         super.setObject(gameObject);
-        for (let i = 0; i < 4; i++) {
-            let texture = PIXI.Texture.fromFrame(this.objectRef.SpriteName + '_' + (i) + '.png');
-            this.textures.push(texture);
-        }
-        this.animation = new PIXI.extras.AnimatedSprite(this.textures);
+        this.animation = new PIXI.extras.AnimatedSprite(this.getAnimationTextures());
+        this.updateAnimationTextures();
         this.addChild(this.animation);
-        this.animation.animationSpeed = 0.5;
+        this.animation.animationSpeed = 0.2;
         this.animation.play();
         this.animation.width = this.objectRef.Transform.Width;
         this.animation.height = this.objectRef.Transform.Height;
@@ -2211,17 +2209,34 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
     }
     update() {
         super.update();
+        this.updateAnimationTextures();
         this.animation.width = this.objectRef.Transform.Width;
         this.animation.height = this.objectRef.Transform.Height;
+    }
+    updateAnimationTextures() {
+        this.animation.textures = this.getAnimationTextures();
+    }
+    getAnimationTextures() {
+        let resource = ResourcesLoader_1.ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
+        if (resource.type == ResourcesLoader_1.ResourceType.ACTOR_ANIMATION) {
+            let actor = this.objectRef;
+            let resource = ResourcesLoader_1.ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
+            let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];
+            return resource.textures.get(animationDirection);
+        }
+        else {
+            return resource.textures.get(this.objectRef.SpriteName);
+        }
     }
     destroy() {
         super.destroy();
         this.animation.destroy();
     }
 }
+GameObjectAnimationRender.Tags = ["U", "UR", "R", "DR", "D", "DL", "L", "UL"];
 exports.GameObjectAnimationRender = GameObjectAnimationRender;
 
-},{"./GameObjectRender":11}],11:[function(require,module,exports){
+},{"../graphic/ResourcesLoader":18,"./GameObjectRender":11}],11:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2402,9 +2417,36 @@ exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
 },{}],15:[function(require,module,exports){
 "use strict";
+/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectSpriteRender_1 = require("../graphic/GameObjectSpriteRender");
-class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
+class HUD extends PIXI.Container {
+    constructor() {
+        super();
+        this.sprites = [];
+        for (let i = 0; i < 6; i++) {
+            let sprite = new PIXI.Sprite(PIXI.utils.TextureCache["white"]);
+            this.addChild(sprite);
+            sprite.alpha = 0.1;
+            sprite.x = 80 + (i * 100);
+            sprite.y = 50;
+            sprite.width = 64;
+            sprite.height = 64;
+            this.sprites.push(sprite);
+        }
+    }
+    update() {
+    }
+    destroy() {
+        super.destroy();
+    }
+}
+exports.HUD = HUD;
+
+},{}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectAnimationRender_1 = require("../graphic/GameObjectAnimationRender");
+class PlayerRender extends GameObjectAnimationRender_1.GameObjectAnimationRender {
     constructor() {
         super();
     }
@@ -2425,8 +2467,8 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
     }
     update() {
         super.update();
-        this.nameText.text = this.playerReference.Name;
-        this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
+        // this.nameText.text = this.playerReference.Name;
+        // this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
     }
     destroy() {
         super.destroy();
@@ -2434,7 +2476,7 @@ class PlayerRender extends GameObjectSpriteRender_1.GameObjectSpriteRender {
 }
 exports.PlayerRender = PlayerRender;
 
-},{"../graphic/GameObjectSpriteRender":12}],16:[function(require,module,exports){
+},{"../graphic/GameObjectAnimationRender":10}],17:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2445,36 +2487,44 @@ const GameObjectSpriteRender_1 = require("./GameObjectSpriteRender");
 const TileMap_1 = require("./TileMap");
 const GameObjectTypes_1 = require("../../common/utils/factory/GameObjectTypes");
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
+const Hud_1 = require("./Hud");
+const ResourcesLoader_1 = require("./ResourcesLoader");
 class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(afterCreateCallback) {
         super();
-        this.renderer =
-            PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
-                view: document.getElementById("game-canvas"),
-                antialias: false,
-                transparent: false,
-                resolution: 1
-            });
+        this.renderer = PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
+            view: document.getElementById("game-canvas"),
+            antialias: false,
+            transparent: false,
+            resolution: 1,
+            clearBeforeRender: false
+        });
         this.rootContainer = new PIXI.Container();
         this.camera = new Camera_1.Camera(new PIXI.Point(333, 333));
         this.camera.addChild(this.rootContainer);
         this.renderObjects = new Map();
-        PIXI.loader
-            .add('none', 'resources/images/none.png')
-            .add('wall', 'resources/images/wall.png')
-            .add('bunny', 'resources/images/bunny.png')
-            .add('dyzma', 'resources/images/dyzma.jpg')
-            .add('kamis', 'resources/images/kamis.jpg')
-            .add('michau', 'resources/images/michau.png')
-            .add('panda', 'resources/images/panda.png')
-            .add('bullet', 'resources/images/bullet.png')
-            .add('fireball', 'resources/images/fireball.png')
-            .add('bluebolt', 'resources/images/bluebolt.png')
-            .add('hp_potion', 'resources/images/hp_potion.png')
-            .add('portal', 'resources/images/portal.png')
-            .add('flame', 'resources/animations/flame/flame.json')
-            .add('terrain', 'resources/maps/terrain.png')
-            .load(afterCreateCallback);
+        this.resourcesLoader = ResourcesLoader_1.ResourcesLoader.Instance;
+        this.resourcesLoader.registerResource('none', 'resources/images/none.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('wall', 'resources/images/wall.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bunny', 'resources/images/bunny.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('dyzma', 'resources/images/dyzma.jpg', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('kamis', 'resources/images/kamis.jpg', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('michau', 'resources/images/michau.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('panda', 'resources/images/panda.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bullet', 'resources/images/bullet.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('fireball', 'resources/images/fireball.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bluebolt', 'resources/images/bluebolt.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('hp_potion', 'resources/images/hp_potion.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('portal', 'resources/images/portal.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('white', 'resources/images/white.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('flame', 'resources/animations/flame/flame.json', ResourcesLoader_1.ResourceType.ANIMATION);
+        this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourcesLoader_1.ResourceType.ACTOR_ANIMATION);
+        this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourcesLoader_1.ResourceType.ACTOR_ANIMATION);
+        this.resourcesLoader.registerResource('terrain', 'resources/maps/terrain.png', ResourcesLoader_1.ResourceType.SPRITE);
+        this.resourcesLoader.load(afterCreateCallback);
+    }
+    createHUD() {
+        this.hud = new Hud_1.HUD();
     }
     hideNotVisibleObjects() {
         this.renderObjects.forEach((obj) => {
@@ -2500,6 +2550,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         });
         this.camera.update();
         this.renderer.render(this.camera);
+        this.renderer.render(this.hud);
     }
     setMap(map) {
         this.map = new TileMap_1.TileMap();
@@ -2531,12 +2582,91 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     get CameraDeviation() {
         return this.camera.MouseDeviation;
     }
+    get ResourceLoader() {
+        return this.resourcesLoader;
+    }
 }
 Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../common/utils/factory/GameObjectTypes":34,"../../common/utils/factory/GameObjectsSubscriber":35,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./PlayerRender":15,"./TileMap":17}],17:[function(require,module,exports){
+},{"../../common/utils/factory/GameObjectTypes":36,"../../common/utils/factory/GameObjectsSubscriber":37,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var ResourceType;
+(function (ResourceType) {
+    ResourceType[ResourceType["SPRITE"] = 0] = "SPRITE";
+    ResourceType[ResourceType["ANIMATION"] = 1] = "ANIMATION";
+    ResourceType[ResourceType["ACTOR_ANIMATION"] = 2] = "ACTOR_ANIMATION";
+})(ResourceType = exports.ResourceType || (exports.ResourceType = {}));
+class Resource {
+    constructor(name, type) {
+        this.name = name;
+        this.type = type;
+        this.textures = new Map();
+        if (this.type == ResourceType.ACTOR_ANIMATION) {
+            this.textures.set("U", []);
+            this.textures.set("UR", []);
+            this.textures.set("R", []);
+            this.textures.set("DR", []);
+            this.textures.set("D", []);
+            this.textures.set("DL", []);
+            this.textures.set("L", []);
+            this.textures.set("UL", []);
+        }
+        else if (type == ResourceType.ANIMATION) {
+            this.textures.set(this.name, []);
+        }
+    }
+}
+exports.Resource = Resource;
+class ResourcesLoader {
+    constructor() {
+        this.create();
+    }
+    static get Instance() {
+        if (ResourcesLoader.instance) {
+            return ResourcesLoader.instance;
+        }
+        else {
+            ResourcesLoader.instance = new ResourcesLoader;
+            return ResourcesLoader.instance;
+        }
+    }
+    create() {
+        this.resources = new Map();
+    }
+    registerResource(name, path, type) {
+        PIXI.loader.add(name, path);
+        this.resources.set(name, new Resource(name, type));
+    }
+    load(callback) {
+        PIXI.loader.load(() => {
+            this.postprocessResources();
+            callback();
+        });
+    }
+    getResource(name) {
+        return this.resources.get(name);
+    }
+    postprocessResources() {
+        this.resources.forEach((resource, name) => {
+            for (let frame in PIXI.loader.resources[name].data.frames) {
+                if (resource.type == ResourceType.ACTOR_ANIMATION) {
+                    let animationDirection = frame.split('_')[1];
+                    console.log("animationDirection " + animationDirection + " frame " + frame);
+                    resource.textures.get(animationDirection).push(PIXI.Texture.fromFrame(frame));
+                }
+                else if (resource.type == ResourceType.ANIMATION) {
+                    resource.textures.get(resource.name).push(PIXI.Texture.fromFrame(frame));
+                }
+            }
+        });
+    }
+}
+exports.ResourcesLoader = ResourcesLoader;
+
+},{}],19:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2578,7 +2708,7 @@ exports.TileMap = TileMap;
 //     }
 // }
 
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("../../common/utils/game/GameObject");
@@ -2603,7 +2733,7 @@ class Cursor extends GameObject_1.GameObject {
 }
 exports.Cursor = Cursor;
 
-},{"../../common/utils/game/Enemy":39,"../../common/utils/game/GameObject":41,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],19:[function(require,module,exports){
+},{"../../common/utils/game/Enemy":41,"../../common/utils/game/GameObject":43,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -2738,7 +2868,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../common/input/InputCommands":27,"../../common/input/InputSnapshot":28,"./InputMap":20}],20:[function(require,module,exports){
+},{"../../common/input/InputCommands":29,"../../common/input/InputSnapshot":30,"./InputMap":22}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -2759,7 +2889,7 @@ exports.InputMap = new Map([
     ['KeyF', INPUT.WALL],
 ]);
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const CommonConfig_1 = require("../common/CommonConfig");
@@ -2769,7 +2899,7 @@ window.onload = () => {
     new GameClient_1.GameClient();
 };
 
-},{"../common/CommonConfig":24,"./GameClient":8}],22:[function(require,module,exports){
+},{"../common/CommonConfig":26,"./GameClient":8}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -2809,7 +2939,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../common/net/SocketMsgs":29,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],23:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":31,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -2827,7 +2957,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../common/net/SocketMsgs":29}],24:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":31}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -2855,7 +2985,7 @@ class CommonConfig {
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -2875,7 +3005,7 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./utils/factory/GameObjectsSubscriber");
@@ -2924,7 +3054,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"./utils/factory/GameObjectsSubscriber":35,"./utils/physics/CollisionsSystem":49}],27:[function(require,module,exports){
+},{"./utils/factory/GameObjectsSubscriber":37,"./utils/physics/CollisionsSystem":51}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -2941,7 +3071,7 @@ var INPUT_COMMAND;
 //     ["W", INPUT_COMMAND.WALL],
 // ]);
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -3000,7 +3130,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../DeltaTimer":25,"../input/InputCommands":27}],29:[function(require,module,exports){
+},{"../DeltaTimer":27,"../input/InputCommands":29}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -3020,7 +3150,7 @@ SocketMsgs.LAST_SNAPSHOT_DATA = '9';
 SocketMsgs.ERROR = '10';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // TODO make function to get next character automatically
@@ -3028,26 +3158,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
 }
 //GameObject
-ChangesDict.SPRITE_NAME = 'S';
-ChangesDict.VELOCITY = 'V';
+ChangesDict.SPRITE_NAME = "SPRITE_NAME";
+ChangesDict.VELOCITY = "VELOCITY";
 //Actor
-ChangesDict.HP = 'HP';
-ChangesDict.MAX_HP = 'MHP';
-ChangesDict.NAME = 'N';
+ChangesDict.HP = "HP";
+ChangesDict.MAX_HP = "MAX_HP";
+ChangesDict.NAME = "NAME";
+ChangesDict.FACE_DIR = "FACE_DIR";
 //Projectile
-ChangesDict.OWNER = 'O';
-ChangesDict.POWER = 'B';
+ChangesDict.OWNER = "O";
+ChangesDict.POWER = "B";
 //Transform
-ChangesDict.X = 'X';
-ChangesDict.Y = 'Y';
-ChangesDict.HEIGHT = 'H';
-ChangesDict.WIDTH = 'W';
-ChangesDict.ROTATION = 'R';
+ChangesDict.X = "X";
+ChangesDict.Y = "Y";
+ChangesDict.HEIGHT = "HEIGHT";
+ChangesDict.WIDTH = "WIDTH";
+ChangesDict.ROTATION = "ROTATION";
 //Portal
-ChangesDict.IS_ATTACHED = 'IA';
+ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../utils/factory/GameObjectsSubscriber");
@@ -3142,21 +3273,21 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
 NetObjectsSerializer.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsSerializer = NetObjectsSerializer;
 
-},{"../CommonConfig":24,"../utils/factory/GameObjectTypes":34,"../utils/factory/GameObjectsSubscriber":35,"../utils/factory/ObjectsFactory":36}],32:[function(require,module,exports){
+},{"../CommonConfig":26,"../utils/factory/GameObjectTypes":36,"../utils/factory/GameObjectsSubscriber":37,"../utils/factory/ObjectsFactory":38}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
-var PropName;
-(function (PropName) {
-    PropName.SerializeFunctions = "SerializeFunctions";
-    PropName.DeserializeFunctions = "DeserializeFunctions";
-    PropName.CalcBytesFunctions = "CalcBytesFunctions";
-    PropName.SerializeEncodeOrder = "SerializeEncodeOrder";
-    PropName.SerializeDecodeOrder = "SerializeDecodeOrder";
-    PropName.PropertyTypes = "PropertyType";
-    PropName.DecodeCounter = "DecodeCounter";
-    PropName.NestedNetworkObjects = "NestedNetworkObjects";
-})(PropName = exports.PropName || (exports.PropName = {}));
+var PropNames;
+(function (PropNames) {
+    PropNames.SerializeFunctions = "SerializeFunctions";
+    PropNames.DeserializeFunctions = "DeserializeFunctions";
+    PropNames.CalcBytesFunctions = "CalcBytesFunctions";
+    PropNames.SerializeEncodeOrder = "SerializeEncodeOrder";
+    PropNames.SerializeDecodeOrder = "SerializeDecodeOrder";
+    PropNames.PropertyTypes = "PropertyType";
+    PropNames.DecodeCounter = "DecodeCounter";
+    PropNames.NestedNetworkObjects = "NestedNetworkObjects";
+})(PropNames = exports.PropNames || (exports.PropNames = {}));
 function fillString(str, view, offset) {
     view.setUint8(offset, str.length);
     for (let i = 0; i < str.length; i++) {
@@ -3174,12 +3305,12 @@ function decodeString(view, offset) {
 function NetworkProperty(shortKey, type) {
     function decorator(target, key) {
         addNetworkProperties(target);
-        let counter = target[PropName.DecodeCounter]++;
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.PropertyTypes].set(shortKey, type);
-        target[PropName.SerializeFunctions].set(shortKey, (object, view, offset) => {
-            let type = object[PropName.PropertyTypes].get(shortKey);
+        let counter = target[PropNames.DecodeCounter]++;
+        target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropNames.PropertyTypes].set(shortKey, type);
+        target[PropNames.SerializeFunctions].set(shortKey, (object, view, offset) => {
+            let type = object[PropNames.PropertyTypes].get(shortKey);
             if (type == Serializable_1.SerializableTypes.string) {
                 fillString(object[key], view, offset);
                 return object[key].length + 1;
@@ -3210,7 +3341,7 @@ function NetworkProperty(shortKey, type) {
             }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
-        target[PropName.DeserializeFunctions].set(shortKey, (object, view, offset) => {
+        target[PropNames.DeserializeFunctions].set(shortKey, (object, view, offset) => {
             if (type == Serializable_1.SerializableTypes.string) {
                 object[key] = decodeString(view, offset);
                 return object[key].length + 1;
@@ -3241,8 +3372,8 @@ function NetworkProperty(shortKey, type) {
             }
             return Serializable_1.Serializable.TypesToBytesSize.get(type);
         });
-        target[PropName.CalcBytesFunctions].set(shortKey, (object, complete) => {
-            let type = target[PropName.PropertyTypes].get(shortKey);
+        target[PropNames.CalcBytesFunctions].set(shortKey, (object, complete) => {
+            let type = target[PropNames.PropertyTypes].get(shortKey);
             if (type == Serializable_1.SerializableTypes.string) {
                 return object[key].length + 1;
             }
@@ -3260,23 +3391,23 @@ exports.NetworkProperty = NetworkProperty;
 function NetworkObject(shortKey) {
     function decorator(target, key) {
         addNetworkProperties(target);
-        target[PropName.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.object);
-        let counter = target[PropName.DecodeCounter]++;
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.NestedNetworkObjects].set(shortKey, key);
+        target[PropNames.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.object);
+        let counter = target[PropNames.DecodeCounter]++;
+        target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropNames.NestedNetworkObjects].set(shortKey, key);
     }
     return decorator;
 }
 exports.NetworkObject = NetworkObject;
 function addNetworkProperties(target) {
-    createMapProperty(target, PropName.SerializeFunctions);
-    createMapProperty(target, PropName.DeserializeFunctions);
-    createMapProperty(target, PropName.CalcBytesFunctions);
-    createMapProperty(target, PropName.SerializeEncodeOrder);
-    createMapProperty(target, PropName.SerializeDecodeOrder);
-    createMapProperty(target, PropName.PropertyTypes);
-    createMapProperty(target, PropName.NestedNetworkObjects);
+    createMapProperty(target, PropNames.SerializeFunctions);
+    createMapProperty(target, PropNames.DeserializeFunctions);
+    createMapProperty(target, PropNames.CalcBytesFunctions);
+    createMapProperty(target, PropNames.SerializeEncodeOrder);
+    createMapProperty(target, PropNames.SerializeDecodeOrder);
+    createMapProperty(target, PropNames.PropertyTypes);
+    createMapProperty(target, PropNames.NestedNetworkObjects);
     addDcecodeCounter(target);
 }
 function createMapProperty(target, propertyName) {
@@ -3295,22 +3426,24 @@ function createProperty(target, propertyName, propertyVal) {
     });
 }
 function addDcecodeCounter(target) {
-    if (!target.hasOwnProperty(PropName.DecodeCounter)) {
-        let propertyVal = getPrototypePropertyVal(target, PropName.DecodeCounter, 0);
-        createProperty(target, PropName.DecodeCounter, propertyVal);
+    if (!target.hasOwnProperty(PropNames.DecodeCounter)) {
+        let propertyVal = getPrototypePropertyVal(target, PropNames.DecodeCounter, 0);
+        createProperty(target, PropNames.DecodeCounter, propertyVal);
     }
 }
 function getPrototypePropertyVal(target, propertyName, defaultVal) {
-    let prototype = Object.getPrototypeOf(target);
-    if (prototype.hasOwnProperty(propertyName)) {
-        return prototype[propertyName];
+    let basePrototype = target;
+    while (basePrototype) {
+        let prototype = Object.getPrototypeOf(basePrototype);
+        basePrototype = prototype;
+        if (basePrototype && prototype.hasOwnProperty(propertyName)) {
+            return prototype[propertyName];
+        }
     }
-    else {
-        return defaultVal;
-    }
+    return defaultVal;
 }
 
-},{"./Serializable":33}],33:[function(require,module,exports){
+},{"./Serializable":35}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
@@ -3348,14 +3481,14 @@ class Serializable {
             complete = true;
         }
         let neededSize = 0;
-        let propsSize = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
-        this[NetworkDecorators_1.PropName.CalcBytesFunctions].forEach((func, shortKey) => {
+        let propsSize = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].size;
+        this[NetworkDecorators_1.PropNames.CalcBytesFunctions].forEach((func, shortKey) => {
             if (!complete && !this.changes.has(shortKey)) {
                 return;
             }
             neededSize += func(this, complete);
         });
-        this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, short_key) => {
+        this[NetworkDecorators_1.PropNames.NestedNetworkObjects].forEach((key, short_key) => {
             neededSize += this[key].calcNeededBufferSize(complete);
         });
         if (neededSize != 0) {
@@ -3364,7 +3497,7 @@ class Serializable {
         return neededSize;
     }
     getPropsSize() {
-        return this[NetworkDecorators_1.PropName.SerializeEncodeOrder].size;
+        return this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].size;
     }
     getPropsMaskByteSize() {
         let propsSize = this.getPropsSize();
@@ -3383,18 +3516,18 @@ class Serializable {
         if (complete) {
             presentMask = Math.pow(2, propsSize) - 1;
         }
-        if (this[NetworkDecorators_1.PropName.SerializeFunctions]) {
-            this[NetworkDecorators_1.PropName.SerializeFunctions].forEach((serializeFunc, shortKey) => {
+        if (this[NetworkDecorators_1.PropNames.SerializeFunctions]) {
+            this[NetworkDecorators_1.PropNames.SerializeFunctions].forEach((serializeFunc, shortKey) => {
                 if (this.changes.has(shortKey) || complete) {
-                    let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+                    let index = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
                     updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                     presentMask = BitOperations_1.setBit(presentMask, index);
                 }
             });
         }
-        if (this[NetworkDecorators_1.PropName.NestedNetworkObjects]) {
-            this[NetworkDecorators_1.PropName.NestedNetworkObjects].forEach((key, shortKey) => {
-                let index = this[NetworkDecorators_1.PropName.SerializeEncodeOrder].get(shortKey);
+        if (this[NetworkDecorators_1.PropNames.NestedNetworkObjects]) {
+            this[NetworkDecorators_1.PropNames.NestedNetworkObjects].forEach((key, shortKey) => {
+                let index = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
                 let tmpOffset = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
                 if (tmpOffset < updatedOffset) {
@@ -3440,20 +3573,20 @@ class Serializable {
                 continue;
             }
             presentMask &= ~bitMask;
-            let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
-            let type = this[NetworkDecorators_1.PropName.PropertyTypes].get(shortKey);
+            let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
+            let type = this[NetworkDecorators_1.PropNames.PropertyTypes].get(shortKey);
             if (type == SerializableTypes.object) {
                 objectsToDecode.push(index);
             }
             else {
-                offset += this[NetworkDecorators_1.PropName.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                offset += this[NetworkDecorators_1.PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
                 this.deserializedFields.add(shortKey);
             }
             index++;
         }
         objectsToDecode.forEach((index) => {
-            let shortKey = this[NetworkDecorators_1.PropName.SerializeDecodeOrder].get(index);
-            let key = this[NetworkDecorators_1.PropName.NestedNetworkObjects].get(shortKey);
+            let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
+            let key = this[NetworkDecorators_1.PropNames.NestedNetworkObjects].get(shortKey);
             offset = this[key].deserialize(updateBufferView, offset);
         });
         return offset;
@@ -3461,13 +3594,13 @@ class Serializable {
     //TEST FUNCTIONS
     printSerializeOrder() {
         console.log("SerializeEncodeOrder");
-        this[NetworkDecorators_1.PropName.SerializeEncodeOrder].forEach((val, key) => {
+        this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].forEach((val, key) => {
             console.log(key + " : " + val);
         });
     }
     printDeserializeOrder() {
         console.log("SerializeDecodeOrder");
-        this[NetworkDecorators_1.PropName.SerializeDecodeOrder].forEach((val, key) => {
+        this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].forEach((val, key) => {
             console.log(key + " : " + val);
         });
     }
@@ -3484,7 +3617,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../CommonConfig":24,"../utils/functions/BitOperations":37,"./NetworkDecorators":32}],34:[function(require,module,exports){
+},{"../CommonConfig":26,"../utils/functions/BitOperations":39,"./NetworkDecorators":34}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("../game/Obstacle");
@@ -3514,7 +3647,7 @@ Types.RegisterGameObject(Item_1.Item);
 Types.RegisterGameObject(FireBall_1.FireBall);
 Types.RegisterGameObject(Portal_1.Portal);
 
-},{"../game/Enemy":39,"../game/FireBall":40,"../game/Item":42,"../game/Obstacle":44,"../game/Player":45,"../game/Portal":46}],35:[function(require,module,exports){
+},{"../game/Enemy":41,"../game/FireBall":42,"../game/Item":44,"../game/Obstacle":46,"../game/Player":47,"../game/Portal":48}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3536,7 +3669,7 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./ObjectsFactory":36}],36:[function(require,module,exports){
+},{"./ObjectsFactory":38}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -3590,7 +3723,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":50,"./GameObjectTypes":34}],37:[function(require,module,exports){
+},{"../physics/Transform":52,"./GameObjectTypes":36}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function byteSize(num) {
@@ -3603,7 +3736,7 @@ function setBit(val, bitIndex) {
 }
 exports.setBit = setBit;
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3625,6 +3758,9 @@ const Serializable_1 = require("../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
+        this.moveDirection = 0;
+        // @NetworkProperty(ChangesDict.FACE_DIR, SerializableTypes.Uint8)
+        this.faceDirection = 5;
         this.weapon = null;
         this.maxHp = 200;
         this.hp = this.maxHp;
@@ -3632,7 +3768,18 @@ class Actor extends GameObject_1.GameObject {
         this.name = "";
         this.transform.Width = 40;
         this.transform.Height = 64;
-        this.spriteName = "bunny";
+        this.spriteName = "template";
+    }
+    updatePosition(delta) {
+        let moveFactors = this.parseMoveDir();
+        if (moveFactors[0] != 0) {
+            this.Transform.X += moveFactors[0] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
+        }
+        if (moveFactors[1] != 0) {
+            this.Transform.Y += moveFactors[1] * this.velocity * delta;
+            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
+        }
     }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
@@ -3671,6 +3818,9 @@ class Actor extends GameObject_1.GameObject {
         }
         this.addChange(ChangesDict_1.ChangesDict.HP);
     }
+    parseMoveDir() {
+        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]];
+    }
     get MaxHP() {
         return this.maxHp;
     }
@@ -3684,7 +3834,33 @@ class Actor extends GameObject_1.GameObject {
         this.name = name;
         this.addChange(ChangesDict_1.ChangesDict.NAME);
     }
+    set MoveDirection(direction) {
+        if (direction >= 0 && direction <= 8) {
+            this.moveDirection = direction;
+            if (direction != 0) {
+                this.faceDirection = direction;
+                // this.addChange(ChangesDict.FACE_DIR)
+            }
+        }
+    }
+    get SpriteName() {
+        if (this.moveDirection == 0) {
+            return this.spriteName + "_idle";
+        }
+        else {
+            return this.spriteName + "_run";
+        }
+    }
+    get MoveDirection() {
+        return this.moveDirection;
+    }
+    get FaceDirection() {
+        return this.faceDirection;
+    }
 }
+Actor.cornerDir = 0.7071;
+Actor.moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
+Actor.moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 __decorate([
     NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.string),
     __metadata("design:type", String)
@@ -3699,7 +3875,7 @@ __decorate([
 ], Actor.prototype, "hp", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./FireBall":40,"./GameObject":41,"./Item":42,"./Obstacle":44}],39:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"./FireBall":42,"./GameObject":43,"./Item":44,"./Obstacle":46}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3709,10 +3885,8 @@ class Enemy extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.timeSinceLastShot = 1000;
-        this.moveAngle = 0;
-        this.moveAngle = Math.random() * 3;
         this.velocity = 0.3;
-        this.spriteName = "michau";
+        // this.spriteName = "michau";
         this.weapon = new MagicWand_1.MagicWand();
     }
     commonUpdate(delta) {
@@ -3728,21 +3902,17 @@ class Enemy extends Actor_1.Actor {
             this.timeSinceLastShot = 1000;
             for (let i = 0; i < 1; i++) {
                 this.weapon.use(this, Math.random() * 360, 0);
-                // this.shot(Math.floor(Math.random() * 360));
+                this.MoveDirection = Math.round(Math.random() * 8);
             }
         }
-        this.moveAngle += Math.random() * 0.5 - 0.25;
-        let sinAngle = Math.sin(this.moveAngle);
-        let cosAngle = Math.cos(this.moveAngle);
-        this.transform.X += cosAngle * this.velocity * delta;
-        this.transform.Y += sinAngle * this.velocity * delta;
+        this.updatePosition(delta);
         this.transform.addChange(ChangesDict_1.ChangesDict.X);
         this.transform.addChange(ChangesDict_1.ChangesDict.Y);
     }
 }
 exports.Enemy = Enemy;
 
-},{"../../serialize/ChangesDict":30,"./Actor":38,"./MagicWand":43}],40:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"./Actor":40,"./MagicWand":45}],42:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3767,7 +3937,7 @@ class FireBall extends Projectile_1.Projectile {
         this.spriteName = "flame";
         this.velocity = 1;
         this.transform.Width = 30;
-        this.lifeSpan = 1000;
+        this.lifeSpan = 2000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
     serverCollision(gameObject, result) {
@@ -3818,7 +3988,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./Actor":38,"./Obstacle":44,"./Projectile":48}],41:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"./Actor":40,"./Obstacle":46,"./Projectile":50}],43:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3931,7 +4101,7 @@ __decorate([
 ], GameObject.prototype, "invisible", void 0);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":24,"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"../physics/Transform":50}],42:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"../physics/Transform":52}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3964,7 +4134,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./GameObject":41}],43:[function(require,module,exports){
+},{"./GameObject":43}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../factory/ObjectsFactory");
@@ -3984,7 +4154,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../factory/ObjectsFactory":36,"../physics/Transform":50}],44:[function(require,module,exports){
+},{"../factory/ObjectsFactory":38,"../physics/Transform":52}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4017,7 +4187,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":41}],45:[function(require,module,exports){
+},{"./GameObject":43}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
@@ -4028,7 +4198,6 @@ const PortalGun_1 = require("./PortalGun");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
-        this.moveDirection = 0;
         this.inputHistory = [];
         this.velocity = 0.5;
         this.weapon = new PortalGun_1.PortalGun();
@@ -4063,7 +4232,10 @@ class Player extends Actor_1.Actor {
         });
     }
     moveDirectionAction(direction) {
-        this.moveDirection = parseInt(direction);
+        let newDirection = parseInt(direction);
+        if (newDirection != this.moveDirection) {
+            this.MoveDirection = parseInt(direction);
+        }
     }
     fireAction(angle, clickButton) {
         this.weapon.use(this, parseFloat(angle), clickButton);
@@ -4086,17 +4258,6 @@ class Player extends Actor_1.Actor {
             this.lastInputSnapshot.setSnapshotDelta();
         }
         this.updatePosition(delta);
-    }
-    updatePosition(delta) {
-        let moveFactors = this.parseMoveDir();
-        if (moveFactors[0] != 0) {
-            this.Transform.X += moveFactors[0] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-        }
-        if (moveFactors[1] != 0) {
-            this.Transform.Y += moveFactors[1] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
-        }
     }
     reconciliation(collisionsSystem) {
         if (this.lastServerSnapshotData == null) {
@@ -4148,22 +4309,11 @@ class Player extends Actor_1.Actor {
     serverUpdate(delta) {
         super.serverUpdate(delta);
     }
-    parseMoveDir() {
-        return [Player.moveDirsX[this.moveDirection], Player.moveDirsY[this.moveDirection]];
-    }
     get LastInputSnapshot() {
         return this.lastInputSnapshot;
     }
     set LastServerSnapshotData(lastSnapshotData) {
         this.lastServerSnapshotData = lastSnapshotData;
-    }
-    set Direction(direction) {
-        if (direction >= 0 && direction <= 8) {
-            this.moveDirection = direction;
-        }
-    }
-    get Direction() {
-        return this.moveDirection;
     }
 }
 Player.onlyServerActions = new Set([
@@ -4171,12 +4321,9 @@ Player.onlyServerActions = new Set([
     InputCommands_1.INPUT_COMMAND.FIRE_2,
     InputCommands_1.INPUT_COMMAND.WALL
 ]);
-Player.cornerDir = 0.7071;
-Player.moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir, -1, -Player.cornerDir];
-Player.moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
 exports.Player = Player;
 
-},{"../../CommonConfig":24,"../../input/InputCommands":27,"../../serialize/ChangesDict":30,"./Actor":38,"./PortalGun":47}],46:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../input/InputCommands":29,"../../serialize/ChangesDict":32,"./Actor":40,"./PortalGun":49}],48:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4263,7 +4410,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./Actor":38,"./GameObject":41,"./Obstacle":44}],47:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"./Actor":40,"./GameObject":43,"./Obstacle":46}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../factory/ObjectsFactory");
@@ -4305,21 +4452,10 @@ class PortalGun {
 }
 exports.PortalGun = PortalGun;
 
-},{"../factory/ObjectsFactory":36,"../physics/Transform":50}],48:[function(require,module,exports){
+},{"../factory/ObjectsFactory":38,"../physics/Transform":52}],50:[function(require,module,exports){
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
-const Serializable_1 = require("../../serialize/Serializable");
 class Projectile extends GameObject_1.GameObject {
     constructor() {
         super(...arguments);
@@ -4338,13 +4474,9 @@ class Projectile extends GameObject_1.GameObject {
         }
     }
 }
-__decorate([
-    NetworkDecorators_1.NetworkProperty("LSP", Serializable_1.SerializableTypes.Uint16),
-    __metadata("design:type", Number)
-], Projectile.prototype, "lifeSpan", void 0);
 exports.Projectile = Projectile;
 
-},{"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"./GameObject":41}],49:[function(require,module,exports){
+},{"./GameObject":43}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4386,7 +4518,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"detect-collisions":59}],50:[function(require,module,exports){
+},{"detect-collisions":61}],52:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4515,7 +4647,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":30,"../../serialize/NetworkDecorators":32,"../../serialize/Serializable":33,"detect-collisions":59}],51:[function(require,module,exports){
+},{"../../serialize/ChangesDict":32,"../../serialize/NetworkDecorators":34,"../../serialize/Serializable":35,"detect-collisions":61}],53:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -4545,7 +4677,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],52:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -4576,7 +4708,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -4663,7 +4795,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],54:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -4732,7 +4864,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -4832,7 +4964,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],56:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -4857,7 +4989,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],57:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -5022,7 +5154,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],58:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -5030,7 +5162,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],59:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 const BVH = require('./modules/BVH.js')
 const Circle = require('./modules/Circle.js')
 const Polygon = require('./modules/Polygon.js')
@@ -5195,7 +5327,7 @@ module.exports = {
   Point
 }
 
-},{"./modules/BVH.js":60,"./modules/Circle.js":63,"./modules/Point.js":64,"./modules/Polygon.js":65,"./modules/Result.js":66,"./modules/SAT.js":67}],60:[function(require,module,exports){
+},{"./modules/BVH.js":62,"./modules/Circle.js":65,"./modules/Point.js":66,"./modules/Polygon.js":67,"./modules/Result.js":68,"./modules/SAT.js":69}],62:[function(require,module,exports){
 const BVHBranch = require('./BVHBranch')
 
 /**
@@ -5601,7 +5733,7 @@ module.exports = BVH
 
 module.exports.default = module.exports
 
-},{"./BVHBranch":61}],61:[function(require,module,exports){
+},{"./BVHBranch":63}],63:[function(require,module,exports){
 /**
  * @private
  */
@@ -5680,7 +5812,7 @@ module.exports = BVHBranch
 
 module.exports.default = module.exports
 
-},{}],62:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 const Result = require('./Result')
 const SAT = require('./SAT')
 
@@ -5804,7 +5936,7 @@ module.exports = Body
 
 module.exports.default = module.exports
 
-},{"./Result":66,"./SAT":67}],63:[function(require,module,exports){
+},{"./Result":68,"./SAT":69}],65:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -5854,7 +5986,7 @@ module.exports = Circle
 
 module.exports.default = module.exports
 
-},{"./Body":62}],64:[function(require,module,exports){
+},{"./Body":64}],66:[function(require,module,exports){
 const Polygon = require('./Polygon')
 
 /**
@@ -5882,7 +6014,7 @@ module.exports = Point
 
 module.exports.default = module.exports
 
-},{"./Polygon":65}],65:[function(require,module,exports){
+},{"./Polygon":67}],67:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -6128,7 +6260,7 @@ module.exports = Polygon
 
 module.exports.default = module.exports
 
-},{"./Body":62}],66:[function(require,module,exports){
+},{"./Body":64}],68:[function(require,module,exports){
 /**
  * An object used to collect the detailed results of a collision test
  *
@@ -6194,7 +6326,7 @@ module.exports = Result
 
 module.exports.default = module.exports
 
-},{}],67:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 /**
  * Determines if two bodies are colliding using the Separating Axis Theorem
  * @private
@@ -6606,7 +6738,7 @@ module.exports = SAT
 
 module.exports.default = module.exports
 
-},{}],68:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -6618,7 +6750,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":69,"engine.io-parser":79}],69:[function(require,module,exports){
+},{"./socket":71,"engine.io-parser":81}],71:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -7365,7 +7497,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":70,"./transports/index":71,"component-emitter":57,"debug":77,"engine.io-parser":79,"indexof":85,"parseqs":90,"parseuri":91}],70:[function(require,module,exports){
+},{"./transport":72,"./transports/index":73,"component-emitter":59,"debug":79,"engine.io-parser":81,"indexof":87,"parseqs":92,"parseuri":93}],72:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7524,7 +7656,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":57,"engine.io-parser":79}],71:[function(require,module,exports){
+},{"component-emitter":59,"engine.io-parser":81}],73:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -7581,7 +7713,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":72,"./polling-xhr":73,"./websocket":75,"xmlhttprequest-ssl":76}],72:[function(require,module,exports){
+},{"./polling-jsonp":74,"./polling-xhr":75,"./websocket":77,"xmlhttprequest-ssl":78}],74:[function(require,module,exports){
 (function (global){
 
 /**
@@ -7816,7 +7948,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":74,"component-inherit":58}],73:[function(require,module,exports){
+},{"./polling":76,"component-inherit":60}],75:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -8232,7 +8364,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":74,"component-emitter":57,"component-inherit":58,"debug":77,"xmlhttprequest-ssl":76}],74:[function(require,module,exports){
+},{"./polling":76,"component-emitter":59,"component-inherit":60,"debug":79,"xmlhttprequest-ssl":78}],76:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -8479,7 +8611,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":70,"component-inherit":58,"debug":77,"engine.io-parser":79,"parseqs":90,"xmlhttprequest-ssl":76,"yeast":107}],75:[function(require,module,exports){
+},{"../transport":72,"component-inherit":60,"debug":79,"engine.io-parser":81,"parseqs":92,"xmlhttprequest-ssl":78,"yeast":109}],77:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8769,7 +8901,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":70,"component-inherit":58,"debug":77,"engine.io-parser":79,"parseqs":90,"ws":1,"yeast":107}],76:[function(require,module,exports){
+},{"../transport":72,"component-inherit":60,"debug":79,"engine.io-parser":81,"parseqs":92,"ws":1,"yeast":109}],78:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -8810,7 +8942,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":84}],77:[function(require,module,exports){
+},{"has-cors":86}],79:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -9009,7 +9141,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":78,"_process":6}],78:[function(require,module,exports){
+},{"./debug":80,"_process":6}],80:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -9236,7 +9368,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":86}],79:[function(require,module,exports){
+},{"ms":88}],81:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9846,7 +9978,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":80,"./utf8":81,"after":51,"arraybuffer.slice":52,"base64-arraybuffer":54,"blob":55,"has-binary2":82}],80:[function(require,module,exports){
+},{"./keys":82,"./utf8":83,"after":53,"arraybuffer.slice":54,"base64-arraybuffer":56,"blob":57,"has-binary2":84}],82:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -9867,7 +9999,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],81:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -10126,7 +10258,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],82:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 (function (Buffer){
 /* global Blob File */
 
@@ -10194,9 +10326,9 @@ function hasBinary (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"isarray":83}],83:[function(require,module,exports){
+},{"buffer":2,"isarray":85}],85:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],84:[function(require,module,exports){
+},{"dup":5}],86:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -10215,7 +10347,7 @@ try {
   module.exports = false;
 }
 
-},{}],85:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -10226,7 +10358,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],86:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -10380,7 +10512,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],87:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 'use strict';
 
 function Decoder(buffer) {
@@ -10663,7 +10795,7 @@ function decode(buffer) {
 
 module.exports = decode;
 
-},{}],88:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 'use strict';
 
 function utf8Write(view, offset, str) {
@@ -10970,11 +11102,11 @@ function encode(value) {
 
 module.exports = encode;
 
-},{}],89:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 exports.encode = require('./encode');
 exports.decode = require('./decode');
 
-},{"./decode":87,"./encode":88}],90:[function(require,module,exports){
+},{"./decode":89,"./encode":90}],92:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -11013,7 +11145,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],91:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -11054,7 +11186,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],92:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11150,7 +11282,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":93,"./socket":95,"./url":96,"debug":97,"socket.io-parser":101}],93:[function(require,module,exports){
+},{"./manager":95,"./socket":97,"./url":98,"debug":99,"socket.io-parser":103}],95:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11725,7 +11857,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":94,"./socket":95,"backo2":53,"component-bind":56,"component-emitter":57,"debug":97,"engine.io-client":68,"indexof":85,"socket.io-parser":101}],94:[function(require,module,exports){
+},{"./on":96,"./socket":97,"backo2":55,"component-bind":58,"component-emitter":59,"debug":99,"engine.io-client":70,"indexof":87,"socket.io-parser":103}],96:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -11751,7 +11883,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],95:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12191,7 +12323,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":94,"component-bind":56,"component-emitter":57,"debug":97,"has-binary2":82,"parseqs":90,"socket.io-parser":101,"to-array":106}],96:[function(require,module,exports){
+},{"./on":96,"component-bind":58,"component-emitter":59,"debug":99,"has-binary2":84,"parseqs":92,"socket.io-parser":103,"to-array":108}],98:[function(require,module,exports){
 (function (global){
 
 /**
@@ -12270,11 +12402,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":97,"parseuri":91}],97:[function(require,module,exports){
-arguments[4][77][0].apply(exports,arguments)
-},{"./debug":98,"_process":6,"dup":77}],98:[function(require,module,exports){
-arguments[4][78][0].apply(exports,arguments)
-},{"dup":78,"ms":86}],99:[function(require,module,exports){
+},{"debug":99,"parseuri":93}],99:[function(require,module,exports){
+arguments[4][79][0].apply(exports,arguments)
+},{"./debug":100,"_process":6,"dup":79}],100:[function(require,module,exports){
+arguments[4][80][0].apply(exports,arguments)
+},{"dup":80,"ms":88}],101:[function(require,module,exports){
 
 var msgpack = require('notepack.io');
 var Emitter = require('component-emitter');
@@ -12344,7 +12476,7 @@ Decoder.prototype.destroy = function () {};
 exports.Encoder = Encoder;
 exports.Decoder = Decoder;
 
-},{"component-emitter":57,"notepack.io":89}],100:[function(require,module,exports){
+},{"component-emitter":59,"notepack.io":91}],102:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -12489,7 +12621,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":102,"isarray":105}],101:[function(require,module,exports){
+},{"./is-buffer":104,"isarray":107}],103:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12908,7 +13040,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":100,"./is-buffer":102,"component-emitter":57,"debug":103,"isarray":105}],102:[function(require,module,exports){
+},{"./binary":102,"./is-buffer":104,"component-emitter":59,"debug":105,"isarray":107}],104:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -12936,13 +13068,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],103:[function(require,module,exports){
-arguments[4][77][0].apply(exports,arguments)
-},{"./debug":104,"_process":6,"dup":77}],104:[function(require,module,exports){
-arguments[4][78][0].apply(exports,arguments)
-},{"dup":78,"ms":86}],105:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
+arguments[4][79][0].apply(exports,arguments)
+},{"./debug":106,"_process":6,"dup":79}],106:[function(require,module,exports){
+arguments[4][80][0].apply(exports,arguments)
+},{"dup":80,"ms":88}],107:[function(require,module,exports){
 arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],106:[function(require,module,exports){
+},{"dup":5}],108:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -12957,7 +13089,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],107:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
@@ -13027,4 +13159,4 @@ yeast.encode = encode;
 yeast.decode = decode;
 module.exports = yeast;
 
-},{}]},{},[21]);
+},{}]},{},[23]);

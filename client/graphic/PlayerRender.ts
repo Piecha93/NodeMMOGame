@@ -1,8 +1,8 @@
 import {Player} from "../../common/utils/game/Player";
 import {GameObject} from "../../common/utils/game/GameObject";
-import {GameObjectSpriteRender} from "../graphic/GameObjectSpriteRender";
+import {GameObjectAnimationRender} from "../graphic/GameObjectAnimationRender";
 
-export class PlayerRender extends GameObjectSpriteRender {
+export class PlayerRender extends GameObjectAnimationRender {
     private playerReference: Player;
 
     private nameText: PIXI.Text;
@@ -37,8 +37,8 @@ export class PlayerRender extends GameObjectSpriteRender {
     public update() {
         super.update();
 
-        this.nameText.text = this.playerReference.Name;
-        this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
+        // this.nameText.text = this.playerReference.Name;
+        // this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
     }
 
     public destroy() {

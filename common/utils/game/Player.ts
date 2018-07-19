@@ -8,7 +8,6 @@ import {CollisionsSystem} from "..//physics/CollisionsSystem";
 import {PortalGun} from "./PortalGun";
 
 export class Player extends Actor {
-    private moveDirection: number = 0;
     private inputHistory: Array<InputSnapshot>;
     private lastInputSnapshot: InputSnapshot;
     private lastServerSnapshotData: [number, number];
@@ -59,7 +58,10 @@ export class Player extends Actor {
     }
 
     private moveDirectionAction(direction: string) {
-        this.moveDirection = parseInt(direction);
+        let newDirection: number = parseInt(direction);
+        if(newDirection != this.moveDirection) {
+            this.MoveDirection = parseInt(direction);
+        }
     }
 
     private fireAction(angle: string, clickButton: number) {
@@ -88,18 +90,6 @@ export class Player extends Actor {
         }
 
         this.updatePosition(delta);
-    }
-
-    protected updatePosition(delta: number) {
-        let moveFactors: [number, number] = this.parseMoveDir();
-        if (moveFactors[0] != 0) {
-            this.Transform.X += moveFactors[0] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.X);
-        }
-        if (moveFactors[1] != 0) {
-            this.Transform.Y += moveFactors[1] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.Y);
-        }
     }
 
     public reconciliation(collisionsSystem: CollisionsSystem) {
@@ -159,31 +149,12 @@ export class Player extends Actor {
         super.serverUpdate(delta);
     }
 
-    private static cornerDir: number = 0.7071;
-
-    private static moveDirsX = [0, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir, -1, -Player.cornerDir];
-    private static moveDirsY = [0, -1, -Player.cornerDir, 0, Player.cornerDir, 1, Player.cornerDir, 0, -Player.cornerDir];
-
-    private parseMoveDir(): [number, number] {
-        return [Player.moveDirsX[this.moveDirection], Player.moveDirsY[this.moveDirection]]
-    }
-
     get LastInputSnapshot(): InputSnapshot{
         return this.lastInputSnapshot;
     }
 
     set LastServerSnapshotData(lastSnapshotData: [number, number]){
         this.lastServerSnapshotData = lastSnapshotData;
-    }
-
-    set Direction(direction: number) {
-        if(direction >= 0 && direction <= 8) {
-            this.moveDirection = direction;
-        }
-    }
-
-    get Direction(): number {
-        return this.moveDirection;
     }
 }
 

@@ -43,6 +43,7 @@ export class GameClient {
         this.chat = new Chat(this.socket);
 
         this.renderer = new Renderer(() => {
+            this.renderer.createHUD();
             this.socket.emit(SocketMsgs.CLIENT_READY);
         });
     }

@@ -10,6 +10,8 @@ import {TileMap} from "./TileMap";
 import Sprite = PIXI.Sprite;
 import {Types} from "../../common/utils/factory/GameObjectTypes";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
+import {HUD} from "./Hud";
+import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -18,18 +20,22 @@ export class Renderer extends GameObjectsSubscriber {
     private camera: Camera;
     private renderObjects: Map<GameObject, GameObjectRender>;
     private map: TileMap;
+    private hud: HUD;
+    private resourcesLoader: ResourcesLoader;
 
     static WIDTH: number = 1024;
     static HEIGHT: number = 576;
 
     constructor(afterCreateCallback: Function) {
         super();
-        this.renderer =
-            PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
+        this.renderer = PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
                   view:  document.getElementById("game-canvas") as HTMLCanvasElement,
                   antialias: false,
                   transparent: false,
-                  resolution: 1});
+                  resolution: 1,
+                  clearBeforeRender: false
+        });
+
         this.rootContainer = new PIXI.Container();
 
         this.camera = new Camera(new PIXI.Point(333,333));
@@ -37,22 +43,31 @@ export class Renderer extends GameObjectsSubscriber {
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
-        PIXI.loader
-            .add('none', 'resources/images/none.png')
-            .add('wall', 'resources/images/wall.png')
-            .add('bunny', 'resources/images/bunny.png')
-            .add('dyzma', 'resources/images/dyzma.jpg')
-            .add('kamis', 'resources/images/kamis.jpg')
-            .add('michau', 'resources/images/michau.png')
-            .add('panda', 'resources/images/panda.png')
-            .add('bullet', 'resources/images/bullet.png')
-            .add('fireball', 'resources/images/fireball.png')
-            .add('bluebolt', 'resources/images/bluebolt.png')
-            .add('hp_potion', 'resources/images/hp_potion.png')
-            .add('portal', 'resources/images/portal.png')
-            .add('flame', 'resources/animations/flame/flame.json')
-            .add('terrain', 'resources/maps/terrain.png')
-            .load(afterCreateCallback);
+        this.resourcesLoader = ResourcesLoader.Instance;
+
+        this.resourcesLoader.registerResource('none', 'resources/images/none.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('wall', 'resources/images/wall.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bunny', 'resources/images/bunny.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('dyzma', 'resources/images/dyzma.jpg', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('kamis', 'resources/images/kamis.jpg', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('michau', 'resources/images/michau.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('panda', 'resources/images/panda.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bullet', 'resources/images/bullet.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('fireball', 'resources/images/fireball.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('bluebolt', 'resources/images/bluebolt.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('hp_potion', 'resources/images/hp_potion.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('portal', 'resources/images/portal.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('white', 'resources/images/white.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('flame', 'resources/animations/flame/flame.json', ResourceType.ANIMATION);
+        this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourceType.ACTOR_ANIMATION);
+        this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourceType.ACTOR_ANIMATION);
+        this.resourcesLoader.registerResource('terrain', 'resources/maps/terrain.png', ResourceType.SPRITE);
+
+        this.resourcesLoader.load(afterCreateCallback);
+    }
+
+    public createHUD() {
+        this.hud = new HUD();
     }
 
     private hideNotVisibleObjects() {
@@ -63,7 +78,6 @@ export class Renderer extends GameObjectsSubscriber {
         this.map.children.forEach((obj: Sprite) => {
             obj.visible = this.isInCameraView(obj);
         });
-
     }
 
     private isInCameraView(object: any): boolean {
@@ -86,7 +100,9 @@ export class Renderer extends GameObjectsSubscriber {
         });
 
         this.camera.update();
+
         this.renderer.render(this.camera);
+        this.renderer.render(this.hud);
     }
 
     public setMap(map?: number[][]) {
@@ -124,5 +140,9 @@ export class Renderer extends GameObjectsSubscriber {
 
     get CameraDeviation(): [number, number] {
         return this.camera.MouseDeviation;
+    }
+
+    get ResourceLoader(): ResourcesLoader {
+        return this.resourcesLoader;
     }
 }

@@ -1,6 +1,6 @@
 import {Serializable, SerializableTypes} from "./Serializable";
 
-export namespace PropName {
+export namespace PropNames {
     export const SerializeFunctions:    string = "SerializeFunctions";
     export const DeserializeFunctions:  string = "DeserializeFunctions";
     export const CalcBytesFunctions:    string = "CalcBytesFunctions";
@@ -32,14 +32,14 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
     function decorator(target: Object, key: string) {
         addNetworkProperties(target);
 
-        let counter: number = target[PropName.DecodeCounter]++;
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
+        let counter: number = target[PropNames.DecodeCounter]++;
+        target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
 
-        target[PropName.PropertyTypes].set(shortKey, type);
+        target[PropNames.PropertyTypes].set(shortKey, type);
 
-        target[PropName.SerializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number) => {
-            let type: SerializableTypes = object[PropName.PropertyTypes].get(shortKey);
+        target[PropNames.SerializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number) => {
+            let type: SerializableTypes = object[PropNames.PropertyTypes].get(shortKey);
 
             if(type == SerializableTypes.string) {
                 fillString(object[key], view, offset);
@@ -65,7 +65,7 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
             return Serializable.TypesToBytesSize.get(type);
         });
 
-        target[PropName.DeserializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number): number => {
+        target[PropNames.DeserializeFunctions].set(shortKey, (object: Serializable, view: DataView, offset: number): number => {
             if(type == SerializableTypes.string) {
                 object[key] = decodeString(view, offset);
                 return (object[key] as string).length + 1;
@@ -90,8 +90,8 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
             return Serializable.TypesToBytesSize.get(type);
         });
 
-        target[PropName.CalcBytesFunctions].set(shortKey, (object: Serializable, complete: boolean): number => {
-            let type: SerializableTypes = target[PropName.PropertyTypes].get(shortKey);
+        target[PropNames.CalcBytesFunctions].set(shortKey, (object: Serializable, complete: boolean): number => {
+            let type: SerializableTypes = target[PropNames.PropertyTypes].get(shortKey);
 
             if(type == SerializableTypes.string) {
                 return (object[key] as string).length + 1;
@@ -110,26 +110,26 @@ export function NetworkObject(shortKey: string) {
     function decorator(target: Object, key: string) {
         addNetworkProperties(target);
 
-        target[PropName.PropertyTypes].set(shortKey, SerializableTypes.object);
+        target[PropNames.PropertyTypes].set(shortKey, SerializableTypes.object);
 
-        let counter: number = target[PropName.DecodeCounter]++;
+        let counter: number = target[PropNames.DecodeCounter]++;
 
-        target[PropName.SerializeEncodeOrder].set(shortKey, counter);
-        target[PropName.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropName.NestedNetworkObjects].set(shortKey, key);
+        target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
+        target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
+        target[PropNames.NestedNetworkObjects].set(shortKey, key);
     }
 
     return decorator;
 }
 
 function addNetworkProperties(target: Object) {
-    createMapProperty<string, Function>(target, PropName.SerializeFunctions);
-    createMapProperty<string, Function>(target, PropName.DeserializeFunctions);
-    createMapProperty<string, Function>(target, PropName.CalcBytesFunctions);
-    createMapProperty<string, number>(target, PropName.SerializeEncodeOrder);
-    createMapProperty<number, string>(target, PropName.SerializeDecodeOrder);
-    createMapProperty<string, SerializableTypes>(target, PropName.PropertyTypes);
-    createMapProperty<string, number>(target, PropName.NestedNetworkObjects);
+    createMapProperty<string, Function>(target, PropNames.SerializeFunctions);
+    createMapProperty<string, Function>(target, PropNames.DeserializeFunctions);
+    createMapProperty<string, Function>(target, PropNames.CalcBytesFunctions);
+    createMapProperty<string, number>(target, PropNames.SerializeEncodeOrder);
+    createMapProperty<number, string>(target, PropNames.SerializeDecodeOrder);
+    createMapProperty<string, SerializableTypes>(target, PropNames.PropertyTypes);
+    createMapProperty<string, number>(target, PropNames.NestedNetworkObjects);
 
     addDcecodeCounter(target);
 }
@@ -153,9 +153,9 @@ function createProperty(target: Object, propertyName: string, propertyVal: any) 
 }
 
 function addDcecodeCounter(target: Object) {
-    if (!target.hasOwnProperty(PropName.DecodeCounter)) {
-        let propertyVal: number = getPrototypePropertyVal(target, PropName.DecodeCounter, 0);
-        createProperty(target, PropName.DecodeCounter, propertyVal);
+    if (!target.hasOwnProperty(PropNames.DecodeCounter)) {
+        let propertyVal: number = getPrototypePropertyVal(target, PropNames.DecodeCounter, 0);
+        createProperty(target, PropNames.DecodeCounter, propertyVal);
     }
 }
 
