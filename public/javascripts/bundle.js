@@ -2467,8 +2467,8 @@ class PlayerRender extends GameObjectAnimationRender_1.GameObjectAnimationRender
     }
     update() {
         super.update();
-        // this.nameText.text = this.playerReference.Name;
-        // this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
+        this.nameText.text = this.playerReference.Name;
+        this.hpBar.scale.x = this.playerReference.HP / this.playerReference.MaxHP;
     }
     destroy() {
         super.destroy();
