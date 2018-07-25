@@ -4,8 +4,9 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {CommonConfig} from "../../CommonConfig";
 import {InputSnapshot} from "../../input/InputSnapshot";
-import {CollisionsSystem} from "..//physics/CollisionsSystem";
+import {CollisionsSystem} from "../physics/CollisionsSystem";
 import {PortalGun} from "./PortalGun";
+import {MagicWand} from "./MagicWand";
 
 export class Player extends Actor {
     private inputHistory: Array<InputSnapshot>;
@@ -25,7 +26,8 @@ export class Player extends Actor {
         this.inputHistory = [];
         this.velocity = 0.25;
 
-        this.weapon = new PortalGun();
+        // this.weapon = new PortalGun();
+        this.weapon = new MagicWand();
     }
 
     private pushSnapshotToHistory(inputSnapshot: InputSnapshot) {
@@ -66,11 +68,19 @@ export class Player extends Actor {
 
     private fireAction(angle: string, clickButton: number) {
         this.weapon.use(this, parseFloat(angle), clickButton);
+        // for(let i = 0; i < 8; i++) {
+        //     this.weapon.use(this, Math.random() * 7, clickButton);
+        // }
     }
 
     private wallAction(coords) {
-        this.invisible = !this.invisible;
-        this.addChange("INV");
+        // this.invisible = !this.invisible;
+        // this.addChange("INV");
+        this.velocity += 0.1;
+        if(this.velocity > 2) {
+            this.velocity = 0.25;
+        }
+        this.addChange(ChangesDict.VELOCITY);
         // FOR TEST
 
         // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;

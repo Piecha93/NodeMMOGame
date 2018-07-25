@@ -15,17 +15,17 @@ import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
 import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
+import {Chunk, ChunksManager} from "../common/utils/Chunks";
+import {CommonConfig} from "../common/CommonConfig";
 
-NetObjectsSerializer.Instance;
 
 export class GameServer {
     private sockets: SocketIO.Server;
     private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
     private socketsIds: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
+    private netObjectsSerializer: NetObjectsSerializer = null;
 
     private world: GameWorld;
-
-    // private sendAndCompressUpdateThread = spawn(compress);
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -38,6 +38,7 @@ export class GameServer {
 
     private startGame() {
         this.world = new GameWorld();
+        this.netObjectsSerializer = new NetObjectsSerializer(this.world.ChunksManager);
 
         // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
         //     if(gameObject instanceof Actor) {
@@ -62,6 +63,11 @@ export class GameServer {
             this.collectAndSendUpdate(false);
         }
         setTimeout(() => {
+            // let o = GameObjectsFactory.Instatiate("Obstacle");
+            // o.Transform.X = Math.random() * 10*32*50;
+            // o.Transform.Y = Math.random() * 10*32*50;
+            //
+            // console.log("game objects " + this.world.GameObjectsMapById.size);
             this.startGameLoop();
         }, ServerConfig.TICKRATE);
     }
@@ -103,8 +109,17 @@ export class GameServer {
 
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
-                player.forceCompleteUpdate();
-                let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(true);
+                // player.forceCompleteUpdate();
+                // let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(true);
+
+                let objectNeededSize = player.calcNeededBufferSize(true) + 5;
+                let updateBuffer: ArrayBuffer = new ArrayBuffer(objectNeededSize );
+                let updateBufferView: DataView = new DataView(updateBuffer);
+
+                updateBufferView.setUint8(0, player.ID.charCodeAt(0));
+                updateBufferView.setUint32(1, Number(player.ID.slice(1)));
+                player.serialize(updateBufferView, 5, true);
+
                 socket.emit(SocketMsgs.FIRST_UPDATE_GAME, updateBuffer);
                 serverClient.IsReady = true;
 
@@ -154,7 +169,8 @@ export class GameServer {
         }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
     }
 
-    private sendUpdate(updateBuffer: ArrayBuffer) {
+    private sendUpdate(updateBuffer: Map<Chunk, ArrayBuffer>) {
+        let chunksManager: ChunksManager = this.world.ChunksManager;
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
                 let player: Player = this.world.getGameObject(client.PlayerId) as Player;
@@ -162,23 +178,40 @@ export class GameServer {
                     return;
                 }
 
+                let chunk: Chunk = chunksManager.getObjectChunk(player);
+
+                if(!chunk) {
+                    return;
+                }
+
+                let updateArray: Array<ArrayBuffer> = [];
+                if(updateBuffer.get(chunk).byteLength > 1) {
+                    updateArray.push(updateBuffer.get(chunk));
+                }
+
+                chunk.Neighbors.forEach((chunkNeighbor: Chunk) => {
+                    if(updateBuffer.get(chunkNeighbor).byteLength > 1) {
+                        updateArray.push(updateBuffer.get(chunkNeighbor));
+                    }
+                });
+
                 let snapshot: InputSnapshot = player.LastInputSnapshot;
                 if(snapshot && snapshot.isMoving()) {
                     client.Socket.emit(SocketMsgs.LAST_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }
-                client.Socket.emit(SocketMsgs.UPDATE_GAME, updateBuffer);
+                if(updateArray.length > 0) {
+                    client.Socket.emit(SocketMsgs.UPDATE_GAME, updateArray);
+                }
             }
         });
     }
 
     private collectAndSendUpdate(complete: boolean = false) {
-        let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(complete);
+        this.sendUpdate(this.netObjectsSerializer.collectUpdate(complete));
 
-        if(updateBuffer.byteLength == 0) {
-            return;
+        for(let i = 0; i < this.world.ChunksManager.Chunks.length; i++) {
+            this.world.ChunksManager.Chunks[i].resetHasNewComers();
         }
-
-        this.sendUpdate(updateBuffer);
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {
@@ -200,50 +233,19 @@ export class GameServer {
 
     private initTestObjects() {
         let o: GameObject;
-        let height: number = 1156;
-        let width: number = 2048;
-        ////////////////////////////////////////////////////TEST ( CREATE WALLS AROUND MAP)
-        for (let i = 0; i < (height - 48) / 48; i++) {
+
+        for (let i = 0; i < 10000; i++) {
             o= GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = 0;
-            o.Transform.Y = i * o.Transform.Height;
-
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = width - o.Transform.Width;
-            o.Transform.Y = i * o.Transform.Height;
+            o.Transform.X = Math.random() * CommonConfig.numOfChunksX*32*CommonConfig.chunkSize;
+            o.Transform.Y = Math.random() * CommonConfig.numOfChunksY*32*CommonConfig.chunkSize;
         }
-
-        for (let i = 1; i < (width - 48) / 48; i++) {
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = 0;
-
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * o.Transform.Width;
-            o.Transform.Y = height - 52;
-        }
-
-        o = GameObjectsFactory.Instatiate("Obstacle");
-        o.Transform.X = 150;
-        o.Transform.Y = 150;
-        o.Transform.Width = 150;
-
-        o = GameObjectsFactory.Instatiate("Obstacle");
-        o.Transform.X = 350;
-        o.Transform.Y = 450;
-        o.Transform.Width = 150;
-        o.Transform.Rotation = 3;
-
-        o = GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform(600, 600, 5, 300));
-        o.Transform.Width = 1;
-        o.Transform.Height = 300;
 
         let monsterCounter = 0;
         let spawnEnemy: Function = () => {
             monsterCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * 1400) + 100;
-            e.Transform.Y = Math.floor(Math.random() * 800) + 100;
+            e.Transform.X = Math.floor(Math.random() * 10*32*50);
+            e.Transform.Y = Math.floor(Math.random() * 10*32*50);
 
             e.Name = "Michau " + monsterCounter.toString();
 
@@ -252,21 +254,21 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 300; i++) {
             spawnEnemy();
         }
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * 1400) + 100;
-            i.Transform.Y = Math.floor(Math.random() * 800) + 100;
+            i.Transform.X = Math.floor(Math.random() * 10*32*50);
+            i.Transform.Y = Math.floor(Math.random() * 10*32*50);
 
             i.addDestroyListener(() => {
                 spawnItem();
             })
         };
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 100; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

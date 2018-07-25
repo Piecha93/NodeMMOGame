@@ -5,92 +5,113 @@ import {CollisionsSystem} from "../utils/physics/CollisionsSystem";
 import {Player} from "../utils/game/Player";
 import {GameObjectsFactory} from "../utils/factory/ObjectsFactory";
 import {Types} from "../utils/factory/GameObjectTypes";
+import {Chunk, ChunksManager} from "../utils/Chunks";
 
 export class NetObjectsSerializer extends GameObjectsSubscriber {
-    private static instance: NetObjectsSerializer;
-
-    private destroyedObjects: Array<string> = [];
-
     private static DESTROY_OBJECTS_ID = 255;
 
-    private constructor() {
-        super();
-    }
+    private destroyedObjects: Map<Chunk, Array<string> >;
+    private chunksManager: ChunksManager;
 
-    static get Instance(): NetObjectsSerializer {
-        if(NetObjectsSerializer.instance) {
-            return NetObjectsSerializer.instance;
-        } else {
-            NetObjectsSerializer.instance = new NetObjectsSerializer;
-            return NetObjectsSerializer.instance;
+    constructor(chunksManager: ChunksManager) {
+        super();
+
+        this.chunksManager = chunksManager;
+
+        if(CommonConfig.IS_SERVER) {
+            this.destroyedObjects = new Map<Chunk, Array<string>>();
+            this.chunksManager.Chunks.forEach((chunk: Chunk) => {
+                this.destroyedObjects.set(chunk, []);
+            });
         }
     }
 
     protected onObjectDestroy(gameObject: GameObject) {
         if(CommonConfig.IS_SERVER) {
-            this.destroyedObjects.push(gameObject.ID);
-        }
-    }
+            let chunk: Chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
-    collectUpdate(complete: boolean = false): ArrayBuffer {
-        let neededBufferSize: number = 0;
-        let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
-
-        this.GameObjectsMapById.forEach((gameObject: GameObject) => {
-            let objectNeededSize = gameObject.calcNeededBufferSize(complete);
-            if(objectNeededSize > 0) {
-                objectsToUpdateMap.set(gameObject, neededBufferSize);
-                //need 5 bits for obj ID
-                neededBufferSize += objectNeededSize + 5;
+            if(!chunk) {
+                // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+                return;
             }
-        });
 
-        let destrotObjectsOffset: number = neededBufferSize;
-
-        if(this.destroyedObjects.length > 0) {
-            neededBufferSize += (this.destroyedObjects.length * 5) + 1;
+            this.destroyedObjects.get(chunk).push(gameObject.ID);
         }
-
-        let updateBuffer: ArrayBuffer = new ArrayBuffer(neededBufferSize);
-        let updateBufferView: DataView = new DataView(updateBuffer);
-
-        objectsToUpdateMap.forEach((offset: number, gameObject: GameObject) => {
-            updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
-            updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
-
-            gameObject.serialize(updateBufferView, offset + 5, complete);
-        });
-
-        if(this.destroyedObjects.length > 0) {
-            updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
-            this.destroyedObjects.forEach((id: string) => {
-                updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
-                updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
-                destrotObjectsOffset += 5;
-            });
-        }
-
-        this.destroyedObjects = [];
-
-        return updateBuffer;
     }
 
+    public collectUpdate(complete: boolean = false): Map<Chunk, ArrayBuffer> {
+        let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
+
+        for(let i = 0; i < this.chunksManager.Chunks.length; i++) {
+            let chunk: Chunk = this.chunksManager.Chunks[i];
+            //no need to send update from chunk, that doesnt have players
+            if (!chunk.HasPlayersInNeighborhood) {
+                continue;
+            }
+
+            //if chunk has new players inside we need to send complete update to them
+            let chunkCompleteUpdate: boolean = complete || chunk.HasNewcomersInNeighborhood;
+            let neededBufferSize: number = 0;
+            let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
+
+            chunk.Objects.forEach((gameObject: GameObject) => {
+                let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                if (neededSize > 0) {
+                    objectsToUpdateMap.set(gameObject, neededBufferSize);
+                    //need 5 bits for obj ID
+                    neededBufferSize += neededSize + 5;
+                }
+            });
+
+            let destrotObjectsOffset: number = neededBufferSize;
+
+            if(this.destroyedObjects.get(chunk).length > 0) {
+                neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
+            }
+
+            let updateBuffer: ArrayBuffer = new ArrayBuffer(neededBufferSize);
+            let updateBufferView: DataView = new DataView(updateBuffer);
+
+            objectsToUpdateMap.forEach((offset: number, gameObject: GameObject) => {
+                updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+                updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+
+                gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
+            });
+
+            if (this.destroyedObjects.get(chunk).length > 0) {
+                updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
+                this.destroyedObjects.get(chunk).forEach((id: string) => {
+                    updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
+                    updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
+                    destrotObjectsOffset += 5;
+                });
+            }
+
+            this.destroyedObjects.set(chunk, []);
+            chunksUpdate.set(chunk, updateBuffer);
+        }
+
+        return chunksUpdate;
+    }
+
+    //TODO move localPlayer and reconciliation somewhere else
     public decodeUpdate(updateBufferView: DataView, localPlayer: Player, collisionsSystem: CollisionsSystem) {
         let offset: number = 0;
 
         while(offset < updateBufferView.byteLength) {
             let id: string = String.fromCharCode(updateBufferView.getUint8(offset));
 
-            if(id == String.fromCharCode(255)) {
-                offset = NetObjectsSerializer.decodeDestroyedObjects(updateBufferView, offset + 1);
-                break
+            if(id == String.fromCharCode(NetObjectsSerializer.DESTROY_OBJECTS_ID)) {
+                offset = this.decodeDestroyedObjects(updateBufferView, offset + 1);
+                break;
             }
 
             id += updateBufferView.getUint32(offset + 1).toString();
 
             offset += 5;
 
-            let gameObject: GameObject = NetObjectsSerializer.Instance.getGameObject(id);
+            let gameObject: GameObject = this.getGameObject(id);
 
             if (gameObject == null) {
                 gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id);
@@ -104,12 +125,12 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
         }
     }
 
-    private static decodeDestroyedObjects(updateBufferView: DataView, offset: number) {
+    private decodeDestroyedObjects(updateBufferView: DataView, offset: number) {
         while(offset < updateBufferView.byteLength) {
             let idToRemove: string = String.fromCharCode(updateBufferView.getUint8(offset)) +
                 updateBufferView.getUint32(offset + 1).toString();
 
-            let gameObject: GameObject = NetObjectsSerializer.Instance.getGameObject(idToRemove);
+            let gameObject: GameObject = this.getGameObject(idToRemove);
             if (gameObject) {
                 gameObject.destroy();
             }

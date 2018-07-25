@@ -1,5 +1,6 @@
 import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
 import {GameObject} from "../game/GameObject";
+import {Obstacle} from "../game/Obstacle";
 
 export class CollisionsSystem extends Collisions{
     private bodyToObjectMap: Map<Body, GameObject> = new Map<Body, GameObject>();
@@ -24,6 +25,11 @@ export class CollisionsSystem extends Collisions{
         let result = new Result();
 
         gameObjectsMapById.forEach((object: GameObject) => {
+            if(object instanceof Obstacle) {
+                //no need to calculate collisions for obstacles since they are not moving
+                //that hack gives us huge performance boost when we have thousands of obstacles
+                return;
+            }
             let potentials: Body[] = object.Transform.Body.potentials();
 
             for(let body of potentials) {

@@ -79,6 +79,8 @@ export abstract class Actor extends GameObject {
         if(gameObject instanceof Obstacle) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
+            this.Transform.addChange(ChangesDict.X);
+            this.Transform.addChange(ChangesDict.Y);
         }
     }
 

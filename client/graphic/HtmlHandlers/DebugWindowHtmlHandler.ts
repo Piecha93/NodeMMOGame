@@ -6,6 +6,7 @@ export class DebugWindowHtmlHandler {
     readonly fpsSpan: HTMLSpanElement;
     readonly gameObjectCounterSpan: HTMLSpanElement;
     readonly cursorObjectSpan: HTMLSpanElement;
+    readonly positionSpan: HTMLSpanElement;
 
     private constructor() {
         this.debugWindowDiv = document.getElementById("debug-window") as HTMLDivElement;
@@ -13,15 +14,18 @@ export class DebugWindowHtmlHandler {
         this.fpsSpan = document.createElement("span");
         this.gameObjectCounterSpan = document.createElement("span");
         this.cursorObjectSpan = document.createElement("span");
+        this.positionSpan = document.createElement("span");
 
         this.Ping = "";
         this.Fps = "";
         this.GameObjectCounter = "0";
+        this.Position = "0";
 
         this.debugWindowDiv.appendChild(this.pingSpan);
         this.debugWindowDiv.appendChild(this.fpsSpan);
         this.debugWindowDiv.appendChild(this.gameObjectCounterSpan);
         this.debugWindowDiv.appendChild(this.cursorObjectSpan);
+        this.debugWindowDiv.appendChild(this.positionSpan);
 
     }
 
@@ -46,5 +50,9 @@ export class DebugWindowHtmlHandler {
 
     set CursorObjectSpan(cursorObject: string) {
         this.cursorObjectSpan.innerHTML = "<br>" + "cursorObject: " + cursorObject;
+    }
+
+    set Position(position: string) {
+        this.positionSpan.innerHTML = "<br>" + "Position: " + position;
     }
 }

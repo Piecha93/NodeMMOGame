@@ -7,25 +7,22 @@ export class Obstacle extends GameObject {
     constructor(transform: Transform) {
         super(transform);
 
-        transform.Height = 48;
-        transform.Width = 48;
+        transform.Height = 32;
+        transform.Width = 32;
 
         this.SpriteName = "wall";
     }
 
+    onCollisionEnter(gameObject: GameObject, result: Result) {
+        throw "This method should never be called on Obstacle object";
+    }
+
     protected serverCollision(gameObject: GameObject, result: Result) {
-        // this.Transform.X -= result.overlap * result.overlap_x;
-        // this.Transform.Y -= result.overlap * result.overlap_y;
-        //
-        // this.Transform.Rotation -= Math.cos(result.overlap_x) + Math.sin(result.overlap_y);
-        //
-        // this.Transform.addChange(ChangesDict.X);
-        // this.Transform.addChange(ChangesDict.Y);
-        // this.Transform.addChange(ChangesDict.ROTATION);
+        throw "This method should never be called on Obstacle object";
     }
 
     protected commonCollision(gameObject: GameObject, result: Result) {
-
+        throw "This method should never be called on Obstacle object";
     }
 
     protected serverUpdate(delta: number) {
@@ -36,6 +33,6 @@ export class Obstacle extends GameObject {
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-        //this.addChange(ChangesDict.POSITION);
+
     }
 }

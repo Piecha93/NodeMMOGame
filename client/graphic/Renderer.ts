@@ -93,12 +93,11 @@ export class Renderer extends GameObjectsSubscriber {
     }
 
     public update(){
-        this.hideNotVisibleObjects();
-
         this.renderObjects.forEach((gameObjectRender: GameObjectRender) => {
             gameObjectRender.update();
         });
 
+        this.hideNotVisibleObjects();
         this.camera.update();
 
         this.renderer.render(this.camera);
@@ -140,9 +139,5 @@ export class Renderer extends GameObjectsSubscriber {
 
     get CameraDeviation(): [number, number] {
         return this.camera.MouseDeviation;
-    }
-
-    get ResourceLoader(): ResourcesLoader {
-        return this.resourcesLoader;
     }
 }

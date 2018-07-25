@@ -1,17 +1,16 @@
 import {GameObject} from "./utils/game/GameObject";
 import {GameObjectsSubscriber} from "./utils/factory/GameObjectsSubscriber";
 import {CollisionsSystem} from "./utils/physics/CollisionsSystem";
+import {ChunksManager} from "../common/utils/Chunks";
 
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: CollisionsSystem = new CollisionsSystem();
-
-    // private width: number;
-    // private height: number;
+    private chunksManager: ChunksManager;
 
     constructor() {
         super();
-        // this.width = width;
-        // this.height = height;
+        this.chunksManager = new ChunksManager();
+
         console.log("create game instance");
     }
 
@@ -29,8 +28,13 @@ export class GameWorld extends GameObjectsSubscriber {
             delta -= maxDelta;
             loops++;
         }
-    }
 
+        if(delta > 0) {
+            console.log("lost ms " + delta);
+        }
+
+        this.chunksManager.rebuild(this.GameObjectsMapById);
+    }
 
     public onObjectCreate(gameObject: GameObject) {
         this.collistionsSystem.insertObject(gameObject);
@@ -38,18 +42,16 @@ export class GameWorld extends GameObjectsSubscriber {
 
     public onObjectDestroy(gameObject: GameObject) {
         this.collistionsSystem.removeObject(gameObject);
-    }
 
-    // get Width(): number {
-    //     return this.width;
-    // }
-    //
-    // get Height(): number {
-    //     return this.height;
-    // }
+        this.chunksManager.remove(gameObject);
+    }
 
     get CollisionsSystem(): CollisionsSystem {
         return this.collistionsSystem;
+    }
+
+    get ChunksManager(): ChunksManager {
+        return this.chunksManager;
     }
 
     deserialize(world: string) {

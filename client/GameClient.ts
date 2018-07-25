@@ -30,6 +30,8 @@ export class GameClient {
     private inputSender: InputSender;
     private cursor: Cursor;
 
+    private netObjectsSerializer: NetObjectsSerializer = null;
+
     private localPlayer: Player = null;
     private localPlayerId: string = "";
 
@@ -84,6 +86,7 @@ export class GameClient {
 
             this.localPlayerId = data['id'];
             this.world = new GameWorld();
+            this.netObjectsSerializer = new NetObjectsSerializer(this.world.ChunksManager);
             this.renderer.setMap();
 
             this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
@@ -116,6 +119,7 @@ export class GameClient {
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
+        this.world.ChunksManager.clearUnusedChunks(this.localPlayer);
 
         this.deltaHistory.push(delta);
         if(this.deltaHistory.length > 30) this.deltaHistory.splice(0, 1);
@@ -126,6 +130,8 @@ export class GameClient {
         deltaAvg /= this.deltaHistory.length;
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
         DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
+            " y: " + this.localPlayer.Transform.Y.toFixed(2);
 
         this.renderer.update();
 
@@ -136,8 +142,19 @@ export class GameClient {
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
 
-    private onServerUpdate(updateBuffer: ArrayBuffer) {
-        let updateBufferView: DataView = new DataView(updateBuffer[1]);
-        NetObjectsSerializer.Instance.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+    private onServerUpdate(updateBuffer: Array<ArrayBuffer> | ArrayBuffer) {
+        // nasty hack to satisfy typescript compiler (dont know how to fix it xD)
+        // socket update may come as [0, ArrayBuffer] or [0, [0, ArrayBuffer], ..., [0, ArrayBuffer]]
+        if(updateBuffer[0] instanceof Array) {
+            if(updateBuffer instanceof Array) {
+                for (let i = 0; i < updateBuffer.length; i++) {
+                    let updateBufferView: DataView = new DataView(updateBuffer[i][1]);
+                    this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+                }
+            }
+        } else {
+            let updateBufferView: DataView = new DataView(updateBuffer[1]);
+            this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+        }
     }
 }
