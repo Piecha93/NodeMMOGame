@@ -39,6 +39,18 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
         }
     }
 
+    public collectObjectUpdate(gameObject: GameObject): DataView {
+        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
+        let updateBuffer: ArrayBuffer = new ArrayBuffer(objectNeededSize );
+        let updateBufferView: DataView = new DataView(updateBuffer);
+
+        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
+        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
+        gameObject.serialize(updateBufferView, 5, true);
+
+        return updateBufferView;
+    }
+
     public collectUpdate(complete: boolean = false): Map<Chunk, ArrayBuffer> {
         let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
 

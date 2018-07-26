@@ -2155,16 +2155,13 @@ class GameClient {
             if (updateBuffer instanceof Array) {
                 for (let i = 0; i < updateBuffer.length; i++) {
                     let updateBufferView = new DataView(updateBuffer[i][1]);
-                    this.netObjectsSerializer.decodeUpdate(updateBufferView);
+                    this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
                 }
             }
         }
         else {
             let updateBufferView = new DataView(updateBuffer[1]);
-            this.netObjectsSerializer.decodeUpdate(updateBufferView);
-        }
-        if (this.localPlayer) {
-            this.localPlayer.reconciliation(this.world.CollisionsSystem);
+            this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
         }
     }
 }
@@ -2556,9 +2553,9 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.hud = new Hud_1.HUD();
     }
     hideNotVisibleObjects() {
-        // this.renderObjects.forEach((obj: GameObjectRender) => {
-        //     obj.visible = this.isInCameraView(obj);
-        // });
+        this.renderObjects.forEach((obj) => {
+            obj.visible = this.isInCameraView(obj);
+        });
         this.map.children.forEach((obj) => {
             obj.visible = this.isInCameraView(obj);
         });
@@ -3076,8 +3073,9 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         const maxDeltaLoops = 3;
         let loops = 0;
         while (delta > 0 && loops < maxDeltaLoops) {
+            let loopDelta = maxDelta < delta ? maxDelta : delta;
             this.GameObjectsMapById.forEach((object) => {
-                object.update(delta % maxDelta);
+                object.update(loopDelta);
             });
             this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
             delta -= maxDelta;
@@ -3249,14 +3247,6 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
             });
         }
     }
-    // static get Instance(): NetObjectsSerializer {
-    //     if(NetObjectsSerializer.instance) {
-    //         return NetObjectsSerializer.instance;
-    //     } else {
-    //         NetObjectsSerializer.instance = new NetObjectsSerializer;
-    //         return NetObjectsSerializer.instance;
-    //     }
-    // }
     onObjectDestroy(gameObject) {
         if (CommonConfig_1.CommonConfig.IS_SERVER) {
             let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
@@ -3266,6 +3256,15 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
             }
             this.destroyedObjects.get(chunk).push(gameObject.ID);
         }
+    }
+    collectObjectUpdate(gameObject) {
+        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
+        let updateBuffer = new ArrayBuffer(objectNeededSize);
+        let updateBufferView = new DataView(updateBuffer);
+        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
+        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
+        gameObject.serialize(updateBufferView, 5, true);
+        return updateBufferView;
     }
     collectUpdate(complete = false) {
         let chunksUpdate = new Map();
@@ -3311,7 +3310,8 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
         }
         return chunksUpdate;
     }
-    decodeUpdate(updateBufferView) {
+    //TODO move localPlayer and reconciliation somewhere else
+    decodeUpdate(updateBufferView, localPlayer, collisionsSystem) {
         let offset = 0;
         while (offset < updateBufferView.byteLength) {
             let id = String.fromCharCode(updateBufferView.getUint8(offset));
@@ -3326,6 +3326,9 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
                 gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
             }
             offset = gameObject.deserialize(updateBufferView, offset);
+            if (localPlayer && localPlayer.ID == id) {
+                localPlayer.reconciliation(collisionsSystem);
+            }
         }
     }
     decodeDestroyedObjects(updateBufferView, offset) {
@@ -4241,7 +4244,7 @@ const Serializable_1 = require("../../serialize/Serializable");
 class FireBall extends Projectile_1.Projectile {
     constructor(transform) {
         super(transform);
-        this.power = 1000;
+        this.power = 25;
         this.spriteName = "flame";
         this.velocity = 1;
         this.transform.Width = 30;

@@ -50,26 +50,35 @@ export class GameServer {
         this.initTestObjects();
 
         this.startGameLoop();
+        this.startUpdateLoop();
     }
-
-    updateResolution: number = 0;
-    timer: DeltaTimer = new DeltaTimer;
+    timer: DeltaTimer = new DeltaTimer();
 
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
+        this.checkDisconnectInterval(delta);
+
         this.world.update(delta);
 
-        if(this.updateResolution++ % 5 == 0) {
-            this.collectAndSendUpdate(false);
-        }
         setTimeout(() => {
-            // let o = GameObjectsFactory.Instatiate("Obstacle");
-            // o.Transform.X = Math.random() * 10*32*50;
-            // o.Transform.Y = Math.random() * 10*32*50;
-            //
-            // console.log("game objects " + this.world.GameObjectsMapById.size);
             this.startGameLoop();
         }, ServerConfig.TICKRATE);
+    }
+
+    private startUpdateLoop() {
+        setTimeout(() => {
+            this.startUpdateLoop();
+            this.collectAndSendUpdate(false);
+        }, ServerConfig.UPDATE_INTERVAL);
+    }
+
+    private checkDisconnectInterval(delta: number) {
+        this.clients.forEach((client: ServerClient) => {
+            client.LastHbInterval -= delta;
+            if (client.LastHbInterval <= 0) {
+                this.clientDisconnected(client, "timeout");
+            }
+        });
     }
 
     private configureSockets() {
@@ -109,18 +118,7 @@ export class GameServer {
 
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
-                // player.forceCompleteUpdate();
-                // let updateBuffer: ArrayBuffer = NetObjectsSerializer.Instance.collectUpdate(true);
-
-                let objectNeededSize = player.calcNeededBufferSize(true) + 5;
-                let updateBuffer: ArrayBuffer = new ArrayBuffer(objectNeededSize );
-                let updateBufferView: DataView = new DataView(updateBuffer);
-
-                updateBufferView.setUint8(0, player.ID.charCodeAt(0));
-                updateBufferView.setUint32(1, Number(player.ID.slice(1)));
-                player.serialize(updateBufferView, 5, true);
-
-                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, updateBuffer);
+                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, this.netObjectsSerializer.collectObjectUpdate(player));
                 serverClient.IsReady = true;
 
                 this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
@@ -154,19 +152,6 @@ export class GameServer {
                 this.clientDisconnected(this.clients.get(socket), "disconnected");
             });
         });
-
-        setInterval(() => {
-            this.clients.forEach((client: ServerClient) => {
-                if(client.IsReady) {
-                    client.LastHbInterval -= 1000;
-                } else {
-                    client.LastHbInterval -= 500;
-                }
-                if (client.LastHbInterval <= 0) {
-                    this.clientDisconnected(client, "timeout");
-                }
-            });
-        }, ServerConfig.DISCONNECT_CHECK_INTERVAL);
     }
 
     private sendUpdate(updateBuffer: Map<Chunk, ArrayBuffer>) {
@@ -254,7 +239,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 300; i++) {
+        for (let i = 0; i < 500; i++) {
             spawnEnemy();
         }
 

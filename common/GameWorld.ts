@@ -15,13 +15,14 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public update(delta: number) {
-        const maxDelta = 40;
-        const maxDeltaLoops = 3;
+        const maxDelta: number = 40;
+        const maxDeltaLoops: number = 3;
 
         let loops: number = 0;
         while(delta > 0 && loops < maxDeltaLoops) {
+            let loopDelta: number = maxDelta < delta ? maxDelta : delta;
             this.GameObjectsMapById.forEach((object: GameObject) => {
-                object.update(delta % maxDelta);
+                object.update(loopDelta);
             });
 
             this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
