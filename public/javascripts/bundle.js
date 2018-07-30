@@ -2522,7 +2522,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 1,
+            resolution: 0.2,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2609,8 +2609,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024;
-Renderer.HEIGHT = 576;
+Renderer.WIDTH = 1024 * 5;
+Renderer.HEIGHT = 576 * 5;
 exports.Renderer = Renderer;
 
 },{"../../common/utils/factory/GameObjectTypes":38,"../../common/utils/factory/GameObjectsSubscriber":39,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
@@ -2689,28 +2689,42 @@ exports.ResourcesLoader = ResourcesLoader;
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
+const CommonConfig_1 = require("../../common/CommonConfig");
 class Chunk extends PIXI.Container {
-    constructor(x, y, size) {
+    constructor(x, y, sizeX, sizeY) {
         super();
         this.x = x;
         this.y = y;
-        this.size = size;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
     }
 }
 class TileMap extends PIXI.Container {
     // private map: number[][];
     constructor(map) {
         super();
-        let chunkSize = 25;
+        let numOfChunksX = CommonConfig_1.CommonConfig.numOfChunksX;
+        let numOfChunksY = CommonConfig_1.CommonConfig.numOfChunksY;
         let chunks = [];
-        for (let i = 0; i < 0; i++) {
-            for (let j = 0; j < 0; j++) {
-                let chunkX = i * 32 * chunkSize;
-                let chunkY = j * 32 * chunkSize;
+        for (let i = 0; i < numOfChunksX; i++) {
+            for (let j = 0; j < numOfChunksY; j++) {
+                let chunkSizeX = CommonConfig_1.CommonConfig.chunkSize;
+                let chunkSizeY = CommonConfig_1.CommonConfig.chunkSize;
+                let chunkX = i * chunkSizeX;
+                let chunkY = j * chunkSizeY;
                 if (i % 2) {
-                    chunkY += chunkSize / 2 * 32;
+                    if (j == 0) {
+                        chunkSizeY *= 1.5;
+                    }
+                    else if (j == numOfChunksY - 1) {
+                        chunkY += (chunkSizeY / 2);
+                        chunkSizeY *= 0.5;
+                    }
+                    else {
+                        chunkY += (chunkSizeY / 2);
+                    }
                 }
-                chunks.push(new Chunk(chunkX, chunkY, chunkSize));
+                chunks.push(new Chunk(chunkX, chunkY, chunkSizeX, chunkSizeY));
             }
         }
         // this.map = [
@@ -2724,11 +2738,11 @@ class TileMap extends PIXI.Container {
         // ];
         chunks.forEach((chunk) => {
             let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(Math.random() * 12 * 32, Math.random() * 12 * 32, 32, 32));
-            for (let i = 0; i < chunkSize; i++) {
-                for (let j = 0; j < chunkSize; j++) {
+            for (let i = 0; i < chunk.sizeX; i += 32) {
+                for (let j = 0; j < chunk.sizeY; j += 32) {
                     let sprite = new PIXI.Sprite(texture);
-                    sprite.x = i * 32;
-                    sprite.y = j * 32;
+                    sprite.x = i;
+                    sprite.y = j;
                     chunk.addChild(sprite);
                 }
             }
@@ -2743,16 +2757,8 @@ class TileMap extends PIXI.Container {
     }
 }
 exports.TileMap = TileMap;
-// things = [];
-//
-// for(var i: number = 0; i < 10; i++) {
-//     this.things[i] = [];
-//     for(var j: number = 0; j< 10; j++) {
-//         this.things[i][j] = new Thing();
-//     }
-// }
 
-},{}],20:[function(require,module,exports){
+},{"../../common/CommonConfig":26}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("../../common/utils/game/GameObject");
@@ -3026,9 +3032,9 @@ class CommonConfig {
         return CommonConfig.ORIGIN == Origin.CLIENT;
     }
 }
-CommonConfig.chunkSize = 25;
-CommonConfig.numOfChunksX = 50;
-CommonConfig.numOfChunksY = 50;
+CommonConfig.chunkSize = 800;
+CommonConfig.numOfChunksX = 10;
+CommonConfig.numOfChunksY = 10;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
@@ -3205,7 +3211,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
 }
 //GameObject
-ChangesDict.SPRITE_ID = "SPRITE_NAME";
+ChangesDict.SPRITE_ID = "SPRITE_ID";
 ChangesDict.VELOCITY = "VELOCITY";
 //Actor
 ChangesDict.HP = "HP";
@@ -3239,9 +3245,12 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
         this.chunksManager = chunksManager;
         if (CommonConfig_1.CommonConfig.IS_SERVER) {
             this.destroyedObjects = new Map();
-            this.chunksManager.Chunks.forEach((chunk) => {
-                this.destroyedObjects.set(chunk, []);
-            });
+            let chunks = this.chunksManager.Chunks;
+            for (let i = 0; i < chunks.length; i++) {
+                for (let j = 0; j < chunks[i].length; j++) {
+                    this.destroyedObjects.set(chunks[i][j], []);
+                }
+            }
         }
     }
     onObjectDestroy(gameObject) {
@@ -3265,45 +3274,48 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
     }
     collectUpdate(complete = false) {
         let chunksUpdate = new Map();
-        for (let i = 0; i < this.chunksManager.Chunks.length; i++) {
-            let chunk = this.chunksManager.Chunks[i];
-            //no need to send update from chunk, that doesnt have players
-            if (!chunk.HasPlayersInNeighborhood) {
-                continue;
-            }
-            //if chunk has new players inside we need to send complete update to them
-            let chunkCompleteUpdate = complete || chunk.HasNewcomersInNeighborhood;
-            let neededBufferSize = 0;
-            let objectsToUpdateMap = new Map();
-            chunk.Objects.forEach((gameObject) => {
-                let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
-                if (neededSize > 0) {
-                    objectsToUpdateMap.set(gameObject, neededBufferSize);
-                    //need 5 bits for obj ID
-                    neededBufferSize += neededSize + 5;
+        let chunks = this.chunksManager.Chunks;
+        for (let i = 0; i < chunks.length; i++) {
+            for (let j = 0; j < chunks[i].length; j++) {
+                let chunk = chunks[i][j];
+                //no need to send update from chunk, that doesnt have players
+                if (!chunk.HasPlayersInNeighborhood) {
+                    continue;
                 }
-            });
-            let destrotObjectsOffset = neededBufferSize;
-            if (this.destroyedObjects.get(chunk).length > 0) {
-                neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
-            }
-            let updateBuffer = new ArrayBuffer(neededBufferSize);
-            let updateBufferView = new DataView(updateBuffer);
-            objectsToUpdateMap.forEach((offset, gameObject) => {
-                updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
-                updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
-                gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
-            });
-            if (this.destroyedObjects.get(chunk).length > 0) {
-                updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
-                this.destroyedObjects.get(chunk).forEach((id) => {
-                    updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
-                    updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
-                    destrotObjectsOffset += 5;
+                //if chunk has new players inside we need to send complete update to them
+                let chunkCompleteUpdate = complete || chunk.HasNewcomersInNeighborhood;
+                let neededBufferSize = 0;
+                let objectsToUpdateMap = new Map();
+                chunk.Objects.forEach((gameObject) => {
+                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                    if (neededSize > 0) {
+                        objectsToUpdateMap.set(gameObject, neededBufferSize);
+                        //need 5 bits for obj ID
+                        neededBufferSize += neededSize + 5;
+                    }
                 });
+                let destrotObjectsOffset = neededBufferSize;
+                if (this.destroyedObjects.get(chunk).length > 0) {
+                    neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
+                }
+                let updateBuffer = new ArrayBuffer(neededBufferSize);
+                let updateBufferView = new DataView(updateBuffer);
+                objectsToUpdateMap.forEach((offset, gameObject) => {
+                    updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+                    updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+                    gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
+                });
+                if (this.destroyedObjects.get(chunk).length > 0) {
+                    updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
+                    this.destroyedObjects.get(chunk).forEach((id) => {
+                        updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
+                        updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
+                        destrotObjectsOffset += 5;
+                    });
+                }
+                this.destroyedObjects.set(chunk, []);
+                chunksUpdate.set(chunk, updateBuffer);
             }
-            this.destroyedObjects.set(chunk, []);
-            chunksUpdate.set(chunk, updateBuffer);
         }
         return chunksUpdate;
     }
@@ -3705,85 +3717,96 @@ class ChunksManager {
     initChunks() {
         this.chunks = [];
         for (let i = 0; i < this.numOfChunksX; i++) {
+            this.chunks[i] = [];
             for (let j = 0; j < this.numOfChunksY; j++) {
-                let chunkX = i * 32 * this.chunkSize;
-                let chunkY = j * 32 * this.chunkSize;
+                let chunkX = i * this.chunkSize;
+                let chunkY = j * this.chunkSize;
                 if (i % 2) {
-                    chunkY += this.chunkSize / 2 * 32;
+                    chunkY += this.chunkSize / 2;
                 }
-                this.chunks.push(new Chunk(chunkX, chunkY, this.chunkSize));
+                this.chunks[i][j] = new Chunk(chunkX, chunkY, this.chunkSize);
             }
         }
     }
     setChunksNeighbors() {
         for (let i = 0; i < this.chunks.length; i++) {
-            let isShifted = (i % (this.numOfChunksY * 2)) >= this.numOfChunksY;
-            let isFirstInCloumn = i % this.numOfChunksY == 0;
-            let isLastInCloumn = i % this.numOfChunksY == this.numOfChunksY - 1;
-            let isFirstInRow = i < this.numOfChunksX;
-            let isLastInRow = i >= this.numOfChunksX * (this.numOfChunksY - 1);
-            let neighborsMap;
-            if (isShifted) {
-                neighborsMap = new Map([
-                    ["U", i - 1],
-                    ["UL", i - this.numOfChunksY],
-                    ["UR", i + this.numOfChunksY],
-                    ["D", i + 1],
-                    ["DL", i - this.numOfChunksY + 1],
-                    ["DR", i + this.numOfChunksY + 1],
-                ]);
-            }
-            else {
-                neighborsMap = new Map([
-                    ["U", i - 1],
-                    ["UL", i - this.numOfChunksY - 1],
-                    ["UR", i + this.numOfChunksY - 1],
-                    ["D", i + 1],
-                    ["DL", i - this.numOfChunksY],
-                    ["DR", i + this.numOfChunksY],
-                ]);
-            }
-            if (isFirstInRow) {
-                neighborsMap.delete("DL");
-                neighborsMap.delete("UL");
-            }
-            if (isLastInRow) {
-                neighborsMap.delete("DR");
-                neighborsMap.delete("UR");
-            }
-            if (isFirstInCloumn) {
-                neighborsMap.delete("U");
-                if (!isShifted) {
+            for (let j = 0; j < this.chunks.length; j++) {
+                let isShifted = (i % 2) != 0;
+                let isFirstInCloumn = j == 0;
+                let isLastInCloumn = j == (this.numOfChunksY - 1);
+                let isFirstInRow = i == 0;
+                let isLastInRow = i == (this.numOfChunksX - 1);
+                let neighborsMap;
+                if (isShifted) {
+                    neighborsMap = new Map([
+                        ["U", [i, j - 1]],
+                        ["UL", [i - 1, j]],
+                        ["UR", [i + 1, j]],
+                        ["D", [i, j + 1]],
+                        ["DL", [i - 1, j + 1]],
+                        ["DR", [i + 1, j + 1]]
+                    ]);
+                }
+                else {
+                    neighborsMap = new Map([
+                        ["U", [i, j - 1]],
+                        ["UL", [i - 1, j - 1]],
+                        ["UR", [i + 1, j - 1]],
+                        ["D", [i, j + 1]],
+                        ["DL", [i - 1, j]],
+                        ["DR", [i + 1, j]]
+                    ]);
+                }
+                if (isFirstInRow) {
+                    neighborsMap.delete("DL");
                     neighborsMap.delete("UL");
+                }
+                if (isLastInRow) {
+                    neighborsMap.delete("DR");
                     neighborsMap.delete("UR");
                 }
-            }
-            if (isLastInCloumn) {
-                neighborsMap.delete("D");
-                if (isShifted) {
-                    neighborsMap.delete("DL");
-                    neighborsMap.delete("DR");
+                if (isFirstInCloumn) {
+                    neighborsMap.delete("U");
+                    if (!isShifted) {
+                        neighborsMap.delete("UL");
+                        neighborsMap.delete("UR");
+                    }
                 }
+                if (isLastInCloumn) {
+                    neighborsMap.delete("D");
+                    if (isShifted) {
+                        neighborsMap.delete("DL");
+                        neighborsMap.delete("DR");
+                    }
+                }
+                neighborsMap.forEach((neighborIdx, key) => {
+                    this.chunks[i][j].addNeighbor(this.chunks[neighborIdx[0]][neighborIdx[1]]);
+                });
             }
-            let neigh = "";
-            neighborsMap.forEach((neighborIdx, key) => {
-                this.chunks[i].addNeighbor(this.chunks[neighborIdx]);
-                neigh += neighborIdx + " " + key + ", ";
-            });
         }
     }
     getChunkByCoords(x, y) {
-        if (x > this.numOfChunksX * this.chunkSize * 32 ||
-            y > this.numOfChunksY * this.chunkSize * 32 ||
-            x < 0 || y < 0) {
+        let idxX = Math.floor(x / this.chunkSize);
+        if (idxX >= this.numOfChunksX || idxX < 0) {
             return null;
         }
-        let idxX = Math.ceil(x / this.chunkSize / 32) - 1;
+        let idxY = Math.floor(y / this.chunkSize);
         if (idxX % 2) {
-            y -= this.chunkSize / 2 * 32;
+            if (y <= this.chunkSize * 1.5) {
+                idxY = 0;
+            }
+            else if (y > (this.chunkSize * (this.numOfChunksY - 1) + this.chunkSize / 2)) {
+                idxY = this.numOfChunksY - 1;
+            }
+            else {
+                idxY = Math.floor((y - this.chunkSize / 2) / this.chunkSize);
+            }
         }
-        let idxY = Math.ceil(y / this.chunkSize / 32) - 1;
-        return this.chunks[idxX * this.numOfChunksY + idxY];
+        if (idxY >= this.numOfChunksY || idxY < 0) {
+            return null;
+        }
+        // console.log("chunk " + [idxX, idxY] + " coords " + [x, y]);
+        return this.chunks[idxX][idxY];
     }
     getObjectChunk(gameObject) {
         return this.objectsChunks.get(gameObject);
@@ -3792,7 +3815,7 @@ class ChunksManager {
         gameObjectsMapById.forEach((object) => {
             let chunk = this.getChunkByCoords(object.Transform.X, object.Transform.Y);
             if (!chunk) {
-                // console.log("Object out of chunks!");
+                // console.log("Object out of chunks!");;
                 return;
             }
             let oldChunk = this.objectsChunks.get(object);
@@ -3810,13 +3833,15 @@ class ChunksManager {
     clearUnusedChunks(player) {
         let playerChunks = [this.objectsChunks.get(player)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
-        this.chunks.forEach((chunk) => {
-            if (playerChunks.indexOf(chunk) == -1) {
-                chunk.Objects.forEach((gameObject) => {
-                    gameObject.destroy();
-                });
+        for (let i = 0; i < this.chunks.length; i++) {
+            for (let j = 0; j < this.chunks.length; j++) {
+                if (playerChunks.indexOf(this.chunks[i][j]) == -1) {
+                    this.chunks[i][j].Objects.forEach((gameObject) => {
+                        gameObject.destroy();
+                    });
+                }
             }
-        });
+        }
     }
     remove(gameObject) {
         if (this.objectsChunks.has(gameObject)) {

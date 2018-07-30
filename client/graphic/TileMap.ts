@@ -2,19 +2,22 @@
 
 import Texture = PIXI.Texture;
 import Sprite = PIXI.Sprite;
+import {CommonConfig} from "../../common/CommonConfig";
 
 class Chunk extends PIXI.Container {
     x: number;
     y: number;
 
-    size: number;
+    sizeX: number;
+    sizeY: number;
 
-    constructor(x: number, y: number, size: number) {
+    constructor(x: number, y: number, sizeX: number, sizeY: number) {
         super();
 
         this.x = x;
         this.y = y;
-        this.size = size;
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
     }
 }
 
@@ -24,20 +27,31 @@ export class TileMap extends PIXI.Container {
     constructor(map?: number[][]) {
         super();
 
-        let chunkSize = 25;
+        let numOfChunksX = CommonConfig.numOfChunksX;
+        let numOfChunksY = CommonConfig.numOfChunksY;
 
         let chunks: Array<Chunk> = [];
 
-        for(let i = 0; i < 0; i++) {
-            for(let j = 0; j < 0; j++) {
-                let chunkX = i * 32 * chunkSize;
-                let chunkY = j * 32 * chunkSize;
+        for(let i = 0; i < numOfChunksX; i++) {
+            for(let j = 0; j < numOfChunksY; j++) {
+                let chunkSizeX = CommonConfig.chunkSize;
+                let chunkSizeY = CommonConfig.chunkSize;
+
+                let chunkX = i * chunkSizeX;
+                let chunkY = j * chunkSizeY;
 
                 if(i % 2) {
-                    chunkY += chunkSize / 2 * 32;
+                    if(j == 0) {
+                        chunkSizeY *= 1.5;
+                    } else if(j == numOfChunksY - 1) {
+                        chunkY += (chunkSizeY / 2);
+                        chunkSizeY *= 0.5;
+                    }  else {
+                        chunkY += (chunkSizeY / 2);
+                    }
                 }
 
-                chunks.push(new Chunk(chunkX, chunkY, chunkSize));
+                chunks.push(new Chunk(chunkX, chunkY, chunkSizeX, chunkSizeY));
             }
         }
 
@@ -53,11 +67,11 @@ export class TileMap extends PIXI.Container {
 
         chunks.forEach((chunk: Chunk) => {
             let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(Math.random()*12*32, Math.random()*12*32, 32, 32));
-            for(let i = 0; i < chunkSize; i++) {
-                for(let j = 0; j < chunkSize; j++) {
+            for(let i = 0; i < chunk.sizeX; i+=32) {
+                for(let j = 0; j < chunk.sizeY; j+=32) {
                     let sprite: Sprite = new PIXI.Sprite(texture);
-                    sprite.x = i*32;
-                    sprite.y = j*32;
+                    sprite.x = i;
+                    sprite.y = j;
                     chunk.addChild(sprite);
                 }
             }

@@ -193,8 +193,11 @@ export class GameServer {
     private collectAndSendUpdate(complete: boolean = false) {
         this.sendUpdate(this.netObjectsSerializer.collectUpdate(complete));
 
-        for(let i = 0; i < this.world.ChunksManager.Chunks.length; i++) {
-            this.world.ChunksManager.Chunks[i].resetHasNewComers();
+        let chunks: Chunk[][] = this.world.ChunksManager.Chunks;
+        for(let i = 0; i < chunks.length; i++) {
+            for (let j = 0; j < chunks[i].length; j++) {
+                chunks[i][j].resetHasNewComers();
+            }
         }
     }
 
@@ -218,38 +221,64 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 10000; i++) {
-            o= GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = Math.random() * CommonConfig.numOfChunksX*32*CommonConfig.chunkSize;
-            o.Transform.Y = Math.random() * CommonConfig.numOfChunksY*32*CommonConfig.chunkSize;
+        for (let i = 0; i < 500; i++) {
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize;
+            o.Transform.Y = Math.random() * CommonConfig.numOfChunksY * CommonConfig.chunkSize;
 
-            if(i % 100 == 0) {
+            if (i % 100 == 0) {
                 console.log(i)
             }
         }
 
-        let monsterCounter = 0;
-        let spawnEnemy: Function = () => {
-            monsterCounter++;
-            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * 10*32*50);
-            e.Transform.Y = Math.floor(Math.random() * 10*32*50);
+        let chuj = 0;
+        for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = i * 32;
+            o.Transform.Y = 0;
 
-            e.Name = "Michau " + monsterCounter.toString();
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = i * 32;
+            o.Transform.Y = CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32;
+
+            chuj += 2;
+        }
+
+        for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
+            chuj += 2;
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = 0;
+            o.Transform.Y = i * 32;
+
+            o = GameObjectsFactory.Instatiate("Obstacle");
+            o.Transform.X = CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32;
+            o.Transform.Y = i * 32;
+        }
+
+        console.log("chuj " + chuj);
+
+        let enemyCounter = 0;
+        let spawnEnemy: Function = () => {
+            enemyCounter++;
+            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
+            e.Transform.X = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
+            e.Transform.Y = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
+
+            e.Name = "Michau " + enemyCounter.toString();
 
             e.addDestroyListener(() => {
                 spawnEnemy();
             })
         };
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 300; i++) {
             spawnEnemy();
         }
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * 10*32*50);
-            i.Transform.Y = Math.floor(Math.random() * 10*32*50);
+            i.Transform.X = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
+            i.Transform.Y = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
 
             i.addDestroyListener(() => {
                 spawnItem();

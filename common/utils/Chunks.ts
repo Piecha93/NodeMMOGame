@@ -6,7 +6,7 @@ import {Player} from "./game/Player";
 export class ChunksManager {
     private numOfChunksX: number;
     private numOfChunksY: number;
-    private chunks: Array<Chunk>;
+    private chunks: Chunk[][];
     private chunkSize: number;
 
     private objectsChunks: Map<GameObject, Chunk> = new Map<GameObject, Chunk>();
@@ -22,102 +22,117 @@ export class ChunksManager {
 
     private initChunks() {
         this.chunks = [];
+
         for(let i = 0; i < this.numOfChunksX; i++) {
+            this.chunks[i] = [];
             for(let j = 0; j < this.numOfChunksY; j++) {
-                let chunkX = i * 32 * this.chunkSize;
-                let chunkY = j * 32 * this.chunkSize;
+                let chunkX = i * this.chunkSize;
+                let chunkY = j * this.chunkSize;
 
                 if (i % 2) {
-                    chunkY += this.chunkSize / 2 * 32;
+                    chunkY += this.chunkSize / 2;
                 }
 
-                this.chunks.push(new Chunk(chunkX, chunkY, this.chunkSize));
+                this.chunks[i][j] = new Chunk(chunkX, chunkY, this.chunkSize);
             }
         }
     }
 
     private setChunksNeighbors() {
         for(let i: number = 0; i < this.chunks.length; i++) {
-            let isShifted: boolean = (i % (this.numOfChunksY * 2)) >= this.numOfChunksY;
+            for (let j: number = 0; j < this.chunks.length; j++) {
+                let isShifted: boolean = (i % 2) != 0;
 
-            let isFirstInCloumn: boolean = i % this.numOfChunksY == 0;
-            let isLastInCloumn: boolean = i % this.numOfChunksY == this.numOfChunksY - 1;
+                let isFirstInCloumn: boolean = j == 0;
+                let isLastInCloumn: boolean = j == (this.numOfChunksY - 1);
 
-            let isFirstInRow: boolean = i < this.numOfChunksX;
-            let isLastInRow: boolean = i >= this.numOfChunksX * (this.numOfChunksY - 1);
+                let isFirstInRow: boolean = i == 0;
+                let isLastInRow: boolean = i == (this.numOfChunksX - 1);
 
-            let neighborsMap: Map<string, number>;
+                let neighborsMap: Map<string, [number, number]>;
 
-            if(isShifted) {
-                neighborsMap = new Map<string, number>([
-                    ["U",  i - 1],
-                    ["UL", i - this.numOfChunksY],
-                    ["UR", i + this.numOfChunksY],
+                if (isShifted) {
+                    neighborsMap = new Map<string, [number, number]>([
+                        ["U",  [i,   j-1]],
+                        ["UL", [i-1, j]],
+                        ["UR", [i+1, j]],
 
-                    ["D",  i + 1],
-                    ["DL", i - this.numOfChunksY + 1],
-                    ["DR", i + this.numOfChunksY + 1],
-                ]);
-            } else {
-                neighborsMap = new Map<string, number>([
-                    ["U",  i - 1],
-                    ["UL", i - this.numOfChunksY - 1],
-                    ["UR", i + this.numOfChunksY - 1],
+                        ["D",  [i,   j+1]],
+                        ["DL", [i-1, j+1]],
+                        ["DR", [i+1, j+1]]
+                    ]);
+                } else {
+                    neighborsMap = new Map<string, [number, number]>([
+                        ["U",  [i,   j-1]],
+                        ["UL", [i-1, j-1]],
+                        ["UR", [i+1, j-1]],
 
-                    ["D",  i + 1],
-                    ["DL", i - this.numOfChunksY],
-                    ["DR", i + this.numOfChunksY],
-                ]);
-            }
+                        ["D",  [i,   j+1]],
+                        ["DL", [i-1, j]],
+                        ["DR", [i+1, j]]
+                    ]);
+                }
 
-            if(isFirstInRow) {
-                neighborsMap.delete("DL");
-                neighborsMap.delete("UL");
-            }
-
-            if(isLastInRow) {
-                neighborsMap.delete("DR");
-                neighborsMap.delete("UR");
-            }
-
-            if(isFirstInCloumn) {
-                neighborsMap.delete("U");
-                if(!isShifted) {
+                if (isFirstInRow) {
+                    neighborsMap.delete("DL");
                     neighborsMap.delete("UL");
+                }
+
+                if (isLastInRow) {
+                    neighborsMap.delete("DR");
                     neighborsMap.delete("UR");
                 }
-            }
 
-            if(isLastInCloumn) {
-                neighborsMap.delete("D");
-                if(isShifted) {
-                    neighborsMap.delete("DL");
-                    neighborsMap.delete("DR");
+                if (isFirstInCloumn) {
+                    neighborsMap.delete("U");
+                    if (!isShifted) {
+                        neighborsMap.delete("UL");
+                        neighborsMap.delete("UR");
+                    }
                 }
-            }
 
-            let neigh: string = "";
-            neighborsMap.forEach((neighborIdx: number, key: string) => {
-                this.chunks[i].addNeighbor(this.chunks[neighborIdx]);
-                neigh += neighborIdx + " " + key + ", ";
-            });
+                if (isLastInCloumn) {
+                    neighborsMap.delete("D");
+                    if (isShifted) {
+                        neighborsMap.delete("DL");
+                        neighborsMap.delete("DR");
+                    }
+                }
+
+                neighborsMap.forEach((neighborIdx: [number, number], key: string) => {
+                    this.chunks[i][j].addNeighbor(this.chunks[neighborIdx[0]][neighborIdx[1]]);
+                });
+
+            }
         }
     }
 
     public getChunkByCoords(x: number, y: number): Chunk {
-        if(x > this.numOfChunksX * this.chunkSize * 32 ||
-           y > this.numOfChunksY * this.chunkSize * 32 ||
-           x < 0 || y < 0) {
+
+        let idxX: number = Math.floor(x / this.chunkSize);
+
+        if(idxX >= this.numOfChunksX || idxX < 0) {
             return null;
         }
-        let idxX = Math.ceil(x / this.chunkSize / 32) - 1;
 
+        let idxY: number = Math.floor(y / this.chunkSize);
         if(idxX % 2) {
-            y -= this.chunkSize / 2 * 32;
+            if(y <= this.chunkSize * 1.5) {
+                idxY = 0;
+            } else if(y > (this.chunkSize * (this.numOfChunksY - 1) + this.chunkSize / 2)) {
+                idxY = this.numOfChunksY - 1;
+            } else {
+                idxY = Math.floor((y - this.chunkSize / 2) / this.chunkSize);
+            }
         }
-        let idxY = Math.ceil(y / this.chunkSize / 32) - 1;
 
-        return this.chunks[idxX * this.numOfChunksY + idxY];
+        if(idxY >= this.numOfChunksY || idxY < 0) {
+            return null;
+        }
+
+        // console.log("chunk " + [idxX, idxY] + " coords " + [x, y]);
+
+        return this.chunks[idxX][idxY];
     }
 
     public getObjectChunk(gameObject: GameObject): Chunk {
@@ -129,7 +144,7 @@ export class ChunksManager {
             let chunk: Chunk = this.getChunkByCoords(object.Transform.X, object.Transform.Y);
 
             if(!chunk) {
-                // console.log("Object out of chunks!");
+                // console.log("Object out of chunks!");;
                 return;
             }
 
@@ -152,13 +167,15 @@ export class ChunksManager {
         let playerChunks: Array<Chunk> = [this.objectsChunks.get(player)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
 
-        this.chunks.forEach((chunk: Chunk) => {
-            if(playerChunks.indexOf(chunk) == -1) {
-                chunk.Objects.forEach((gameObject: GameObject) => {
-                    gameObject.destroy();
-                });
+        for(let i: number = 0; i < this.chunks.length; i++) {
+            for (let j: number = 0; j < this.chunks.length; j++) {
+                if(playerChunks.indexOf(this.chunks[i][j]) == -1) {
+                    this.chunks[i][j].Objects.forEach((gameObject: GameObject) => {
+                        gameObject.destroy();
+                    });
+                }
             }
-        });
+        }
     }
 
     remove(gameObject: GameObject) {
@@ -168,7 +185,7 @@ export class ChunksManager {
         }
     }
 
-    get Chunks(): Array<Chunk> {
+    get Chunks(): Chunk[][] {
         return this.chunks;
     }
 }
