@@ -2,7 +2,7 @@
 // example public static SPRITE_NAME = getNextChar;
 export class ChangesDict {
     //GameObject
-    public static SPRITE_NAME = "SPRITE_NAME";
+    public static SPRITE_ID = "SPRITE_ID";
     public static VELOCITY = "VELOCITY";
 
     //Actor

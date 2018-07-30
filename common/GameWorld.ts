@@ -58,8 +58,4 @@ export class GameWorld extends GameObjectsSubscriber {
     deserialize(world: string) {
 
     }
-
-    // serialize(): string {
-    //     return this.width.toString() + ',' + this.height.toString();
-    // }
 }

@@ -41,7 +41,7 @@ export abstract class Actor extends GameObject {
         this.transform.Width = 40;
         this.transform.Height = 64;
 
-        this.spriteName = "template";
+        this.SpriteName = "template";
         this.animationType = "idle";
     }
 
@@ -147,6 +147,12 @@ export abstract class Actor extends GameObject {
     get SpriteName(): string {
         return this.spriteName + "_" + this.animationType;
     }
+
+    set SpriteName(spriteName: string) {
+        this.spriteName = spriteName;
+        this.addChange(ChangesDict.SPRITE_ID);
+    }
+
 
     get MoveDirection(): number {
         return this.moveDirection;

@@ -41,8 +41,6 @@ export class TileMap extends PIXI.Container {
             }
         }
 
-
-
         // this.map = [
         //     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         //     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
@@ -76,13 +74,3 @@ export class TileMap extends PIXI.Container {
         super.destroy();
     }
 }
-
-
-// things = [];
-//
-// for(var i: number = 0; i < 10; i++) {
-//     this.things[i] = [];
-//     for(var j: number = 0; j< 10; j++) {
-//         this.things[i][j] = new Thing();
-//     }
-// }

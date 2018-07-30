@@ -34,10 +34,10 @@ export class Resource {
 export class ResourcesLoader {
     private static instance: ResourcesLoader;
 
-    private resources: Map<string, Resource>;
+    private resources: Map<string, Resource> = new Map<string, Resource>();
 
     private constructor() {
-        this.create();
+
     }
 
     static get Instance(): ResourcesLoader {
@@ -47,10 +47,6 @@ export class ResourcesLoader {
             ResourcesLoader.instance = new ResourcesLoader;
             return ResourcesLoader.instance;
         }
-    }
-
-    private create() {
-        this.resources = new Map<string, Resource>();
     }
 
     registerResource(name: string, path: string, type: ResourceType) {

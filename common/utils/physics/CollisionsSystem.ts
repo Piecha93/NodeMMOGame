@@ -2,7 +2,7 @@ import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
 import {GameObject} from "../game/GameObject";
 import {Obstacle} from "../game/Obstacle";
 
-export class CollisionsSystem extends Collisions{
+export class CollisionsSystem extends Collisions {
     private bodyToObjectMap: Map<Body, GameObject> = new Map<Body, GameObject>();
 
     constructor() {

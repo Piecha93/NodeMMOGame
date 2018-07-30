@@ -4,10 +4,10 @@ import {CommonConfig} from "../../CommonConfig";
 import {Serializable, SerializableTypes} from "../../serialize/Serializable";
 import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
+import {ResourcesMap} from "../ResourcesMap";
 
 export class GameObject extends Serializable {
     protected id: string = "";
-    @NetworkProperty(ChangesDict.SPRITE_NAME, SerializableTypes.String)
     protected spriteName: string;
     @NetworkObject("pos")
     protected transform: Transform;
@@ -26,7 +26,7 @@ export class GameObject extends Serializable {
         super();
         this.transform = transform;
 
-        this.spriteName = "none";
+        this.SpriteName  = "none";
         this.destroyListeners = new Set<Function>();
     }
 
@@ -108,7 +108,16 @@ export class GameObject extends Serializable {
 
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
-        this.addChange(ChangesDict.SPRITE_NAME);
+        this.addChange(ChangesDict.SPRITE_ID);
+    }
+
+    @NetworkProperty(ChangesDict.SPRITE_ID, SerializableTypes.Uint16)
+    set SpriteId(id: number) {
+        this.spriteName = ResourcesMap.IdToName.get(id);
+    }
+
+    get SpriteId(): number {
+        return ResourcesMap.NameToId.get(this.spriteName);
     }
 
     get Invisible(): boolean {

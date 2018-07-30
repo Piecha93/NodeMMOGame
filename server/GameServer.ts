@@ -13,7 +13,6 @@ import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/utils/game/Obstacle";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/utils/game/Enemy";
-import {Transform} from "../common/utils/physics/Transform";
 import {Item} from "../common/utils/game/Item";
 import {Chunk, ChunksManager} from "../common/utils/Chunks";
 import {CommonConfig} from "../common/CommonConfig";
@@ -223,6 +222,10 @@ export class GameServer {
             o= GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = Math.random() * CommonConfig.numOfChunksX*32*CommonConfig.chunkSize;
             o.Transform.Y = Math.random() * CommonConfig.numOfChunksY*32*CommonConfig.chunkSize;
+
+            if(i % 100 == 0) {
+                console.log(i)
+            }
         }
 
         let monsterCounter = 0;

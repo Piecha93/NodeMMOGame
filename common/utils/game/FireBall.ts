@@ -17,7 +17,7 @@ export class FireBall extends Projectile {
     constructor(transform: Transform) {
         super(transform);
 
-        this.spriteName = "flame";
+        this.SpriteName  = "flame";
 
         this.velocity = 1;
 
