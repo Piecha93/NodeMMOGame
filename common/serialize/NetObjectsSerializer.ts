@@ -8,6 +8,7 @@ import {Types} from "../utils/factory/GameObjectTypes";
 import {Chunk, ChunksManager} from "../utils/Chunks";
 
 export class NetObjectsSerializer extends GameObjectsSubscriber {
+    private static OBJECT_ID_BYTES_LEN = 5;
     private static DESTROY_OBJECTS_ID = 255;
 
     private destroyedObjects: Map<Chunk, Array<string> >;
@@ -77,7 +78,18 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
                         //need 5 bits for obj ID
-                        neededBufferSize += neededSize + 5;
+                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
+                    }
+                });
+
+                //when object leaves chunk, we need to send his position last time to clients,
+                //so they are able to detect object is no longer in their chunks
+                chunk.Leavers.forEach((gameObject: GameObject) => {
+                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                    if (neededSize > 0) {
+                        objectsToUpdateMap.set(gameObject, neededBufferSize);
+                        //need 5 bits for obj ID
+                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
                     }
                 });
 
@@ -107,6 +119,7 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                 }
 
                 this.destroyedObjects.set(chunk, []);
+                chunk.resetLeavers();
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }

@@ -2522,7 +2522,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 0.2,
+            resolution: 1,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2609,8 +2609,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024 * 5;
-Renderer.HEIGHT = 576 * 5;
+Renderer.WIDTH = 1024;
+Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
 },{"../../common/utils/factory/GameObjectTypes":38,"../../common/utils/factory/GameObjectsSubscriber":39,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
@@ -3032,7 +3032,7 @@ class CommonConfig {
         return CommonConfig.ORIGIN == Origin.CLIENT;
     }
 }
-CommonConfig.chunkSize = 800;
+CommonConfig.chunkSize = 960;
 CommonConfig.numOfChunksX = 10;
 CommonConfig.numOfChunksY = 10;
 CommonConfig.ORIGIN = getOrigin();
@@ -3291,7 +3291,17 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
                         //need 5 bits for obj ID
-                        neededBufferSize += neededSize + 5;
+                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
+                    }
+                });
+                //when object leaves chunk, we need to send his position last time to clients,
+                //so they are able to detect object is no longer in their chunks
+                chunk.Leavers.forEach((gameObject) => {
+                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                    if (neededSize > 0) {
+                        objectsToUpdateMap.set(gameObject, neededBufferSize);
+                        //need 5 bits for obj ID
+                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
                     }
                 });
                 let destrotObjectsOffset = neededBufferSize;
@@ -3314,6 +3324,7 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
                     });
                 }
                 this.destroyedObjects.set(chunk, []);
+                chunk.resetLeavers();
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }
@@ -3353,6 +3364,7 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
         return offset;
     }
 }
+NetObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
 NetObjectsSerializer.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsSerializer = NetObjectsSerializer;
 
@@ -3792,13 +3804,10 @@ class ChunksManager {
         }
         let idxY = Math.floor(y / this.chunkSize);
         if (idxX % 2) {
-            if (y <= this.chunkSize * 1.5) {
+            if (y <= this.chunkSize * 1.5 && y >= 0) {
                 idxY = 0;
             }
-            else if (y > (this.chunkSize * (this.numOfChunksY - 1) + this.chunkSize / 2)) {
-                idxY = this.numOfChunksY - 1;
-            }
-            else {
+            else if (y < this.chunkSize * this.numOfChunksY) {
                 idxY = Math.floor((y - this.chunkSize / 2) / this.chunkSize);
             }
         }
@@ -3827,6 +3836,7 @@ class ChunksManager {
             object.forceCompleteUpdate();
             if (oldChunk != undefined) {
                 oldChunk.removeObject(object);
+                oldChunk.addLeaver(object);
             }
         });
     }
@@ -3862,6 +3872,7 @@ class Chunk {
         this.size = size;
         this.objects = [];
         this.neighbors = [];
+        this.leavers = [];
         this.numOfPlayers = 0;
     }
     addNeighbor(neighborChunk) {
@@ -3873,6 +3884,12 @@ class Chunk {
             this.hasNewcomers = true;
             this.numOfPlayers++;
         }
+    }
+    addLeaver(gameObject) {
+        this.leavers.push(gameObject);
+    }
+    resetLeavers() {
+        this.leavers = [];
     }
     removeObject(gameObject) {
         let index = this.objects.indexOf(gameObject, 0);
@@ -3933,6 +3950,9 @@ class Chunk {
     }
     get Neighbors() {
         return this.neighbors;
+    }
+    get Leavers() {
+        return this.leavers;
     }
 }
 exports.Chunk = Chunk;
@@ -4618,7 +4638,7 @@ class Player extends Actor_1.Actor {
     wallAction(coords) {
         // this.invisible = !this.invisible;
         // this.addChange("INV");
-        this.velocity += 0.1;
+        this.velocity += 0.8;
         if (this.velocity > 2) {
             this.velocity = 0.25;
         }

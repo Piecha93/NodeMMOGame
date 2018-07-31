@@ -108,7 +108,6 @@ export class ChunksManager {
     }
 
     public getChunkByCoords(x: number, y: number): Chunk {
-
         let idxX: number = Math.floor(x / this.chunkSize);
 
         if(idxX >= this.numOfChunksX || idxX < 0) {
@@ -117,11 +116,9 @@ export class ChunksManager {
 
         let idxY: number = Math.floor(y / this.chunkSize);
         if(idxX % 2) {
-            if(y <= this.chunkSize * 1.5) {
+            if(y <= this.chunkSize * 1.5 && y >= 0) {
                 idxY = 0;
-            } else if(y > (this.chunkSize * (this.numOfChunksY - 1) + this.chunkSize / 2)) {
-                idxY = this.numOfChunksY - 1;
-            } else {
+            } else if(y < this.chunkSize * this.numOfChunksY) {
                 idxY = Math.floor((y - this.chunkSize / 2) / this.chunkSize);
             }
         }
@@ -159,6 +156,7 @@ export class ChunksManager {
 
             if(oldChunk != undefined) {
                 oldChunk.removeObject(object);
+                oldChunk.addLeaver(object);
             }
         });
     }
@@ -198,6 +196,7 @@ export class Chunk {
 
     readonly objects: Array<GameObject>;
     readonly neighbors: Array<Chunk>;
+    private leavers: Array<GameObject>;
 
     private numOfPlayers: number;
     private hasNewcomers: boolean = false;
@@ -209,6 +208,7 @@ export class Chunk {
 
         this.objects = [];
         this.neighbors = [];
+        this.leavers = [];
         this.numOfPlayers = 0;
     }
 
@@ -225,6 +225,14 @@ export class Chunk {
         }
     }
 
+    public addLeaver(gameObject: GameObject) {
+        this.leavers.push(gameObject);
+    }
+
+    public resetLeavers() {
+        this.leavers = [];
+    }
+
     public removeObject(gameObject: GameObject) {
         let index: number = this.objects.indexOf(gameObject, 0);
         if (index > -1) {
@@ -238,7 +246,6 @@ export class Chunk {
 
     public hasObjectInside(gameObject: GameObject): boolean {
         return this.objects.indexOf(gameObject) != -1;
-
     }
 
     public hasObjectInNeighborhood(gameObject: GameObject): boolean {
@@ -301,5 +308,9 @@ export class Chunk {
 
     get Neighbors(): Array<Chunk> {
         return this.neighbors;
+    }
+
+    get Leavers(): Array<GameObject> {
+        return this.leavers;
     }
 }

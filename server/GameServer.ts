@@ -108,8 +108,8 @@ export class GameServer {
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
                 let player: Player = GameObjectsFactory.Instatiate("Player") as Player;
-                player.Transform.X = Math.floor(Math.random() * 300) + 50;
-                player.Transform.Y = Math.floor(Math.random() * 300) + 50;
+                player.Transform.X = this.getRandomInsideMap();
+                player.Transform.Y = this.getRandomInsideMap();
 
                 player.Name = serverClient.Name;
 
@@ -218,6 +218,10 @@ export class GameServer {
         this.clients.delete(client.Socket);
     }
 
+    private getRandomInsideMap(): number {
+        return Math.floor(Math.random() * (CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100)) + 50;
+    }
+
     private initTestObjects() {
         let o: GameObject;
 
@@ -261,8 +265,8 @@ export class GameServer {
         let spawnEnemy: Function = () => {
             enemyCounter++;
             let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
-            e.Transform.Y = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
+            e.Transform.X = this.getRandomInsideMap();
+            e.Transform.Y = this.getRandomInsideMap();
 
             e.Name = "Michau " + enemyCounter.toString();
 
@@ -277,8 +281,8 @@ export class GameServer {
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
-            i.Transform.Y = Math.floor(Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100) + 50;
+            i.Transform.X = this.getRandomInsideMap();
+            i.Transform.Y = this.getRandomInsideMap();
 
             i.addDestroyListener(() => {
                 spawnItem();

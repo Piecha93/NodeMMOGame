@@ -76,7 +76,7 @@ export class Player extends Actor {
     private wallAction(coords) {
         // this.invisible = !this.invisible;
         // this.addChange("INV");
-        this.velocity += 0.1;
+        this.velocity += 0.8;
         if(this.velocity > 2) {
             this.velocity = 0.25;
         }

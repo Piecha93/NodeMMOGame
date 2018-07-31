@@ -23,8 +23,8 @@ export class Renderer extends GameObjectsSubscriber {
     private hud: HUD;
     private resourcesLoader: ResourcesLoader;
 
-    static WIDTH: number = 1024 * 5;
-    static HEIGHT: number = 576 * 5;
+    static WIDTH: number = 1024;
+    static HEIGHT: number = 576;
 
     constructor(afterCreateCallback: Function) {
         super();
@@ -32,7 +32,7 @@ export class Renderer extends GameObjectsSubscriber {
                   view:  document.getElementById("game-canvas") as HTMLCanvasElement,
                   antialias: false,
                   transparent: false,
-                  resolution: 0.2,
+                  resolution: 1,
                   clearBeforeRender: false
         });
 
