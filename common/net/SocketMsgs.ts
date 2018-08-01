@@ -10,6 +10,6 @@ export class SocketMsgs {
     public static FIRST_UPDATE_GAME = '6';
     public static INPUT_SNAPSHOT = '7';
     public static CHAT_MESSAGE = '8';
-    public static LAST_SNAPSHOT_DATA = '9';
+    public static UPDATE_SNAPSHOT_DATA = '9';
     public static ERROR = '10';
 }

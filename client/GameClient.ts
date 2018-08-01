@@ -4,17 +4,21 @@ import {GameWorld} from "../common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
-import {GameObjectsFactory} from "../common/utils/factory/ObjectsFactory";
+import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../common/net/SocketMsgs";
 import {Chat} from "./Chat";
 import {InputSender} from ".//net/InputSender";
 import {DeltaTimer} from "../common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
-import {Player} from "../common/utils/game/Player";
+import {Player} from "../common/game_utils/game/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
 import {Cursor} from "./input/Cursor";
-import {Transform} from "../common/utils/physics/Transform";
+import {Transform} from "../common/game_utils/physics/Transform";
+import {Chunk} from "../common/game_utils/Chunks";
+import {GameObject} from "../common/game_utils/game/GameObject";
+import {AverageCounter} from "../common/utils/AverageCounter";
+import {ChunksManager} from "../common/game_utils/Chunks";
 
 const customParser = require('socket.io-msgpack-parser');
 // import * as io from "socket.io-client"
@@ -22,21 +26,23 @@ const io = require('socket.io-client');
 
 export class GameClient {
     private socket: SocketIOClient.Socket;
+
     private world: GameWorld;
-    private chat: Chat;
+    private chunksManager: ChunksManager;
+    private netObjectsSerializer: NetObjectsSerializer = null;
+
     private renderer: Renderer;
+    private chat: Chat;
     private inputHandler: InputHandler;
     private heartBeatSender: HeartBeatSender;
     private inputSender: InputSender;
     private cursor: Cursor;
-
-    private netObjectsSerializer: NetObjectsSerializer = null;
+    private fpsAvgCounter: AverageCounter = new AverageCounter(30);
 
     private localPlayer: Player = null;
     private localPlayerId: string = "";
 
     private timer: DeltaTimer = new DeltaTimer;
-    private deltaHistory: Array<number> = [];
 
     constructor() {
         this.connect();
@@ -68,66 +74,18 @@ export class GameClient {
         }
     }
 
-    private configureSocket() {
-        this.socket.on(SocketMsgs.FIRST_UPDATE_GAME, (data) => {
-            console.log("on FIRST_UPDATE_GAME");
-            this.onServerUpdate(data);
-
-            this.localPlayer = this.world.getGameObject(this.localPlayerId) as Player;
-            this.renderer.CameraFollower = this.localPlayer;
-            this.heartBeatSender.sendHeartBeat();
-
-            this.startGame();
-            this.socket.on(SocketMsgs.UPDATE_GAME, this.onServerUpdate.bind(this));
-
-        });
-        this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
-            console.log("on INITIALIZE_GAME");
-
-            this.localPlayerId = data['id'];
-            this.world = new GameWorld();
-            this.netObjectsSerializer = new NetObjectsSerializer(this.world.ChunksManager);
-            this.renderer.setMap();
-
-            this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
-            this.inputHandler = new InputHandler(this.cursor);
-
-            this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
-            this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
-                if(this.localPlayer) {
-                    this.localPlayer.setInput(snapshot);
-                }
-            });
-        });
-
-        this.socket.on(SocketMsgs.LAST_SNAPSHOT_DATA, (lastSnapshotData?: [number, number]) => {
-            if(this.localPlayer) {
-                this.localPlayer.LastServerSnapshotData = lastSnapshotData;
-            }
-        });
-
-        this.socket.on(SocketMsgs.ERROR, (err: string) => {
-            console.log(err);
-            // alert(err);
-        });
-    }
-
-    private startGame() {
-        this.startGameLoop();
-    }
-
+    // a = 0;
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
-        this.world.ChunksManager.clearUnusedChunks(this.localPlayer);
+        this.chunksManager.rebuild();
+        // this.a++;
+        // if(this.a%100 == 0) {
+        this.clearUnusedChunks();
+        // }
 
-        this.deltaHistory.push(delta);
-        if(this.deltaHistory.length > 30) this.deltaHistory.splice(0, 1);
-        let deltaAvg: number = 0;
-        this.deltaHistory.forEach((delta: number) => {
-            deltaAvg += delta;
-        });
-        deltaAvg /= this.deltaHistory.length;
+        let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
+
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
         DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
         DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
@@ -140,6 +98,59 @@ export class GameClient {
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
 
         requestAnimationFrame(this.startGameLoop.bind(this));
+    }
+
+    private configureSocket() {
+        this.socket.on(SocketMsgs.INITIALIZE_GAME, (data) => {
+            this.onInitializeGame(data);
+        });
+
+        this.socket.on(SocketMsgs.FIRST_UPDATE_GAME, (data) => {
+            this.onFirstUpdate(data);
+        });
+
+        this.socket.on(SocketMsgs.UPDATE_SNAPSHOT_DATA, (lastSnapshotData?: [number, number]) => {
+            this.onUpdateSnapshotData(lastSnapshotData);
+        });
+
+        this.socket.on(SocketMsgs.UPDATE_GAME, (data: any) => {
+            this.onServerUpdate(data);
+        });
+
+        this.socket.on(SocketMsgs.ERROR, (errorMessage: string) => {
+            console.log("Server error: " + errorMessage);
+        });
+    }
+
+    private onInitializeGame(data: any) {
+        this.localPlayerId = data['id'];
+        this.chunksManager = new ChunksManager();
+        this.world = new GameWorld();
+
+        this.renderer.ChunksManager = this.chunksManager;
+        this.netObjectsSerializer = new NetObjectsSerializer(this.chunksManager);
+
+        this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
+
+        this.inputHandler = new InputHandler(this.cursor);
+
+        this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
+        this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
+            if(this.localPlayer) {
+                this.localPlayer.setInput(snapshot);
+            }
+        });
+    }
+
+    private onFirstUpdate(data: any) {
+        this.onServerUpdate(data);
+
+        this.localPlayer = this.world.getGameObject(this.localPlayerId) as Player;
+        this.renderer.FocusedObject = this.localPlayer;
+
+        this.heartBeatSender.sendHeartBeat(); //move to INITIALIZE_GAME ??
+
+        this.startGameLoop();
     }
 
     private onServerUpdate(updateBuffer: Array<ArrayBuffer> | ArrayBuffer) {
@@ -155,6 +166,32 @@ export class GameClient {
         } else {
             let updateBufferView: DataView = new DataView(updateBuffer[1]);
             this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+        }
+    }
+
+    private onUpdateSnapshotData(lastSnapshotData?: [number, number]) {
+        if(this.localPlayer) {
+            this.localPlayer.LastServerSnapshotData = lastSnapshotData;
+        }
+    }
+
+    private clearUnusedChunks() {
+        let chunks: Chunk[][] = this.chunksManager.Chunks;
+        let playerChunks: Array<Chunk> = [this.chunksManager.getObjectChunk(this.localPlayer)];
+        playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
+
+        // playerChunks[0].Neighbors.forEach((chunkNeighbor: Chunk) => {
+        //     playerChunks.concat(chunkNeighbor.Neighbors);
+        // });
+
+        for(let i: number = 0; i < chunks.length; i++) {
+            for (let j: number = 0; j < chunks.length; j++) {
+                if(playerChunks.indexOf(chunks[i][j]) == -1) {
+                    while (chunks[i][j].Objects.length) {
+                        chunks[i][j].Objects[0].destroy();
+                    }
+                }
+            }
         }
     }
 }

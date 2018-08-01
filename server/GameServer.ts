@@ -2,19 +2,19 @@ import * as SocketIO from 'socket.io';
 
 import {ServerClient} from "./ServerClient";
 import {GameWorld} from "../common/GameWorld";
-import {Player} from "../common/utils/game/Player";
+import {Player} from "../common/game_utils/game/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
 import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
-import {GameObject} from "../common/utils/game/GameObject";
+import {GameObject} from "../common/game_utils/game/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../common/net/SocketMsgs";
-import {GameObjectsFactory} from "../common/utils/factory/ObjectsFactory";
+import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
 import {DeltaTimer} from "../common/DeltaTimer";
-import {Obstacle} from "../common/utils/game/Obstacle";
+import {Obstacle} from "../common/game_utils/game/Obstacle";
 import {Database, IUserModel} from "./database/Database";
-import {Enemy} from "../common/utils/game/Enemy";
-import {Item} from "../common/utils/game/Item";
-import {Chunk, ChunksManager} from "../common/utils/Chunks";
+import {Enemy} from "../common/game_utils/game/Enemy";
+import {Item} from "../common/game_utils/game/Item";
+import {Chunk, ChunksManager} from "../common/game_utils/Chunks";
 import {CommonConfig} from "../common/CommonConfig";
 
 
@@ -22,9 +22,12 @@ export class GameServer {
     private sockets: SocketIO.Server;
     private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
     private socketsIds: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
-    private netObjectsSerializer: NetObjectsSerializer = null;
+
 
     private world: GameWorld;
+    private chunksManager: ChunksManager;
+
+    private netObjectsSerializer: NetObjectsSerializer = null;
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -37,7 +40,8 @@ export class GameServer {
 
     private startGame() {
         this.world = new GameWorld();
-        this.netObjectsSerializer = new NetObjectsSerializer(this.world.ChunksManager);
+        this.chunksManager = new ChunksManager();
+        this.netObjectsSerializer = new NetObjectsSerializer(this.chunksManager);
 
         // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
         //     if(gameObject instanceof Actor) {
@@ -58,6 +62,7 @@ export class GameServer {
         this.checkDisconnectInterval(delta);
 
         this.world.update(delta);
+        this.chunksManager.rebuild();
 
         setTimeout(() => {
             this.startGameLoop();
@@ -154,7 +159,7 @@ export class GameServer {
     }
 
     private sendUpdate(updateBuffer: Map<Chunk, ArrayBuffer>) {
-        let chunksManager: ChunksManager = this.world.ChunksManager;
+        let chunksManager: ChunksManager = this.chunksManager;
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
                 let player: Player = this.world.getGameObject(client.PlayerId) as Player;
@@ -181,7 +186,7 @@ export class GameServer {
 
                 let snapshot: InputSnapshot = player.LastInputSnapshot;
                 if(snapshot && snapshot.isMoving()) {
-                    client.Socket.emit(SocketMsgs.LAST_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
+                    client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }
                 if(updateArray.length > 0) {
                     client.Socket.emit(SocketMsgs.UPDATE_GAME, updateArray);
@@ -193,7 +198,7 @@ export class GameServer {
     private collectAndSendUpdate(complete: boolean = false) {
         this.sendUpdate(this.netObjectsSerializer.collectUpdate(complete));
 
-        let chunks: Chunk[][] = this.world.ChunksManager.Chunks;
+        let chunks: Chunk[][] = this.chunksManager.Chunks;
         for(let i = 0; i < chunks.length; i++) {
             for (let j = 0; j < chunks[i].length; j++) {
                 chunks[i][j].resetHasNewComers();
@@ -227,15 +232,15 @@ export class GameServer {
 
         for (let i = 0; i < 500; i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = Math.random() * CommonConfig.numOfChunksX * CommonConfig.chunkSize;
-            o.Transform.Y = Math.random() * CommonConfig.numOfChunksY * CommonConfig.chunkSize;
+            o.Transform.X = this.getRandomInsideMap();
+            o.Transform.Y = this.getRandomInsideMap();
 
             if (i % 100 == 0) {
                 console.log(i)
             }
         }
 
-        let chuj = 0;
+        let wallsCounter = 0;
         for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = i * 32;
@@ -245,11 +250,11 @@ export class GameServer {
             o.Transform.X = i * 32;
             o.Transform.Y = CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32;
 
-            chuj += 2;
+            wallsCounter += 2;
         }
 
         for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
-            chuj += 2;
+            wallsCounter += 2;
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = 0;
             o.Transform.Y = i * 32;
@@ -259,7 +264,7 @@ export class GameServer {
             o.Transform.Y = i * 32;
         }
 
-        console.log("chuj " + chuj);
+        console.log("wallsCounter " + wallsCounter);
 
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {
@@ -275,7 +280,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 300; i++) {
+        for (let i = 0; i < 0; i++) {
             spawnEnemy();
         }
 

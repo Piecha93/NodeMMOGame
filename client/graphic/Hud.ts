@@ -8,7 +8,7 @@ export class HUD extends PIXI.Container {
         // this.sprites = [];
         //
         // for(let i = 0; i < 6; i++) {
-        //     let sprite: PIXI.Sprite = new PIXI.Sprite(PIXI.utils.TextureCache["white"]);
+        //     let sprite: PIXI.Sprite = new PIXI.Sprite(PIXI.game_utils.TextureCache["white"]);
         //     this.addChild(sprite);
         //
         //     sprite.alpha = 0.1;

@@ -1,7 +1,7 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
-import {GameObject} from "../../common/utils/game/GameObject";
-import {Transform} from "../../common/utils/physics/Transform";
+import {GameObject} from "../../common/game_utils/game/GameObject";
+import {Transform} from "../../common/game_utils/physics/Transform";
 
 export abstract class GameObjectRender extends PIXI.Container {
     protected objectRef: GameObject;

@@ -1,7 +1,7 @@
 import {GameObjectRender} from "./GameObjectRender";
-import {GameObject} from "../../common/utils/game/GameObject";
+import {GameObject} from "../../common/game_utils/game/GameObject";
 import {ResourcesLoader, Resource, ResourceType} from "../graphic/ResourcesLoader";
-import {Actor} from "../../common/utils/game/Actor";
+import {Actor} from "../../common/game_utils/game/Actor";
 
 export class GameObjectAnimationRender extends GameObjectRender {
     private animation: PIXI.extras.AnimatedSprite;

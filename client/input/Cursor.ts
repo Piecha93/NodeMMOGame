@@ -1,6 +1,6 @@
-import {Transform} from "../../common/utils/physics/Transform";
-import {GameObject} from "../../common/utils/game/GameObject";
-import {Enemy} from "../../common/utils/game/Enemy";
+import {Transform} from "../../common/game_utils/physics/Transform";
+import {GameObject} from "../../common/game_utils/game/GameObject";
+import {Enemy} from "../../common/game_utils/game/Enemy";
 import {Result} from "detect-collisions";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 

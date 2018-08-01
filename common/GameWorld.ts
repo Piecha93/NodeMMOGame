@@ -1,7 +1,7 @@
-import {GameObject} from "./utils/game/GameObject";
-import {GameObjectsSubscriber} from "./utils/factory/GameObjectsSubscriber";
-import {CollisionsSystem} from "./utils/physics/CollisionsSystem";
-import {ChunksManager} from "../common/utils/Chunks";
+import {GameObject} from "./game_utils/game/GameObject";
+import {GameObjectsSubscriber} from "./game_utils/factory/GameObjectsSubscriber";
+import {CollisionsSystem} from "./game_utils/physics/CollisionsSystem";
+import {ChunksManager} from "./game_utils/Chunks";
 
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: CollisionsSystem = new CollisionsSystem();
@@ -33,8 +33,6 @@ export class GameWorld extends GameObjectsSubscriber {
         if(delta > 0) {
             console.log("lost ms " + delta);
         }
-
-        this.chunksManager.rebuild(this.GameObjectsMapById);
     }
 
     public onObjectCreate(gameObject: GameObject) {
@@ -43,16 +41,10 @@ export class GameWorld extends GameObjectsSubscriber {
 
     public onObjectDestroy(gameObject: GameObject) {
         this.collistionsSystem.removeObject(gameObject);
-
-        this.chunksManager.remove(gameObject);
     }
 
     get CollisionsSystem(): CollisionsSystem {
         return this.collistionsSystem;
-    }
-
-    get ChunksManager(): ChunksManager {
-        return this.chunksManager;
     }
 
     deserialize(world: string) {

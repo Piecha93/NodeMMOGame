@@ -1,6 +1,6 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
-import {GameObject} from "../../common/utils/game/GameObject";
+import {GameObject} from "../../common/game_utils/game/GameObject";
 import {GameObjectRender} from "../graphic/GameObjectRender";
 
 export class GameObjectSpriteRender extends GameObjectRender {

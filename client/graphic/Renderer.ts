@@ -1,17 +1,19 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
-import {GameObject} from "../../common/utils/game/GameObject";
-import {GameObjectsSubscriber} from "../../common/utils/factory/GameObjectsSubscriber";
+import {GameObject} from "../../common/game_utils/game/GameObject";
+import {GameObjectsSubscriber} from "../../common/game_utils/factory/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {Camera} from "./Camera";
 import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
 import {TileMap} from "./TileMap";
 import Sprite = PIXI.Sprite;
-import {Types} from "../../common/utils/factory/GameObjectTypes";
+import {Types} from "../../common/game_utils/factory/GameObjectTypes";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
+import {Player} from "../../common/game_utils/game/Player";
+import {ChunksManager} from "../../common/game_utils/Chunks";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -22,9 +24,11 @@ export class Renderer extends GameObjectsSubscriber {
     private map: TileMap;
     private hud: HUD;
     private resourcesLoader: ResourcesLoader;
+    private focusedObject: GameObject;
+    private chunksManager: ChunksManager;
 
-    static WIDTH: number = 1024;
-    static HEIGHT: number = 576;
+    static WIDTH: number = 1024 * 5;
+    static HEIGHT: number = 576 * 5;
 
     constructor(afterCreateCallback: Function) {
         super();
@@ -32,7 +36,7 @@ export class Renderer extends GameObjectsSubscriber {
                   view:  document.getElementById("game-canvas") as HTMLCanvasElement,
                   antialias: false,
                   transparent: false,
-                  resolution: 1,
+                  resolution: 0.2,
                   clearBeforeRender: false
         });
 
@@ -40,6 +44,8 @@ export class Renderer extends GameObjectsSubscriber {
 
         this.camera = new Camera(new PIXI.Point(333,333));
         this.camera.addChild(this.rootContainer);
+        this.focusedObject = null;
+        this.chunksManager = null;
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
@@ -63,7 +69,12 @@ export class Renderer extends GameObjectsSubscriber {
         this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourceType.OCTAGONAL_ANIMATION);
         this.resourcesLoader.registerResource('terrain', 'resources/maps/terrain.png', ResourceType.SPRITE);
 
-        this.resourcesLoader.load(afterCreateCallback);
+        this.resourcesLoader.load(() => {
+            this.map = new TileMap();
+            this.rootContainer.addChild(this.map);
+
+            afterCreateCallback();
+        });
     }
 
     public createHUD() {
@@ -97,17 +108,13 @@ export class Renderer extends GameObjectsSubscriber {
             gameObjectRender.update();
         });
 
+        this.map.update();
+
         this.hideNotVisibleObjects();
         this.camera.update();
 
         this.renderer.render(this.camera);
         this.renderer.render(this.hud);
-    }
-
-    public setMap(map?: number[][]) {
-        this.map = new TileMap();
-
-        this.rootContainer.addChild(this.map);
     }
 
     public onObjectCreate(gameObject: GameObject) {
@@ -133,8 +140,15 @@ export class Renderer extends GameObjectsSubscriber {
         this.renderObjects.delete(gameObject);
     }
 
-    set CameraFollower(gameObject: GameObject) {
+    set FocusedObject(gameObject: GameObject) {
         this.camera.Follower = this.renderObjects.get(gameObject).position;
+        this.map.FocusedObject = gameObject;
+        this.focusedObject = gameObject;
+    }
+
+    set ChunksManager(chunksManager: ChunksManager) {
+        this.map.ChunksManager = chunksManager;
+        this.chunksManager = chunksManager;
     }
 
     get CameraDeviation(): [number, number] {

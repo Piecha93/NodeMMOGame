@@ -1,5 +1,5 @@
-import {Player} from "../../common/utils/game/Player";
-import {GameObject} from "../../common/utils/game/GameObject";
+import {Player} from "../../common/game_utils/game/Player";
+import {GameObject} from "../../common/game_utils/game/GameObject";
 import {GameObjectAnimationRender} from "../graphic/GameObjectAnimationRender";
 
 export class PlayerRender extends GameObjectAnimationRender {

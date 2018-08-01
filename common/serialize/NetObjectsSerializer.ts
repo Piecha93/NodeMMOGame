@@ -1,11 +1,11 @@
-import {GameObject} from "../utils/game/GameObject";
-import {GameObjectsSubscriber} from "../utils/factory/GameObjectsSubscriber";
+import {GameObject} from "../game_utils/game/GameObject";
+import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
 import {CommonConfig} from "../CommonConfig";
-import {CollisionsSystem} from "../utils/physics/CollisionsSystem";
-import {Player} from "../utils/game/Player";
-import {GameObjectsFactory} from "../utils/factory/ObjectsFactory";
-import {Types} from "../utils/factory/GameObjectTypes";
-import {Chunk, ChunksManager} from "../utils/Chunks";
+import {CollisionsSystem} from "../game_utils/physics/CollisionsSystem";
+import {Player} from "../game_utils/game/Player";
+import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
+import {Types} from "../game_utils/factory/GameObjectTypes";
+import {Chunk, ChunksManager} from "../game_utils/Chunks";
 
 export class NetObjectsSerializer extends GameObjectsSubscriber {
     private static OBJECT_ID_BYTES_LEN = 5;
