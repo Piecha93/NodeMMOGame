@@ -1,15 +1,12 @@
 import {GameObject} from "./game_utils/game/GameObject";
 import {GameObjectsSubscriber} from "./game_utils/factory/GameObjectsSubscriber";
 import {CollisionsSystem} from "./game_utils/physics/CollisionsSystem";
-import {ChunksManager} from "./game_utils/Chunks";
 
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: CollisionsSystem = new CollisionsSystem();
-    private chunksManager: ChunksManager;
 
     constructor() {
         super();
-        this.chunksManager = new ChunksManager();
 
         console.log("create game instance");
     }
@@ -45,9 +42,5 @@ export class GameWorld extends GameObjectsSubscriber {
 
     get CollisionsSystem(): CollisionsSystem {
         return this.collistionsSystem;
-    }
-
-    deserialize(world: string) {
-
     }
 }

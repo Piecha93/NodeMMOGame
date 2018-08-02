@@ -20,14 +20,15 @@ import {CommonConfig} from "../common/CommonConfig";
 
 export class GameServer {
     private sockets: SocketIO.Server;
+
     private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
-    private socketsIds: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
+    private userIdToSocketMap: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
 
-
-    private world: GameWorld;
-    private chunksManager: ChunksManager;
-
+    private world: GameWorld = null;
+    private chunksManager: ChunksManager = null;
     private netObjectsSerializer: NetObjectsSerializer = null;
+
+    private deltaTimer: DeltaTimer = new DeltaTimer();
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -55,10 +56,9 @@ export class GameServer {
         this.startGameLoop();
         this.startUpdateLoop();
     }
-    timer: DeltaTimer = new DeltaTimer();
 
     private startGameLoop() {
-        let delta: number = this.timer.getDelta();
+        let delta: number = this.deltaTimer.getDelta();
         this.checkDisconnectInterval(delta);
 
         this.world.update(delta);
@@ -89,15 +89,15 @@ export class GameServer {
         this.sockets.on(SocketMsgs.CONNECTION, (socket: SocketIO.Server) => {
             let socketSession = (socket as any).request.session;
 
-            if(this.socketsIds.has(socketSession.user_id)) {
-                let client: ServerClient = this.clients.get(this.socketsIds.get(socketSession.user_id));
+            if(this.userIdToSocketMap.has(socketSession.user_id)) {
+                let client: ServerClient = this.clients.get(this.userIdToSocketMap.get(socketSession.user_id));
                 this.clientDisconnected(client, "You have connected from another browser");
-                this.socketsIds.delete(socketSession.user_id);
+                this.userIdToSocketMap.delete(socketSession.user_id);
             }
 
             let serverClient: ServerClient = new ServerClient(socket);
             this.clients.set(socket, serverClient);
-            this.socketsIds.set(socketSession.user_id, socket);
+            this.userIdToSocketMap.set(socketSession.user_id, socket);
 
             if(socketSession.user_id.substring(0, 5) == "Guest") {
                 serverClient.Name = socketSession.user_id;
@@ -158,8 +158,7 @@ export class GameServer {
         });
     }
 
-    private sendUpdate(updateBuffer: Map<Chunk, ArrayBuffer>) {
-        let chunksManager: ChunksManager = this.chunksManager;
+    private sendUpdate(chunksUpdate: Map<Chunk, ArrayBuffer>) {
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
                 let player: Player = this.world.getGameObject(client.PlayerId) as Player;
@@ -167,20 +166,24 @@ export class GameServer {
                     return;
                 }
 
-                let chunk: Chunk = chunksManager.getObjectChunk(player);
+                let chunk: Chunk = this.chunksManager.getObjectChunk(player);
 
                 if(!chunk) {
                     return;
                 }
 
+                let collectedChunks = [];
+
                 let updateArray: Array<ArrayBuffer> = [];
-                if(updateBuffer.get(chunk).byteLength > 1) {
-                    updateArray.push(updateBuffer.get(chunk));
+                collectedChunks.push(chunksUpdate.get(chunk).byteLength);
+                if(chunksUpdate.get(chunk).byteLength > 0) {
+                    updateArray.push(chunksUpdate.get(chunk));
                 }
 
                 chunk.Neighbors.forEach((chunkNeighbor: Chunk) => {
-                    if(updateBuffer.get(chunkNeighbor).byteLength > 1) {
-                        updateArray.push(updateBuffer.get(chunkNeighbor));
+                    if(chunksUpdate.get(chunkNeighbor).byteLength > 0) {
+                        updateArray.push(chunksUpdate.get(chunkNeighbor));
+                        collectedChunks.push(chunksUpdate.get(chunkNeighbor).byteLength);
                     }
                 });
 
@@ -230,7 +233,7 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 10000; i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = this.getRandomInsideMap();
             o.Transform.Y = this.getRandomInsideMap();
@@ -280,7 +283,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 0; i++) {
+        for (let i = 0; i < 500; i++) {
             spawnEnemy();
         }
 
@@ -294,7 +297,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 150; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

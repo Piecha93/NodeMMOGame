@@ -60,11 +60,16 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
         let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
 
         let chunks: Chunk[][] = this.chunksManager.Chunks;
+
+        let collectedChunks = [];
         for(let i = 0; i < chunks.length; i++) {
             for (let j = 0; j < chunks[i].length; j++) {
                 let chunk: Chunk = chunks[i][j];
                 //no need to send update from chunk, that doesnt have players
                 if (!chunk.HasPlayersInNeighborhood) {
+
+                    //no need to keep leavers if there is no one to send them
+                    chunk.resetLeavers();
                     continue;
                 }
 
@@ -72,6 +77,8 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                 let chunkCompleteUpdate: boolean = complete || chunk.HasNewcomersInNeighborhood;
                 let neededBufferSize: number = 0;
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
+
+                collectedChunks.push([i, j, chunkCompleteUpdate]);
 
                 chunk.Objects.forEach((gameObject: GameObject) => {
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
@@ -118,8 +125,8 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                     });
                 }
 
-                this.destroyedObjects.set(chunk, []);
                 chunk.resetLeavers();
+                this.destroyedObjects.set(chunk, []);
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }

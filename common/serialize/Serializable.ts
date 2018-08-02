@@ -1,6 +1,6 @@
 import {PropNames} from "./NetworkDecorators";
 import {CommonConfig} from "../CommonConfig";
-import {maskByteSize, setBit} from "../game_utils/functions/BitOperations";
+import {maskByteSize, setBit} from "../utils/functions/BitOperations";
 
 export enum SerializableTypes {
     Int8,

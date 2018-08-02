@@ -2035,7 +2035,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../common/net/SocketMsgs":49,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
+},{"../common/net/SocketMsgs":48,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2096,7 +2096,7 @@ class GameClient {
         this.world.update(delta);
         this.chunksManager.rebuild();
         // this.a++;
-        // if(this.a%100 == 0) {
+        // if(this.a%1000 == 0) {
         this.clearUnusedChunks();
         // }
         let deltaAvg = this.fpsAvgCounter.calculate(delta);
@@ -2149,19 +2149,19 @@ class GameClient {
         this.heartBeatSender.sendHeartBeat(); //move to INITIALIZE_GAME ??
         this.startGameLoop();
     }
-    onServerUpdate(updateBuffer) {
+    onServerUpdate(update) {
         // nasty hack to satisfy typescript compiler (dont know how to fix it xD)
         // socket update may come as [0, ArrayBuffer] or [0, [0, ArrayBuffer], ..., [0, ArrayBuffer]]
-        if (updateBuffer[0] instanceof Array) {
-            if (updateBuffer instanceof Array) {
-                for (let i = 0; i < updateBuffer.length; i++) {
-                    let updateBufferView = new DataView(updateBuffer[i][1]);
+        if (update[0] instanceof Array) {
+            if (update instanceof Array) {
+                for (let i = 0; i < update.length; i++) {
+                    let updateBufferView = new DataView(update[i][1]);
                     this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
                 }
             }
         }
         else {
-            let updateBufferView = new DataView(updateBuffer[1]);
+            let updateBufferView = new DataView(update[1]);
             this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
         }
     }
@@ -2181,6 +2181,7 @@ class GameClient {
             for (let j = 0; j < chunks.length; j++) {
                 if (playerChunks.indexOf(chunks[i][j]) == -1) {
                     while (chunks[i][j].Objects.length) {
+                        // console.log("destro " + chunks[i][j].Objects[0].ID + " from chunk " + [i, j] );
                         chunks[i][j].Objects[0].destroy();
                     }
                 }
@@ -2190,7 +2191,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":27,"../common/GameWorld":28,"../common/game_utils/Chunks":29,"../common/game_utils/factory/ObjectsFactory":33,"../common/game_utils/physics/Transform":46,"../common/net/SocketMsgs":49,"../common/serialize/NetObjectsSerializer":51,"../common/utils/AverageCounter":54,".//net/InputSender":25,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":17,"./input/Cursor":20,"./input/InputHandler":21,"./net/HeartBeatSender":24,"socket.io-client":96,"socket.io-msgpack-parser":103}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":27,"../common/GameWorld":28,"../common/game_utils/Chunks":29,"../common/game_utils/factory/ObjectsFactory":33,"../common/game_utils/physics/Transform":45,"../common/net/SocketMsgs":48,"../common/serialize/NetObjectsSerializer":50,"../common/utils/AverageCounter":53,".//net/InputSender":25,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":17,"./input/Cursor":20,"./input/InputHandler":21,"./net/HeartBeatSender":24,"socket.io-client":96,"socket.io-msgpack-parser":103}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2545,7 +2546,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 0.2,
+            resolution: 1,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2641,8 +2642,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024 * 5;
-Renderer.HEIGHT = 576 * 5;
+Renderer.WIDTH = 1024;
+Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
 },{"../../common/game_utils/factory/GameObjectTypes":31,"../../common/game_utils/factory/GameObjectsSubscriber":32,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
@@ -2722,20 +2723,42 @@ exports.ResourcesLoader = ResourcesLoader;
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const CommonConfig_1 = require("../../common/CommonConfig");
+function compareCoords(c1, c2) {
+    return c1[0] == c2[0] && c1[1] == c2[1];
+}
 class MapChunk extends PIXI.Container {
     constructor(x, y, sizeX, sizeY) {
         super();
+        this.initialized = false;
         this.x = x;
         this.y = y;
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.mapGrid = [];
-        for (let i = 0; i < this.sizeX; i++) {
-            this.mapGrid[i] = [];
-            for (let j = 0; j < this.sizeY; j++) {
-                this.mapGrid[i][j] = Math.floor(Math.random() * 12) * 32;
+        // for(let i = 0; i < this.sizeX; i++) {
+        //     this.mapGrid[i] = [];
+        //     for(let j = 0; j < this.sizeY; j++) {
+        //         this.mapGrid[i][j] = Math.floor(Math.random() * 12) * 32;
+        //     }
+        // }
+    }
+    initChunkTextures() {
+        let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(Math.floor(Math.random() * 12) * 32, Math.floor(Math.random() * 12) * 32, 32, 32));
+        for (let i = 0; i < this.sizeX / 32; i++) {
+            for (let j = 0; j < this.sizeY / 32; j++) {
+                // let texture: Texture = new PIXI.Texture(PIXI.game_utils.TextureCache['terrain'],
+                //     new PIXI.Rectangle(chunk.mapGrid[i][j], chunk.mapGrid[i][j], 32, 32));
+                let sprite = new PIXI.Sprite(texture);
+                sprite.x = i * 32;
+                sprite.y = j * 32;
+                this.addChild(sprite);
             }
         }
+        this.cacheAsBitmap = true;
+        this.initialized = true;
+    }
+    get Initialized() {
+        return this.initialized;
     }
 }
 class TileMap extends PIXI.Container {
@@ -2743,6 +2766,7 @@ class TileMap extends PIXI.Container {
         super();
         this.focusedObject = null;
         this.visibleMapChunks = new Map();
+        this.currentChunkCoords = [-1, -1];
         let numOfChunksX = CommonConfig_1.CommonConfig.numOfChunksX;
         let numOfChunksY = CommonConfig_1.CommonConfig.numOfChunksY;
         this.mapChunks = [];
@@ -2766,53 +2790,50 @@ class TileMap extends PIXI.Container {
                     }
                 }
                 this.mapChunks[i][j] = new MapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
-                this.setChunkTextures(this.mapChunks[i][j]);
             }
         }
-    }
-    setChunkTextures(chunk) {
-        let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(Math.floor(Math.random() * 12) * 32, Math.floor(Math.random() * 12) * 32, 32, 32));
-        for (let i = 0; i < chunk.sizeX / 32; i++) {
-            for (let j = 0; j < chunk.sizeY / 32; j++) {
-                // let texture: Texture = new PIXI.Texture(PIXI.game_utils.TextureCache['terrain'],
-                //     new PIXI.Rectangle(chunk.mapGrid[i][j], chunk.mapGrid[i][j], 32, 32));
-                let sprite = new PIXI.Sprite(texture);
-                sprite.x = i * 32;
-                sprite.y = j * 32;
-                chunk.addChild(sprite);
-            }
-        }
-        chunk.cacheAsBitmap = true;
     }
     updateVisibleChunks() {
-        // console.log(":OOOOOOOOOOOO" + this.focusedObject);
         let chunk = this.chunksManager.getObjectChunk(this.focusedObject);
-        // console.log("XDDDDDDDDD");
         if (!chunk) {
-            // console.log("Chunk not found");
             return;
         }
         let newChunkCoords = [chunk.x, chunk.y];
-        // console.log("new coords " + newChunkCoords);
-        if (newChunkCoords == this.currentChunkCoords) {
-            // console.log("coords not changed");
+        if (compareCoords(newChunkCoords, this.currentChunkCoords)) {
             return;
         }
-        this.visibleMapChunks.forEach((mapChunk, coord) => {
-            // console.log("remove " + coord);
-            this.removeChild(mapChunk);
-        });
-        this.visibleMapChunks.clear();
         this.currentChunkCoords = newChunkCoords;
-        this.addToVisibleMapChunks(this.currentChunkCoords);
+        let newCoordsArr = [];
+        newCoordsArr.push(newChunkCoords);
         chunk.neighbors.forEach((chunkNeighbor) => {
-            // console.log("add coords " + [chunkNeighbor.x, chunkNeighbor.y]);
-            this.addToVisibleMapChunks([chunkNeighbor.x, chunkNeighbor.y]);
+            newCoordsArr.push([chunkNeighbor.x, chunkNeighbor.y]);
+        });
+        this.visibleMapChunks.forEach((mapChunk, coords) => {
+            let idx = -1;
+            for (let i = 0; i < newCoordsArr.length; i++) {
+                if (compareCoords(newCoordsArr[i], coords)) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx == -1) {
+                this.removeChild(mapChunk);
+                this.visibleMapChunks.delete(coords);
+            }
+            else {
+                newCoordsArr.splice(idx, 1);
+            }
+        });
+        newCoordsArr.forEach((coords) => {
+            this.addToVisibleMapChunks(coords);
         });
     }
     addToVisibleMapChunks(coords) {
         let mapChunk = this.mapChunks[coords[0]][coords[1]];
         this.visibleMapChunks.set(coords, mapChunk);
+        if (!mapChunk.Initialized) {
+            mapChunk.initChunkTextures();
+        }
         this.addChild(mapChunk);
     }
     set FocusedObject(gameObject) {
@@ -2856,7 +2877,7 @@ class Cursor extends GameObject_1.GameObject {
 }
 exports.Cursor = Cursor;
 
-},{"../../common/game_utils/game/Enemy":36,"../../common/game_utils/game/GameObject":38,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],21:[function(require,module,exports){
+},{"../../common/game_utils/game/Enemy":35,"../../common/game_utils/game/GameObject":37,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -2991,7 +3012,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../common/input/InputCommands":47,"../../common/input/InputSnapshot":48,"./InputMap":22}],22:[function(require,module,exports){
+},{"../../common/input/InputCommands":46,"../../common/input/InputSnapshot":47,"./InputMap":22}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -3062,7 +3083,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../common/net/SocketMsgs":49,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],25:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":48,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -3080,7 +3101,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../common/net/SocketMsgs":49}],26:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":48}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -3106,8 +3127,8 @@ class CommonConfig {
     }
 }
 CommonConfig.chunkSize = 960;
-CommonConfig.numOfChunksX = 10;
-CommonConfig.numOfChunksY = 10;
+CommonConfig.numOfChunksX = 50;
+CommonConfig.numOfChunksY = 50;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
@@ -3136,12 +3157,10 @@ exports.DeltaTimer = DeltaTimer;
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
 const CollisionsSystem_1 = require("./game_utils/physics/CollisionsSystem");
-const Chunks_1 = require("./game_utils/Chunks");
 class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
         this.collistionsSystem = new CollisionsSystem_1.CollisionsSystem();
-        this.chunksManager = new Chunks_1.ChunksManager();
         console.log("create game instance");
     }
     update(delta) {
@@ -3170,12 +3189,10 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     get CollisionsSystem() {
         return this.collistionsSystem;
     }
-    deserialize(world) {
-    }
 }
 exports.GameWorld = GameWorld;
 
-},{"./game_utils/Chunks":29,"./game_utils/factory/GameObjectsSubscriber":32,"./game_utils/physics/CollisionsSystem":45}],29:[function(require,module,exports){
+},{"./game_utils/factory/GameObjectsSubscriber":32,"./game_utils/physics/CollisionsSystem":44}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./factory/GameObjectsSubscriber");
@@ -3409,7 +3426,7 @@ class Chunk {
 }
 exports.Chunk = Chunk;
 
-},{"../CommonConfig":26,"./factory/GameObjectsSubscriber":32,"./game/Player":42}],30:[function(require,module,exports){
+},{"../CommonConfig":26,"./factory/GameObjectsSubscriber":32,"./game/Player":41}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -3453,7 +3470,7 @@ class Types {
 Types.ClassNamesToId = new Map();
 Types.IdToClassNames = new Map();
 Types.ClassNamesToTypes = new Map();
-Types.shortIdCounter = 1;
+Types.shortIdCounter = 65;
 Types.RegisterGameObject = function (gameObjectType) {
     Types.ClassNamesToTypes.set(gameObjectType.name, gameObjectType);
     let shortId;
@@ -3469,7 +3486,7 @@ Types.RegisterGameObject(Item_1.Item);
 Types.RegisterGameObject(FireBall_1.FireBall);
 Types.RegisterGameObject(Portal_1.Portal);
 
-},{"../game/Enemy":36,"../game/FireBall":37,"../game/Item":39,"../game/Obstacle":41,"../game/Player":42,"../game/Portal":43}],32:[function(require,module,exports){
+},{"../game/Enemy":35,"../game/FireBall":36,"../game/Item":38,"../game/Obstacle":40,"../game/Player":41,"../game/Portal":42}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3545,20 +3562,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":46,"./GameObjectTypes":31}],34:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function maskByteSize(num) {
-    return Math.ceil(num / 8);
-}
-exports.maskByteSize = maskByteSize;
-function setBit(val, bitIndex) {
-    val |= (1 << bitIndex);
-    return val;
-}
-exports.setBit = setBit;
-
-},{}],35:[function(require,module,exports){
+},{"../physics/Transform":45,"./GameObjectTypes":31}],34:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3714,7 +3718,7 @@ __decorate([
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
-},{"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":52,"../../serialize/Serializable":53,"./FireBall":37,"./GameObject":38,"./Item":39,"./Obstacle":41}],36:[function(require,module,exports){
+},{"../../serialize/ChangesDict":49,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":52,"./FireBall":36,"./GameObject":37,"./Item":38,"./Obstacle":40}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3751,7 +3755,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../serialize/ChangesDict":50,"./Actor":35,"./MagicWand":40}],37:[function(require,module,exports){
+},{"../../serialize/ChangesDict":49,"./Actor":34,"./MagicWand":39}],36:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3827,7 +3831,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":52,"../../serialize/Serializable":53,"./Actor":35,"./Obstacle":41,"./Projectile":44}],38:[function(require,module,exports){
+},{"../../serialize/ChangesDict":49,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":52,"./Actor":34,"./Obstacle":40,"./Projectile":43}],37:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3948,7 +3952,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../CommonConfig":26,"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":52,"../../serialize/Serializable":53,"../ResourcesMap":30,"../physics/Transform":46}],39:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../serialize/ChangesDict":49,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":52,"../ResourcesMap":30,"../physics/Transform":45}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -3981,7 +3985,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./GameObject":38}],40:[function(require,module,exports){
+},{"./GameObject":37}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../factory/ObjectsFactory");
@@ -4001,7 +4005,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../factory/ObjectsFactory":33,"../physics/Transform":46}],41:[function(require,module,exports){
+},{"../factory/ObjectsFactory":33,"../physics/Transform":45}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4030,7 +4034,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":38}],42:[function(require,module,exports){
+},{"./GameObject":37}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../input/InputCommands");
@@ -4175,7 +4179,7 @@ Player.onlyServerActions = new Set([
 ]);
 exports.Player = Player;
 
-},{"../../CommonConfig":26,"../../input/InputCommands":47,"../../serialize/ChangesDict":50,"./Actor":35,"./MagicWand":40}],43:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../input/InputCommands":46,"../../serialize/ChangesDict":49,"./Actor":34,"./MagicWand":39}],42:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4262,7 +4266,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":52,"../../serialize/Serializable":53,"./Actor":35,"./GameObject":38,"./Obstacle":41}],44:[function(require,module,exports){
+},{"../../serialize/ChangesDict":49,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":52,"./Actor":34,"./GameObject":37,"./Obstacle":40}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4286,7 +4290,7 @@ class Projectile extends GameObject_1.GameObject {
 }
 exports.Projectile = Projectile;
 
-},{"./GameObject":38}],45:[function(require,module,exports){
+},{"./GameObject":37}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4334,7 +4338,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../game/Obstacle":41,"detect-collisions":63}],46:[function(require,module,exports){
+},{"../game/Obstacle":40,"detect-collisions":63}],45:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4463,7 +4467,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":52,"../../serialize/Serializable":53,"detect-collisions":63}],47:[function(require,module,exports){
+},{"../../serialize/ChangesDict":49,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":52,"detect-collisions":63}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -4480,7 +4484,7 @@ var INPUT_COMMAND;
 //     ["W", INPUT_COMMAND.WALL],
 // ]);
 
-},{}],48:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -4539,7 +4543,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../DeltaTimer":27,"../input/InputCommands":47}],49:[function(require,module,exports){
+},{"../DeltaTimer":27,"../input/InputCommands":46}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class SocketMsgs {
@@ -4559,7 +4563,7 @@ SocketMsgs.UPDATE_SNAPSHOT_DATA = '9';
 SocketMsgs.ERROR = '10';
 exports.SocketMsgs = SocketMsgs;
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // TODO make function to get next character automatically
@@ -4588,7 +4592,7 @@ ChangesDict.ROTATION = "ROTATION";
 ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -4631,17 +4635,21 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
     collectUpdate(complete = false) {
         let chunksUpdate = new Map();
         let chunks = this.chunksManager.Chunks;
+        let collectedChunks = [];
         for (let i = 0; i < chunks.length; i++) {
             for (let j = 0; j < chunks[i].length; j++) {
                 let chunk = chunks[i][j];
                 //no need to send update from chunk, that doesnt have players
                 if (!chunk.HasPlayersInNeighborhood) {
+                    //no need to keep leavers if there is no one to send them
+                    chunk.resetLeavers();
                     continue;
                 }
                 //if chunk has new players inside we need to send complete update to them
                 let chunkCompleteUpdate = complete || chunk.HasNewcomersInNeighborhood;
                 let neededBufferSize = 0;
                 let objectsToUpdateMap = new Map();
+                collectedChunks.push([i, j, chunkCompleteUpdate]);
                 chunk.Objects.forEach((gameObject) => {
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
@@ -4679,8 +4687,8 @@ class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber
                         destrotObjectsOffset += 5;
                     });
                 }
-                this.destroyedObjects.set(chunk, []);
                 chunk.resetLeavers();
+                this.destroyedObjects.set(chunk, []);
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }
@@ -4724,7 +4732,7 @@ NetObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
 NetObjectsSerializer.DESTROY_OBJECTS_ID = 255;
 exports.NetObjectsSerializer = NetObjectsSerializer;
 
-},{"../CommonConfig":26,"../game_utils/factory/GameObjectTypes":31,"../game_utils/factory/GameObjectsSubscriber":32,"../game_utils/factory/ObjectsFactory":33}],52:[function(require,module,exports){
+},{"../CommonConfig":26,"../game_utils/factory/GameObjectTypes":31,"../game_utils/factory/GameObjectsSubscriber":32,"../game_utils/factory/ObjectsFactory":33}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -4894,12 +4902,12 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":53}],53:[function(require,module,exports){
+},{"./Serializable":52}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
 const CommonConfig_1 = require("../CommonConfig");
-const BitOperations_1 = require("../game_utils/functions/BitOperations");
+const BitOperations_1 = require("../utils/functions/BitOperations");
 var SerializableTypes;
 (function (SerializableTypes) {
     SerializableTypes[SerializableTypes["Int8"] = 0] = "Int8";
@@ -5068,7 +5076,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../CommonConfig":26,"../game_utils/functions/BitOperations":34,"./NetworkDecorators":52}],54:[function(require,module,exports){
+},{"../CommonConfig":26,"../utils/functions/BitOperations":54,"./NetworkDecorators":51}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {
@@ -5094,6 +5102,19 @@ class AverageCounter {
     }
 }
 exports.AverageCounter = AverageCounter;
+
+},{}],54:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function maskByteSize(num) {
+    return Math.ceil(num / 8);
+}
+exports.maskByteSize = maskByteSize;
+function setBit(val, bitIndex) {
+    val |= (1 << bitIndex);
+    return val;
+}
+exports.setBit = setBit;
 
 },{}],55:[function(require,module,exports){
 module.exports = after

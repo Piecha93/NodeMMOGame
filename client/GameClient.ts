@@ -74,15 +74,11 @@ export class GameClient {
         }
     }
 
-    // a = 0;
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
         this.chunksManager.rebuild();
-        // this.a++;
-        // if(this.a%100 == 0) {
         this.clearUnusedChunks();
-        // }
 
         let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
 
@@ -153,18 +149,18 @@ export class GameClient {
         this.startGameLoop();
     }
 
-    private onServerUpdate(updateBuffer: Array<ArrayBuffer> | ArrayBuffer) {
+    private onServerUpdate(update: Array<ArrayBuffer> | ArrayBuffer) {
         // nasty hack to satisfy typescript compiler (dont know how to fix it xD)
         // socket update may come as [0, ArrayBuffer] or [0, [0, ArrayBuffer], ..., [0, ArrayBuffer]]
-        if(updateBuffer[0] instanceof Array) {
-            if(updateBuffer instanceof Array) {
-                for (let i = 0; i < updateBuffer.length; i++) {
-                    let updateBufferView: DataView = new DataView(updateBuffer[i][1]);
+        if(update[0] instanceof Array) {
+            if(update instanceof Array) {
+                for (let i = 0; i < update.length; i++) {
+                    let updateBufferView: DataView = new DataView(update[i][1]);
                     this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
                 }
             }
         } else {
-            let updateBufferView: DataView = new DataView(updateBuffer[1]);
+            let updateBufferView: DataView = new DataView(update[1]);
             this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
         }
     }

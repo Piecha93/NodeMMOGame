@@ -18,7 +18,7 @@ export class Types {
     static ClassNamesToTypes: Map<string, Constructor<GameObject> > =
         new Map<string, Constructor<GameObject> >();
 
-    private static shortIdCounter = 1;
+    private static shortIdCounter = 65;
 
     static RegisterGameObject: Function = function (gameObjectType: Constructor<GameObject>) {
         Types.ClassNamesToTypes.set(gameObjectType.name, gameObjectType);
