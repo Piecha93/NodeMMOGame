@@ -1,12 +1,12 @@
-import {INPUT_COMMAND} from "../../input/InputCommands";
-import {Transform} from "../physics/Transform";
+import {INPUT_COMMAND} from "../../../input/InputCommands";
+import {Transform} from "../../physics/Transform";
 import {Actor} from "./Actor";
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {CommonConfig} from "../../CommonConfig";
-import {InputSnapshot} from "../../input/InputSnapshot";
-import {CollisionsSystem} from "../physics/CollisionsSystem";
-import {PortalGun} from "./PortalGun";
-import {MagicWand} from "./MagicWand";
+import {ChangesDict} from "../../../serialize/ChangesDict";
+import {CommonConfig} from "../../../CommonConfig";
+import {InputSnapshot} from "../../../input/InputSnapshot";
+import {CollisionsSystem} from "../../physics/CollisionsSystem";
+import {PortalGun} from "../weapons/PortalGun";
+import {MagicWand} from "../weapons/MagicWand";
 
 export class Player extends Actor {
     private inputHistory: Array<InputSnapshot>;

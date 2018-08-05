@@ -1,10 +1,10 @@
-import {Transform} from "../physics/Transform";
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {CommonConfig} from "../../CommonConfig";
-import {Serializable, SerializableTypes} from "../../serialize/Serializable";
-import {NetworkObject, NetworkProperty} from "../../serialize/NetworkDecorators";
+import {Transform} from "../../physics/Transform";
+import {ChangesDict} from "../../../serialize/ChangesDict";
+import {CommonConfig} from "../../../CommonConfig";
+import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
+import {NetworkObject, NetworkProperty} from "../../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
-import {ResourcesMap} from "../ResourcesMap";
+import {ResourcesMap} from "../../ResourcesMap";
 
 export class GameObject extends Serializable {
     protected id: string = "";

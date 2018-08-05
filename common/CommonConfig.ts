@@ -14,8 +14,8 @@ function getOrigin(): Origin {
 
 export class CommonConfig {
     public static chunkSize: number = 960;
-    public static numOfChunksX: number = 20;
-    public static numOfChunksY: number = 20;
+    public static numOfChunksX: number = 10;
+    public static numOfChunksY: number = 10;
 
     public static ORIGIN: Origin = getOrigin();
 

@@ -45,6 +45,14 @@ export abstract class Serializable {
         }
     }
 
+    public hasChange(change: string): boolean {
+        if(CommonConfig.IS_SERVER) {
+            return this.changes.has(change);
+        } else {
+            return this.deserializedFields.has(change);
+        }
+    }
+
     get DeserializedFields():Set<string> {
         return this.deserializedFields;
     }

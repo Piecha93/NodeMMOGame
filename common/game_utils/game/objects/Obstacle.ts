@@ -1,5 +1,5 @@
 import {GameObject} from "./GameObject";
-import {Transform} from "../physics/Transform";
+import {Transform} from "../../physics/Transform";
 import {Result} from "detect-collisions";
 
 export class Obstacle extends GameObject {

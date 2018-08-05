@@ -1,10 +1,10 @@
-import {Obstacle} from "../game/Obstacle";
-import {Item} from "../game/Item";
-import {Player} from "../game/Player";
-import {GameObject} from "../game/GameObject";
-import {FireBall} from "../game/FireBall";
-import {Enemy} from "../game/Enemy";
-import {Portal} from "../game/Portal";
+import {Obstacle} from "../game/objects/Obstacle";
+import {Item} from "../game/objects/Item";
+import {Player} from "../game/objects/Player";
+import {GameObject} from "../game/objects/GameObject";
+import {FireBall} from "../game/objects/FireBall";
+import {Enemy} from "../game/objects/Enemy";
+import {Portal} from "../game/objects/Portal";
 
 export interface Constructor<T> extends Function {
     new(...params: any[]): T; prototype: T;

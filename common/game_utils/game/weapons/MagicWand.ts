@@ -1,8 +1,8 @@
-import {Actor} from "./Actor";
-import {FireBall} from "./FireBall";
+import {Actor} from "../objects/Actor";
+import {FireBall} from "../objects/FireBall";
 import {Weapon} from "./Weapon";
-import {GameObjectsFactory} from "../factory/ObjectsFactory";
-import {Transform} from "../physics/Transform";
+import {GameObjectsFactory} from "../../factory/ObjectsFactory";
+import {Transform} from "../../physics/Transform";
 
 export class MagicWand implements Weapon {
     public use(user: Actor, angle: number, clickButton: number) {

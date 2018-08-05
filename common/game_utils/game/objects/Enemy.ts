@@ -1,7 +1,10 @@
-import {Transform} from "../physics/Transform";
+import {Transform} from "../../physics/Transform";
 import {Actor} from "./Actor";
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {MagicWand} from "./MagicWand";
+import {ChangesDict} from "../../../serialize/ChangesDict";
+import {MagicWand} from "../weapons/MagicWand";
+import {GameObject} from "./GameObject";
+import {Result} from "detect-collisions/collisions";
+import {Obstacle} from "./Obstacle";
 
 export class Enemy extends Actor {
     private timeSinceLastShot = 1000;
@@ -17,7 +20,13 @@ export class Enemy extends Actor {
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
+    }
 
+    protected serverCollision(gameObject: GameObject, result: Result) {
+        super.serverCollision(gameObject, result);
+        if(gameObject instanceof Obstacle) {
+            this.MoveDirection = Math.round(Math.random() * 8);
+        }
     }
 
     protected serverUpdate(delta: number) {

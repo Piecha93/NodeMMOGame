@@ -1,6 +1,6 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
-import {GameObject} from "../../common/game_utils/game/GameObject";
+import {GameObject} from "../../common/game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../../common/game_utils/factory/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
@@ -12,8 +12,8 @@ import {Types} from "../../common/game_utils/factory/GameObjectTypes";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
-import {Player} from "../../common/game_utils/game/Player";
-import {ChunksManager} from "../../common/game_utils/Chunks";
+import {Player} from "../../common/game_utils/game/objects/Player";
+import {ChunksManager} from "../../common/game_utils/chunks/ChunksManager";
 
 
 export class Renderer extends GameObjectsSubscriber {

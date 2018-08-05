@@ -1,15 +1,22 @@
+let messageCode: number = 0;
+
 export class SocketMsgs {
+    //shared
+    public static CHAT_MESSAGE = String.fromCharCode(messageCode++);
+
+    //client
+    public static CLIENT_READY = String.fromCharCode(messageCode++);
+    public static HEARTBEAT = String.fromCharCode(messageCode++);
+    public static INPUT_SNAPSHOT = String.fromCharCode(messageCode++);
     public static CONNECTION = 'connection';
     public static DISCONNECT = 'disconnect';
-    public static CLIENT_READY = '0';
-    public static START_GAME = '1';
-    public static INITIALIZE_GAME = '2';
-    public static HEARTBEAT = '3';
-    public static HEARTBEAT_RESPONSE = '4';
-    public static UPDATE_GAME = '5';
-    public static FIRST_UPDATE_GAME = '6';
-    public static INPUT_SNAPSHOT = '7';
-    public static CHAT_MESSAGE = '8';
-    public static UPDATE_SNAPSHOT_DATA = '9';
-    public static ERROR = '10';
+
+    public static START_GAME = String.fromCharCode(messageCode++);
+    public static INITIALIZE_GAME = String.fromCharCode(messageCode++);
+    public static FIRST_UPDATE_GAME = String.fromCharCode(messageCode++);
+    public static UPDATE_GAME = String.fromCharCode(messageCode++);
+    public static HEARTBEAT_RESPONSE = String.fromCharCode(messageCode++);
+    public static UPDATE_SNAPSHOT_DATA = String.fromCharCode(messageCode++);
+    public static NEW_MAP_CHUNK = String.fromCharCode(messageCode++);
+    public static ERROR = String.fromCharCode(messageCode++);
 }

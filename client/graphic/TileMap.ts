@@ -3,8 +3,9 @@
 import Texture = PIXI.Texture;
 import Sprite = PIXI.Sprite;
 import {CommonConfig} from "../../common/CommonConfig";
-import {GameObject} from "../../common/game_utils/game/GameObject";
-import {ChunksManager, Chunk} from "../../common/game_utils/Chunks";
+import {GameObject} from "../../common/game_utils/game/objects/GameObject";
+import {ChunksManager} from "../../common/game_utils/chunks/ChunksManager";
+import {Chunk} from "../../common/game_utils/chunks/Chunk";
 
 type Coords = [number, number];
 
@@ -12,14 +13,12 @@ function compareCoords(c1: Coords, c2: Coords): boolean {
     return c1[0] == c2[0] && c1[1] == c2[1];
 }
 
-class MapChunk extends PIXI.Container {
+class TileMapChunk extends PIXI.Container {
     x: number;
     y: number;
 
     sizeX: number;
     sizeY: number;
-
-    mapGrid: number[][];
 
     private initialized: boolean = false;
 
@@ -30,20 +29,11 @@ class MapChunk extends PIXI.Container {
         this.y = y;
         this.sizeX = sizeX;
         this.sizeY = sizeY;
-
-        this.mapGrid = [];
-
-        // for(let i = 0; i < this.sizeX; i++) {
-        //     this.mapGrid[i] = [];
-        //     for(let j = 0; j < this.sizeY; j++) {
-        //         this.mapGrid[i][j] = Math.floor(Math.random() * 12) * 32;
-        //     }
-        // }
     }
 
     initChunkTextures() {
         let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'],
-            new PIXI.Rectangle(Math.floor(Math.random() * 12) * 32, Math.floor(Math.random() * 12) * 32, 32, 32));
+            new PIXI.Rectangle(1 * 32, 5 * 32, 32, 32));
         for(let i = 0; i < this.sizeX / 32; i++) {
             for(let j = 0; j < this.sizeY / 32; j++) {
                 // let texture: Texture = new PIXI.Texture(PIXI.game_utils.TextureCache['terrain'],
@@ -64,30 +54,29 @@ class MapChunk extends PIXI.Container {
 }
 
 export class TileMap extends PIXI.Container {
-    private mapChunks: MapChunk[][];
+    private mapChunks: TileMapChunk[][];
     private focusedObject: GameObject;
     private chunksManager: ChunksManager;
 
     private currentChunkCoords: Coords;
-    private visibleMapChunks: Map<Coords, MapChunk>;
+    private visibleMapChunks: Map<Coords, TileMapChunk>;
 
+    private numOfChunksX = CommonConfig.numOfChunksX;
+    private numOfChunksY = CommonConfig.numOfChunksY;
 
     constructor() {
         super();
 
         this.focusedObject = null;
-        this.visibleMapChunks = new Map<Coords, MapChunk>();
+        this.visibleMapChunks = new Map<Coords, TileMapChunk>();
 
         this.currentChunkCoords = [-1, -1];
 
-        let numOfChunksX = CommonConfig.numOfChunksX;
-        let numOfChunksY = CommonConfig.numOfChunksY;
-
         this.mapChunks = [];
 
-        for (let i = 0; i < numOfChunksX; i++) {
+        for (let i = 0; i < this.numOfChunksX; i++) {
             this.mapChunks[i] = [];
-            for (let j = 0; j < numOfChunksY; j++) {
+            for (let j = 0; j < this.numOfChunksY; j++) {
                 let chunkSizeX = CommonConfig.chunkSize;
                 let chunkSizeY = CommonConfig.chunkSize;
 
@@ -97,15 +86,14 @@ export class TileMap extends PIXI.Container {
                 if (i % 2) {
                     if (j == 0) {
                         chunkSizeY *= 1.5;
-                    } else if (j == numOfChunksY - 1) {
+                    } else if (j == this.numOfChunksY - 1) {
                         chunkY += (chunkSizeY / 2);
                         chunkSizeY *= 0.5;
                     } else {
                         chunkY += (chunkSizeY / 2);
                     }
                 }
-
-                this.mapChunks[i][j] = new MapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
+                this.mapChunks[i][j] = new TileMapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
             }
         }
     }
@@ -131,7 +119,7 @@ export class TileMap extends PIXI.Container {
             newCoordsArr.push([chunkNeighbor.x, chunkNeighbor.y]);
         });
 
-        this.visibleMapChunks.forEach((mapChunk: MapChunk, coords: Coords, ) => {
+        this.visibleMapChunks.forEach((mapChunk: TileMapChunk, coords: Coords, ) => {
             let idx: number = -1;
             for(let i = 0; i < newCoordsArr.length; i++) {
                 if(compareCoords(newCoordsArr[i], coords)) {
@@ -153,7 +141,7 @@ export class TileMap extends PIXI.Container {
         }
 
     private addToVisibleMapChunks(coords: Coords) {
-        let mapChunk: MapChunk = this.mapChunks[coords[0]][coords[1]];
+        let mapChunk: TileMapChunk = this.mapChunks[coords[0]][coords[1]];
         this.visibleMapChunks.set(coords, mapChunk);
 
         if(!mapChunk.Initialized) {
@@ -176,6 +164,11 @@ export class TileMap extends PIXI.Container {
     }
 
     public destroy() {
+        for (let i = 0; i < this.numOfChunksX; i++) {
+            for (let j = 0; j < this.numOfChunksY; j++) {
+                this.mapChunks[i][j].destroy();
+            }
+        }
         super.destroy();
     }
 }

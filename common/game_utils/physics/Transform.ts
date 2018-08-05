@@ -10,11 +10,8 @@ export class Transform extends Serializable {
     private height: number;
     private angle = 0;
 
-    constructor(x?: number, y?: number, width?: number, height?: number) {
+    constructor(x: number, y: number, width?: number, height?: number) {
         super();
-
-        x = x || -999;
-        y = y || -999;
 
         this.width = width || 32;
         this.height = height || this.width;
@@ -48,6 +45,7 @@ export class Transform extends Serializable {
 
     @NetworkProperty(ChangesDict.X, SerializableTypes.Float32)
     set X(x: number) {
+        this.addChange(ChangesDict.X);
         this.shape.x = x;
     }
 
@@ -57,6 +55,7 @@ export class Transform extends Serializable {
 
     @NetworkProperty(ChangesDict.Y, SerializableTypes.Float32)
     set Y(y: number) {
+        this.addChange(ChangesDict.Y);
         this.shape.y = y;
     }
 

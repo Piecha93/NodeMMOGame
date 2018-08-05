@@ -1,11 +1,11 @@
 import {GameObject} from "./GameObject";
-import {Transform} from "../physics/Transform";
+import {Transform} from "../../physics/Transform";
 import {Result} from "detect-collisions";
-import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {NetworkProperty} from "../../../serialize/NetworkDecorators";
 import {Obstacle} from "./Obstacle";
-import {ChangesDict} from "../../serialize/ChangesDict";
+import {ChangesDict} from "../../../serialize/ChangesDict";
 import {Actor} from "./Actor";
-import {SerializableTypes} from "../../serialize/Serializable";
+import {SerializableTypes} from "../../../serialize/Serializable";
 
 export class Portal extends GameObject {
     private couplingPortal: Portal = null;

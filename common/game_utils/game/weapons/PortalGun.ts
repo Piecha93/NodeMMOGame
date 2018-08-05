@@ -1,8 +1,8 @@
-import {Actor} from "./Actor";
+import {Actor} from "../objects/Actor";
 import {Weapon} from "./Weapon";
-import {GameObjectsFactory} from "../factory/ObjectsFactory";
-import {Transform} from "../physics/Transform";
-import {Portal} from "./Portal";
+import {GameObjectsFactory} from "../../factory/ObjectsFactory";
+import {Transform} from "../../physics/Transform";
+import {Portal} from "../objects/Portal";
 
 export class PortalGun implements Weapon {
     private portals: [Portal, Portal] = [null, null];

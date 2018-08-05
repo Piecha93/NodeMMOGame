@@ -2,19 +2,20 @@ import * as SocketIO from 'socket.io';
 
 import {ServerClient} from "./ServerClient";
 import {GameWorld} from "../common/GameWorld";
-import {Player} from "../common/game_utils/game/Player";
+import {Player} from "../common/game_utils/game/objects/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
 import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
-import {GameObject} from "../common/game_utils/game/GameObject";
+import {GameObject} from "../common/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../common/net/SocketMsgs";
 import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
 import {DeltaTimer} from "../common/DeltaTimer";
-import {Obstacle} from "../common/game_utils/game/Obstacle";
+import {Obstacle} from "../common/game_utils/game/objects/Obstacle";
 import {Database, IUserModel} from "./database/Database";
-import {Enemy} from "../common/game_utils/game/Enemy";
-import {Item} from "../common/game_utils/game/Item";
-import {Chunk, ChunksManager} from "../common/game_utils/Chunks";
+import {Enemy} from "../common/game_utils/game/objects/Enemy";
+import {Item} from "../common/game_utils/game/objects/Item";
+import {ChunksManager} from "../common/game_utils/chunks/ChunksManager";
+import {Chunk} from "../common/game_utils/chunks/Chunk";
 import {CommonConfig} from "../common/CommonConfig";
 
 
@@ -168,22 +169,14 @@ export class GameServer {
 
                 let chunk: Chunk = this.chunksManager.getObjectChunk(player);
 
-                if(!chunk) {
-                    return;
-                }
-
-                let collectedChunks = [];
-
                 let updateArray: Array<ArrayBuffer> = [];
-                collectedChunks.push(chunksUpdate.get(chunk).byteLength);
-                if(chunksUpdate.get(chunk).byteLength > 0) {
+                if(chunksUpdate.has(chunk)) {
                     updateArray.push(chunksUpdate.get(chunk));
                 }
 
                 chunk.Neighbors.forEach((chunkNeighbor: Chunk) => {
-                    if(chunksUpdate.get(chunkNeighbor).byteLength > 0) {
+                    if(chunksUpdate.has(chunkNeighbor)) {
                         updateArray.push(chunksUpdate.get(chunkNeighbor));
-                        collectedChunks.push(chunksUpdate.get(chunkNeighbor).byteLength);
                     }
                 });
 
@@ -233,12 +226,12 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 5000; i++) {
             o = GameObjectsFactory.Instatiate("Obstacle");
             o.Transform.X = this.getRandomInsideMap();
             o.Transform.Y = this.getRandomInsideMap();
 
-            if (i % 100 == 0) {
+            if (i % 1000 == 0) {
                 console.log(i)
             }
         }
@@ -297,7 +290,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 150; i++) {
+        for (let i = 0; i < 50; i++) {
             spawnItem();
         }
         ///////////////////////////////////////////////////////////////////TEST

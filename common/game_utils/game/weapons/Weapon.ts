@@ -1,4 +1,4 @@
-import {Actor} from "./Actor";
+import {Actor} from "../objects/Actor";
 
 export interface Weapon {
     equip();

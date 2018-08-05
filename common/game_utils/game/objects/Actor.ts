@@ -1,13 +1,13 @@
 import {GameObject} from "./GameObject";
-import {Transform} from "../physics/Transform";
-import {ChangesDict} from "../../serialize/ChangesDict";
+import {Transform} from "../../physics/Transform";
+import {ChangesDict} from "../../../serialize/ChangesDict";
 import {FireBall} from "./FireBall";
 import {Obstacle} from "./Obstacle";
-import {NetworkProperty} from "../../serialize/NetworkDecorators";
+import {NetworkProperty} from "../../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 import {Item} from "./Item";
-import {Weapon} from "./Weapon";
-import {SerializableTypes} from "../../serialize/Serializable";
+import {Weapon} from "../weapons/Weapon";
+import {SerializableTypes} from "../../../serialize/Serializable";
 
 
 export abstract class Actor extends GameObject {

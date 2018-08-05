@@ -1,4 +1,4 @@
-import {GameObject} from "../game/GameObject";
+import {GameObject} from "../game/objects/GameObject";
 import {Transform} from "../physics/Transform";
 import {Types} from "./GameObjectTypes";
 

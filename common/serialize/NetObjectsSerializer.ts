@@ -1,11 +1,13 @@
-import {GameObject} from "../game_utils/game/GameObject";
+import {GameObject} from "../game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
 import {CommonConfig} from "../CommonConfig";
 import {CollisionsSystem} from "../game_utils/physics/CollisionsSystem";
-import {Player} from "../game_utils/game/Player";
+import {Player} from "../game_utils/game/objects/Player";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 import {Types} from "../game_utils/factory/GameObjectTypes";
-import {Chunk, ChunksManager} from "../game_utils/Chunks";
+import {ChunksManager} from "../game_utils/chunks/ChunksManager";
+import {Chunk} from "../game_utils/chunks/Chunk";
+
 
 export class NetObjectsSerializer extends GameObjectsSubscriber {
     private static OBJECT_ID_BYTES_LEN = 5;
@@ -104,6 +106,10 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
 
                 if (this.destroyedObjects.get(chunk).length > 0) {
                     neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
+                }
+
+                if(neededBufferSize == 0) {
+                    continue;
                 }
 
                 let updateBuffer: ArrayBuffer = new ArrayBuffer(neededBufferSize);

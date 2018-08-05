@@ -11,14 +11,13 @@ import {Chat} from "./Chat";
 import {InputSender} from ".//net/InputSender";
 import {DeltaTimer} from "../common/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
-import {Player} from "../common/game_utils/game/Player";
+import {Player} from "../common/game_utils/game/objects/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
 import {Cursor} from "./input/Cursor";
 import {Transform} from "../common/game_utils/physics/Transform";
-import {Chunk} from "../common/game_utils/Chunks";
-import {GameObject} from "../common/game_utils/game/GameObject";
 import {AverageCounter} from "../common/utils/AverageCounter";
-import {ChunksManager} from "../common/game_utils/Chunks";
+import {ChunksManager} from "../common/game_utils/chunks/ChunksManager";
+import {Chunk} from "../common/game_utils/chunks/Chunk";
 
 const customParser = require('socket.io-msgpack-parser');
 // import * as io from "socket.io-client"
