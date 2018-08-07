@@ -4,7 +4,7 @@ import {ServerClient} from "./ServerClient";
 import {GameWorld} from "../common/GameWorld";
 import {Player} from "../common/game_utils/game/objects/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
-import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
+import {UpdateCollector} from "../common/serialize/UpdateCollector";
 import {GameObject} from "../common/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../common/net/SocketMsgs";
@@ -17,6 +17,8 @@ import {Item} from "../common/game_utils/game/objects/Item";
 import {ChunksManager} from "../common/game_utils/chunks/ChunksManager";
 import {Chunk} from "../common/game_utils/chunks/Chunk";
 import {CommonConfig} from "../common/CommonConfig";
+import {ObjectsSerializer} from "../common/serialize/ObjectsSerializer";
+import {Transform} from "../common/game_utils/physics/Transform";
 
 
 export class GameServer {
@@ -27,7 +29,7 @@ export class GameServer {
 
     private world: GameWorld = null;
     private chunksManager: ChunksManager = null;
-    private netObjectsSerializer: NetObjectsSerializer = null;
+    private updateCollector: UpdateCollector = null;
 
     private deltaTimer: DeltaTimer = new DeltaTimer();
 
@@ -41,9 +43,9 @@ export class GameServer {
     }
 
     private startGame() {
-        this.world = new GameWorld();
         this.chunksManager = new ChunksManager();
-        this.netObjectsSerializer = new NetObjectsSerializer(this.chunksManager);
+        this.updateCollector = new UpdateCollector(this.chunksManager);
+        this.world = new GameWorld(this.chunksManager);
 
         // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
         //     if(gameObject instanceof Actor) {
@@ -63,7 +65,6 @@ export class GameServer {
         this.checkDisconnectInterval(delta);
 
         this.world.update(delta);
-        this.chunksManager.rebuild();
 
         setTimeout(() => {
             this.startGameLoop();
@@ -113,9 +114,8 @@ export class GameServer {
             }
 
             socket.on(SocketMsgs.CLIENT_READY, () => {
-                let player: Player = GameObjectsFactory.Instatiate("Player") as Player;
-                player.Transform.X = this.getRandomInsideMap();
-                player.Transform.Y = this.getRandomInsideMap();
+                let player: Player = GameObjectsFactory.InstatiateWithTransform("Player",
+                    new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 48, 64)) as Player;
 
                 player.Name = serverClient.Name;
 
@@ -123,7 +123,7 @@ export class GameServer {
 
                 socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
-                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, this.netObjectsSerializer.collectObjectUpdate(player));
+                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
                 serverClient.IsReady = true;
 
                 this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
@@ -192,7 +192,7 @@ export class GameServer {
     }
 
     private collectAndSendUpdate(complete: boolean = false) {
-        this.sendUpdate(this.netObjectsSerializer.collectUpdate(complete));
+        this.sendUpdate(this.updateCollector.collectUpdate(complete));
 
         let chunks: Chunk[][] = this.chunksManager.Chunks;
         for(let i = 0; i < chunks.length; i++) {
@@ -226,10 +226,9 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 5000; i++) {
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = this.getRandomInsideMap();
-            o.Transform.Y = this.getRandomInsideMap();
+        for (let i = 0; i < 10000; i++) {
+            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
 
             if (i % 1000 == 0) {
                 console.log(i)
@@ -238,26 +237,22 @@ export class GameServer {
 
         let wallsCounter = 0;
         for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * 32;
-            o.Transform.Y = 0;
+            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+                new Transform(i * 32, 0, 32, 32));
 
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = i * 32;
-            o.Transform.Y = CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32;
+            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+                new Transform(i * 32, CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32, 32, 32));
 
             wallsCounter += 2;
         }
 
         for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
             wallsCounter += 2;
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = 0;
-            o.Transform.Y = i * 32;
+            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+                new Transform(0, i * 32, 32, 32));
 
-            o = GameObjectsFactory.Instatiate("Obstacle");
-            o.Transform.X = CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32;
-            o.Transform.Y = i * 32;
+            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+                new Transform(CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32, i * 32, 32, 32));
         }
 
         console.log("wallsCounter " + wallsCounter);
@@ -276,7 +271,7 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 0; i++) {
             spawnEnemy();
         }
 
@@ -290,8 +285,14 @@ export class GameServer {
             })
         };
 
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 0; i++) {
             spawnItem();
+        }
+
+        let chunksIter = this.chunksManager.ChunksIterator();
+        let chunk: Chunk;
+        while (chunk = chunksIter.next().value) {
+            chunk.deactivate();
         }
         ///////////////////////////////////////////////////////////////////TEST
     }

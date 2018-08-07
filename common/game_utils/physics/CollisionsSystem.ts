@@ -19,12 +19,16 @@ export class CollisionsSystem extends Collisions {
         this.bodyToObjectMap.delete(gameObject.Transform.Body);
     }
 
-    public updateCollisions(gameObjectsMapById: Map<string, GameObject>) {
+    public update() {
         super.update();
+    }
+
+    public updateCollisions(gameObjects: Array<GameObject>) {
+        // super.update();
 
         let result = new Result();
 
-        gameObjectsMapById.forEach((object: GameObject) => {
+        gameObjects.forEach((object: GameObject) => {
             if(object instanceof Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles

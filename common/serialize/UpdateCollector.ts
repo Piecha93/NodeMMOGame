@@ -9,7 +9,7 @@ import {ChunksManager} from "../game_utils/chunks/ChunksManager";
 import {Chunk} from "../game_utils/chunks/Chunk";
 
 
-export class NetObjectsSerializer extends GameObjectsSubscriber {
+export class UpdateCollector extends GameObjectsSubscriber {
     private static OBJECT_ID_BYTES_LEN = 5;
     private static DESTROY_OBJECTS_ID = 255;
 
@@ -46,24 +46,11 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
         }
     }
 
-    public collectObjectUpdate(gameObject: GameObject): DataView {
-        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
-        let updateBuffer: ArrayBuffer = new ArrayBuffer(objectNeededSize );
-        let updateBufferView: DataView = new DataView(updateBuffer);
-
-        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
-        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
-        gameObject.serialize(updateBufferView, 5, true);
-
-        return updateBufferView;
-    }
-
     public collectUpdate(complete: boolean = false): Map<Chunk, ArrayBuffer> {
         let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
 
         let chunks: Chunk[][] = this.chunksManager.Chunks;
 
-        let collectedChunks = [];
         for(let i = 0; i < chunks.length; i++) {
             for (let j = 0; j < chunks[i].length; j++) {
                 let chunk: Chunk = chunks[i][j];
@@ -72,6 +59,7 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
 
                     //no need to keep leavers if there is no one to send them
                     chunk.resetLeavers();
+                    this.destroyedObjects.set(chunk, []);
                     continue;
                 }
 
@@ -80,14 +68,12 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                 let neededBufferSize: number = 0;
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
 
-                collectedChunks.push([i, j, chunkCompleteUpdate]);
-
                 chunk.Objects.forEach((gameObject: GameObject) => {
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
                         //need 5 bits for obj ID
-                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
+                        neededBufferSize += neededSize + UpdateCollector.OBJECT_ID_BYTES_LEN;
                     }
                 });
 
@@ -98,7 +84,7 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
                         //need 5 bits for obj ID
-                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
+                        neededBufferSize += neededSize + UpdateCollector.OBJECT_ID_BYTES_LEN;
                     }
                 });
 
@@ -123,7 +109,7 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
                 });
 
                 if (this.destroyedObjects.get(chunk).length > 0) {
-                    updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
+                    updateBufferView.setUint8(destrotObjectsOffset++, UpdateCollector.DESTROY_OBJECTS_ID);
                     this.destroyedObjects.get(chunk).forEach((id: string) => {
                         updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
                         updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
@@ -141,13 +127,14 @@ export class NetObjectsSerializer extends GameObjectsSubscriber {
     }
 
     //TODO move localPlayer and reconciliation somewhere else
-    public decodeUpdate(updateBufferView: DataView, localPlayer: Player, collisionsSystem: CollisionsSystem) {
+    public decodeUpdate(updateBuffer: ArrayBuffer, localPlayer: Player, collisionsSystem: CollisionsSystem) {
+        let updateBufferView: DataView = new DataView(updateBuffer);
         let offset: number = 0;
 
         while(offset < updateBufferView.byteLength) {
             let id: string = String.fromCharCode(updateBufferView.getUint8(offset));
 
-            if(id == String.fromCharCode(NetObjectsSerializer.DESTROY_OBJECTS_ID)) {
+            if(id == String.fromCharCode(UpdateCollector.DESTROY_OBJECTS_ID)) {
                 offset = this.decodeDestroyedObjects(updateBufferView, offset + 1);
                 break;
             }

@@ -2035,14 +2035,14 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../common/net/SocketMsgs":50,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
+},{"../common/net/SocketMsgs":49,"./graphic/HtmlHandlers/ChatHtmlHandler":13}],8:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameWorld_1 = require("../common/GameWorld");
 const Renderer_1 = require("./graphic/Renderer");
 const InputHandler_1 = require("./input/InputHandler");
-const NetObjectsSerializer_1 = require("../common/serialize/NetObjectsSerializer");
+const UpdateCollector_1 = require("../common/serialize/UpdateCollector");
 const ObjectsFactory_1 = require("../common/game_utils/factory/ObjectsFactory");
 const HeartBeatSender_1 = require("./net/HeartBeatSender");
 const SocketMsgs_1 = require("../common/net/SocketMsgs");
@@ -2059,7 +2059,7 @@ const customParser = require('socket.io-msgpack-parser');
 const io = require('socket.io-client');
 class GameClient {
     constructor() {
-        this.netObjectsSerializer = null;
+        this.updateCollector = null;
         this.fpsAvgCounter = new AverageCounter_1.AverageCounter(30);
         this.localPlayer = null;
         this.localPlayerId = "";
@@ -2093,7 +2093,6 @@ class GameClient {
     startGameLoop() {
         let delta = this.timer.getDelta();
         this.world.update(delta);
-        this.chunksManager.rebuild();
         this.clearUnusedChunks();
         let deltaAvg = this.fpsAvgCounter.calculate(delta);
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
@@ -2126,9 +2125,9 @@ class GameClient {
     onInitializeGame(data) {
         this.localPlayerId = data['id'];
         this.chunksManager = new ChunksManager_1.ChunksManager();
-        this.world = new GameWorld_1.GameWorld();
+        this.world = new GameWorld_1.GameWorld(this.chunksManager);
         this.renderer.ChunksManager = this.chunksManager;
-        this.netObjectsSerializer = new NetObjectsSerializer_1.NetObjectsSerializer(this.chunksManager);
+        this.updateCollector = new UpdateCollector_1.UpdateCollector(this.chunksManager);
         this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
         this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
         this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
@@ -2146,19 +2145,8 @@ class GameClient {
         this.startGameLoop();
     }
     onServerUpdate(update) {
-        // nasty hack to satisfy typescript compiler (dont know how to fix it xD)
-        // socket update may come as [0, ArrayBuffer] or [0, [0, ArrayBuffer], ..., [0, ArrayBuffer]]
-        if (update[0] instanceof Array) {
-            if (update instanceof Array) {
-                for (let i = 0; i < update.length; i++) {
-                    let updateBufferView = new DataView(update[i][1]);
-                    this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
-                }
-            }
-        }
-        else {
-            let updateBufferView = new DataView(update[1]);
-            this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+        for (let i = 0; i < update.length; i++) {
+            this.updateCollector.decodeUpdate(update[i][1], this.localPlayer, this.world.CollisionsSystem);
         }
     }
     onUpdateSnapshotData(lastSnapshotData) {
@@ -2167,18 +2155,14 @@ class GameClient {
         }
     }
     clearUnusedChunks() {
-        let chunks = this.chunksManager.Chunks;
         let playerChunks = [this.chunksManager.getObjectChunk(this.localPlayer)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
-        // playerChunks[0].Neighbors.forEach((chunkNeighbor: Chunk) => {
-        //     playerChunks.concat(chunkNeighbor.Neighbors);
-        // });
-        for (let i = 0; i < chunks.length; i++) {
-            for (let j = 0; j < chunks.length; j++) {
-                if (playerChunks.indexOf(chunks[i][j]) == -1) {
-                    while (chunks[i][j].Objects.length) {
-                        chunks[i][j].Objects[0].destroy();
-                    }
+        let chunk;
+        let gen = this.chunksManager.ChunksIterator();
+        while (chunk = gen.next().value) {
+            if (playerChunks.indexOf(chunk) == -1) {
+                while (chunk.Objects.length) {
+                    chunk.Objects[0].destroy();
                 }
             }
         }
@@ -2186,7 +2170,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/DeltaTimer":27,"../common/GameWorld":28,"../common/game_utils/chunks/ChunksManager":32,"../common/game_utils/factory/ObjectsFactory":35,"../common/game_utils/physics/Transform":47,"../common/net/SocketMsgs":50,"../common/serialize/NetObjectsSerializer":52,"../common/utils/AverageCounter":55,".//net/InputSender":25,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":17,"./input/Cursor":20,"./input/InputHandler":21,"./net/HeartBeatSender":24,"socket.io-client":98,"socket.io-msgpack-parser":105}],9:[function(require,module,exports){
+},{"../common/DeltaTimer":27,"../common/GameWorld":28,"../common/game_utils/chunks/ChunksManager":31,"../common/game_utils/factory/ObjectsFactory":34,"../common/game_utils/physics/Transform":46,"../common/net/SocketMsgs":49,"../common/serialize/UpdateCollector":54,"../common/utils/AverageCounter":55,".//net/InputSender":25,"./Chat":7,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":14,"./graphic/Renderer":17,"./input/Cursor":20,"./input/InputHandler":21,"./net/HeartBeatSender":24,"socket.io-client":98,"socket.io-msgpack-parser":105}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2641,7 +2625,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../common/game_utils/factory/GameObjectTypes":33,"../../common/game_utils/factory/GameObjectsSubscriber":34,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
+},{"../../common/game_utils/factory/GameObjectTypes":32,"../../common/game_utils/factory/GameObjectsSubscriber":33,"./Camera":9,"./GameObjectAnimationRender":10,"./GameObjectSpriteRender":12,"./Hud":15,"./PlayerRender":16,"./ResourcesLoader":18,"./TileMap":19}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ResourceType;
@@ -2870,7 +2854,7 @@ class Cursor extends GameObject_1.GameObject {
 }
 exports.Cursor = Cursor;
 
-},{"../../common/game_utils/game/objects/Enemy":37,"../../common/game_utils/game/objects/GameObject":39,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],21:[function(require,module,exports){
+},{"../../common/game_utils/game/objects/Enemy":36,"../../common/game_utils/game/objects/GameObject":38,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -3005,7 +2989,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../common/input/InputCommands":48,"../../common/input/InputSnapshot":49,"./InputMap":22}],22:[function(require,module,exports){
+},{"../../common/input/InputCommands":47,"../../common/input/InputSnapshot":48,"./InputMap":22}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -3076,7 +3060,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../common/net/SocketMsgs":50,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],25:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":49,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":14}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -3094,7 +3078,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../common/net/SocketMsgs":50}],26:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":49}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -3119,9 +3103,9 @@ class CommonConfig {
         return CommonConfig.ORIGIN == Origin.CLIENT;
     }
 }
-CommonConfig.chunkSize = 960;
-CommonConfig.numOfChunksX = 10;
-CommonConfig.numOfChunksY = 10;
+CommonConfig.chunkSize = 32 * 40;
+CommonConfig.numOfChunksX = 20;
+CommonConfig.numOfChunksY = 20;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
@@ -3150,12 +3134,14 @@ exports.DeltaTimer = DeltaTimer;
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
 const CollisionsSystem_1 = require("./game_utils/physics/CollisionsSystem");
-const Map_1 = require("./game_utils/Map");
+const CommonConfig_1 = require("../common/CommonConfig");
 class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
-    constructor() {
+    // private map: Map = new Map();
+    constructor(chunksManager) {
         super();
         this.collistionsSystem = new CollisionsSystem_1.CollisionsSystem();
-        this.map = new Map_1.Map();
+        this.chunksManager = null;
+        this.chunksManager = chunksManager;
         console.log("create game instance");
     }
     update(delta) {
@@ -3163,13 +3149,25 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         const maxDeltaLoops = 3;
         let loops = 0;
         while (delta > 0 && loops < maxDeltaLoops) {
+            let chunk;
             let loopDelta = maxDelta < delta ? maxDelta : delta;
-            this.GameObjectsMapById.forEach((object) => {
-                object.update(loopDelta);
-            });
-            this.collistionsSystem.updateCollisions(this.GameObjectsMapById);
+            let gen = this.chunksManager.ChunksIterator();
+            while (chunk = gen.next().value) {
+                for (let i = 0; i < chunk.Objects.length; i++) {
+                    chunk.Objects[i].update(loopDelta);
+                }
+            }
+            gen = this.chunksManager.ChunksIterator();
+            this.collistionsSystem.update();
+            while (chunk = gen.next().value) {
+                this.collistionsSystem.updateCollisions(chunk.Objects);
+                if (!chunk.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
+                    chunk.dump();
+                }
+            }
             delta -= maxDelta;
             loops++;
+            this.chunksManager.rebuild();
         }
         if (delta > 0) {
             console.log("lost ms " + delta);
@@ -3187,66 +3185,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"./game_utils/Map":29,"./game_utils/factory/GameObjectsSubscriber":34,"./game_utils/physics/CollisionsSystem":46}],29:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const CommonConfig_1 = require("../CommonConfig");
-class MapChunk {
-    constructor(x, y, sizeX, sizeY) {
-        // this.x = x;
-        // this.y = y;
-        this.sizeX = sizeX;
-        this.sizeY = sizeY;
-    }
-    fillRandom() {
-        let tileNum = Math.floor(Math.random() * 12 * 32);
-        this.mapGrid = [];
-        for (let i = 0; i < this.sizeX; i++) {
-            this.mapGrid[i] = [];
-            for (let j = 0; j < this.sizeY; j++) {
-                this.mapGrid[i][j] = tileNum;
-            }
-        }
-    }
-}
-exports.MapChunk = MapChunk;
-class Map {
-    constructor() {
-        this.numOfChunksX = CommonConfig_1.CommonConfig.numOfChunksX;
-        this.numOfChunksY = CommonConfig_1.CommonConfig.numOfChunksY;
-        this.chunkSize = CommonConfig_1.CommonConfig.numOfChunksY;
-        this.mapChunks = [];
-        for (let i = 0; i < this.numOfChunksX; i++) {
-            this.mapChunks[i] = [];
-            for (let j = 0; j < this.numOfChunksY; j++) {
-                let chunkSizeX = this.chunkSize;
-                let chunkSizeY = this.chunkSize;
-                let chunkX = i * chunkSizeX;
-                let chunkY = j * chunkSizeY;
-                if (i % 2) {
-                    if (j == 0) {
-                        chunkSizeY *= 1.5;
-                    }
-                    else if (j == this.numOfChunksY - 1) {
-                        chunkY += (chunkSizeY / 2);
-                        chunkSizeY *= 0.5;
-                    }
-                    else {
-                        chunkY += (chunkSizeY / 2);
-                    }
-                }
-                this.mapChunks[i][j] = new MapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
-                this.mapChunks[i][j].fillRandom();
-            }
-        }
-    }
-    generate() {
-        //TO DO XD
-    }
-}
-exports.Map = Map;
-
-},{"../CommonConfig":26}],30:[function(require,module,exports){
+},{"../common/CommonConfig":26,"./game_utils/factory/GameObjectsSubscriber":33,"./game_utils/physics/CollisionsSystem":45}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -3276,13 +3215,18 @@ ResourcesMap.RegisterResource('flame');
 ResourcesMap.RegisterResource('template');
 ResourcesMap.RegisterResource('terrain');
 
-},{}],31:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("../game/objects/Player");
+const Obstacle_1 = require("../game/objects/Obstacle");
+const ObjectsSerializer_1 = require("../../serialize/ObjectsSerializer");
+const CommonConfig_1 = require("../../CommonConfig");
 class Chunk {
     constructor(x, y, size) {
         this.hasNewcomers = false;
+        this.deactivatedTime = -1;
+        this.dumpedBuffer = null;
         this.x = x;
         this.y = y;
         this.size = size;
@@ -3299,13 +3243,11 @@ class Chunk {
         if (gameObject instanceof Player_1.Player) {
             this.hasNewcomers = true;
             this.numOfPlayers++;
+            if (CommonConfig_1.CommonConfig.IS_SERVER) {
+                this.activate();
+                this.activateNeighbors();
+            }
         }
-    }
-    addLeaver(gameObject) {
-        this.leavers.push(gameObject);
-    }
-    resetLeavers() {
-        this.leavers = [];
     }
     removeObject(gameObject) {
         let index = this.objects.indexOf(gameObject, 0);
@@ -3314,30 +3256,93 @@ class Chunk {
         }
         if (gameObject instanceof Player_1.Player) {
             this.numOfPlayers--;
+            if (this.numOfPlayers <= 0) {
+                if (!this.HasPlayersInNeighborhood) {
+                    this.deactivate();
+                }
+                this.deactivateNeighborsIfNoPlayers();
+            }
         }
     }
-    hasObjectInside(gameObject) {
+    activateNeighbors() {
+        for (let i = 0; i < this.neighbors.length; i++) {
+            this.neighbors[i].activate();
+        }
+    }
+    deactivateNeighborsIfNoPlayers() {
+        for (let i = 0; i < this.neighbors.length; i++) {
+            if (!this.neighbors[i].HasPlayersInNeighborhood) {
+                this.neighbors[i].deactivate();
+            }
+        }
+    }
+    addLeaver(gameObject) {
+        this.leavers.push(gameObject);
+    }
+    resetLeavers() {
+        this.leavers = [];
+    }
+    hasObject(gameObject) {
         return this.objects.indexOf(gameObject) != -1;
     }
     hasObjectInNeighborhood(gameObject) {
-        if (this.hasObjectInside(gameObject)) {
+        if (this.hasObject(gameObject)) {
             return true;
         }
         for (let i = 0; i < this.neighbors.length; i++) {
-            if (this.neighbors[i].hasObjectInside(gameObject)) {
+            if (this.neighbors[i].hasObject(gameObject)) {
                 return true;
             }
         }
         return false;
+    }
+    resetHasNewComers() {
+        this.hasNewcomers = false;
+    }
+    activate() {
+        this.deactivatedTime = -1;
+        this.reload();
+    }
+    deactivate() {
+        if (this.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
+            this.deactivatedTime = Date.now();
+        }
+    }
+    reload() {
+        if (this.dumpedBuffer) {
+            ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+            this.dumpedBuffer = null;
+        }
+    }
+    dump() {
+        if (this.dumpedBuffer) {
+            return;
+        }
+        this.clearNotObstacles();
+        this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
+        this.clearAll();
+    }
+    clearAll() {
+        while (this.objects.length > 0) {
+            this.objects[0].destroy();
+        }
+    }
+    clearNotObstacles() {
+        let numOfObjectsToBeSaved = 0;
+        while (this.objects.length > numOfObjectsToBeSaved) {
+            if (!(this.objects[numOfObjectsToBeSaved] instanceof Obstacle_1.Obstacle)) {
+                this.objects[numOfObjectsToBeSaved].destroy();
+            }
+            else {
+                numOfObjectsToBeSaved++;
+            }
+        }
     }
     get Objects() {
         return this.objects;
     }
     get HasNewcomers() {
         return this.hasNewcomers;
-    }
-    resetHasNewComers() {
-        this.hasNewcomers = false;
     }
     get HasNewcomersInNeighborhood() {
         if (this.HasNewcomers) {
@@ -3370,16 +3375,23 @@ class Chunk {
     get Leavers() {
         return this.leavers;
     }
+    get IsActive() {
+        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < 5000;
+    }
+    get TimeSinceDeactivation() {
+        return Date.now() - this.deactivatedTime;
+    }
 }
 exports.Chunk = Chunk;
 
-},{"../game/objects/Player":42}],32:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../serialize/ObjectsSerializer":52,"../game/objects/Obstacle":40,"../game/objects/Player":41}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../factory/GameObjectsSubscriber");
 const CommonConfig_1 = require("../../CommonConfig");
 const Chunk_1 = require("./Chunk");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
+const Player_1 = require("../game/objects/Player");
 class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
@@ -3487,6 +3499,12 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             gameObject.destroy();
             return;
         }
+        if (!chunk.IsActive && !(gameObject instanceof Player_1.Player)) {
+            console.log("Created not Player object in inactive chunk! "
+                + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
+            gameObject.destroy();
+            return;
+        }
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
     }
@@ -3494,26 +3512,26 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.remove(gameObject);
     }
     rebuild() {
-        this.GameObjectsMapById.forEach((object) => {
-            if ((!object.Transform.hasChange(ChangesDict_1.ChangesDict.X) && !object.Transform.hasChange(ChangesDict_1.ChangesDict.Y))) {
+        this.GameObjectsMapById.forEach((gameObject) => {
+            if ((!gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.Y))) {
                 //chunk cannot change if object did not move
                 return;
             }
-            let chunk = this.getChunkByCoords(object.Transform.X, object.Transform.Y);
-            if (!chunk) {
-                console.log("Object went outside chunk!");
-                object.destroy();
+            let chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+            if (!chunk || (!chunk.IsActive && !(gameObject instanceof Player_1.Player))) {
+                // console.log("Object went outside chunk! " + object.ID);
+                gameObject.destroy();
                 return;
             }
-            let oldChunk = this.objectsChunks.get(object);
+            let oldChunk = this.objectsChunks.get(gameObject);
             if (oldChunk == chunk) {
                 return;
             }
-            chunk.addObject(object);
-            this.objectsChunks.set(object, chunk);
-            object.forceCompleteUpdate();
-            oldChunk.removeObject(object);
-            oldChunk.addLeaver(object);
+            oldChunk.removeObject(gameObject);
+            oldChunk.addLeaver(gameObject);
+            chunk.addObject(gameObject);
+            this.objectsChunks.set(gameObject, chunk);
+            gameObject.forceCompleteUpdate();
         });
     }
     remove(gameObject) {
@@ -3522,13 +3540,20 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             this.objectsChunks.delete(gameObject);
         }
     }
+    *Iterator() {
+        for (let i = 0; i < this.chunks.length; i++) {
+            for (let j = 0; j < this.chunks.length; j++) {
+                yield this.chunks[i][j];
+            }
+        }
+    }
     get Chunks() {
         return this.chunks;
     }
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../../CommonConfig":26,"../../serialize/ChangesDict":51,"../factory/GameObjectsSubscriber":34,"./Chunk":31}],33:[function(require,module,exports){
+},{"../../CommonConfig":26,"../../serialize/ChangesDict":50,"../factory/GameObjectsSubscriber":33,"../game/objects/Player":41,"./Chunk":30}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("../game/objects/Obstacle");
@@ -3558,7 +3583,7 @@ Types.RegisterGameObject(Item_1.Item);
 Types.RegisterGameObject(FireBall_1.FireBall);
 Types.RegisterGameObject(Portal_1.Portal);
 
-},{"../game/objects/Enemy":37,"../game/objects/FireBall":38,"../game/objects/Item":40,"../game/objects/Obstacle":41,"../game/objects/Player":42,"../game/objects/Portal":43}],34:[function(require,module,exports){
+},{"../game/objects/Enemy":36,"../game/objects/FireBall":37,"../game/objects/Item":39,"../game/objects/Obstacle":40,"../game/objects/Player":41,"../game/objects/Portal":42}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3580,7 +3605,7 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./ObjectsFactory":35}],35:[function(require,module,exports){
+},{"./ObjectsFactory":34}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -3634,7 +3659,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":47,"./GameObjectTypes":33}],36:[function(require,module,exports){
+},{"../physics/Transform":46,"./GameObjectTypes":32}],35:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3790,7 +3815,7 @@ __decorate([
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":51,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":54,"./FireBall":38,"./GameObject":39,"./Item":40,"./Obstacle":41}],37:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":50,"../../../serialize/NetworkDecorators":51,"../../../serialize/Serializable":53,"./FireBall":37,"./GameObject":38,"./Item":39,"./Obstacle":40}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3834,7 +3859,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../../serialize/ChangesDict":51,"../weapons/MagicWand":45,"./Actor":36,"./Obstacle":41}],38:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":50,"../weapons/MagicWand":44,"./Actor":35,"./Obstacle":40}],37:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3910,7 +3935,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../../serialize/ChangesDict":51,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":54,"./Actor":36,"./Obstacle":41,"./Projectile":44}],39:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":50,"../../../serialize/NetworkDecorators":51,"../../../serialize/Serializable":53,"./Actor":35,"./Obstacle":40,"./Projectile":43}],38:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4031,7 +4056,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../CommonConfig":26,"../../../serialize/ChangesDict":51,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":54,"../../ResourcesMap":30,"../../physics/Transform":47}],40:[function(require,module,exports){
+},{"../../../CommonConfig":26,"../../../serialize/ChangesDict":50,"../../../serialize/NetworkDecorators":51,"../../../serialize/Serializable":53,"../../ResourcesMap":29,"../../physics/Transform":46}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4064,7 +4089,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./GameObject":39}],41:[function(require,module,exports){
+},{"./GameObject":38}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4093,7 +4118,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":39}],42:[function(require,module,exports){
+},{"./GameObject":38}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../../input/InputCommands");
@@ -4238,7 +4263,7 @@ Player.onlyServerActions = new Set([
 ]);
 exports.Player = Player;
 
-},{"../../../CommonConfig":26,"../../../input/InputCommands":48,"../../../serialize/ChangesDict":51,"../weapons/MagicWand":45,"./Actor":36}],43:[function(require,module,exports){
+},{"../../../CommonConfig":26,"../../../input/InputCommands":47,"../../../serialize/ChangesDict":50,"../weapons/MagicWand":44,"./Actor":35}],42:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4325,7 +4350,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../../serialize/ChangesDict":51,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":54,"./Actor":36,"./GameObject":39,"./Obstacle":41}],44:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":50,"../../../serialize/NetworkDecorators":51,"../../../serialize/Serializable":53,"./Actor":35,"./GameObject":38,"./Obstacle":40}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4349,7 +4374,7 @@ class Projectile extends GameObject_1.GameObject {
 }
 exports.Projectile = Projectile;
 
-},{"./GameObject":39}],45:[function(require,module,exports){
+},{"./GameObject":38}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -4369,7 +4394,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../factory/ObjectsFactory":35,"../../physics/Transform":47}],46:[function(require,module,exports){
+},{"../../factory/ObjectsFactory":34,"../../physics/Transform":46}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4387,10 +4412,13 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
         super.remove(gameObject.Transform.Body);
         this.bodyToObjectMap.delete(gameObject.Transform.Body);
     }
-    updateCollisions(gameObjectsMapById) {
+    update() {
         super.update();
+    }
+    updateCollisions(gameObjects) {
+        // super.update();
         let result = new detect_collisions_1.Result();
-        gameObjectsMapById.forEach((object) => {
+        gameObjects.forEach((object) => {
             if (object instanceof Obstacle_1.Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles
@@ -4417,7 +4445,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../game/objects/Obstacle":41,"detect-collisions":65}],47:[function(require,module,exports){
+},{"../game/objects/Obstacle":40,"detect-collisions":65}],46:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4546,7 +4574,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":51,"../../serialize/NetworkDecorators":53,"../../serialize/Serializable":54,"detect-collisions":65}],48:[function(require,module,exports){
+},{"../../serialize/ChangesDict":50,"../../serialize/NetworkDecorators":51,"../../serialize/Serializable":53,"detect-collisions":65}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -4563,7 +4591,7 @@ var INPUT_COMMAND;
 //     ["W", INPUT_COMMAND.WALL],
 // ]);
 
-},{}],49:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -4622,7 +4650,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../DeltaTimer":27,"../input/InputCommands":48}],50:[function(require,module,exports){
+},{"../DeltaTimer":27,"../input/InputCommands":47}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 let messageCode = 0;
@@ -4646,7 +4674,7 @@ SocketMsgs.NEW_MAP_CHUNK = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // TODO make function to get next character automatically
@@ -4675,150 +4703,7 @@ ChangesDict.ROTATION = "ROTATION";
 ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],52:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
-const CommonConfig_1 = require("../CommonConfig");
-const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
-const GameObjectTypes_1 = require("../game_utils/factory/GameObjectTypes");
-class NetObjectsSerializer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
-    constructor(chunksManager) {
-        super();
-        this.chunksManager = chunksManager;
-        if (CommonConfig_1.CommonConfig.IS_SERVER) {
-            this.destroyedObjects = new Map();
-            let chunks = this.chunksManager.Chunks;
-            for (let i = 0; i < chunks.length; i++) {
-                for (let j = 0; j < chunks[i].length; j++) {
-                    this.destroyedObjects.set(chunks[i][j], []);
-                }
-            }
-        }
-    }
-    onObjectDestroy(gameObject) {
-        if (CommonConfig_1.CommonConfig.IS_SERVER) {
-            let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-            if (!chunk) {
-                // console.log("WARNING! destroyed object that doesn't belong to any chunk");
-                return;
-            }
-            this.destroyedObjects.get(chunk).push(gameObject.ID);
-        }
-    }
-    collectObjectUpdate(gameObject) {
-        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
-        let updateBuffer = new ArrayBuffer(objectNeededSize);
-        let updateBufferView = new DataView(updateBuffer);
-        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
-        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
-        gameObject.serialize(updateBufferView, 5, true);
-        return updateBufferView;
-    }
-    collectUpdate(complete = false) {
-        let chunksUpdate = new Map();
-        let chunks = this.chunksManager.Chunks;
-        let collectedChunks = [];
-        for (let i = 0; i < chunks.length; i++) {
-            for (let j = 0; j < chunks[i].length; j++) {
-                let chunk = chunks[i][j];
-                //no need to send update from chunk, that doesnt have players
-                if (!chunk.HasPlayersInNeighborhood) {
-                    //no need to keep leavers if there is no one to send them
-                    chunk.resetLeavers();
-                    continue;
-                }
-                //if chunk has new players inside we need to send complete update to them
-                let chunkCompleteUpdate = complete || chunk.HasNewcomersInNeighborhood;
-                let neededBufferSize = 0;
-                let objectsToUpdateMap = new Map();
-                collectedChunks.push([i, j, chunkCompleteUpdate]);
-                chunk.Objects.forEach((gameObject) => {
-                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
-                    if (neededSize > 0) {
-                        objectsToUpdateMap.set(gameObject, neededBufferSize);
-                        //need 5 bits for obj ID
-                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
-                    }
-                });
-                //when object leaves chunk, we need to send his position last time to clients,
-                //so they are able to detect object is no longer in their chunks
-                chunk.Leavers.forEach((gameObject) => {
-                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
-                    if (neededSize > 0) {
-                        objectsToUpdateMap.set(gameObject, neededBufferSize);
-                        //need 5 bits for obj ID
-                        neededBufferSize += neededSize + NetObjectsSerializer.OBJECT_ID_BYTES_LEN;
-                    }
-                });
-                let destrotObjectsOffset = neededBufferSize;
-                if (this.destroyedObjects.get(chunk).length > 0) {
-                    neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
-                }
-                if (neededBufferSize == 0) {
-                    continue;
-                }
-                let updateBuffer = new ArrayBuffer(neededBufferSize);
-                let updateBufferView = new DataView(updateBuffer);
-                objectsToUpdateMap.forEach((offset, gameObject) => {
-                    updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
-                    updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
-                    gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
-                });
-                if (this.destroyedObjects.get(chunk).length > 0) {
-                    updateBufferView.setUint8(destrotObjectsOffset++, NetObjectsSerializer.DESTROY_OBJECTS_ID);
-                    this.destroyedObjects.get(chunk).forEach((id) => {
-                        updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
-                        updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
-                        destrotObjectsOffset += 5;
-                    });
-                }
-                chunk.resetLeavers();
-                this.destroyedObjects.set(chunk, []);
-                chunksUpdate.set(chunk, updateBuffer);
-            }
-        }
-        return chunksUpdate;
-    }
-    //TODO move localPlayer and reconciliation somewhere else
-    decodeUpdate(updateBufferView, localPlayer, collisionsSystem) {
-        let offset = 0;
-        while (offset < updateBufferView.byteLength) {
-            let id = String.fromCharCode(updateBufferView.getUint8(offset));
-            if (id == String.fromCharCode(NetObjectsSerializer.DESTROY_OBJECTS_ID)) {
-                offset = this.decodeDestroyedObjects(updateBufferView, offset + 1);
-                break;
-            }
-            id += updateBufferView.getUint32(offset + 1).toString();
-            offset += 5;
-            let gameObject = this.getGameObject(id);
-            if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
-            }
-            offset = gameObject.deserialize(updateBufferView, offset);
-            if (localPlayer && localPlayer.ID == id) {
-                localPlayer.reconciliation(collisionsSystem);
-            }
-        }
-    }
-    decodeDestroyedObjects(updateBufferView, offset) {
-        while (offset < updateBufferView.byteLength) {
-            let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
-                updateBufferView.getUint32(offset + 1).toString();
-            let gameObject = this.getGameObject(idToRemove);
-            if (gameObject) {
-                gameObject.destroy();
-            }
-            offset += 5;
-        }
-        return offset;
-    }
-}
-NetObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
-NetObjectsSerializer.DESTROY_OBJECTS_ID = 255;
-exports.NetObjectsSerializer = NetObjectsSerializer;
-
-},{"../CommonConfig":26,"../game_utils/factory/GameObjectTypes":33,"../game_utils/factory/GameObjectsSubscriber":34,"../game_utils/factory/ObjectsFactory":35}],53:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -4988,7 +4873,58 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":54}],54:[function(require,module,exports){
+},{"./Serializable":53}],52:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
+const GameObjectTypes_1 = require("../game_utils/factory/GameObjectTypes");
+class ObjectsSerializer {
+    static serializeObject(gameObject) {
+        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
+        let updateBuffer = new ArrayBuffer(objectNeededSize);
+        let updateBufferView = new DataView(updateBuffer);
+        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
+        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
+        gameObject.serialize(updateBufferView, 5, true);
+        return updateBufferView;
+    }
+    static serializeChunk(chunk) {
+        let chunkCompleteUpdate = true;
+        let neededBufferSize = 0;
+        let objectsToUpdateMap = new Map();
+        chunk.Objects.forEach((gameObject) => {
+            let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+            if (neededSize > 0) {
+                objectsToUpdateMap.set(gameObject, neededBufferSize);
+                //need 5 bits for obj ID
+                neededBufferSize += neededSize + ObjectsSerializer.OBJECT_ID_BYTES_LEN;
+            }
+        });
+        let updateBuffer = new ArrayBuffer(neededBufferSize);
+        let updateBufferView = new DataView(updateBuffer);
+        objectsToUpdateMap.forEach((offset, gameObject) => {
+            updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+            updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+            gameObject.serialize(updateBufferView, offset + ObjectsSerializer.OBJECT_ID_BYTES_LEN, chunkCompleteUpdate);
+        });
+        return updateBuffer;
+    }
+    static deserializeChunk(updateBuffer) {
+        let updateBufferView = new DataView(updateBuffer);
+        let offset = 0;
+        while (offset < updateBufferView.byteLength) {
+            let id = String.fromCharCode(updateBufferView.getUint8(offset));
+            id += updateBufferView.getUint32(offset + 1).toString();
+            offset += 5;
+            let gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id, [updateBufferView, offset]);
+            offset = gameObject.deserialize(updateBufferView, offset);
+        }
+    }
+}
+ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
+exports.ObjectsSerializer = ObjectsSerializer;
+
+},{"../game_utils/factory/GameObjectTypes":32,"../game_utils/factory/ObjectsFactory":34}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
@@ -5170,7 +5106,141 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../CommonConfig":26,"../utils/functions/BitOperations":56,"./NetworkDecorators":53}],55:[function(require,module,exports){
+},{"../CommonConfig":26,"../utils/functions/BitOperations":56,"./NetworkDecorators":51}],54:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
+const CommonConfig_1 = require("../CommonConfig");
+const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
+const GameObjectTypes_1 = require("../game_utils/factory/GameObjectTypes");
+class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
+    constructor(chunksManager) {
+        super();
+        this.chunksManager = chunksManager;
+        if (CommonConfig_1.CommonConfig.IS_SERVER) {
+            this.destroyedObjects = new Map();
+            let chunks = this.chunksManager.Chunks;
+            for (let i = 0; i < chunks.length; i++) {
+                for (let j = 0; j < chunks[i].length; j++) {
+                    this.destroyedObjects.set(chunks[i][j], []);
+                }
+            }
+        }
+    }
+    onObjectDestroy(gameObject) {
+        if (CommonConfig_1.CommonConfig.IS_SERVER) {
+            let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+            if (!chunk) {
+                // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+                return;
+            }
+            this.destroyedObjects.get(chunk).push(gameObject.ID);
+        }
+    }
+    collectUpdate(complete = false) {
+        let chunksUpdate = new Map();
+        let chunks = this.chunksManager.Chunks;
+        for (let i = 0; i < chunks.length; i++) {
+            for (let j = 0; j < chunks[i].length; j++) {
+                let chunk = chunks[i][j];
+                //no need to send update from chunk, that doesnt have players
+                if (!chunk.HasPlayersInNeighborhood) {
+                    //no need to keep leavers if there is no one to send them
+                    chunk.resetLeavers();
+                    this.destroyedObjects.set(chunk, []);
+                    continue;
+                }
+                //if chunk has new players inside we need to send complete update to them
+                let chunkCompleteUpdate = complete || chunk.HasNewcomersInNeighborhood;
+                let neededBufferSize = 0;
+                let objectsToUpdateMap = new Map();
+                chunk.Objects.forEach((gameObject) => {
+                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                    if (neededSize > 0) {
+                        objectsToUpdateMap.set(gameObject, neededBufferSize);
+                        //need 5 bits for obj ID
+                        neededBufferSize += neededSize + UpdateCollector.OBJECT_ID_BYTES_LEN;
+                    }
+                });
+                //when object leaves chunk, we need to send his position last time to clients,
+                //so they are able to detect object is no longer in their chunks
+                chunk.Leavers.forEach((gameObject) => {
+                    let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+                    if (neededSize > 0) {
+                        objectsToUpdateMap.set(gameObject, neededBufferSize);
+                        //need 5 bits for obj ID
+                        neededBufferSize += neededSize + UpdateCollector.OBJECT_ID_BYTES_LEN;
+                    }
+                });
+                let destrotObjectsOffset = neededBufferSize;
+                if (this.destroyedObjects.get(chunk).length > 0) {
+                    neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
+                }
+                if (neededBufferSize == 0) {
+                    continue;
+                }
+                let updateBuffer = new ArrayBuffer(neededBufferSize);
+                let updateBufferView = new DataView(updateBuffer);
+                objectsToUpdateMap.forEach((offset, gameObject) => {
+                    updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+                    updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+                    gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
+                });
+                if (this.destroyedObjects.get(chunk).length > 0) {
+                    updateBufferView.setUint8(destrotObjectsOffset++, UpdateCollector.DESTROY_OBJECTS_ID);
+                    this.destroyedObjects.get(chunk).forEach((id) => {
+                        updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
+                        updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
+                        destrotObjectsOffset += 5;
+                    });
+                }
+                chunk.resetLeavers();
+                this.destroyedObjects.set(chunk, []);
+                chunksUpdate.set(chunk, updateBuffer);
+            }
+        }
+        return chunksUpdate;
+    }
+    //TODO move localPlayer and reconciliation somewhere else
+    decodeUpdate(updateBuffer, localPlayer, collisionsSystem) {
+        let updateBufferView = new DataView(updateBuffer);
+        let offset = 0;
+        while (offset < updateBufferView.byteLength) {
+            let id = String.fromCharCode(updateBufferView.getUint8(offset));
+            if (id == String.fromCharCode(UpdateCollector.DESTROY_OBJECTS_ID)) {
+                offset = this.decodeDestroyedObjects(updateBufferView, offset + 1);
+                break;
+            }
+            id += updateBufferView.getUint32(offset + 1).toString();
+            offset += 5;
+            let gameObject = this.getGameObject(id);
+            if (gameObject == null) {
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
+            }
+            offset = gameObject.deserialize(updateBufferView, offset);
+            if (localPlayer && localPlayer.ID == id) {
+                localPlayer.reconciliation(collisionsSystem);
+            }
+        }
+    }
+    decodeDestroyedObjects(updateBufferView, offset) {
+        while (offset < updateBufferView.byteLength) {
+            let idToRemove = String.fromCharCode(updateBufferView.getUint8(offset)) +
+                updateBufferView.getUint32(offset + 1).toString();
+            let gameObject = this.getGameObject(idToRemove);
+            if (gameObject) {
+                gameObject.destroy();
+            }
+            offset += 5;
+        }
+        return offset;
+    }
+}
+UpdateCollector.OBJECT_ID_BYTES_LEN = 5;
+UpdateCollector.DESTROY_OBJECTS_ID = 255;
+exports.UpdateCollector = UpdateCollector;
+
+},{"../CommonConfig":26,"../game_utils/factory/GameObjectTypes":32,"../game_utils/factory/GameObjectsSubscriber":33,"../game_utils/factory/ObjectsFactory":34}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {

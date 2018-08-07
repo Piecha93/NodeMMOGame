@@ -3,7 +3,7 @@
 import {GameWorld} from "../common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
-import {NetObjectsSerializer} from "../common/serialize/NetObjectsSerializer";
+import {UpdateCollector} from "../common/serialize/UpdateCollector";
 import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../common/net/SocketMsgs";
@@ -28,7 +28,7 @@ export class GameClient {
 
     private world: GameWorld;
     private chunksManager: ChunksManager;
-    private netObjectsSerializer: NetObjectsSerializer = null;
+    private updateCollector: UpdateCollector = null;
 
     private renderer: Renderer;
     private chat: Chat;
@@ -76,7 +76,6 @@ export class GameClient {
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
         this.world.update(delta);
-        this.chunksManager.rebuild();
         this.clearUnusedChunks();
 
         let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
@@ -120,10 +119,10 @@ export class GameClient {
     private onInitializeGame(data: any) {
         this.localPlayerId = data['id'];
         this.chunksManager = new ChunksManager();
-        this.world = new GameWorld();
+        this.world = new GameWorld(this.chunksManager);
 
         this.renderer.ChunksManager = this.chunksManager;
-        this.netObjectsSerializer = new NetObjectsSerializer(this.chunksManager);
+        this.updateCollector = new UpdateCollector(this.chunksManager);
 
         this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
 
@@ -148,19 +147,9 @@ export class GameClient {
         this.startGameLoop();
     }
 
-    private onServerUpdate(update: Array<ArrayBuffer> | ArrayBuffer) {
-        // nasty hack to satisfy typescript compiler (dont know how to fix it xD)
-        // socket update may come as [0, ArrayBuffer] or [0, [0, ArrayBuffer], ..., [0, ArrayBuffer]]
-        if(update[0] instanceof Array) {
-            if(update instanceof Array) {
-                for (let i = 0; i < update.length; i++) {
-                    let updateBufferView: DataView = new DataView(update[i][1]);
-                    this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
-                }
-            }
-        } else {
-            let updateBufferView: DataView = new DataView(update[1]);
-            this.netObjectsSerializer.decodeUpdate(updateBufferView, this.localPlayer, this.world.CollisionsSystem);
+    private onServerUpdate(update: Array<ArrayBuffer>) {
+        for (let i = 0; i < update.length; i++) {
+            this.updateCollector.decodeUpdate(update[i][1], this.localPlayer, this.world.CollisionsSystem);
         }
     }
 
@@ -171,20 +160,15 @@ export class GameClient {
     }
 
     private clearUnusedChunks() {
-        let chunks: Chunk[][] = this.chunksManager.Chunks;
         let playerChunks: Array<Chunk> = [this.chunksManager.getObjectChunk(this.localPlayer)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
 
-        // playerChunks[0].Neighbors.forEach((chunkNeighbor: Chunk) => {
-        //     playerChunks.concat(chunkNeighbor.Neighbors);
-        // });
-
-        for(let i: number = 0; i < chunks.length; i++) {
-            for (let j: number = 0; j < chunks.length; j++) {
-                if(playerChunks.indexOf(chunks[i][j]) == -1) {
-                    while (chunks[i][j].Objects.length) {
-                        chunks[i][j].Objects[0].destroy();
-                    }
+        let chunk: Chunk;
+        let chunksIter = this.chunksManager.ChunksIterator();
+        while(chunk = chunksIter.next().value) {
+            if(playerChunks.indexOf(chunk) == -1) {
+                while (chunk .Objects.length) {
+                    chunk.Objects[0].destroy();
                 }
             }
         }

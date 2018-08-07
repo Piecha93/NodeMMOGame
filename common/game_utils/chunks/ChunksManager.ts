@@ -3,7 +3,7 @@ import {GameObject} from "../game/objects/GameObject";
 import {CommonConfig} from "../../CommonConfig";
 import {Chunk} from "./Chunk";
 import {ChangesDict} from "../../serialize/ChangesDict";
-import {Obstacle} from "../game/objects/Obstacle";
+import {Player} from "../game/objects/Player";
 
 
 export class ChunksManager extends GameObjectsSubscriber {
@@ -144,6 +144,13 @@ export class ChunksManager extends GameObjectsSubscriber {
             return;
         }
 
+        if(!chunk.IsActive && !(gameObject instanceof Player)) {
+            console.log("Created not Player object in inactive chunk! "
+                + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
+            gameObject.destroy();
+            return;
+        }
+
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
     }
@@ -153,38 +160,46 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     public rebuild() {
-        this.GameObjectsMapById.forEach((object: GameObject) => {
-            if((!object.Transform.hasChange(ChangesDict.X) && !object.Transform.hasChange(ChangesDict.Y))) {
+        this.GameObjectsMapById.forEach((gameObject: GameObject) => {
+            if((!gameObject.Transform.hasChange(ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict.Y))) {
                 //chunk cannot change if object did not move
                 return;
             }
 
-            let chunk: Chunk = this.getChunkByCoords(object.Transform.X, object.Transform.Y);
+            let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
-            if(!chunk) {
-                console.log("Object went outside chunk!");
-                object.destroy();
-                return
+            if(!chunk || (!chunk.IsActive && !(gameObject instanceof Player))) {
+                // console.log("Object went outside chunk! " + object.ID);
+                gameObject.destroy();
+                return;
             }
 
-            let oldChunk: Chunk = this.objectsChunks.get(object);
+            let oldChunk: Chunk = this.objectsChunks.get(gameObject);
             if(oldChunk == chunk) {
                 return;
             }
 
-            chunk.addObject(object);
-            this.objectsChunks.set(object, chunk);
-            object.forceCompleteUpdate();
+            oldChunk.removeObject(gameObject);
+            oldChunk.addLeaver(gameObject);
 
-            oldChunk.removeObject(object);
-            oldChunk.addLeaver(object);
+            chunk.addObject(gameObject);
+            this.objectsChunks.set(gameObject, chunk);
+            gameObject.forceCompleteUpdate();
         });
     }
 
-    remove(gameObject: GameObject) {
+    private remove(gameObject: GameObject) {
         if(this.objectsChunks.has(gameObject)) {
             this.objectsChunks.get(gameObject).removeObject(gameObject);
             this.objectsChunks.delete(gameObject);
+        }
+    }
+
+    *ChunksIterator() {
+        for(let i: number = 0; i < this.chunks.length; i++) {
+            for (let j: number = 0; j < this.chunks.length; j++) {
+                yield this.chunks[i][j];
+            }
         }
     }
 
