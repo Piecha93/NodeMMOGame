@@ -2158,8 +2158,8 @@ class GameClient {
         let playerChunks = [this.chunksManager.getObjectChunk(this.localPlayer)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
         let chunk;
-        let gen = this.chunksManager.ChunksIterator();
-        while (chunk = gen.next().value) {
+        let chunksIter = this.chunksManager.ChunksIterator();
+        while (chunk = chunksIter.next().value) {
             if (playerChunks.indexOf(chunk) == -1) {
                 while (chunk.Objects.length) {
                     chunk.Objects[0].destroy();
@@ -3106,6 +3106,7 @@ class CommonConfig {
 CommonConfig.chunkSize = 32 * 40;
 CommonConfig.numOfChunksX = 20;
 CommonConfig.numOfChunksY = 20;
+CommonConfig.chunkDeactivationTime = 10000;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
@@ -3151,15 +3152,15 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         while (delta > 0 && loops < maxDeltaLoops) {
             let chunk;
             let loopDelta = maxDelta < delta ? maxDelta : delta;
-            let gen = this.chunksManager.ChunksIterator();
-            while (chunk = gen.next().value) {
+            let chunksIter = this.chunksManager.ChunksIterator();
+            while (chunk = chunksIter.next().value) {
                 for (let i = 0; i < chunk.Objects.length; i++) {
                     chunk.Objects[i].update(loopDelta);
                 }
             }
-            gen = this.chunksManager.ChunksIterator();
+            chunksIter = this.chunksManager.ChunksIterator();
             this.collistionsSystem.update();
-            while (chunk = gen.next().value) {
+            while (chunk = chunksIter.next().value) {
                 this.collistionsSystem.updateCollisions(chunk.Objects);
                 if (!chunk.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
                     chunk.dump();
@@ -3376,7 +3377,7 @@ class Chunk {
         return this.leavers;
     }
     get IsActive() {
-        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < 5000;
+        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < CommonConfig_1.CommonConfig.chunkDeactivationTime;
     }
     get TimeSinceDeactivation() {
         return Date.now() - this.deactivatedTime;
@@ -3540,7 +3541,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             this.objectsChunks.delete(gameObject);
         }
     }
-    *Iterator() {
+    *ChunksIterator() {
         for (let i = 0; i < this.chunks.length; i++) {
             for (let j = 0; j < this.chunks.length; j++) {
                 yield this.chunks[i][j];
