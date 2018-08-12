@@ -24,6 +24,8 @@ export class Player extends Actor {
         this.weapon = new MagicWand();
     }
 
+    private lastInputSnapshot: InputSnapshot = null;
+
     public setInput(inputSnapshot: InputSnapshot) {
         let inputCommands: Map<INPUT_COMMAND, string> = inputSnapshot.Commands;
 
@@ -32,6 +34,8 @@ export class Player extends Actor {
 
             if(key == INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
+                if(CommonConfig.IS_CLIENT)
+                    this.lastInputSnapshot = inputSnapshot;
             } else if(key == INPUT_COMMAND.FIRE) {
                 this.fireAction(value, 0);
             } else if(key == INPUT_COMMAND.FIRE_2) {
@@ -77,6 +81,10 @@ export class Player extends Actor {
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
+
+        if(this.lastInputSnapshot) {
+            this.lastInputSnapshot.setSnapshotDelta();
+        }
 
         this.updatePosition(delta);
     }

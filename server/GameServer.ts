@@ -126,9 +126,7 @@ export class GameServer {
             snapshot.deserialize(data);
             player.setInput(snapshot);
 
-            if(snapshot.isMoving()) {
-                this.playersLastSnapshots.set(player, snapshot);
-            }
+            this.playersLastSnapshots.set(player, snapshot);
         });
 
         socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
@@ -215,7 +213,7 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 10; i++) {
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
                 new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
 

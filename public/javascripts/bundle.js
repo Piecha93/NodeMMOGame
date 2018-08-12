@@ -2187,7 +2187,6 @@ class Reconciliation {
         }
     }
     reconciliation(player, collisionsSystem) {
-        this.lastInputSnapshot.setSnapshotDelta();
         if (this.lastServerSnapshotData == null) {
             return;
         }
@@ -2210,7 +2209,7 @@ class Reconciliation {
                 delta -= serverSnapshotDelta;
             }
             player.setInput(this.inputHistory[i]);
-            let stepSize = 25;
+            let stepSize = 40;
             let steps = Math.floor(delta / stepSize);
             let rest = delta % stepSize;
             for (let i = 0; i <= steps; i++) {
@@ -2595,7 +2594,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 0.2,
+            resolution: 1,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2689,8 +2688,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024 * 5;
-Renderer.HEIGHT = 576 * 5;
+Renderer.WIDTH = 1024;
+Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
 },{"../../common/game_utils/factory/GameObjectTypes":33,"../../common/game_utils/factory/GameObjectsSubscriber":35,"./Camera":10,"./GameObjectAnimationRender":11,"./GameObjectSpriteRender":13,"./Hud":16,"./PlayerRender":17,"./ResourcesLoader":19,"./TileMap":20}],19:[function(require,module,exports){
@@ -3171,8 +3170,8 @@ class CommonConfig {
     }
 }
 CommonConfig.chunkSize = 32 * 40;
-CommonConfig.numOfChunksX = 20;
-CommonConfig.numOfChunksY = 20;
+CommonConfig.numOfChunksX = 10;
+CommonConfig.numOfChunksY = 10;
 CommonConfig.chunkDeactivationTime = 10000;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
@@ -3807,7 +3806,6 @@ class Actor extends GameObject_1.GameObject {
     updatePosition(delta) {
         let moveFactors = this.parseMoveDir();
         if (moveFactors[0] != 0) {
-            console.log("player x" + this.Transform.X);
             this.Transform.X += moveFactors[0] * this.velocity * delta;
             this.Transform.addChange(ChangesDict_1.ChangesDict.X);
         }
@@ -4240,6 +4238,7 @@ const MagicWand_1 = require("../weapons/MagicWand");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
+        this.lastInputSnapshot = null;
         this.velocity = 0.25;
         // this.weapon = new PortalGun();
         this.weapon = new MagicWand_1.MagicWand();
@@ -4251,6 +4250,8 @@ class Player extends Actor_1.Actor {
                 return;
             if (key == InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
+                if (CommonConfig_1.CommonConfig.IS_CLIENT)
+                    this.lastInputSnapshot = inputSnapshot;
             }
             else if (key == InputCommands_1.INPUT_COMMAND.FIRE) {
                 this.fireAction(value, 0);
@@ -4294,6 +4295,9 @@ class Player extends Actor_1.Actor {
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
+        if (this.lastInputSnapshot) {
+            this.lastInputSnapshot.setSnapshotDelta();
+        }
         this.updatePosition(delta);
     }
     serverUpdate(delta) {

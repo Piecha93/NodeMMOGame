@@ -21,8 +21,6 @@ export class Reconciliation {
     }
 
     public reconciliation(player: Player, collisionsSystem: CollisionsSystem) {
-        this.lastInputSnapshot.setSnapshotDelta();
-
         if(this.lastServerSnapshotData == null) {
             return;
         }
@@ -48,7 +46,7 @@ export class Reconciliation {
             }
             player.setInput(this.inputHistory[i]);
 
-            let stepSize = 25;
+            let stepSize = 40;
             let steps: number = Math.floor(delta / stepSize);
             let rest: number = delta % stepSize;
 

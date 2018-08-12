@@ -48,7 +48,6 @@ export abstract class Actor extends GameObject {
     public updatePosition(delta: number) {
         let moveFactors: [number, number] = this.parseMoveDir();
         if (moveFactors[0] != 0) {
-            console.log("player x" + this.Transform.X)
             this.Transform.X += moveFactors[0] * this.velocity * delta;
             this.Transform.addChange(ChangesDict.X);
         }
