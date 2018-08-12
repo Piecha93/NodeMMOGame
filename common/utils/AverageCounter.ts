@@ -1,5 +1,3 @@
-
-
 export class AverageCounter {
     private history: Array<number> = [];
     private historySize: number;

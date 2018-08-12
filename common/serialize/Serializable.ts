@@ -74,7 +74,7 @@ export abstract class Serializable {
             neededSize += func(this, complete);
         });
 
-        this[PropNames.NestedNetworkObjects].forEach((key: string, short_key: string) => {
+        this[PropNames.NestedSerializableObjects].forEach((key: string, short_key: string) => {
             neededSize += (this[key] as Serializable).calcNeededBufferSize(complete);
         });
 
@@ -123,8 +123,8 @@ export abstract class Serializable {
             });
         }
 
-        if(this[PropNames.NestedNetworkObjects]) {
-            this[PropNames.NestedNetworkObjects].forEach((key: string, shortKey: string) => {
+        if(this[PropNames.NestedSerializableObjects]) {
+            this[PropNames.NestedSerializableObjects].forEach((key: string, shortKey: string) => {
                 let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
 
                 let tmpOffset: number = updatedOffset;
@@ -196,7 +196,7 @@ export abstract class Serializable {
         objectsToDecode.forEach((index: number) => {
             let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
 
-            let key: string = this[PropNames.NestedNetworkObjects].get(shortKey);
+            let key: string = this[PropNames.NestedSerializableObjects].get(shortKey);
             offset = this[key].deserialize(updateBufferView, offset);
         });
 

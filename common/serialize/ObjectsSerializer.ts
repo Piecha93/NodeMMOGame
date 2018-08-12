@@ -57,7 +57,7 @@ export class ObjectsSerializer {
 
             offset += 5;
 
-            let gameObject: GameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id,
+            let gameObject: GameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), undefined,
                 [updateBufferView, offset]);
 
             offset = gameObject.deserialize(updateBufferView, offset);

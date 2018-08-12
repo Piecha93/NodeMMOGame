@@ -77,6 +77,18 @@ export class GameServer {
     }
 
     private onConnection(socket: SocketIO.Server) {
+        // use to fake latency
+        // (function() {
+        //     let oldEmit = socket.emit;
+        //     let fff: any = function() {
+        //         let args = Array.from(arguments);
+        //         setTimeout(() => {
+        //             oldEmit.apply(this, args);
+        //         }, 300);
+        //     };
+        //     socket.emit = fff;
+        // })();
+
         let socketSession = (socket as any).request.session;
 
         if(this.userIdToSocketMap.has(socketSession.user_id)) {
@@ -179,7 +191,6 @@ export class GameServer {
                 let snapshot: InputSnapshot = this.playersLastSnapshots.get(player);
                 if(snapshot && snapshot.isMoving()) {
                     client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
-                    this.playersLastSnapshots.delete(player);
                 }
                 if(updateArray.length > 0) {
                     client.Socket.emit(SocketMsgs.UPDATE_GAME, updateArray);
@@ -213,7 +224,7 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 1000; i++) {
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
                 new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
 

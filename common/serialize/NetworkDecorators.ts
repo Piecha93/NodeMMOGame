@@ -8,7 +8,7 @@ export namespace PropNames {
     export const SerializeDecodeOrder:  string = "SerializeDecodeOrder";
     export const PropertyTypes:         string = "PropertyType";
     export const DecodeCounter:         string = "DecodeCounter";
-    export const NestedNetworkObjects:  string = "NestedNetworkObjects";
+    export const NestedSerializableObjects:  string = "NestedSerializableObjects";
 }
 
 function fillString(str: string, view: DataView, offset: number) {
@@ -28,9 +28,9 @@ function decodeString(view: DataView, offset: number): string {
     return str;
 }
 
-export function NetworkProperty(shortKey: string, type: SerializableTypes) {
+export function SerializableProperty(shortKey: string, type: SerializableTypes) {
     function decorator(target: Object, key: string) {
-        addNetworkProperties(target);
+        addSerializableProperties(target);
 
         let counter: number = target[PropNames.DecodeCounter]++;
         target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
@@ -106,9 +106,9 @@ export function NetworkProperty(shortKey: string, type: SerializableTypes) {
     return decorator;
 }
 
-export function NetworkObject(shortKey: string) {
+export function SerializableObject(shortKey: string) {
     function decorator(target: Object, key: string) {
-        addNetworkProperties(target);
+        addSerializableProperties(target);
 
         target[PropNames.PropertyTypes].set(shortKey, SerializableTypes.Object);
 
@@ -116,20 +116,20 @@ export function NetworkObject(shortKey: string) {
 
         target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
         target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropNames.NestedNetworkObjects].set(shortKey, key);
+        target[PropNames.NestedSerializableObjects].set(shortKey, key);
     }
 
     return decorator;
 }
 
-function addNetworkProperties(target: Object) {
+function addSerializableProperties(target: Object) {
     createMapProperty<string, Function>(target, PropNames.SerializeFunctions);
     createMapProperty<string, Function>(target, PropNames.DeserializeFunctions);
     createMapProperty<string, Function>(target, PropNames.CalcBytesFunctions);
     createMapProperty<string, number>(target, PropNames.SerializeEncodeOrder);
     createMapProperty<number, string>(target, PropNames.SerializeDecodeOrder);
     createMapProperty<string, SerializableTypes>(target, PropNames.PropertyTypes);
-    createMapProperty<string, number>(target, PropNames.NestedNetworkObjects);
+    createMapProperty<string, number>(target, PropNames.NestedSerializableObjects);
 
     addDcecodeCounter(target);
 }

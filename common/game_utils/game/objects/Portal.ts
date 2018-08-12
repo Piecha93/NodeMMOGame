@@ -1,7 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../../physics/Transform";
 import {Result} from "detect-collisions";
-import {NetworkProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableProperty} from "../../../serialize/NetworkDecorators";
 import {Obstacle} from "./Obstacle";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {Actor} from "./Actor";
@@ -10,7 +10,7 @@ import {SerializableTypes} from "../../../serialize/Serializable";
 export class Portal extends GameObject {
     private couplingPortal: Portal = null;
 
-    @NetworkProperty(ChangesDict.IS_ATTACHED, SerializableTypes.Int8)
+    @SerializableProperty(ChangesDict.IS_ATTACHED, SerializableTypes.Int8)
     private isAttached: boolean = false;
 
     constructor(transform: Transform) {

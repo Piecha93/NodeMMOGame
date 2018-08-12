@@ -22,7 +22,6 @@ export class HeartBeatSender {
     private heartBeatResponse(id: number) {
         if (this.heartBeats.has(id)) {
             let ping: number = new Date().getTime() - this.heartBeats.get(id);
-            //console.log('hbr ' + ping);
 
             DebugWindowHtmlHandler.Instance.Ping = ping.toString();
 

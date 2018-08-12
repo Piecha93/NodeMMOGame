@@ -19,7 +19,6 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public update(delta: number) {
-
             let chunk: Chunk;
 
             let chunksIter = this.chunksManager.ChunksIterator();
@@ -38,9 +37,7 @@ export class GameWorld extends GameObjectsSubscriber {
                 }
             }
 
-
             this.chunksManager.rebuild();
-
     }
 
     public onObjectCreate(gameObject: GameObject) {

@@ -2055,7 +2055,6 @@ const GameCore_1 = require("../common/GameCore");
 const GameObjectsManager_1 = require("../common/game_utils/factory/GameObjectsManager");
 const Reconciliation_1 = require("./Reconciliation");
 const customParser = require('socket.io-msgpack-parser');
-// import * as io from "socket.io-client"
 const io = require('socket.io-client');
 class GameClient {
     constructor() {
@@ -2073,11 +2072,6 @@ class GameClient {
         });
     }
     connect() {
-        // this.socket = io.connect({
-        //     reconnection: false,
-        //     parser: customParser
-        // });
-        // workaround to lack off parser type in socketio types
         this.socket = io({
             reconnection: false,
             parser: customParser
@@ -2090,16 +2084,11 @@ class GameClient {
         }
     }
     startGameLoop() {
-        let delta = this.timer.getDelta();
         this.core.gameLoop();
         this.renderer.setCurrentChunk(this.core.ChunksManager.getObjectChunk(this.localPlayer));
         this.clearUnusedChunks();
-        let deltaAvg = this.fpsAvgCounter.calculate(delta);
-        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager_1.GameObjectsManager.gameObjectsMapById.size.toString();
-        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
-            " y: " + this.localPlayer.Transform.Y.toFixed(2);
         this.renderer.update();
+        this.updateDebugWindow();
         let deviation = this.renderer.CameraDeviation;
         this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
@@ -2127,12 +2116,11 @@ class GameClient {
         this.reconciliation = new Reconciliation_1.Reconciliation();
         this.core = new GameCore_1.GameCore();
         this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
+        this.heartBeatSender.sendHeartBeat();
         this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
         this.inputHandler.addSnapshotCallback((snapshot) => {
             if (this.localPlayer) {
-                // if(snapshot.isMoving()) {
                 this.reconciliation.pushSnapshotToHistory(snapshot);
-                // }
                 this.inputSender.sendInput(snapshot);
                 this.localPlayer.setInput(snapshot);
             }
@@ -2142,7 +2130,6 @@ class GameClient {
         this.onServerUpdate(data);
         this.localPlayer = GameObjectsManager_1.GameObjectsManager.GetGameObjectById(this.localPlayerId);
         this.renderer.FocusedObject = this.localPlayer;
-        this.heartBeatSender.sendHeartBeat(); //move to INITIALIZE_GAME ??
         this.startGameLoop();
     }
     onServerUpdate(update) {
@@ -2155,6 +2142,14 @@ class GameClient {
     }
     onUpdateSnapshotData(lastSnapshotData) {
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
+    }
+    updateDebugWindow() {
+        let delta = this.timer.getDelta();
+        let deltaAvg = this.fpsAvgCounter.calculate(delta);
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager_1.GameObjectsManager.gameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
+            " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
     clearUnusedChunks() {
         let playerChunks = [this.core.ChunksManager.getObjectChunk(this.localPlayer)];
@@ -2594,7 +2589,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 1,
+            resolution: 1 * 0.2,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2688,8 +2683,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024;
-Renderer.HEIGHT = 576;
+Renderer.WIDTH = 1024 * 5;
+Renderer.HEIGHT = 576 * 5;
 exports.Renderer = Renderer;
 
 },{"../../common/game_utils/factory/GameObjectTypes":33,"../../common/game_utils/factory/GameObjectsSubscriber":35,"./Camera":10,"./GameObjectAnimationRender":11,"./GameObjectSpriteRender":13,"./Hud":16,"./PlayerRender":17,"./ResourcesLoader":19,"./TileMap":20}],19:[function(require,module,exports){
@@ -3106,7 +3101,6 @@ class HeartBeatSender {
     heartBeatResponse(id) {
         if (this.heartBeats.has(id)) {
             let ping = new Date().getTime() - this.heartBeats.get(id);
-            //console.log('hbr ' + ping);
             DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Ping = ping.toString();
             if (this.isRunning) {
                 setTimeout(() => this.sendHeartBeat(), this.interval);
@@ -3904,23 +3898,23 @@ Actor.cornerDir = 0.7071;
 Actor.moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
 Actor.moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.MAX_HP, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.MAX_HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "maxHp", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ANIMATION_TYPE, Serializable_1.SerializableTypes.String),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ANIMATION_TYPE, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], Actor.prototype, "animationType", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
     __metadata("design:type", Number)
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
@@ -4035,11 +4029,11 @@ class FireBall extends Projectile_1.Projectile {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.POWER, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.POWER, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], FireBall.prototype, "power", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.String),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
@@ -4147,19 +4141,19 @@ class GameObject extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkObject("pos"),
+    NetworkDecorators_1.SerializableObject("pos"),
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.VELOCITY, Serializable_1.SerializableTypes.Float32),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.VELOCITY, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number)
 ], GameObject.prototype, "velocity", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty("INV", Serializable_1.SerializableTypes.Uint8),
+    NetworkDecorators_1.SerializableProperty("INV", Serializable_1.SerializableTypes.Uint8),
     __metadata("design:type", Boolean)
 ], GameObject.prototype, "invisible", void 0);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.SPRITE_ID, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.SPRITE_ID, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], GameObject.prototype, "SpriteId", null);
@@ -4250,8 +4244,7 @@ class Player extends Actor_1.Actor {
                 return;
             if (key == InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
-                if (CommonConfig_1.CommonConfig.IS_CLIENT)
-                    this.lastInputSnapshot = inputSnapshot;
+                this.lastInputSnapshot = inputSnapshot;
             }
             else if (key == InputCommands_1.INPUT_COMMAND.FIRE) {
                 this.fireAction(value, 0);
@@ -4393,7 +4386,7 @@ class Portal extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, Serializable_1.SerializableTypes.Int8),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, Serializable_1.SerializableTypes.Int8),
     __metadata("design:type", Boolean)
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
@@ -4596,27 +4589,27 @@ class Transform extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "X", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Y", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Width", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Height", null);
 __decorate([
-    NetworkDecorators_1.NetworkProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
+    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Rotation", null);
@@ -4762,7 +4755,7 @@ var PropNames;
     PropNames.SerializeDecodeOrder = "SerializeDecodeOrder";
     PropNames.PropertyTypes = "PropertyType";
     PropNames.DecodeCounter = "DecodeCounter";
-    PropNames.NestedNetworkObjects = "NestedNetworkObjects";
+    PropNames.NestedSerializableObjects = "NestedSerializableObjects";
 })(PropNames = exports.PropNames || (exports.PropNames = {}));
 function fillString(str, view, offset) {
     view.setUint8(offset, str.length);
@@ -4778,9 +4771,9 @@ function decodeString(view, offset) {
     }
     return str;
 }
-function NetworkProperty(shortKey, type) {
+function SerializableProperty(shortKey, type) {
     function decorator(target, key) {
-        addNetworkProperties(target);
+        addSerializableProperties(target);
         let counter = target[PropNames.DecodeCounter]++;
         target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
         target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
@@ -4863,27 +4856,27 @@ function NetworkProperty(shortKey, type) {
     }
     return decorator;
 }
-exports.NetworkProperty = NetworkProperty;
-function NetworkObject(shortKey) {
+exports.SerializableProperty = SerializableProperty;
+function SerializableObject(shortKey) {
     function decorator(target, key) {
-        addNetworkProperties(target);
+        addSerializableProperties(target);
         target[PropNames.PropertyTypes].set(shortKey, Serializable_1.SerializableTypes.Object);
         let counter = target[PropNames.DecodeCounter]++;
         target[PropNames.SerializeEncodeOrder].set(shortKey, counter);
         target[PropNames.SerializeDecodeOrder].set(counter, shortKey);
-        target[PropNames.NestedNetworkObjects].set(shortKey, key);
+        target[PropNames.NestedSerializableObjects].set(shortKey, key);
     }
     return decorator;
 }
-exports.NetworkObject = NetworkObject;
-function addNetworkProperties(target) {
+exports.SerializableObject = SerializableObject;
+function addSerializableProperties(target) {
     createMapProperty(target, PropNames.SerializeFunctions);
     createMapProperty(target, PropNames.DeserializeFunctions);
     createMapProperty(target, PropNames.CalcBytesFunctions);
     createMapProperty(target, PropNames.SerializeEncodeOrder);
     createMapProperty(target, PropNames.SerializeDecodeOrder);
     createMapProperty(target, PropNames.PropertyTypes);
-    createMapProperty(target, PropNames.NestedNetworkObjects);
+    createMapProperty(target, PropNames.NestedSerializableObjects);
     addDcecodeCounter(target);
 }
 function createMapProperty(target, propertyName) {
@@ -4962,7 +4955,7 @@ class ObjectsSerializer {
             let id = String.fromCharCode(updateBufferView.getUint8(offset));
             id += updateBufferView.getUint32(offset + 1).toString();
             offset += 5;
-            let gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id, [updateBufferView, offset]);
+            let gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), undefined, [updateBufferView, offset]);
             offset = gameObject.deserialize(updateBufferView, offset);
         }
     }
@@ -5023,7 +5016,7 @@ class Serializable {
             }
             neededSize += func(this, complete);
         });
-        this[NetworkDecorators_1.PropNames.NestedNetworkObjects].forEach((key, short_key) => {
+        this[NetworkDecorators_1.PropNames.NestedSerializableObjects].forEach((key, short_key) => {
             neededSize += this[key].calcNeededBufferSize(complete);
         });
         if (neededSize != 0) {
@@ -5060,8 +5053,8 @@ class Serializable {
                 }
             });
         }
-        if (this[NetworkDecorators_1.PropNames.NestedNetworkObjects]) {
-            this[NetworkDecorators_1.PropNames.NestedNetworkObjects].forEach((key, shortKey) => {
+        if (this[NetworkDecorators_1.PropNames.NestedSerializableObjects]) {
+            this[NetworkDecorators_1.PropNames.NestedSerializableObjects].forEach((key, shortKey) => {
                 let index = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
                 let tmpOffset = updatedOffset;
                 updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
@@ -5121,7 +5114,7 @@ class Serializable {
         }
         objectsToDecode.forEach((index) => {
             let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
-            let key = this[NetworkDecorators_1.PropNames.NestedNetworkObjects].get(shortKey);
+            let key = this[NetworkDecorators_1.PropNames.NestedSerializableObjects].get(shortKey);
             offset = this[key].deserialize(updateBufferView, offset);
         });
         return offset;

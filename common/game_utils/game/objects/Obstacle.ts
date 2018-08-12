@@ -33,6 +33,5 @@ export class Obstacle extends GameObject {
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-
     }
 }

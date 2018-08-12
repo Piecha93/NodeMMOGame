@@ -4,14 +4,14 @@ import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
-import {NetworkProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableProperty} from "../../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 import {SerializableTypes} from "../../../serialize/Serializable";
 
 export class FireBall extends Projectile {
-    @NetworkProperty(ChangesDict.POWER, SerializableTypes.Uint16)
+    @SerializableProperty(ChangesDict.POWER, SerializableTypes.Uint16)
     private power: number = 25;
-    @NetworkProperty(ChangesDict.OWNER, SerializableTypes.String)
+    @SerializableProperty(ChangesDict.OWNER, SerializableTypes.String)
     private owner: string;
 
     constructor(transform: Transform) {

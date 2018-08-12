@@ -2,20 +2,20 @@ import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {CommonConfig} from "../../../CommonConfig";
 import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
-import {NetworkObject, NetworkProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableObject, SerializableProperty} from "../../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
 
 export class GameObject extends Serializable {
     protected id: string = "";
     protected spriteName: string;
-    @NetworkObject("pos")
+    @SerializableObject("pos")
     protected transform: Transform;
 
-    @NetworkProperty(ChangesDict.VELOCITY, SerializableTypes.Float32)
+    @SerializableProperty(ChangesDict.VELOCITY, SerializableTypes.Float32)
     protected velocity: number = 0;
 
-    @NetworkProperty("INV", SerializableTypes.Uint8)
+    @SerializableProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
     private destroyListeners: Set<Function>;
@@ -111,7 +111,7 @@ export class GameObject extends Serializable {
         this.addChange(ChangesDict.SPRITE_ID);
     }
 
-    @NetworkProperty(ChangesDict.SPRITE_ID, SerializableTypes.Uint16)
+    @SerializableProperty(ChangesDict.SPRITE_ID, SerializableTypes.Uint16)
     set SpriteId(id: number) {
         this.spriteName = ResourcesMap.IdToName.get(id);
     }

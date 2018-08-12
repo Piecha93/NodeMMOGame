@@ -34,8 +34,7 @@ export class Player extends Actor {
 
             if(key == INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
-                if(CommonConfig.IS_CLIENT)
-                    this.lastInputSnapshot = inputSnapshot;
+                this.lastInputSnapshot = inputSnapshot;
             } else if(key == INPUT_COMMAND.FIRE) {
                 this.fireAction(value, 0);
             } else if(key == INPUT_COMMAND.FIRE_2) {

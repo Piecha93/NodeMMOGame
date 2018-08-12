@@ -20,7 +20,6 @@ import {GameObjectsManager} from "../common/game_utils/factory/GameObjectsManage
 import {Reconciliation} from "./Reconciliation";
 
 const customParser = require('socket.io-msgpack-parser');
-// import * as io from "socket.io-client"
 const io = require('socket.io-client');
 
 export class GameClient {
@@ -55,11 +54,6 @@ export class GameClient {
     }
 
     private connect() {
-        // this.socket = io.connect({
-        //     reconnection: false,
-        //     parser: customParser
-        // });
-        // workaround to lack off parser type in socketio types
         this.socket = io({
                 reconnection: false,
                 parser: customParser
@@ -73,21 +67,14 @@ export class GameClient {
     }
 
     private startGameLoop() {
-        let delta: number = this.timer.getDelta();
-
         this.core.gameLoop();
         this.renderer.setCurrentChunk(this.core.ChunksManager.getObjectChunk(this.localPlayer));
 
         this.clearUnusedChunks();
 
-        let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
-
-        DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager.gameObjectsMapById.size.toString();
-        DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
-            " y: " + this.localPlayer.Transform.Y.toFixed(2);
-
         this.renderer.update();
+
+        this.updateDebugWindow();
 
         let deviation: [number, number] = this.renderer.CameraDeviation;
         this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
@@ -126,13 +113,12 @@ export class GameClient {
 
         this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
 
+        this.heartBeatSender.sendHeartBeat();
         this.inputHandler = new InputHandler(this.cursor);
 
         this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
             if(this.localPlayer) {
-                // if(snapshot.isMoving()) {
-                    this.reconciliation.pushSnapshotToHistory(snapshot);
-                // }
+                this.reconciliation.pushSnapshotToHistory(snapshot);
                 this.inputSender.sendInput(snapshot);
                 this.localPlayer.setInput(snapshot);
             }
@@ -144,8 +130,6 @@ export class GameClient {
 
         this.localPlayer = GameObjectsManager.GetGameObjectById(this.localPlayerId) as Player;
         this.renderer.FocusedObject = this.localPlayer;
-
-        this.heartBeatSender.sendHeartBeat(); //move to INITIALIZE_GAME ??
 
         this.startGameLoop();
     }
@@ -161,6 +145,16 @@ export class GameClient {
 
     private onUpdateSnapshotData(lastSnapshotData?: [number, number]) {
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
+    }
+
+    private updateDebugWindow() {
+        let delta: number = this.timer.getDelta();
+        let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
+
+        DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
+        DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager.gameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
+            " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
 
     private clearUnusedChunks() {
