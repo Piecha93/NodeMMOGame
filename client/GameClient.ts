@@ -1,23 +1,23 @@
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 
-import {GameWorld} from "../common/GameWorld";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
-import {UpdateCollector} from "../common/serialize/UpdateCollector";
 import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../common/net/SocketMsgs";
 import {Chat} from "./Chat";
 import {InputSender} from ".//net/InputSender";
-import {DeltaTimer} from "../common/DeltaTimer";
+import {DeltaTimer} from "../common/utils/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../common/game_utils/game/objects/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
 import {Cursor} from "./input/Cursor";
 import {Transform} from "../common/game_utils/physics/Transform";
 import {AverageCounter} from "../common/utils/AverageCounter";
-import {ChunksManager} from "../common/game_utils/chunks/ChunksManager";
 import {Chunk} from "../common/game_utils/chunks/Chunk";
+import {GameCore} from "../common/GameCore";
+import {GameObjectsManager} from "../common/game_utils/factory/GameObjectsManager";
+import {Reconciliation} from "./Reconciliation";
 
 const customParser = require('socket.io-msgpack-parser');
 // import * as io from "socket.io-client"
@@ -26,9 +26,8 @@ const io = require('socket.io-client');
 export class GameClient {
     private socket: SocketIOClient.Socket;
 
-    private world: GameWorld;
-    private chunksManager: ChunksManager;
-    private updateCollector: UpdateCollector = null;
+    private core: GameCore;
+    private reconciliation: Reconciliation;
 
     private renderer: Renderer;
     private chat: Chat;
@@ -75,13 +74,16 @@ export class GameClient {
 
     private startGameLoop() {
         let delta: number = this.timer.getDelta();
-        this.world.update(delta);
+
+        this.core.gameLoop();
+        this.renderer.setCurrentChunk(this.core.ChunksManager.getObjectChunk(this.localPlayer));
+
         this.clearUnusedChunks();
 
         let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
 
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        DebugWindowHtmlHandler.Instance.GameObjectCounter = this.world.GameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager.gameObjectsMapById.size.toString();
         DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
 
@@ -118,19 +120,20 @@ export class GameClient {
 
     private onInitializeGame(data: any) {
         this.localPlayerId = data['id'];
-        this.chunksManager = new ChunksManager();
-        this.world = new GameWorld(this.chunksManager);
 
-        this.renderer.ChunksManager = this.chunksManager;
-        this.updateCollector = new UpdateCollector(this.chunksManager);
+        this.reconciliation = new Reconciliation();
+        this.core = new GameCore();
 
         this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
 
         this.inputHandler = new InputHandler(this.cursor);
 
-        this.inputHandler.addSnapshotCallback(this.inputSender.sendInput.bind(this.inputSender));
         this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
             if(this.localPlayer) {
+                // if(snapshot.isMoving()) {
+                    this.reconciliation.pushSnapshotToHistory(snapshot);
+                // }
+                this.inputSender.sendInput(snapshot);
                 this.localPlayer.setInput(snapshot);
             }
         });
@@ -139,7 +142,7 @@ export class GameClient {
     private onFirstUpdate(data: any) {
         this.onServerUpdate(data);
 
-        this.localPlayer = this.world.getGameObject(this.localPlayerId) as Player;
+        this.localPlayer = GameObjectsManager.GetGameObjectById(this.localPlayerId) as Player;
         this.renderer.FocusedObject = this.localPlayer;
 
         this.heartBeatSender.sendHeartBeat(); //move to INITIALIZE_GAME ??
@@ -149,22 +152,23 @@ export class GameClient {
 
     private onServerUpdate(update: Array<ArrayBuffer>) {
         for (let i = 0; i < update.length; i++) {
-            this.updateCollector.decodeUpdate(update[i][1], this.localPlayer, this.world.CollisionsSystem);
+            this.core.decodeUpdate(update[i][1]);
+        }
+        if(this.localPlayer) {
+            this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);
         }
     }
 
     private onUpdateSnapshotData(lastSnapshotData?: [number, number]) {
-        if(this.localPlayer) {
-            this.localPlayer.LastServerSnapshotData = lastSnapshotData;
-        }
+        this.reconciliation.LastServerSnapshotData = lastSnapshotData;
     }
 
     private clearUnusedChunks() {
-        let playerChunks: Array<Chunk> = [this.chunksManager.getObjectChunk(this.localPlayer)];
+        let playerChunks: Array<Chunk> = [this.core.ChunksManager.getObjectChunk(this.localPlayer)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
 
         let chunk: Chunk;
-        let chunksIter = this.chunksManager.ChunksIterator();
+        let chunksIter = this.core.ChunksManager.ChunksIterator();
         while(chunk = chunksIter.next().value) {
             if(playerChunks.indexOf(chunk) == -1) {
                 while (chunk .Objects.length) {

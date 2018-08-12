@@ -1,5 +1,5 @@
 import {INPUT_COMMAND} from "../input/InputCommands";
-import {DeltaTimer} from "../DeltaTimer";
+import {DeltaTimer} from "../utils/DeltaTimer";
 
 export class InputSnapshot {
     static NextId = 0;

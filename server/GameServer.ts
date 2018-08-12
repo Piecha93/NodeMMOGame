@@ -1,24 +1,22 @@
 import * as SocketIO from 'socket.io';
 
 import {ServerClient} from "./ServerClient";
-import {GameWorld} from "../common/GameWorld";
 import {Player} from "../common/game_utils/game/objects/Player";
 import {InputSnapshot} from "../common/input/InputSnapshot";
-import {UpdateCollector} from "../common/serialize/UpdateCollector";
 import {GameObject} from "../common/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../common/net/SocketMsgs";
 import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
-import {DeltaTimer} from "../common/DeltaTimer";
 import {Obstacle} from "../common/game_utils/game/objects/Obstacle";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../common/game_utils/game/objects/Enemy";
 import {Item} from "../common/game_utils/game/objects/Item";
-import {ChunksManager} from "../common/game_utils/chunks/ChunksManager";
 import {Chunk} from "../common/game_utils/chunks/Chunk";
 import {CommonConfig} from "../common/CommonConfig";
 import {ObjectsSerializer} from "../common/serialize/ObjectsSerializer";
 import {Transform} from "../common/game_utils/physics/Transform";
+import {GameCore} from "../common/GameCore";
+import {GameObjectsManager} from "../common/game_utils/factory/GameObjectsManager";
 
 
 export class GameServer {
@@ -27,11 +25,8 @@ export class GameServer {
     private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
     private userIdToSocketMap: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
 
-    private world: GameWorld = null;
-    private chunksManager: ChunksManager = null;
-    private updateCollector: UpdateCollector = null;
-
-    private deltaTimer: DeltaTimer = new DeltaTimer();
+    private core: GameCore;
+    private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -43,16 +38,7 @@ export class GameServer {
     }
 
     private startGame() {
-        this.chunksManager = new ChunksManager();
-        this.updateCollector = new UpdateCollector(this.chunksManager);
-        this.world = new GameWorld(this.chunksManager);
-
-        // GameObjectsFactory.DestroyCallbacks.push((gameObject: GameObject) => {
-        //     if(gameObject instanceof Actor) {
-        //         this.sockets.emit(SocketMsgs.CHAT_MESSAGE,
-        //             {s: "Server", m: (gameObject as Actor).Name + " has been slain"});
-        //     }
-        // });
+        this.core = new GameCore();
 
         this.initTestObjects();
 
@@ -61,10 +47,8 @@ export class GameServer {
     }
 
     private startGameLoop() {
-        let delta: number = this.deltaTimer.getDelta();
-        this.checkDisconnectInterval(delta);
-
-        this.world.update(delta);
+        this.core.gameLoop();
+        this.checkDisconnectInterval();
 
         setTimeout(() => {
             this.startGameLoop();
@@ -74,100 +58,114 @@ export class GameServer {
     private startUpdateLoop() {
         setTimeout(() => {
             this.startUpdateLoop();
-            this.collectAndSendUpdate(false);
+            this.collectAndSendUpdate();
         }, ServerConfig.UPDATE_INTERVAL);
     }
 
-    private checkDisconnectInterval(delta: number) {
+    private checkDisconnectInterval() {
+        let now: number = Date.now();
+        let expiredTime: number = now - ServerConfig.CLIENT_TIMEOUT_TIME;
         this.clients.forEach((client: ServerClient) => {
-            client.LastHbInterval -= delta;
-            if (client.LastHbInterval <= 0) {
+            if (client.LastHbTime <= expiredTime) {
                 this.clientDisconnected(client, "timeout");
             }
         });
     }
 
     private configureSockets() {
-        this.sockets.on(SocketMsgs.CONNECTION, (socket: SocketIO.Server) => {
-            let socketSession = (socket as any).request.session;
+        this.sockets.on(SocketMsgs.CONNECTION, this.onConnection.bind(this));
+    }
 
-            if(this.userIdToSocketMap.has(socketSession.user_id)) {
-                let client: ServerClient = this.clients.get(this.userIdToSocketMap.get(socketSession.user_id));
-                this.clientDisconnected(client, "You have connected from another browser");
-                this.userIdToSocketMap.delete(socketSession.user_id);
+    private onConnection(socket: SocketIO.Server) {
+        let socketSession = (socket as any).request.session;
+
+        if(this.userIdToSocketMap.has(socketSession.user_id)) {
+            let client: ServerClient = this.clients.get(this.userIdToSocketMap.get(socketSession.user_id));
+            this.clientDisconnected(client, "You have connected from another browser");
+            this.userIdToSocketMap.delete(socketSession.user_id);
+        }
+
+        let serverClient: ServerClient = new ServerClient(socket);
+        this.clients.set(socket, serverClient);
+        this.userIdToSocketMap.set(socketSession.user_id, socket);
+
+        if(socketSession.user_id.substring(0, 5) == "Guest") {
+            serverClient.Name = socketSession.user_id;
+        } else {
+            Database.Instance.findUserById(socketSession.user_id, (user: IUserModel) => {
+                serverClient.Name = user.username;
+                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
+                if(player) {
+                    player.Name = serverClient.Name;
+                }
+            })
+        }
+
+        socket.on(SocketMsgs.CLIENT_READY, () => {
+            let player: Player = GameObjectsFactory.InstatiateWithTransform("Player",
+                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 48, 64)) as Player;
+
+            player.Name = serverClient.Name;
+            serverClient.PlayerId = player.ID;
+
+            socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
+
+            socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
+            serverClient.IsReady = true;
+
+            this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
+        });
+
+        socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
+            let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
+            if(player == null) {
+                return;
             }
 
-            let serverClient: ServerClient = new ServerClient(socket);
-            this.clients.set(socket, serverClient);
-            this.userIdToSocketMap.set(socketSession.user_id, socket);
+            let snapshot: InputSnapshot = new InputSnapshot();
+            snapshot.deserialize(data);
+            player.setInput(snapshot);
 
-            if(socketSession.user_id.substring(0, 5) == "Guest") {
-                serverClient.Name = socketSession.user_id;
-            } else {
-                Database.Instance.findUserById(socketSession.user_id, (user: IUserModel) => {
-                    serverClient.Name = user.username;
-                    let player: Player = this.world.getGameObject(serverClient.PlayerId) as Player;
-                    if(player) {
-                        player.Name = serverClient.Name;
-                    }
-                })
+            if(snapshot.isMoving()) {
+                this.playersLastSnapshots.set(player, snapshot);
             }
+        });
 
-            socket.on(SocketMsgs.CLIENT_READY, () => {
-                let player: Player = GameObjectsFactory.InstatiateWithTransform("Player",
-                    new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 48, 64)) as Player;
+        socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
+            if(this.clients.has(socket)) {
+                this.clients.get(socket).LastHbTime = Date.now();
+                socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
+            }
+        });
 
-                player.Name = serverClient.Name;
+        socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
+            if(msg == "sp") {
+                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
 
-                serverClient.PlayerId = player.ID;
+                let e: Enemy = GameObjectsFactory.InstatiateWithTransform("Enemy",
+                    new Transform(player.Transform.X, player.Transform.Y, 40, 64)) as Enemy;
 
-                socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
+                e.Name = "Michau";
+            }
+            else if(this.clients.has(socket)) {
+                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
+            }
+        });
 
-                socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
-                serverClient.IsReady = true;
-
-                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
-            });
-
-            socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
-                let player: Player = this.world.getGameObject(serverClient.PlayerId) as Player;
-                if(player == null) {
-                    return;
-                }
-
-                let snapshot: InputSnapshot = new InputSnapshot();
-                snapshot.deserialize(data);
-                player.setInput(snapshot);
-            });
-
-            socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
-                if(this.clients.has(socket)) {
-                    this.clients.get(socket).LastHbInterval = ServerConfig.CLIENT_TIMEOUT;
-                    socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
-                }
-            });
-
-            socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
-                if(this.clients.has(socket)) {
-                    this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
-                }
-            });
-
-            socket.on(SocketMsgs.DISCONNECT, () => {
-                this.clientDisconnected(this.clients.get(socket), "disconnected");
-            });
+        socket.on(SocketMsgs.DISCONNECT, () => {
+            this.clientDisconnected(this.clients.get(socket), "disconnected");
         });
     }
 
     private sendUpdate(chunksUpdate: Map<Chunk, ArrayBuffer>) {
         this.clients.forEach((client: ServerClient) => {
             if (client.IsReady) {
-                let player: Player = this.world.getGameObject(client.PlayerId) as Player;
+                let player: Player = GameObjectsManager.GetGameObjectById(client.PlayerId) as Player;
                 if(player == null) {
                     return;
                 }
 
-                let chunk: Chunk = this.chunksManager.getObjectChunk(player);
+                let chunk: Chunk = this.core.ChunksManager.getObjectChunk(player);
 
                 let updateArray: Array<ArrayBuffer> = [];
                 if(chunksUpdate.has(chunk)) {
@@ -180,9 +178,10 @@ export class GameServer {
                     }
                 });
 
-                let snapshot: InputSnapshot = player.LastInputSnapshot;
+                let snapshot: InputSnapshot = this.playersLastSnapshots.get(player);
                 if(snapshot && snapshot.isMoving()) {
                     client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
+                    this.playersLastSnapshots.delete(player);
                 }
                 if(updateArray.length > 0) {
                     client.Socket.emit(SocketMsgs.UPDATE_GAME, updateArray);
@@ -191,15 +190,8 @@ export class GameServer {
         });
     }
 
-    private collectAndSendUpdate(complete: boolean = false) {
-        this.sendUpdate(this.updateCollector.collectUpdate(complete));
-
-        let chunks: Chunk[][] = this.chunksManager.Chunks;
-        for(let i = 0; i < chunks.length; i++) {
-            for (let j = 0; j < chunks[i].length; j++) {
-                chunks[i][j].resetHasNewComers();
-            }
-        }
+    private collectAndSendUpdate() {
+        this.sendUpdate(this.core.collectUpdate());
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {
@@ -212,10 +204,7 @@ export class GameServer {
         console.log('player disconnected' + client.Name + " due " + reason);
         this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
 
-        let gameObject: GameObject = this.world.getGameObject(client.PlayerId);
-        if(gameObject != null) {
-            gameObject.destroy();
-        }
+        GameObjectsManager.DestroyGameObjectById(client.PlayerId);
         this.clients.delete(client.Socket);
     }
 
@@ -260,9 +249,8 @@ export class GameServer {
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {
             enemyCounter++;
-            let e: Enemy = GameObjectsFactory.Instatiate("Enemy") as Enemy;
-            e.Transform.X = this.getRandomInsideMap();
-            e.Transform.Y = this.getRandomInsideMap();
+            let e: Enemy = GameObjectsFactory.InstatiateWithTransform("Enemy",
+                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 40, 64)) as Enemy;
 
             e.Name = "Michau " + enemyCounter.toString();
 
@@ -276,9 +264,8 @@ export class GameServer {
         }
 
         let spawnItem: Function = () => {
-            let i: Item = GameObjectsFactory.Instatiate("Item") as Item;
-            i.Transform.X = this.getRandomInsideMap();
-            i.Transform.Y = this.getRandomInsideMap();
+            let i: Item = GameObjectsFactory.InstatiateWithTransform("Item",
+                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32)) as Item;
 
             i.addDestroyListener(() => {
                 spawnItem();
@@ -289,11 +276,10 @@ export class GameServer {
             spawnItem();
         }
 
-        let chunksIter = this.chunksManager.ChunksIterator();
+        let chunksIter = this.core.ChunksManager.ChunksIterator();
         let chunk: Chunk;
         while (chunk = chunksIter.next().value) {
             chunk.deactivate();
         }
-        ///////////////////////////////////////////////////////////////////TEST
     }
 }

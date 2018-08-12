@@ -1,10 +1,7 @@
 import {GameObject} from "../game/objects/GameObject";
 import {Transform} from "../physics/Transform";
 import {Types} from "./GameObjectTypes";
-
-export namespace GameObjectsContainer {
-    export let gameObjectsMapById: Map<string, GameObject> = new Map<string, GameObject>();
-}
+import {GameObjectsManager} from "./GameObjectsManager";
 
 export class GameObjectsFactory {
     constructor() {
@@ -49,7 +46,7 @@ export class GameObjectsFactory {
     }
 
     private static AddToListeners(gameObject: GameObject) {
-        GameObjectsContainer.gameObjectsMapById.set(gameObject.ID, gameObject);
+        GameObjectsManager.gameObjectsMapById.set(gameObject.ID, gameObject);
 
         GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
             callback(gameObject);
@@ -59,7 +56,7 @@ export class GameObjectsFactory {
         });
 
         gameObject.addDestroyListener(() => {
-            GameObjectsContainer.gameObjectsMapById.delete(gameObject.ID);
+            GameObjectsManager.gameObjectsMapById.delete(gameObject.ID);
         });
     }
 }

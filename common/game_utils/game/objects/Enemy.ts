@@ -13,8 +13,6 @@ export class Enemy extends Actor {
         super(transform);
         this.velocity = 0.2;
 
-        // this.SpriteName  = "michau";
-
         this.weapon = new MagicWand();
     }
 

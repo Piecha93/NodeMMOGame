@@ -45,9 +45,10 @@ export abstract class Actor extends GameObject {
         this.animationType = "idle";
     }
 
-    protected updatePosition(delta: number) {
+    public updatePosition(delta: number) {
         let moveFactors: [number, number] = this.parseMoveDir();
         if (moveFactors[0] != 0) {
+            console.log("player x" + this.Transform.X)
             this.Transform.X += moveFactors[0] * this.velocity * delta;
             this.Transform.addChange(ChangesDict.X);
         }
@@ -105,7 +106,7 @@ export abstract class Actor extends GameObject {
     private static moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
     private static moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 
-    protected parseMoveDir(): [number, number] {
+    public parseMoveDir(): [number, number] {
         return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]]
     }
 

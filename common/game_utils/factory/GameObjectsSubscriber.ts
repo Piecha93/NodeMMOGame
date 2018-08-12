@@ -1,5 +1,6 @@
 import {GameObject} from "../game/objects/GameObject";
-import {GameObjectsFactory, GameObjectsContainer} from "./ObjectsFactory"
+import {GameObjectsFactory} from "./ObjectsFactory"
+import {GameObjectsManager} from "./GameObjectsManager";
 
 export abstract class GameObjectsSubscriber {
 
@@ -17,10 +18,10 @@ export abstract class GameObjectsSubscriber {
     }
 
     get GameObjectsMapById() {
-        return GameObjectsContainer.gameObjectsMapById;
+        return GameObjectsManager.gameObjectsMapById;
     }
 
     public getGameObject(id: string) {
-        return GameObjectsContainer.gameObjectsMapById.get(id);
+        return GameObjectsManager.GetGameObjectById(id);
     }
 }

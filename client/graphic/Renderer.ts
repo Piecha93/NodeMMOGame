@@ -13,7 +13,7 @@ import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
 import {Player} from "../../common/game_utils/game/objects/Player";
-import {ChunksManager} from "../../common/game_utils/chunks/ChunksManager";
+import {Chunk} from "../../common/game_utils/chunks/Chunk";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -25,10 +25,9 @@ export class Renderer extends GameObjectsSubscriber {
     private hud: HUD;
     private resourcesLoader: ResourcesLoader;
     private focusedObject: GameObject;
-    private chunksManager: ChunksManager;
 
-    static WIDTH: number = 1024;
-    static HEIGHT: number = 576;
+    static WIDTH: number = 1024 * 5;
+    static HEIGHT: number = 576 * 5;
 
     constructor(afterCreateCallback: Function) {
         super();
@@ -36,7 +35,7 @@ export class Renderer extends GameObjectsSubscriber {
                   view:  document.getElementById("game-canvas") as HTMLCanvasElement,
                   antialias: false,
                   transparent: false,
-                  resolution: 1,
+                  resolution: 0.2,
                   clearBeforeRender: false
         });
 
@@ -45,7 +44,6 @@ export class Renderer extends GameObjectsSubscriber {
         this.camera = new Camera(new PIXI.Point(333,333));
         this.camera.addChild(this.rootContainer);
         this.focusedObject = null;
-        this.chunksManager = null;
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
@@ -146,9 +144,8 @@ export class Renderer extends GameObjectsSubscriber {
         this.focusedObject = gameObject;
     }
 
-    set ChunksManager(chunksManager: ChunksManager) {
-        this.map.ChunksManager = chunksManager;
-        this.chunksManager = chunksManager;
+    setCurrentChunk(chunk: Chunk) {
+        this.map.CurrentChunk = chunk;
     }
 
     get CameraDeviation(): [number, number] {

@@ -46,7 +46,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
         }
     }
 
-    public collectUpdate(complete: boolean = false): Map<Chunk, ArrayBuffer> {
+    public collectUpdate(): Map<Chunk, ArrayBuffer> {
         let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
 
         let chunks: Chunk[][] = this.chunksManager.Chunks;
@@ -64,7 +64,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 }
 
                 //if chunk has new players inside we need to send complete update to them
-                let chunkCompleteUpdate: boolean = complete || chunk.HasNewcomersInNeighborhood;
+                let chunkCompleteUpdate: boolean = chunk.HasNewcomersInNeighborhood;
                 let neededBufferSize: number = 0;
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
 
@@ -126,8 +126,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
         return chunksUpdate;
     }
 
-    //TODO move localPlayer and reconciliation somewhere else
-    public decodeUpdate(updateBuffer: ArrayBuffer, localPlayer: Player, collisionsSystem: CollisionsSystem) {
+    public decodeUpdate(updateBuffer: ArrayBuffer) {
         let updateBufferView: DataView = new DataView(updateBuffer);
         let offset: number = 0;
 
@@ -150,10 +149,6 @@ export class UpdateCollector extends GameObjectsSubscriber {
             }
 
             offset = gameObject.deserialize(updateBufferView, offset);
-
-            if (localPlayer && localPlayer.ID == id) {
-                localPlayer.reconciliation(collisionsSystem);
-            }
         }
     }
 

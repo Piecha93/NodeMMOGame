@@ -4,7 +4,6 @@ import Texture = PIXI.Texture;
 import Sprite = PIXI.Sprite;
 import {CommonConfig} from "../../common/CommonConfig";
 import {GameObject} from "../../common/game_utils/game/objects/GameObject";
-import {ChunksManager} from "../../common/game_utils/chunks/ChunksManager";
 import {Chunk} from "../../common/game_utils/chunks/Chunk";
 
 type Coords = [number, number];
@@ -56,7 +55,7 @@ class TileMapChunk extends PIXI.Container {
 export class TileMap extends PIXI.Container {
     private mapChunks: TileMapChunk[][];
     private focusedObject: GameObject;
-    private chunksManager: ChunksManager;
+    private currentChunk: Chunk;
 
     private currentChunkCoords: Coords;
     private visibleMapChunks: Map<Coords, TileMapChunk>;
@@ -99,12 +98,11 @@ export class TileMap extends PIXI.Container {
     }
 
     private updateVisibleChunks() {
-        let chunk: Chunk = this.chunksManager.getObjectChunk(this.focusedObject);
-        if(!chunk) {
+        if(!this.currentChunk) {
             return;
         }
 
-        let newChunkCoords: Coords = [chunk.x, chunk.y];
+        let newChunkCoords: Coords = [this.currentChunk.x, this.currentChunk.y];
 
         if(compareCoords(newChunkCoords, this.currentChunkCoords)) {
             return;
@@ -115,7 +113,7 @@ export class TileMap extends PIXI.Container {
         let newCoordsArr: Array<Coords> = [];
         newCoordsArr.push(newChunkCoords);
 
-        chunk.neighbors.forEach((chunkNeighbor: Chunk) => {
+        this.currentChunk.neighbors.forEach((chunkNeighbor: Chunk) => {
             newCoordsArr.push([chunkNeighbor.x, chunkNeighbor.y]);
         });
 
@@ -155,8 +153,8 @@ export class TileMap extends PIXI.Container {
         this.updateVisibleChunks();
     }
 
-    set ChunksManager(chunksManager: ChunksManager) {
-        this.chunksManager = chunksManager;
+    set CurrentChunk(chunk: Chunk) {
+        this.currentChunk = chunk;
     }
 
     public update() {

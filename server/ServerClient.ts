@@ -5,7 +5,7 @@ export class ServerClient {
     private socket: SocketIO.Server;
     private name: string = "";
     private isReady: boolean = false;
-    private lastHbInterval: number = ServerConfig.CLIENT_TIMEOUT;
+    private lastHbTime: number = Date.now();
     private playerId: string = "";
 
     constructor(socket: SocketIO.Server) {
@@ -28,12 +28,12 @@ export class ServerClient {
         this.isReady = isReady;
     }
 
-    get LastHbInterval(): number {
-        return this.lastHbInterval;
+    get LastHbTime(): number {
+        return this.lastHbTime;
     }
 
-    set LastHbInterval(value: number) {
-        this.lastHbInterval = value;
+    set LastHbTime(value: number) {
+        this.lastHbTime = value;
     }
 
     get PlayerId(): string {

@@ -1,5 +1,3 @@
-// TODO make function to get next character automatically
-// example public static SPRITE_NAME = getNextChar;
 export class ChangesDict {
     //GameObject
     public static SPRITE_ID = "SPRITE_ID";
