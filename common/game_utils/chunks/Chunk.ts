@@ -4,6 +4,17 @@ import {Obstacle} from "../game/objects/Obstacle";
 import {ObjectsSerializer} from "../../serialize/ObjectsSerializer";
 import {CommonConfig} from "../../CommonConfig";
 
+let fs = require('fs');
+
+function toArrayBuffer(buffer) {
+    let ab = new ArrayBuffer(buffer.length);
+    let view = new Uint8Array(ab);
+    for (let i = 0; i < buffer.length; ++i) {
+        view[i] = buffer[i];
+    }
+    return ab;
+}
+
 export class Chunk {
     x: number;
     y: number;
@@ -17,7 +28,8 @@ export class Chunk {
     private numOfPlayers: number;
     private hasNewcomers: boolean = false;
 
-    private deactivatedTime: number = -1;
+    private deactivatedTime: number;
+    private isActive: boolean = false;
 
     private dumpedBuffer: ArrayBuffer = null;
 
@@ -30,6 +42,12 @@ export class Chunk {
         this.neighbors = [];
         this.leavers = [];
         this.numOfPlayers = 0;
+
+        if(CommonConfig.IS_SERVER) {
+            this.deactivatedTime = -1;
+        } else {
+            this.deactivatedTime = -1;
+        }
     }
 
     public addNeighbor(neighborChunk: Chunk) {
@@ -116,26 +134,41 @@ export class Chunk {
     }
 
     public deactivate() {
-        if(this.IsActive && CommonConfig.IS_SERVER) {
+        if(this.IsDeactivateTimePassed && CommonConfig.IS_SERVER) {
             this.deactivatedTime = Date.now();
         }
     }
 
     public reload() {
-        if(this.dumpedBuffer) {
-            ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
-            this.dumpedBuffer = null;
+        if(this.isActive) {
+            return;
         }
+
+        if(!this.dumpedBuffer) {
+            let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+            let buffer: Buffer = fs.readFileSync(fileName);
+            this.dumpedBuffer = toArrayBuffer(buffer);
+        }
+
+        ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        this.dumpedBuffer = null;
+        this.isActive = true;
     }
 
-    public dump() {
-        if(this.dumpedBuffer) {
+    public dumpToMemory() {
+        if(this.dumpedBuffer || !this.isActive) {
             return;
         }
 
         this.clearNotObstacles();
+
         this.dumpedBuffer = ObjectsSerializer.serializeChunk(this);
+
+        let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
+
         this.clearAll();
+        this.isActive = false;
     }
 
     private clearAll() {
@@ -204,6 +237,10 @@ export class Chunk {
     }
 
     get IsActive(): boolean {
+        return this.isActive;
+    }
+
+    get IsDeactivateTimePassed(): boolean {
         return this.deactivatedTime == -1 || this.TimeSinceDeactivation < CommonConfig.chunkDeactivationTime;
     }
 

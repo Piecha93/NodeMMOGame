@@ -144,7 +144,7 @@ export class ChunksManager extends GameObjectsSubscriber {
             return;
         }
 
-        if(!chunk.IsActive && !(gameObject instanceof Player)) {
+        if(!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player)) {
             console.log("Created not Player object in inactive chunk! "
                 + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
             gameObject.destroy();
@@ -168,7 +168,7 @@ export class ChunksManager extends GameObjectsSubscriber {
 
             let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
-            if(!chunk || (!chunk.IsActive && !(gameObject instanceof Player))) {
+            if(!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
                 gameObject.destroy();
                 return;

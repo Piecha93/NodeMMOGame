@@ -54,7 +54,6 @@ export class ObjectsSerializer {
             let id: string = String.fromCharCode(updateBufferView.getUint8(offset));
 
             id += updateBufferView.getUint32(offset + 1).toString();
-
             offset += 5;
 
             let gameObject: GameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), undefined,

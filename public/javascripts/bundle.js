@@ -1,6 +1,8 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 
 },{}],2:[function(require,module,exports){
+arguments[4][1][0].apply(exports,arguments)
+},{"dup":1}],3:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -1715,7 +1717,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":3,"ieee754":4,"isarray":5}],3:[function(require,module,exports){
+},{"base64-js":4,"ieee754":5,"isarray":6}],4:[function(require,module,exports){
 'use strict'
 
 exports.toByteArray = toByteArray
@@ -1826,7 +1828,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -1912,14 +1914,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -2015,7 +2017,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChatHtmlHandler_1 = require("./graphic/HtmlHandlers/ChatHtmlHandler");
@@ -2035,7 +2037,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../common/net/SocketMsgs":51,"./graphic/HtmlHandlers/ChatHtmlHandler":14}],8:[function(require,module,exports){
+},{"../common/net/SocketMsgs":52,"./graphic/HtmlHandlers/ChatHtmlHandler":15}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2167,7 +2169,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../common/GameCore":28,"../common/game_utils/factory/GameObjectsManager":34,"../common/game_utils/factory/ObjectsFactory":36,"../common/game_utils/physics/Transform":48,"../common/net/SocketMsgs":51,"../common/utils/AverageCounter":57,"../common/utils/DeltaTimer":58,".//net/InputSender":26,"./Chat":7,"./Reconciliation":9,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":15,"./graphic/Renderer":18,"./input/Cursor":21,"./input/InputHandler":22,"./net/HeartBeatSender":25,"socket.io-client":101,"socket.io-msgpack-parser":108}],9:[function(require,module,exports){
+},{"../common/GameCore":29,"../common/game_utils/factory/GameObjectsManager":35,"../common/game_utils/factory/ObjectsFactory":37,"../common/game_utils/physics/Transform":49,"../common/net/SocketMsgs":52,"../common/utils/AverageCounter":58,"../common/utils/DeltaTimer":59,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":102,"socket.io-msgpack-parser":109}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("../common/serialize/ChangesDict");
@@ -2234,7 +2236,7 @@ class Reconciliation {
 }
 exports.Reconciliation = Reconciliation;
 
-},{"../common/serialize/ChangesDict":52}],10:[function(require,module,exports){
+},{"../common/serialize/ChangesDict":53}],11:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2271,7 +2273,7 @@ class Camera extends PIXI.Container {
 }
 exports.Camera = Camera;
 
-},{"../graphic/Renderer":18}],11:[function(require,module,exports){
+},{"../graphic/Renderer":19}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectRender_1 = require("./GameObjectRender");
@@ -2320,7 +2322,7 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
 GameObjectAnimationRender.Tags = ["U", "UR", "R", "DR", "D", "DL", "L", "UL"];
 exports.GameObjectAnimationRender = GameObjectAnimationRender;
 
-},{"../graphic/ResourcesLoader":19,"./GameObjectRender":12}],12:[function(require,module,exports){
+},{"../graphic/ResourcesLoader":20,"./GameObjectRender":13}],13:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2352,7 +2354,7 @@ class GameObjectRender extends PIXI.Container {
 }
 exports.GameObjectRender = GameObjectRender;
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2383,7 +2385,7 @@ class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
 }
 exports.GameObjectSpriteRender = GameObjectSpriteRender;
 
-},{"../graphic/GameObjectRender":12}],14:[function(require,module,exports){
+},{"../graphic/GameObjectRender":13}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChatHtmlHandler {
@@ -2460,7 +2462,7 @@ class ChatHtmlHandler {
 }
 exports.ChatHtmlHandler = ChatHtmlHandler;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DebugWindowHtmlHandler {
@@ -2505,7 +2507,7 @@ class DebugWindowHtmlHandler {
 }
 exports.DebugWindowHtmlHandler = DebugWindowHtmlHandler;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2535,7 +2537,7 @@ class HUD extends PIXI.Container {
 }
 exports.HUD = HUD;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectAnimationRender_1 = require("../graphic/GameObjectAnimationRender");
@@ -2569,7 +2571,7 @@ class PlayerRender extends GameObjectAnimationRender_1.GameObjectAnimationRender
 }
 exports.PlayerRender = PlayerRender;
 
-},{"../graphic/GameObjectAnimationRender":11}],18:[function(require,module,exports){
+},{"../graphic/GameObjectAnimationRender":12}],19:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2589,7 +2591,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 1 * 0.2,
+            resolution: 1 / 5,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2687,7 +2689,7 @@ Renderer.WIDTH = 1024 * 5;
 Renderer.HEIGHT = 576 * 5;
 exports.Renderer = Renderer;
 
-},{"../../common/game_utils/factory/GameObjectTypes":33,"../../common/game_utils/factory/GameObjectsSubscriber":35,"./Camera":10,"./GameObjectAnimationRender":11,"./GameObjectSpriteRender":13,"./Hud":16,"./PlayerRender":17,"./ResourcesLoader":19,"./TileMap":20}],19:[function(require,module,exports){
+},{"../../common/game_utils/factory/GameObjectTypes":34,"../../common/game_utils/factory/GameObjectsSubscriber":36,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ResourceType;
@@ -2759,7 +2761,7 @@ class ResourcesLoader {
 }
 exports.ResourcesLoader = ResourcesLoader;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2777,11 +2779,13 @@ class TileMapChunk extends PIXI.Container {
         this.sizeY = sizeY;
     }
     initChunkTextures() {
-        let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(1 * 32, 5 * 32, 32, 32));
+        // let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'],
+        //     new PIXI.Rectangle(1 * 32, 5 * 32, 32, 32));
+        let texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'], new PIXI.Rectangle(Math.floor(Math.random() * 12) * 32, Math.floor(Math.random() * 12) * 32, 32, 32));
         for (let i = 0; i < this.sizeX / 32; i++) {
             for (let j = 0; j < this.sizeY / 32; j++) {
-                // let texture: Texture = new PIXI.Texture(PIXI.game_utils.TextureCache['terrain'],
-                //     new PIXI.Rectangle(chunk.mapGrid[i][j], chunk.mapGrid[i][j], 32, 32));
+                // let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'],
+                //     new PIXI.Rectangle(Math.floor(Math.random() *12) * 32, Math.floor(Math.random() *12) * 32, 32, 32));
                 let sprite = new PIXI.Sprite(texture);
                 sprite.x = i * 32;
                 sprite.y = j * 32;
@@ -2890,7 +2894,7 @@ class TileMap extends PIXI.Container {
 }
 exports.TileMap = TileMap;
 
-},{"../../common/CommonConfig":27}],21:[function(require,module,exports){
+},{"../../common/CommonConfig":28}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("../../common/game_utils/game/objects/GameObject");
@@ -2915,7 +2919,7 @@ class Cursor extends GameObject_1.GameObject {
 }
 exports.Cursor = Cursor;
 
-},{"../../common/game_utils/game/objects/Enemy":38,"../../common/game_utils/game/objects/GameObject":40,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],22:[function(require,module,exports){
+},{"../../common/game_utils/game/objects/Enemy":39,"../../common/game_utils/game/objects/GameObject":41,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../common/input/InputSnapshot");
@@ -3050,7 +3054,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../common/input/InputCommands":49,"../../common/input/InputSnapshot":50,"./InputMap":23}],23:[function(require,module,exports){
+},{"../../common/input/InputCommands":50,"../../common/input/InputSnapshot":51,"./InputMap":24}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT;
@@ -3071,7 +3075,7 @@ exports.InputMap = new Map([
     ['KeyF', INPUT.WALL],
 ]);
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const CommonConfig_1 = require("../common/CommonConfig");
@@ -3081,7 +3085,7 @@ window.onload = () => {
     new GameClient_1.GameClient();
 };
 
-},{"../common/CommonConfig":27,"./GameClient":8}],25:[function(require,module,exports){
+},{"../common/CommonConfig":28,"./GameClient":9}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -3120,7 +3124,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../common/net/SocketMsgs":51,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":15}],26:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":52,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../common/net/SocketMsgs");
@@ -3138,7 +3142,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../common/net/SocketMsgs":51}],27:[function(require,module,exports){
+},{"../../common/net/SocketMsgs":52}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -3164,13 +3168,13 @@ class CommonConfig {
     }
 }
 CommonConfig.chunkSize = 32 * 40;
-CommonConfig.numOfChunksX = 10;
-CommonConfig.numOfChunksY = 10;
+CommonConfig.numOfChunksX = 50;
+CommonConfig.numOfChunksY = 50;
 CommonConfig.chunkDeactivationTime = 10000;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameWorld_1 = require("./GameWorld");
@@ -3225,7 +3229,7 @@ class GameCore {
 }
 exports.GameCore = GameCore;
 
-},{"./GameWorld":29,"./game_utils/chunks/ChunksManager":32,"./serialize/UpdateCollector":56,"./utils/DeltaTimer":58}],29:[function(require,module,exports){
+},{"./GameWorld":30,"./game_utils/chunks/ChunksManager":33,"./serialize/UpdateCollector":57,"./utils/DeltaTimer":59}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
@@ -3252,8 +3256,8 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.collistionsSystem.update();
         while (chunk = chunksIter.next().value) {
             this.collistionsSystem.updateCollisions(chunk.Objects);
-            if (!chunk.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
-                chunk.dump();
+            if (!chunk.IsDeactivateTimePassed && !chunk.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
+                chunk.dumpToMemory();
             }
         }
         this.chunksManager.rebuild();
@@ -3270,7 +3274,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{"../common/CommonConfig":27,"./game_utils/factory/GameObjectsSubscriber":35,"./game_utils/physics/CollisionsSystem":47}],30:[function(require,module,exports){
+},{"../common/CommonConfig":28,"./game_utils/factory/GameObjectsSubscriber":36,"./game_utils/physics/CollisionsSystem":48}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -3300,17 +3304,27 @@ ResourcesMap.RegisterResource('flame');
 ResourcesMap.RegisterResource('template');
 ResourcesMap.RegisterResource('terrain');
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
+(function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Player_1 = require("../game/objects/Player");
 const Obstacle_1 = require("../game/objects/Obstacle");
 const ObjectsSerializer_1 = require("../../serialize/ObjectsSerializer");
 const CommonConfig_1 = require("../../CommonConfig");
+let fs = require('fs');
+function toArrayBuffer(buffer) {
+    let ab = new ArrayBuffer(buffer.length);
+    let view = new Uint8Array(ab);
+    for (let i = 0; i < buffer.length; ++i) {
+        view[i] = buffer[i];
+    }
+    return ab;
+}
 class Chunk {
     constructor(x, y, size) {
         this.hasNewcomers = false;
-        this.deactivatedTime = -1;
+        this.isActive = false;
         this.dumpedBuffer = null;
         this.x = x;
         this.y = y;
@@ -3319,6 +3333,12 @@ class Chunk {
         this.neighbors = [];
         this.leavers = [];
         this.numOfPlayers = 0;
+        if (CommonConfig_1.CommonConfig.IS_SERVER) {
+            this.deactivatedTime = -1;
+        }
+        else {
+            this.deactivatedTime = -1;
+        }
     }
     addNeighbor(neighborChunk) {
         this.neighbors.push(neighborChunk);
@@ -3389,23 +3409,33 @@ class Chunk {
         this.reload();
     }
     deactivate() {
-        if (this.IsActive && CommonConfig_1.CommonConfig.IS_SERVER) {
+        if (this.IsDeactivateTimePassed && CommonConfig_1.CommonConfig.IS_SERVER) {
             this.deactivatedTime = Date.now();
         }
     }
     reload() {
-        if (this.dumpedBuffer) {
-            ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
-            this.dumpedBuffer = null;
+        if (this.isActive) {
+            return;
         }
+        if (!this.dumpedBuffer) {
+            let fileName = "data/" + this.x + "." + this.y + ".chunk";
+            let buffer = fs.readFileSync(fileName);
+            this.dumpedBuffer = toArrayBuffer(buffer);
+        }
+        ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        this.dumpedBuffer = null;
+        this.isActive = true;
     }
-    dump() {
-        if (this.dumpedBuffer) {
+    dumpToMemory() {
+        if (this.dumpedBuffer || !this.isActive) {
             return;
         }
         this.clearNotObstacles();
         this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
+        let fileName = "data/" + this.x + "." + this.y + ".chunk";
+        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => { });
         this.clearAll();
+        this.isActive = false;
     }
     clearAll() {
         while (this.objects.length > 0) {
@@ -3461,6 +3491,9 @@ class Chunk {
         return this.leavers;
     }
     get IsActive() {
+        return this.isActive;
+    }
+    get IsDeactivateTimePassed() {
         return this.deactivatedTime == -1 || this.TimeSinceDeactivation < CommonConfig_1.CommonConfig.chunkDeactivationTime;
     }
     get TimeSinceDeactivation() {
@@ -3469,7 +3502,8 @@ class Chunk {
 }
 exports.Chunk = Chunk;
 
-},{"../../CommonConfig":27,"../../serialize/ObjectsSerializer":54,"../game/objects/Obstacle":42,"../game/objects/Player":43}],32:[function(require,module,exports){
+}).call(this,require("buffer").Buffer)
+},{"../../CommonConfig":28,"../../serialize/ObjectsSerializer":55,"../game/objects/Obstacle":43,"../game/objects/Player":44,"buffer":3,"fs":1}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../factory/GameObjectsSubscriber");
@@ -3584,7 +3618,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             gameObject.destroy();
             return;
         }
-        if (!chunk.IsActive && !(gameObject instanceof Player_1.Player)) {
+        if (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player)) {
             console.log("Created not Player object in inactive chunk! "
                 + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
             gameObject.destroy();
@@ -3603,7 +3637,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 return;
             }
             let chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-            if (!chunk || (!chunk.IsActive && !(gameObject instanceof Player_1.Player))) {
+            if (!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
                 gameObject.destroy();
                 return;
@@ -3638,7 +3672,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../../CommonConfig":27,"../../serialize/ChangesDict":52,"../factory/GameObjectsSubscriber":35,"../game/objects/Player":43,"./Chunk":31}],33:[function(require,module,exports){
+},{"../../CommonConfig":28,"../../serialize/ChangesDict":53,"../factory/GameObjectsSubscriber":36,"../game/objects/Player":44,"./Chunk":32}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("../game/objects/Obstacle");
@@ -3668,7 +3702,7 @@ Types.RegisterGameObject(Item_1.Item);
 Types.RegisterGameObject(FireBall_1.FireBall);
 Types.RegisterGameObject(Portal_1.Portal);
 
-},{"../game/objects/Enemy":38,"../game/objects/FireBall":39,"../game/objects/Item":41,"../game/objects/Obstacle":42,"../game/objects/Player":43,"../game/objects/Portal":44}],34:[function(require,module,exports){
+},{"../game/objects/Enemy":39,"../game/objects/FireBall":40,"../game/objects/Item":42,"../game/objects/Obstacle":43,"../game/objects/Player":44,"../game/objects/Portal":45}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectsManager;
@@ -3689,7 +3723,7 @@ var GameObjectsManager;
     GameObjectsManager.DestroyGameObjectById = DestroyGameObjectById;
 })(GameObjectsManager = exports.GameObjectsManager || (exports.GameObjectsManager = {}));
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -3712,7 +3746,7 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./GameObjectsManager":34,"./ObjectsFactory":36}],36:[function(require,module,exports){
+},{"./GameObjectsManager":35,"./ObjectsFactory":37}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -3763,7 +3797,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":48,"./GameObjectTypes":33,"./GameObjectsManager":34}],37:[function(require,module,exports){
+},{"../physics/Transform":49,"./GameObjectTypes":34,"./GameObjectsManager":35}],38:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3919,7 +3953,7 @@ __decorate([
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":52,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":55,"./FireBall":39,"./GameObject":40,"./Item":41,"./Obstacle":42}],38:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":53,"../../../serialize/NetworkDecorators":54,"../../../serialize/Serializable":56,"./FireBall":40,"./GameObject":41,"./Item":42,"./Obstacle":43}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -3962,7 +3996,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../../serialize/ChangesDict":52,"../weapons/MagicWand":46,"./Actor":37,"./Obstacle":42}],39:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":53,"../weapons/MagicWand":47,"./Actor":38,"./Obstacle":43}],40:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4038,7 +4072,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../../serialize/ChangesDict":52,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":55,"./Actor":37,"./Obstacle":42,"./Projectile":45}],40:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":53,"../../../serialize/NetworkDecorators":54,"../../../serialize/Serializable":56,"./Actor":38,"./Obstacle":43,"./Projectile":46}],41:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4159,7 +4193,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../CommonConfig":27,"../../../serialize/ChangesDict":52,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":55,"../../ResourcesMap":30,"../../physics/Transform":48}],41:[function(require,module,exports){
+},{"../../../CommonConfig":28,"../../../serialize/ChangesDict":53,"../../../serialize/NetworkDecorators":54,"../../../serialize/Serializable":56,"../../ResourcesMap":31,"../../physics/Transform":49}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4192,7 +4226,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./GameObject":40}],42:[function(require,module,exports){
+},{"./GameObject":41}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4221,7 +4255,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":40}],43:[function(require,module,exports){
+},{"./GameObject":41}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../../input/InputCommands");
@@ -4304,7 +4338,7 @@ Player.onlyServerActions = new Set([
 ]);
 exports.Player = Player;
 
-},{"../../../CommonConfig":27,"../../../input/InputCommands":49,"../../../serialize/ChangesDict":52,"../weapons/MagicWand":46,"./Actor":37}],44:[function(require,module,exports){
+},{"../../../CommonConfig":28,"../../../input/InputCommands":50,"../../../serialize/ChangesDict":53,"../weapons/MagicWand":47,"./Actor":38}],45:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4391,7 +4425,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../../serialize/ChangesDict":52,"../../../serialize/NetworkDecorators":53,"../../../serialize/Serializable":55,"./Actor":37,"./GameObject":40,"./Obstacle":42}],45:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":53,"../../../serialize/NetworkDecorators":54,"../../../serialize/Serializable":56,"./Actor":38,"./GameObject":41,"./Obstacle":43}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -4415,7 +4449,7 @@ class Projectile extends GameObject_1.GameObject {
 }
 exports.Projectile = Projectile;
 
-},{"./GameObject":40}],46:[function(require,module,exports){
+},{"./GameObject":41}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -4435,7 +4469,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../factory/ObjectsFactory":36,"../../physics/Transform":48}],47:[function(require,module,exports){
+},{"../../factory/ObjectsFactory":37,"../../physics/Transform":49}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -4486,7 +4520,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../game/objects/Obstacle":42,"detect-collisions":68}],48:[function(require,module,exports){
+},{"../game/objects/Obstacle":43,"detect-collisions":69}],49:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -4615,7 +4649,7 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":52,"../../serialize/NetworkDecorators":53,"../../serialize/Serializable":55,"detect-collisions":68}],49:[function(require,module,exports){
+},{"../../serialize/ChangesDict":53,"../../serialize/NetworkDecorators":54,"../../serialize/Serializable":56,"detect-collisions":69}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -4632,7 +4666,7 @@ var INPUT_COMMAND;
 //     ["W", INPUT_COMMAND.WALL],
 // ]);
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -4691,7 +4725,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../input/InputCommands":49,"../utils/DeltaTimer":58}],51:[function(require,module,exports){
+},{"../input/InputCommands":50,"../utils/DeltaTimer":59}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 let messageCode = 0;
@@ -4715,7 +4749,7 @@ SocketMsgs.NEW_MAP_CHUNK = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 
-},{}],52:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
@@ -4742,7 +4776,7 @@ ChangesDict.ROTATION = "ROTATION";
 ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -4912,7 +4946,7 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":55}],54:[function(require,module,exports){
+},{"./Serializable":56}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
@@ -4963,7 +4997,7 @@ class ObjectsSerializer {
 ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
 exports.ObjectsSerializer = ObjectsSerializer;
 
-},{"../game_utils/factory/GameObjectTypes":33,"../game_utils/factory/ObjectsFactory":36}],55:[function(require,module,exports){
+},{"../game_utils/factory/GameObjectTypes":34,"../game_utils/factory/ObjectsFactory":37}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const NetworkDecorators_1 = require("./NetworkDecorators");
@@ -5145,7 +5179,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../CommonConfig":27,"../utils/functions/BitOperations":59,"./NetworkDecorators":53}],56:[function(require,module,exports){
+},{"../CommonConfig":28,"../utils/functions/BitOperations":60,"./NetworkDecorators":54}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -5275,7 +5309,7 @@ UpdateCollector.OBJECT_ID_BYTES_LEN = 5;
 UpdateCollector.DESTROY_OBJECTS_ID = 255;
 exports.UpdateCollector = UpdateCollector;
 
-},{"../CommonConfig":27,"../game_utils/factory/GameObjectTypes":33,"../game_utils/factory/GameObjectsSubscriber":35,"../game_utils/factory/ObjectsFactory":36}],57:[function(require,module,exports){
+},{"../CommonConfig":28,"../game_utils/factory/GameObjectTypes":34,"../game_utils/factory/GameObjectsSubscriber":36,"../game_utils/factory/ObjectsFactory":37}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {
@@ -5302,7 +5336,7 @@ class AverageCounter {
 }
 exports.AverageCounter = AverageCounter;
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -5322,7 +5356,7 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],59:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function maskByteSize(num) {
@@ -5335,7 +5369,7 @@ function setBit(val, bitIndex) {
 }
 exports.setBit = setBit;
 
-},{}],60:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -5365,7 +5399,7 @@ function after(count, callback, err_cb) {
 
 function noop() {}
 
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 /**
  * An abstraction for slicing an arraybuffer even when
  * ArrayBuffer.prototype.slice is not supported
@@ -5396,7 +5430,7 @@ module.exports = function(arraybuffer, start, end) {
   return result.buffer;
 };
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 
 /**
  * Expose `Backoff`.
@@ -5483,7 +5517,7 @@ Backoff.prototype.setJitter = function(jitter){
 };
 
 
-},{}],63:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 /*
  * base64-arraybuffer
  * https://github.com/niklasvh/base64-arraybuffer
@@ -5552,7 +5586,7 @@ Backoff.prototype.setJitter = function(jitter){
   };
 })();
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 (function (global){
 /**
  * Create a blob builder even when vendor prefixes exist
@@ -5652,7 +5686,7 @@ module.exports = (function() {
 })();
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -5677,7 +5711,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -5842,7 +5876,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],67:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 
 module.exports = function(a, b){
   var fn = function(){};
@@ -5850,7 +5884,7 @@ module.exports = function(a, b){
   a.prototype = new fn;
   a.prototype.constructor = a;
 };
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 const BVH = require('./modules/BVH.js')
 const Circle = require('./modules/Circle.js')
 const Polygon = require('./modules/Polygon.js')
@@ -6015,7 +6049,7 @@ module.exports = {
   Point
 }
 
-},{"./modules/BVH.js":69,"./modules/Circle.js":72,"./modules/Point.js":73,"./modules/Polygon.js":74,"./modules/Result.js":75,"./modules/SAT.js":76}],69:[function(require,module,exports){
+},{"./modules/BVH.js":70,"./modules/Circle.js":73,"./modules/Point.js":74,"./modules/Polygon.js":75,"./modules/Result.js":76,"./modules/SAT.js":77}],70:[function(require,module,exports){
 const BVHBranch = require('./BVHBranch')
 
 /**
@@ -6421,7 +6455,7 @@ module.exports = BVH
 
 module.exports.default = module.exports
 
-},{"./BVHBranch":70}],70:[function(require,module,exports){
+},{"./BVHBranch":71}],71:[function(require,module,exports){
 /**
  * @private
  */
@@ -6500,7 +6534,7 @@ module.exports = BVHBranch
 
 module.exports.default = module.exports
 
-},{}],71:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 const Result = require('./Result')
 const SAT = require('./SAT')
 
@@ -6624,7 +6658,7 @@ module.exports = Body
 
 module.exports.default = module.exports
 
-},{"./Result":75,"./SAT":76}],72:[function(require,module,exports){
+},{"./Result":76,"./SAT":77}],73:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -6674,7 +6708,7 @@ module.exports = Circle
 
 module.exports.default = module.exports
 
-},{"./Body":71}],73:[function(require,module,exports){
+},{"./Body":72}],74:[function(require,module,exports){
 const Polygon = require('./Polygon')
 
 /**
@@ -6702,7 +6736,7 @@ module.exports = Point
 
 module.exports.default = module.exports
 
-},{"./Polygon":74}],74:[function(require,module,exports){
+},{"./Polygon":75}],75:[function(require,module,exports){
 const Body = require('./Body')
 
 /**
@@ -6948,7 +6982,7 @@ module.exports = Polygon
 
 module.exports.default = module.exports
 
-},{"./Body":71}],75:[function(require,module,exports){
+},{"./Body":72}],76:[function(require,module,exports){
 /**
  * An object used to collect the detailed results of a collision test
  *
@@ -7014,7 +7048,7 @@ module.exports = Result
 
 module.exports.default = module.exports
 
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /**
  * Determines if two bodies are colliding using the Separating Axis Theorem
  * @private
@@ -7426,7 +7460,7 @@ module.exports = SAT
 
 module.exports.default = module.exports
 
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 
 module.exports = require('./socket');
 
@@ -7438,7 +7472,7 @@ module.exports = require('./socket');
  */
 module.exports.parser = require('engine.io-parser');
 
-},{"./socket":78,"engine.io-parser":88}],78:[function(require,module,exports){
+},{"./socket":79,"engine.io-parser":89}],79:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8185,7 +8219,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":79,"./transports/index":80,"component-emitter":66,"debug":86,"engine.io-parser":88,"indexof":94,"parseqs":99,"parseuri":100}],79:[function(require,module,exports){
+},{"./transport":80,"./transports/index":81,"component-emitter":67,"debug":87,"engine.io-parser":89,"indexof":95,"parseqs":100,"parseuri":101}],80:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -8344,7 +8378,7 @@ Transport.prototype.onClose = function () {
   this.emit('close');
 };
 
-},{"component-emitter":66,"engine.io-parser":88}],80:[function(require,module,exports){
+},{"component-emitter":67,"engine.io-parser":89}],81:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies
@@ -8401,7 +8435,7 @@ function polling (opts) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling-jsonp":81,"./polling-xhr":82,"./websocket":84,"xmlhttprequest-ssl":85}],81:[function(require,module,exports){
+},{"./polling-jsonp":82,"./polling-xhr":83,"./websocket":85,"xmlhttprequest-ssl":86}],82:[function(require,module,exports){
 (function (global){
 
 /**
@@ -8636,7 +8670,7 @@ JSONPPolling.prototype.doWrite = function (data, fn) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":83,"component-inherit":67}],82:[function(require,module,exports){
+},{"./polling":84,"component-inherit":68}],83:[function(require,module,exports){
 (function (global){
 /**
  * Module requirements.
@@ -9052,7 +9086,7 @@ function unloadHandler () {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./polling":83,"component-emitter":66,"component-inherit":67,"debug":86,"xmlhttprequest-ssl":85}],83:[function(require,module,exports){
+},{"./polling":84,"component-emitter":67,"component-inherit":68,"debug":87,"xmlhttprequest-ssl":86}],84:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -9299,7 +9333,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":79,"component-inherit":67,"debug":86,"engine.io-parser":88,"parseqs":99,"xmlhttprequest-ssl":85,"yeast":116}],84:[function(require,module,exports){
+},{"../transport":80,"component-inherit":68,"debug":87,"engine.io-parser":89,"parseqs":100,"xmlhttprequest-ssl":86,"yeast":117}],85:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -9589,7 +9623,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":79,"component-inherit":67,"debug":86,"engine.io-parser":88,"parseqs":99,"ws":1,"yeast":116}],85:[function(require,module,exports){
+},{"../transport":80,"component-inherit":68,"debug":87,"engine.io-parser":89,"parseqs":100,"ws":2,"yeast":117}],86:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -9630,7 +9664,7 @@ module.exports = function (opts) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"has-cors":93}],86:[function(require,module,exports){
+},{"has-cors":94}],87:[function(require,module,exports){
 (function (process){
 /**
  * This is the web browser implementation of `debug()`.
@@ -9829,7 +9863,7 @@ function localstorage() {
 }
 
 }).call(this,require('_process'))
-},{"./debug":87,"_process":6}],87:[function(require,module,exports){
+},{"./debug":88,"_process":7}],88:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -10056,7 +10090,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":95}],88:[function(require,module,exports){
+},{"ms":96}],89:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -10666,7 +10700,7 @@ exports.decodePayloadAsBinary = function (data, binaryType, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./keys":89,"./utf8":90,"after":60,"arraybuffer.slice":61,"base64-arraybuffer":63,"blob":64,"has-binary2":91}],89:[function(require,module,exports){
+},{"./keys":90,"./utf8":91,"after":61,"arraybuffer.slice":62,"base64-arraybuffer":64,"blob":65,"has-binary2":92}],90:[function(require,module,exports){
 
 /**
  * Gets the keys for an object.
@@ -10687,7 +10721,7 @@ module.exports = Object.keys || function keys (obj){
   return arr;
 };
 
-},{}],90:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/utf8js v2.1.2 by @mathias */
 ;(function(root) {
@@ -10946,7 +10980,7 @@ module.exports = Object.keys || function keys (obj){
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],91:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 (function (Buffer){
 /* global Blob File */
 
@@ -11014,9 +11048,9 @@ function hasBinary (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":2,"isarray":92}],92:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],93:[function(require,module,exports){
+},{"buffer":3,"isarray":93}],93:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"dup":6}],94:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -11035,7 +11069,7 @@ try {
   module.exports = false;
 }
 
-},{}],94:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -11046,7 +11080,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],95:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -11200,7 +11234,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],96:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 'use strict';
 
 function Decoder(buffer) {
@@ -11483,7 +11517,7 @@ function decode(buffer) {
 
 module.exports = decode;
 
-},{}],97:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 'use strict';
 
 function utf8Write(view, offset, str) {
@@ -11790,11 +11824,11 @@ function encode(value) {
 
 module.exports = encode;
 
-},{}],98:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 exports.encode = require('./encode');
 exports.decode = require('./decode');
 
-},{"./decode":96,"./encode":97}],99:[function(require,module,exports){
+},{"./decode":97,"./encode":98}],100:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -11833,7 +11867,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],100:[function(require,module,exports){
+},{}],101:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -11874,7 +11908,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],101:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11970,7 +12004,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":102,"./socket":104,"./url":105,"debug":106,"socket.io-parser":110}],102:[function(require,module,exports){
+},{"./manager":103,"./socket":105,"./url":106,"debug":107,"socket.io-parser":111}],103:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -12545,7 +12579,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":103,"./socket":104,"backo2":62,"component-bind":65,"component-emitter":66,"debug":106,"engine.io-client":77,"indexof":94,"socket.io-parser":110}],103:[function(require,module,exports){
+},{"./on":104,"./socket":105,"backo2":63,"component-bind":66,"component-emitter":67,"debug":107,"engine.io-client":78,"indexof":95,"socket.io-parser":111}],104:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -12571,7 +12605,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],104:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -13011,7 +13045,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":103,"component-bind":65,"component-emitter":66,"debug":106,"has-binary2":91,"parseqs":99,"socket.io-parser":110,"to-array":115}],105:[function(require,module,exports){
+},{"./on":104,"component-bind":66,"component-emitter":67,"debug":107,"has-binary2":92,"parseqs":100,"socket.io-parser":111,"to-array":116}],106:[function(require,module,exports){
 (function (global){
 
 /**
@@ -13090,11 +13124,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":106,"parseuri":100}],106:[function(require,module,exports){
-arguments[4][86][0].apply(exports,arguments)
-},{"./debug":107,"_process":6,"dup":86}],107:[function(require,module,exports){
+},{"debug":107,"parseuri":101}],107:[function(require,module,exports){
 arguments[4][87][0].apply(exports,arguments)
-},{"dup":87,"ms":95}],108:[function(require,module,exports){
+},{"./debug":108,"_process":7,"dup":87}],108:[function(require,module,exports){
+arguments[4][88][0].apply(exports,arguments)
+},{"dup":88,"ms":96}],109:[function(require,module,exports){
 
 var msgpack = require('notepack.io');
 var Emitter = require('component-emitter');
@@ -13164,7 +13198,7 @@ Decoder.prototype.destroy = function () {};
 exports.Encoder = Encoder;
 exports.Decoder = Decoder;
 
-},{"component-emitter":66,"notepack.io":98}],109:[function(require,module,exports){
+},{"component-emitter":67,"notepack.io":99}],110:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -13309,7 +13343,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":111,"isarray":114}],110:[function(require,module,exports){
+},{"./is-buffer":112,"isarray":115}],111:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -13728,7 +13762,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":109,"./is-buffer":111,"component-emitter":66,"debug":112,"isarray":114}],111:[function(require,module,exports){
+},{"./binary":110,"./is-buffer":112,"component-emitter":67,"debug":113,"isarray":115}],112:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -13756,13 +13790,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],112:[function(require,module,exports){
-arguments[4][86][0].apply(exports,arguments)
-},{"./debug":113,"_process":6,"dup":86}],113:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 arguments[4][87][0].apply(exports,arguments)
-},{"dup":87,"ms":95}],114:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],115:[function(require,module,exports){
+},{"./debug":114,"_process":7,"dup":87}],114:[function(require,module,exports){
+arguments[4][88][0].apply(exports,arguments)
+},{"dup":88,"ms":96}],115:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"dup":6}],116:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -13777,7 +13811,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],116:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
@@ -13847,4 +13881,4 @@ yeast.encode = encode;
 yeast.decode = decode;
 module.exports = yeast;
 
-},{}]},{},[24]);
+},{}]},{},[25]);

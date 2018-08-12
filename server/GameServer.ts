@@ -224,36 +224,36 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 1000; i++) {
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
+        // for (let i = 0; i < 100000; i++) {
+        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+        //         new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
+        //
+        //     if (i % 1000 == 0) {
+        //         console.log(i)
+        //     }
+        // }
 
-            if (i % 1000 == 0) {
-                console.log(i)
-            }
-        }
+        // let wallsCounter = 0;
+        // for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
+        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+        //         new Transform(i * 32, 0, 32, 32));
+        //
+        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+        //         new Transform(i * 32, CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32, 32, 32));
+        //
+        //     wallsCounter += 2;
+        // }
+        //
+        // for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
+        //     wallsCounter += 2;
+        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+        //         new Transform(0, i * 32, 32, 32));
+        //
+        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
+        //         new Transform(CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32, i * 32, 32, 32));
+        // }
 
-        let wallsCounter = 0;
-        for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(i * 32, 0, 32, 32));
-
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(i * 32, CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32, 32, 32));
-
-            wallsCounter += 2;
-        }
-
-        for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
-            wallsCounter += 2;
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(0, i * 32, 32, 32));
-
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32, i * 32, 32, 32));
-        }
-
-        console.log("wallsCounter " + wallsCounter);
+        // console.log("wallsCounter " + wallsCounter);
 
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {

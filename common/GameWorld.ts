@@ -32,8 +32,8 @@ export class GameWorld extends GameObjectsSubscriber {
             this.collistionsSystem.update();
             while(chunk = chunksIter.next().value) {
                 this.collistionsSystem.updateCollisions(chunk.Objects);
-                if(!chunk.IsActive && CommonConfig.IS_SERVER) {
-                    chunk.dump();
+                if(!chunk.IsDeactivateTimePassed && !chunk.IsActive &&CommonConfig.IS_SERVER) {
+                    chunk.dumpToMemory();
                 }
             }
 
