@@ -2999,8 +2999,11 @@ class InputHandler {
             if (this.mouseButton == 0) {
                 inputSnapshot.append(InputCommands_1.INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
             }
-            else {
+            else if (this.mouseButton == 2) {
                 inputSnapshot.append(InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
+            }
+            else {
+                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE, this.clickPosition.toString());
             }
             this.clickPosition = null;
         }
@@ -3152,8 +3155,8 @@ class CommonConfig {
     }
 }
 CommonConfig.chunkSize = 32 * 40;
-CommonConfig.numOfChunksX = 50;
-CommonConfig.numOfChunksY = 50;
+CommonConfig.numOfChunksX = 10;
+CommonConfig.numOfChunksY = 10;
 CommonConfig.chunkDeactivationTime = 10000;
 CommonConfig.ORIGIN = getOrigin();
 exports.CommonConfig = CommonConfig;
@@ -3403,10 +3406,17 @@ class Chunk {
         }
         if (!this.dumpedBuffer) {
             let fileName = "data/" + this.x + "." + this.y + ".chunk";
-            let buffer = fs.readFileSync(fileName);
-            this.dumpedBuffer = toArrayBuffer(buffer);
+            try {
+                let buffer = fs.readFileSync(fileName);
+                this.dumpedBuffer = toArrayBuffer(buffer);
+            }
+            catch (e) {
+                console.log("no data file found");
+            }
         }
-        ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        if (this.dumpedBuffer) {
+            ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        }
         this.dumpedBuffer = null;
         this.isActive = true;
     }
@@ -4267,10 +4277,13 @@ class Player extends Actor_1.Actor {
                 this.lastInputSnapshot = inputSnapshot;
             }
             else if (key == InputCommands_1.INPUT_COMMAND.LEFT_MOUSE) {
-                this.fireAction(value, 0);
+                this.mouseClickAction(value, 0);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE) {
-                this.fireAction(value, 2);
+                this.mouseClickAction(value, 2);
+            }
+            else if (key == InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE) {
+                this.mouseClickAction(value, 1);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.WALL) {
                 this.wallAction(value);
@@ -4283,7 +4296,7 @@ class Player extends Actor_1.Actor {
             this.MoveDirection = parseInt(direction);
         }
     }
-    fireAction(position, clickButton) {
+    mouseClickAction(position, clickButton) {
         let splited = position.split(',').map((val) => { return parseFloat(val); });
         this.weapon.use(this, [splited[0], splited[1]], clickButton);
         // for(let i = 0; i < 8; i++) {
@@ -4321,6 +4334,7 @@ class Player extends Actor_1.Actor {
 Player.onlyServerActions = new Set([
     InputCommands_1.INPUT_COMMAND.LEFT_MOUSE,
     InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE,
+    InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE,
     InputCommands_1.INPUT_COMMAND.WALL
 ]);
 exports.Player = Player;
@@ -4468,8 +4482,11 @@ class ObjectsSpawner {
         if (clickButton == 0) {
             ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Enemy", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
         }
-        else {
+        else if (clickButton == 2) {
             ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
+        }
+        else {
+            ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Item", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
         }
     }
     ;
@@ -4668,7 +4685,8 @@ var INPUT_COMMAND;
     INPUT_COMMAND[INPUT_COMMAND["MOVE_DIRECTION"] = 0] = "MOVE_DIRECTION";
     INPUT_COMMAND[INPUT_COMMAND["LEFT_MOUSE"] = 1] = "LEFT_MOUSE";
     INPUT_COMMAND[INPUT_COMMAND["RIGHT_MOUSE"] = 2] = "RIGHT_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 3] = "WALL";
+    INPUT_COMMAND[INPUT_COMMAND["MIDDLE_MOUSE"] = 3] = "MIDDLE_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 4] = "WALL";
 })(INPUT_COMMAND = exports.INPUT_COMMAND || (exports.INPUT_COMMAND = {}));
 // delete this later
 // export const InputCommands: Map<string, INPUT_COMMAND> = new Map<string, INPUT_COMMAND>([

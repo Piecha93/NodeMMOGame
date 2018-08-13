@@ -146,11 +146,18 @@ export class Chunk {
 
         if(!this.dumpedBuffer) {
             let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
-            let buffer: Buffer = fs.readFileSync(fileName);
-            this.dumpedBuffer = toArrayBuffer(buffer);
+            try {
+                let buffer: Buffer = fs.readFileSync(fileName);
+                this.dumpedBuffer = toArrayBuffer(buffer);
+            } catch (e) {
+                console.log("no data file found");
+            }
         }
 
-        ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        if(this.dumpedBuffer) {
+            ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+        }
+
         this.dumpedBuffer = null;
         this.isActive = true;
     }

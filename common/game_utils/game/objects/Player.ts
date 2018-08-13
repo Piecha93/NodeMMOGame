@@ -12,6 +12,7 @@ export class Player extends Actor {
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
         INPUT_COMMAND.LEFT_MOUSE,
         INPUT_COMMAND.RIGHT_MOUSE,
+        INPUT_COMMAND.MIDDLE_MOUSE,
         INPUT_COMMAND.WALL
     ]);
 
@@ -38,9 +39,11 @@ export class Player extends Actor {
                 this.moveDirectionAction(value);
                 this.lastInputSnapshot = inputSnapshot;
             } else if(key == INPUT_COMMAND.LEFT_MOUSE) {
-                this.fireAction(value, 0);
+                this.mouseClickAction(value, 0);
             } else if(key == INPUT_COMMAND.RIGHT_MOUSE) {
-                this.fireAction(value, 2);
+                this.mouseClickAction(value, 2);
+            }else if(key == INPUT_COMMAND.MIDDLE_MOUSE) {
+                this.mouseClickAction(value, 1);
             } else if(key == INPUT_COMMAND.WALL) {
                 this.wallAction(value);
             }
@@ -54,7 +57,7 @@ export class Player extends Actor {
         }
     }
 
-    private fireAction(position: string, clickButton: number) {
+    private mouseClickAction(position: string, clickButton: number) {
         let splited: number[] = position.split(',').map((val: string) => {return parseFloat(val)});
         this.weapon.use(this, [splited[0], splited[1]], clickButton);
         // for(let i = 0; i < 8; i++) {

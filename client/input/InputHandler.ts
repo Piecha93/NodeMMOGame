@@ -109,8 +109,10 @@ export class InputHandler {
         if(this.clickPosition != null) {
             if(this.mouseButton == 0) {
                 inputSnapshot.append(INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
-            } else {
+            } else if(this.mouseButton == 2){
                 inputSnapshot.append(INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
+            } else {
+                inputSnapshot.append(INPUT_COMMAND.MIDDLE_MOUSE, this.clickPosition.toString());
             }
             this.clickPosition = null;
         }

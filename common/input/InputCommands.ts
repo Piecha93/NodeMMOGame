@@ -2,6 +2,7 @@ export enum INPUT_COMMAND {
     MOVE_DIRECTION,
     LEFT_MOUSE,
     RIGHT_MOUSE,
+    MIDDLE_MOUSE,
     WALL
 }
 
