@@ -38,8 +38,8 @@ export abstract class Actor extends GameObject {
         this.velocity = 0.3;
         this.name = "";
 
-        this.transform.Width = 40;
-        this.transform.Height = 64;
+        this.transform.Width = 32;
+        this.transform.Height = 32;
 
         this.SpriteName = "template";
         this.animationType = "idle";

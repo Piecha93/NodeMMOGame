@@ -21,7 +21,7 @@ export class PlayerRender extends GameObjectAnimationRender {
              fontSize: "12px",
              fill: "#ffffff"
         });
-        this.nameText.anchor.set(0.5, 4.5);
+        this.nameText.anchor.set(0.5, 4);
 
         this.addChild(this.nameText);
 

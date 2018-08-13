@@ -37,7 +37,8 @@ export class Enemy extends Actor {
         if(this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = Math.random() * 2000;
             for(let i = 0; i < 1; i++) {
-                this.weapon.use(this, Math.random() * 360, 0);
+                let pos: [number, number] = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
+                this.weapon.use(this, pos, 0);
                 this.MoveDirection = Math.round(Math.random() * 8);
             }
         }

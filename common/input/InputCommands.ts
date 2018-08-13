@@ -1,7 +1,7 @@
 export enum INPUT_COMMAND {
     MOVE_DIRECTION,
-    FIRE,
-    FIRE_2,
+    LEFT_MOUSE,
+    RIGHT_MOUSE,
     WALL
 }
 

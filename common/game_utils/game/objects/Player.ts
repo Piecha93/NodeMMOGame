@@ -6,11 +6,12 @@ import {CommonConfig} from "../../../CommonConfig";
 import {InputSnapshot} from "../../../input/InputSnapshot";
 import {PortalGun} from "../weapons/PortalGun";
 import {MagicWand} from "../weapons/MagicWand";
+import {ObjectsSpawner} from "../weapons/ObjectsSpawner";
 
 export class Player extends Actor {
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
-        INPUT_COMMAND.FIRE,
-        INPUT_COMMAND.FIRE_2,
+        INPUT_COMMAND.LEFT_MOUSE,
+        INPUT_COMMAND.RIGHT_MOUSE,
         INPUT_COMMAND.WALL
     ]);
 
@@ -21,7 +22,8 @@ export class Player extends Actor {
         this.velocity = 0.25;
 
         // this.weapon = new PortalGun();
-        this.weapon = new MagicWand();
+        // this.weapon = new MagicWand();
+        this.weapon = new ObjectsSpawner();
     }
 
     private lastInputSnapshot: InputSnapshot = null;
@@ -35,9 +37,9 @@ export class Player extends Actor {
             if(key == INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);
                 this.lastInputSnapshot = inputSnapshot;
-            } else if(key == INPUT_COMMAND.FIRE) {
+            } else if(key == INPUT_COMMAND.LEFT_MOUSE) {
                 this.fireAction(value, 0);
-            } else if(key == INPUT_COMMAND.FIRE_2) {
+            } else if(key == INPUT_COMMAND.RIGHT_MOUSE) {
                 this.fireAction(value, 2);
             } else if(key == INPUT_COMMAND.WALL) {
                 this.wallAction(value);
@@ -52,8 +54,9 @@ export class Player extends Actor {
         }
     }
 
-    private fireAction(angle: string, clickButton: number) {
-        this.weapon.use(this, parseFloat(angle), clickButton);
+    private fireAction(position: string, clickButton: number) {
+        let splited: number[] = position.split(',').map((val: string) => {return parseFloat(val)});
+        this.weapon.use(this, [splited[0], splited[1]], clickButton);
         // for(let i = 0; i < 8; i++) {
         //     this.weapon.use(this, Math.random() * 7, clickButton);
         // }

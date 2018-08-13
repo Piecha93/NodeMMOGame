@@ -3,6 +3,7 @@ import {INPUT, InputMap} from "./InputMap";
 import {INPUT_COMMAND} from "../../common/input/InputCommands";
 import {Cursor} from "./Cursor";
 
+
 export class InputHandler {
     private releasedKeys: Set<string>;
     private clickPosition: [number, number];
@@ -60,9 +61,7 @@ export class InputHandler {
     }
 
     private onMouseClick(mouseEvent: MouseEvent): boolean {
-        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
-        let rect: ClientRect = canvas.getBoundingClientRect();
-        this.clickPosition = [mouseEvent.x - rect.left, mouseEvent.y - rect.top];
+        this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
         this.mouseButton = mouseEvent.button;
 
         this.invokeSnapshotCallbacks();
@@ -108,11 +107,10 @@ export class InputHandler {
         inputSnapshot.append(INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
 
         if(this.clickPosition != null) {
-            let angle: string = this.getClickAngle();
             if(this.mouseButton == 0) {
-                inputSnapshot.append(INPUT_COMMAND.FIRE, angle);
+                inputSnapshot.append(INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
             } else {
-                inputSnapshot.append(INPUT_COMMAND.FIRE_2, angle);
+                inputSnapshot.append(INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
             }
             this.clickPosition = null;
         }
@@ -120,20 +118,6 @@ export class InputHandler {
         this.releasedKeys.clear();
 
         return inputSnapshot;
-    }
-
-    private getClickAngle(): string {
-        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
-
-        let centerX = canvas.width / 2;
-        let centerY = canvas.height / 2;
-        let deltaX = this.clickPosition[0] - centerX;
-        let deltaY = this.clickPosition[1] - centerY;
-        let angle: number = Math.atan2(deltaY, deltaX);
-        if (angle < 0)
-            angle = angle + 2*Math.PI;
-
-        return angle.toString();
     }
 
     private parseDirection(directionBuffor: Array<INPUT>): number {

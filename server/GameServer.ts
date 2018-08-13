@@ -115,7 +115,7 @@ export class GameServer {
 
         socket.on(SocketMsgs.CLIENT_READY, () => {
             let player: Player = GameObjectsFactory.InstatiateWithTransform("Player",
-                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 48, 64)) as Player;
+                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32)) as Player;
 
             player.Name = serverClient.Name;
             serverClient.PlayerId = player.ID;

@@ -3,13 +3,17 @@ import {FireBall} from "../objects/FireBall";
 import {Weapon} from "./Weapon";
 import {GameObjectsFactory} from "../../factory/ObjectsFactory";
 import {Transform} from "../../physics/Transform";
+import {calcAngle} from "../../../utils/functions/CalcAngle";
 
 export class MagicWand implements Weapon {
-    public use(user: Actor, angle: number, clickButton: number) {
-        let position = new Transform(user.Transform.X, user.Transform.Y, 20);
-        position.Rotation = angle;
+    public use(user: Actor, position: [number, number], clickButton: number) {
 
-        let fireBall: FireBall = GameObjectsFactory.InstatiateWithTransform("FireBall", position) as FireBall;
+        let angle: number = calcAngle(position, [user.Transform.X, user.Transform.Y]);
+
+        let transform = new Transform(user.Transform.X, user.Transform.Y, 20);
+        transform.Rotation = angle;
+
+        let fireBall: FireBall = GameObjectsFactory.InstatiateWithTransform("FireBall", transform) as FireBall;
         fireBall.Owner = user.ID;
     };
 
