@@ -168,13 +168,15 @@ export class ChunksManager extends GameObjectsSubscriber {
 
             let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
+            let oldChunk: Chunk = this.objectsChunks.get(gameObject);
+
             if(!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
+                oldChunk.addLeaver(gameObject);
                 gameObject.destroy();
                 return;
             }
 
-            let oldChunk: Chunk = this.objectsChunks.get(gameObject);
             if(oldChunk == chunk) {
                 return;
             }
