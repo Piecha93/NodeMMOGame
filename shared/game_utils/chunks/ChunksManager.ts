@@ -1,6 +1,6 @@
 import {GameObjectsSubscriber} from "../factory/GameObjectsSubscriber";
 import {GameObject} from "../game/objects/GameObject";
-import {CommonConfig} from "../../CommonConfig";
+import {SharedConfig} from "../../SharedConfig";
 import {Chunk} from "./Chunk";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Player} from "../game/objects/Player";
@@ -17,9 +17,9 @@ export class ChunksManager extends GameObjectsSubscriber {
     constructor() {
         super();
 
-        this.numOfChunksX = CommonConfig.numOfChunksX;
-        this.numOfChunksY = CommonConfig.numOfChunksY;
-        this.chunkSize = CommonConfig.chunkSize;
+        this.numOfChunksX = SharedConfig.numOfChunksX;
+        this.numOfChunksY = SharedConfig.numOfChunksY;
+        this.chunkSize = SharedConfig.chunkSize;
 
         this.initChunks();
         this.setChunksNeighbors();

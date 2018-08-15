@@ -1,19 +1,19 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
-import {GameObject} from "../../common/game_utils/game/objects/GameObject";
-import {GameObjectsSubscriber} from "../../common/game_utils/factory/GameObjectsSubscriber";
+import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
+import {GameObjectsSubscriber} from "../../shared/game_utils/factory/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {Camera} from "./Camera";
 import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
 import {TileMap} from "./TileMap";
 import Sprite = PIXI.Sprite;
-import {Types} from "../../common/game_utils/factory/GameObjectTypes";
+import {Types} from "../../shared/game_utils/factory/GameObjectTypes";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
-import {Player} from "../../common/game_utils/game/objects/Player";
-import {Chunk} from "../../common/game_utils/chunks/Chunk";
+import {Player} from "../../shared/game_utils/game/objects/Player";
+import {Chunk} from "../../shared/game_utils/chunks/Chunk";
 
 
 export class Renderer extends GameObjectsSubscriber {

@@ -1,7 +1,7 @@
-import {InputSnapshot} from "../common/input/InputSnapshot";
-import {ChangesDict} from "../common/serialize/ChangesDict";
-import {CollisionsSystem} from "../common/game_utils/physics/CollisionsSystem";
-import {Player} from "../common/game_utils/game/objects/Player";
+import {InputSnapshot} from "../shared/input/InputSnapshot";
+import {ChangesDict} from "../shared/serialize/ChangesDict";
+import {CollisionsSystem} from "../shared/game_utils/physics/CollisionsSystem";
+import {Player} from "../shared/game_utils/game/objects/Player";
 
 export class Reconciliation {
     private inputHistory: Array<InputSnapshot>;

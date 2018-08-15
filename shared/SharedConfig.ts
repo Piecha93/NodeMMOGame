@@ -12,7 +12,7 @@ function getOrigin(): Origin {
     }
 }
 
-export class CommonConfig {
+export class SharedConfig {
     public static chunkSize: number = 32 * 40;
     public static numOfChunksX: number = 10;
     public static numOfChunksY: number = 10;
@@ -22,10 +22,10 @@ export class CommonConfig {
     public static ORIGIN: Origin = getOrigin();
 
     public static get IS_SERVER(): boolean {
-        return CommonConfig.ORIGIN == Origin.SERVER;
+        return SharedConfig.ORIGIN == Origin.SERVER;
     }
 
     public static get IS_CLIENT(): boolean {
-        return CommonConfig.ORIGIN == Origin.CLIENT;
+        return SharedConfig.ORIGIN == Origin.CLIENT;
     }
 }

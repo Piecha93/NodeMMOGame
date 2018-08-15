@@ -2,7 +2,7 @@ import {INPUT_COMMAND} from "../../../input/InputCommands";
 import {Transform} from "../../physics/Transform";
 import {Actor} from "./Actor";
 import {ChangesDict} from "../../../serialize/ChangesDict";
-import {CommonConfig} from "../../../CommonConfig";
+import {SharedConfig} from "../../../SharedConfig";
 import {InputSnapshot} from "../../../input/InputSnapshot";
 import {PortalGun} from "../weapons/PortalGun";
 import {MagicWand} from "../weapons/MagicWand";
@@ -33,7 +33,7 @@ export class Player extends Actor {
         let inputCommands: Map<INPUT_COMMAND, string> = inputSnapshot.Commands;
 
         inputCommands.forEach((value: string, key: INPUT_COMMAND) => {
-            if (CommonConfig.IS_CLIENT && Player.onlyServerActions.has(key)) return;
+            if (SharedConfig.IS_CLIENT && Player.onlyServerActions.has(key)) return;
 
             if(key == INPUT_COMMAND.MOVE_DIRECTION) {
                 this.moveDirectionAction(value);

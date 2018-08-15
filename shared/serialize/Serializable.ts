@@ -1,5 +1,5 @@
 import {PropNames} from "./NetworkDecorators";
-import {CommonConfig} from "../CommonConfig";
+import {SharedConfig} from "../SharedConfig";
 import {maskByteSize, setBit} from "../utils/functions/BitOperations";
 
 export enum SerializableTypes {
@@ -40,13 +40,13 @@ export abstract class Serializable {
     }
 
     public addChange(change: string) {
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             this.changes.add(change);
         }
     }
 
     public hasChange(change: string): boolean {
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             return this.changes.has(change);
         } else {
             return this.deserializedFields.has(change);

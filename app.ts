@@ -10,12 +10,12 @@ import * as SocketIO from 'socket.io';
 import {Request, Response} from "express";
 import {MongoStore} from "connect-mongo";
 import {GameServer} from "./server/GameServer";
-import {CommonConfig, Origin} from "./common/CommonConfig";
+import {SharedConfig, Origin} from "./shared/SharedConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import shortid = require("shortid");
 const customParser: any = require('socket.io-msgpack-parser');
 
-CommonConfig.ORIGIN = Origin.SERVER;
+SharedConfig.ORIGIN = Origin.SERVER;
 
 const port: number = Number(process.env.PORT) || 3000;
 const app: express.Application = express();

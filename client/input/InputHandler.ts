@@ -1,6 +1,6 @@
-import {InputSnapshot} from "../../common/input/InputSnapshot";
+import {InputSnapshot} from "../../shared/input/InputSnapshot";
 import {INPUT, InputMap} from "./InputMap";
-import {INPUT_COMMAND} from "../../common/input/InputCommands";
+import {INPUT_COMMAND} from "../../shared/input/InputCommands";
 import {Cursor} from "./Cursor";
 
 

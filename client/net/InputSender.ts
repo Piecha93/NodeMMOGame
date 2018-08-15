@@ -1,5 +1,5 @@
-import {SocketMsgs} from "../../common/net/SocketMsgs";
-import {InputSnapshot} from "../../common/input/InputSnapshot";
+import {SocketMsgs} from "../../shared/net/SocketMsgs";
+import {InputSnapshot} from "../../shared/input/InputSnapshot";
 
 export class InputSender {
     private socket: SocketIOClient.Socket;

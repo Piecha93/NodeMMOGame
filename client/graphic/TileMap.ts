@@ -2,9 +2,9 @@
 
 import Texture = PIXI.Texture;
 import Sprite = PIXI.Sprite;
-import {CommonConfig} from "../../common/CommonConfig";
-import {GameObject} from "../../common/game_utils/game/objects/GameObject";
-import {Chunk} from "../../common/game_utils/chunks/Chunk";
+import {SharedConfig} from "../../shared/SharedConfig";
+import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
+import {Chunk} from "../../shared/game_utils/chunks/Chunk";
 
 type Coords = [number, number];
 
@@ -60,8 +60,8 @@ export class TileMap extends PIXI.Container {
     private currentChunkCoords: Coords;
     private visibleMapChunks: Map<Coords, TileMapChunk>;
 
-    private numOfChunksX = CommonConfig.numOfChunksX;
-    private numOfChunksY = CommonConfig.numOfChunksY;
+    private numOfChunksX = SharedConfig.numOfChunksX;
+    private numOfChunksY = SharedConfig.numOfChunksY;
 
     constructor() {
         super();
@@ -76,8 +76,8 @@ export class TileMap extends PIXI.Container {
         for (let i = 0; i < this.numOfChunksX; i++) {
             this.mapChunks[i] = [];
             for (let j = 0; j < this.numOfChunksY; j++) {
-                let chunkSizeX = CommonConfig.chunkSize;
-                let chunkSizeY = CommonConfig.chunkSize;
+                let chunkSizeX = SharedConfig.chunkSize;
+                let chunkSizeY = SharedConfig.chunkSize;
 
                 let chunkX = i * chunkSizeX;
                 let chunkY = j * chunkSizeY;

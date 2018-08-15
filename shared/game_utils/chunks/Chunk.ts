@@ -2,7 +2,7 @@ import {Player} from "../game/objects/Player";
 import {GameObject} from "../game/objects/GameObject";
 import {Obstacle} from "../game/objects/Obstacle";
 import {ObjectsSerializer} from "../../serialize/ObjectsSerializer";
-import {CommonConfig} from "../../CommonConfig";
+import {SharedConfig} from "../../SharedConfig";
 
 let fs = require('fs');
 
@@ -43,7 +43,7 @@ export class Chunk {
         this.leavers = [];
         this.numOfPlayers = 0;
 
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             this.deactivatedTime = -1;
         } else {
             this.deactivatedTime = -1;
@@ -60,7 +60,7 @@ export class Chunk {
         if(gameObject instanceof Player) {
             this.hasNewcomers = true;
             this.numOfPlayers++;
-            if(CommonConfig.IS_SERVER) {
+            if(SharedConfig.IS_SERVER) {
                 this.activate();
                 this.activateNeighbors();
             }
@@ -134,7 +134,7 @@ export class Chunk {
     }
 
     public deactivate() {
-        if(this.IsDeactivateTimePassed && CommonConfig.IS_SERVER) {
+        if(this.IsDeactivateTimePassed && SharedConfig.IS_SERVER) {
             this.deactivatedTime = Date.now();
         }
     }
@@ -248,7 +248,7 @@ export class Chunk {
     }
 
     get IsDeactivateTimePassed(): boolean {
-        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < CommonConfig.chunkDeactivationTime;
+        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < SharedConfig.chunkDeactivationTime;
     }
 
     get TimeSinceDeactivation(): number {

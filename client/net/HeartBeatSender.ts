@@ -1,4 +1,4 @@
-import {SocketMsgs} from "../../common/net/SocketMsgs";
+import {SocketMsgs} from "../../shared/net/SocketMsgs";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 
 export class HeartBeatSender {

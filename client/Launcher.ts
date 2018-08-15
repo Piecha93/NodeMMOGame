@@ -1,7 +1,7 @@
-import {CommonConfig, Origin} from "../common/CommonConfig";
+import {SharedConfig, Origin} from "../shared/SharedConfig";
 import {GameClient} from "./GameClient";
 
-CommonConfig.ORIGIN = Origin.CLIENT;
+SharedConfig.ORIGIN = Origin.CLIENT;
 
 window.onload = () => {
     new GameClient();

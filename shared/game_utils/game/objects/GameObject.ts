@@ -1,6 +1,6 @@
 import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
-import {CommonConfig} from "../../../CommonConfig";
+import {SharedConfig} from "../../../SharedConfig";
 import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
 import {SerializableObject, SerializableProperty} from "../../../serialize/NetworkDecorators";
 import {Result} from "detect-collisions";
@@ -31,7 +31,7 @@ export class GameObject extends Serializable {
     }
 
     onCollisionEnter(gameObject: GameObject, result: Result) {
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             this.serverCollision(gameObject, result);
         }
         this.commonCollision(gameObject, result);
@@ -50,7 +50,7 @@ export class GameObject extends Serializable {
     }
 
     public update(delta: number) {
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             this.serverUpdate(delta);
         }
         this.commonUpdate(delta);

@@ -1,4 +1,4 @@
-import {CommonConfig} from "../CommonConfig";
+import {SharedConfig} from "../SharedConfig";
 
 export class MapChunk {
     // x: number;
@@ -32,9 +32,9 @@ export class MapChunk {
 export class Map {
     private mapChunks: MapChunk[][];
 
-    private numOfChunksX: number = CommonConfig.numOfChunksX;
-    private numOfChunksY: number = CommonConfig.numOfChunksY;
-    private chunkSize: number = CommonConfig.numOfChunksY;
+    private numOfChunksX: number = SharedConfig.numOfChunksX;
+    private numOfChunksY: number = SharedConfig.numOfChunksY;
+    private chunkSize: number = SharedConfig.numOfChunksY;
 
     constructor() {
 

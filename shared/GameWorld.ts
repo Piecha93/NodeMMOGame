@@ -4,7 +4,7 @@ import {CollisionsSystem} from "./game_utils/physics/CollisionsSystem";
 import {Map} from "./game_utils/Map";
 import {ChunksManager} from "./game_utils/chunks/ChunksManager";
 import {Chunk} from "./game_utils/chunks/Chunk";
-import {CommonConfig} from "../common/CommonConfig";
+import {SharedConfig} from ".//SharedConfig";
 
 export class GameWorld extends GameObjectsSubscriber {
     private collistionsSystem: CollisionsSystem = new CollisionsSystem();
@@ -32,7 +32,7 @@ export class GameWorld extends GameObjectsSubscriber {
             this.collistionsSystem.update();
             while(chunk = chunksIter.next().value) {
                 this.collistionsSystem.updateCollisions(chunk.Objects);
-                if(!chunk.IsDeactivateTimePassed && !chunk.IsActive &&CommonConfig.IS_SERVER) {
+                if(!chunk.IsDeactivateTimePassed && !chunk.IsActive &&SharedConfig.IS_SERVER) {
                     chunk.dumpToMemory();
                 }
             }

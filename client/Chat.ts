@@ -1,5 +1,5 @@
 import {ChatHtmlHandler} from "./graphic/HtmlHandlers/ChatHtmlHandler";
-import {SocketMsgs} from "../common/net/SocketMsgs";
+import {SocketMsgs} from "../shared/net/SocketMsgs";
 
 export class Chat {
     private socket: SocketIOClient.Socket;

@@ -1,22 +1,22 @@
 import * as SocketIO from 'socket.io';
 
 import {ServerClient} from "./ServerClient";
-import {Player} from "../common/game_utils/game/objects/Player";
-import {InputSnapshot} from "../common/input/InputSnapshot";
-import {GameObject} from "../common/game_utils/game/objects/GameObject";
+import {Player} from "../shared/game_utils/game/objects/Player";
+import {InputSnapshot} from "../shared/input/InputSnapshot";
+import {GameObject} from "../shared/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
-import {SocketMsgs} from "../common/net/SocketMsgs";
-import {GameObjectsFactory} from "../common/game_utils/factory/ObjectsFactory";
-import {Obstacle} from "../common/game_utils/game/objects/Obstacle";
+import {SocketMsgs} from "../shared/net/SocketMsgs";
+import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
+import {Obstacle} from "../shared/game_utils/game/objects/Obstacle";
 import {Database, IUserModel} from "./database/Database";
-import {Enemy} from "../common/game_utils/game/objects/Enemy";
-import {Item} from "../common/game_utils/game/objects/Item";
-import {Chunk} from "../common/game_utils/chunks/Chunk";
-import {CommonConfig} from "../common/CommonConfig";
-import {ObjectsSerializer} from "../common/serialize/ObjectsSerializer";
-import {Transform} from "../common/game_utils/physics/Transform";
-import {GameCore} from "../common/GameCore";
-import {GameObjectsManager} from "../common/game_utils/factory/GameObjectsManager";
+import {Enemy} from "../shared/game_utils/game/objects/Enemy";
+import {Item} from "../shared/game_utils/game/objects/Item";
+import {Chunk} from "../shared/game_utils/chunks/Chunk";
+import {SharedConfig} from "../shared/SharedConfig";
+import {ObjectsSerializer} from "../shared/serialize/ObjectsSerializer";
+import {Transform} from "../shared/game_utils/physics/Transform";
+import {GameCore} from "../shared/GameCore";
+import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 
 
 export class GameServer {
@@ -218,7 +218,7 @@ export class GameServer {
     }
 
     private getRandomInsideMap(): number {
-        return Math.floor(Math.random() * (CommonConfig.numOfChunksX * CommonConfig.chunkSize - 100)) + 50;
+        return Math.floor(Math.random() * (SharedConfig.numOfChunksX * SharedConfig.chunkSize - 100)) + 50;
     }
 
     private initTestObjects() {
@@ -234,23 +234,23 @@ export class GameServer {
         // }
 
         let wallsCounter = 0;
-        for (let i = 0; i < (CommonConfig.numOfChunksX * CommonConfig.chunkSize / 32); i++) {
+        for (let i = 0; i < (SharedConfig.numOfChunksX * SharedConfig.chunkSize / 32); i++) {
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
                 new Transform(i * 32, 0, 32, 32));
 
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(i * 32, CommonConfig.numOfChunksY * CommonConfig.chunkSize - 32, 32, 32));
+                new Transform(i * 32, SharedConfig.numOfChunksY * SharedConfig.chunkSize - 32, 32, 32));
 
             wallsCounter += 2;
         }
 
-        for (let i = 1; i < (CommonConfig.numOfChunksY * CommonConfig.chunkSize / 32) - 1; i++) {
+        for (let i = 1; i < (SharedConfig.numOfChunksY * SharedConfig.chunkSize / 32) - 1; i++) {
             wallsCounter += 2;
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
                 new Transform(0, i * 32, 32, 32));
 
             o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(CommonConfig.numOfChunksX * CommonConfig.chunkSize - 32, i * 32, 32, 32));
+                new Transform(SharedConfig.numOfChunksX * SharedConfig.chunkSize - 32, i * 32, 32, 32));
         }
 
         console.log("wallsCounter " + wallsCounter);

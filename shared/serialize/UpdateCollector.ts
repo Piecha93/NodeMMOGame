@@ -1,6 +1,6 @@
 import {GameObject} from "../game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
-import {CommonConfig} from "../CommonConfig";
+import {SharedConfig} from "../SharedConfig";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 import {Types} from "../game_utils/factory/GameObjectTypes";
 import {ChunksManager} from "../game_utils/chunks/ChunksManager";
@@ -19,7 +19,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
 
         this.chunksManager = chunksManager;
 
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             this.destroyedObjects = new Map<Chunk, Array<string>>();
 
             let chunks: Chunk[][] = this.chunksManager.Chunks;
@@ -32,7 +32,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
     }
 
     protected onObjectDestroy(gameObject: GameObject) {
-        if(CommonConfig.IS_SERVER) {
+        if(SharedConfig.IS_SERVER) {
             let chunk: Chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
             if(!chunk) {
