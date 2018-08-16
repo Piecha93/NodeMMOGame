@@ -14,6 +14,8 @@ export class InputHandler {
     private snapshotCallbacks: Array<Function>;
     private pressedKeys: Set<string>;
 
+    private mouseButtonsDown: Map<number, boolean>;
+
     private cursor: Cursor;
 
     constructor(cursor: Cursor) {
@@ -21,6 +23,12 @@ export class InputHandler {
 
         this.pressedKeys = new Set<string>();
         this.releasedKeys = new Set<string>();
+        this.mouseButtonsDown = new Map<number, boolean>();
+
+        this.mouseButtonsDown.set(0, false);
+        this.mouseButtonsDown.set(1, false);
+        this.mouseButtonsDown.set(2, false);
+
         this.clickPosition = null;
         this.mousePosition = [0,0];
 
@@ -29,7 +37,8 @@ export class InputHandler {
         document.addEventListener("keydown", this.onKeyDown.bind(this));
         document.addEventListener("keyup", this.onKeyUp.bind(this));
 
-        window.addEventListener("mousedown", this.onMouseClick.bind(this));
+        window.addEventListener("mousedown", this.onMouseDown.bind(this));
+        window.addEventListener("mouseup", this.onMouseUp.bind(this));
         window.addEventListener("mousemove", this.onMouseMove.bind(this));
         window.addEventListener("contextmenu", (e: PointerEvent): boolean => {
             // console.log("win context menu");
@@ -60,12 +69,31 @@ export class InputHandler {
         }
     }
 
-    private onMouseClick(mouseEvent: MouseEvent): boolean {
+    private onMouseDown(mouseEvent: MouseEvent, isRecursion?: boolean): boolean {
         this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
+        if(!isRecursion) {
+            this.mouseButtonsDown.set(mouseEvent.button, true);
+        } else if(!this.mouseButtonsDown.get(mouseEvent.button)) {
+            return true;
+        }
+
         this.mouseButton = mouseEvent.button;
 
         this.invokeSnapshotCallbacks();
 
+
+        if(this.mouseButtonsDown.get(mouseEvent.button)) {
+            setTimeout(() => {
+                this.onMouseDown(mouseEvent, true);
+            }, 100);
+        }
+
+        return true;
+    }
+
+    private onMouseUp(mouseEvent: MouseEvent): boolean {
+
+        this.mouseButtonsDown.set(mouseEvent.button, false);
         return true;
     }
 

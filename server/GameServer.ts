@@ -7,16 +7,16 @@ import {GameObject} from "../shared/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
 import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
-import {Obstacle} from "../shared/game_utils/game/objects/Obstacle";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../shared/game_utils/game/objects/Enemy";
 import {Item} from "../shared/game_utils/game/objects/Item";
 import {Chunk} from "../shared/game_utils/chunks/Chunk";
 import {SharedConfig} from "../shared/SharedConfig";
 import {ObjectsSerializer} from "../shared/serialize/ObjectsSerializer";
-import {Transform} from "../shared/game_utils/physics/Transform";
 import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
+import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
+import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
 
 
 export class GameServer {
@@ -149,15 +149,13 @@ export class GameServer {
         });
 
         socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
-            if(msg == "sp") {
+            if(msg == "fire") {
                 let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
-
-                let e: Enemy = GameObjectsFactory.InstatiateWithPosition("Michau",
-                    [player.Transform.X, player.Transform.Y]) as Enemy;
-
-                e.Name = "Michau";
-            }
-            else if(this.clients.has(socket)) {
+                player.Weapon = new MagicWand();
+            } else if(msg == "spawner") {
+                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
+                player.Weapon = new ObjectsSpawner();
+            } else if(this.clients.has(socket)) {
                 this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
             }
         });

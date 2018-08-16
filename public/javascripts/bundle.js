@@ -2929,12 +2929,17 @@ class InputHandler {
         this.cursor = cursor;
         this.pressedKeys = new Set();
         this.releasedKeys = new Set();
+        this.mouseButtonsDown = new Map();
+        this.mouseButtonsDown.set(0, false);
+        this.mouseButtonsDown.set(1, false);
+        this.mouseButtonsDown.set(2, false);
         this.clickPosition = null;
         this.mousePosition = [0, 0];
         this.snapshotCallbacks = [];
         document.addEventListener("keydown", this.onKeyDown.bind(this));
         document.addEventListener("keyup", this.onKeyUp.bind(this));
-        window.addEventListener("mousedown", this.onMouseClick.bind(this));
+        window.addEventListener("mousedown", this.onMouseDown.bind(this));
+        window.addEventListener("mouseup", this.onMouseUp.bind(this));
         window.addEventListener("mousemove", this.onMouseMove.bind(this));
         window.addEventListener("contextmenu", (e) => {
             // console.log("win context menu");
@@ -2960,10 +2965,25 @@ class InputHandler {
             this.invokeSnapshotCallbacks();
         }
     }
-    onMouseClick(mouseEvent) {
+    onMouseDown(mouseEvent, isRecursion) {
         this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
+        if (!isRecursion) {
+            this.mouseButtonsDown.set(mouseEvent.button, true);
+        }
+        else if (!this.mouseButtonsDown.get(mouseEvent.button)) {
+            return true;
+        }
         this.mouseButton = mouseEvent.button;
         this.invokeSnapshotCallbacks();
+        if (this.mouseButtonsDown.get(mouseEvent.button)) {
+            setTimeout(() => {
+                this.onMouseDown(mouseEvent, true);
+            }, 100);
+        }
+        return true;
+    }
+    onMouseUp(mouseEvent) {
+        this.mouseButtonsDown.set(mouseEvent.button, false);
         return true;
     }
     onMouseMove(mouseEvent) {
@@ -12455,6 +12475,9 @@ class Actor extends GameObject_1.GameObject {
     }
     get FaceDirection() {
         return this.faceDirection;
+    }
+    set Weapon(weapon) {
+        this.weapon = weapon;
     }
 }
 Actor.cornerDir = 0.7071;

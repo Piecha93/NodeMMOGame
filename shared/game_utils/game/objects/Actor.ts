@@ -161,5 +161,9 @@ export abstract class Actor extends GameObject {
     get FaceDirection(): number {
         return this.faceDirection;
     }
+
+    set Weapon(weapon: Weapon) {
+        this.weapon = weapon;
+    }
 }
 

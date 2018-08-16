@@ -15,7 +15,7 @@ export class PortalGun implements Weapon {
         if(this.portals[portalNum] != null) {
             this.portals[portalNum].destroy();
         }
-        this.portals[portalNum] = GameObjectsFactory.Instatiate("Portal") as Portal;
+        this.portals[portalNum] = GameObjectsFactory.InstatiateWithPosition("Portal", user.Transform.Position) as Portal;
 
         this.portals[portalNum].Transform.Rotation = angle;
 
