@@ -3,7 +3,7 @@ import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {FireBall} from "./FireBall";
 import {Obstacle} from "./Obstacle";
-import {SerializableProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
 import {Item} from "./Item";
 import {Weapon} from "../weapons/Weapon";

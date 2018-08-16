@@ -6,11 +6,6 @@ export class Obstacle extends GameObject {
 
     constructor(transform: Transform) {
         super(transform);
-
-        transform.Height = 32;
-        transform.Width = 32;
-
-        this.SpriteName = "wall";
     }
 
     onCollisionEnter(gameObject: GameObject, result: Result) {

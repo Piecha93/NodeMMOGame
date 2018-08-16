@@ -114,8 +114,8 @@ export class GameServer {
         }
 
         socket.on(SocketMsgs.CLIENT_READY, () => {
-            let player: Player = GameObjectsFactory.InstatiateWithTransform("Player",
-                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32)) as Player;
+            let player: Player = GameObjectsFactory.InstatiateWithPosition("DefaultPlayer",
+                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Player;
 
             player.Name = serverClient.Name;
             serverClient.PlayerId = player.ID;
@@ -152,8 +152,8 @@ export class GameServer {
             if(msg == "sp") {
                 let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
 
-                let e: Enemy = GameObjectsFactory.InstatiateWithTransform("Enemy",
-                    new Transform(player.Transform.X, player.Transform.Y, 40, 64)) as Enemy;
+                let e: Enemy = GameObjectsFactory.InstatiateWithPosition("Michau",
+                    [player.Transform.X, player.Transform.Y]) as Enemy;
 
                 e.Name = "Michau";
             }
@@ -225,8 +225,8 @@ export class GameServer {
         let o: GameObject;
 
         // for (let i = 0; i < 100000; i++) {
-        //     o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-        //         new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32));
+        //     o = GameObjectsFactory.InstatiateWithTransform("Wall",
+        //         new Transform(this.getRandomInsideMap(), this.getRandomInsideMap()));
         //
         //     if (i % 1000 == 0) {
         //         console.log(i)
@@ -235,22 +235,21 @@ export class GameServer {
 
         let wallsCounter = 0;
         for (let i = 0; i < (SharedConfig.numOfChunksX * SharedConfig.chunkSize / 32); i++) {
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(i * 32, 0, 32, 32));
+            o = GameObjectsFactory.InstatiateWithPosition("Wall", [i * 32, 0]);
 
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(i * 32, SharedConfig.numOfChunksY * SharedConfig.chunkSize - 32, 32, 32));
+            o = GameObjectsFactory.InstatiateWithPosition("Wall",
+                [i * 32, SharedConfig.numOfChunksY * SharedConfig.chunkSize - 32]);
 
             wallsCounter += 2;
         }
 
         for (let i = 1; i < (SharedConfig.numOfChunksY * SharedConfig.chunkSize / 32) - 1; i++) {
             wallsCounter += 2;
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(0, i * 32, 32, 32));
+            o = GameObjectsFactory.InstatiateWithPosition("Wall",
+                [0, i * 32]);
 
-            o = GameObjectsFactory.InstatiateWithTransform("Obstacle",
-                new Transform(SharedConfig.numOfChunksX * SharedConfig.chunkSize - 32, i * 32, 32, 32));
+            o = GameObjectsFactory.InstatiateWithPosition("Wall",
+                [SharedConfig.numOfChunksX * SharedConfig.chunkSize - 32, i * 32]);
         }
 
         console.log("wallsCounter " + wallsCounter);
@@ -258,8 +257,8 @@ export class GameServer {
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {
             enemyCounter++;
-            let e: Enemy = GameObjectsFactory.InstatiateWithTransform("Enemy",
-                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 40, 64)) as Enemy;
+            let e: Enemy = GameObjectsFactory.InstatiateWithPosition("Michau",
+                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Enemy;
 
             e.Name = "Michau " + enemyCounter.toString();
 
@@ -273,8 +272,8 @@ export class GameServer {
         }
 
         let spawnItem: Function = () => {
-            let i: Item = GameObjectsFactory.InstatiateWithTransform("Item",
-                new Transform(this.getRandomInsideMap(), this.getRandomInsideMap(), 32, 32)) as Item;
+            let i: Item = GameObjectsFactory.InstatiateWithPosition("HpPotion",
+                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Item;
 
             i.addDestroyListener(() => {
                 spawnItem();

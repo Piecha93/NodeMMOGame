@@ -1,7 +1,7 @@
 import {GameObject} from "../game_utils/game/objects/GameObject";
 import {Chunk} from "../game_utils/chunks/Chunk";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
-import {Types} from "../game_utils/factory/GameObjectTypes";
+import {Prefabs} from "../game_utils/factory/GameObjectPrefabs";
 
 export class ObjectsSerializer {
     private static OBJECT_ID_BYTES_LEN = 5;
@@ -56,7 +56,7 @@ export class ObjectsSerializer {
             id += updateBufferView.getUint32(offset + 1).toString();
             offset += 5;
 
-            let gameObject: GameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), undefined,
+            let gameObject: GameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), undefined,
                 [updateBufferView, offset]);
 
             offset = gameObject.deserialize(updateBufferView, offset);

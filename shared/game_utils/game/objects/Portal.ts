@@ -1,7 +1,7 @@
 import {GameObject} from "./GameObject";
 import {Transform} from "../../physics/Transform";
 import {Result} from "detect-collisions";
-import {SerializableProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Obstacle} from "./Obstacle";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {Actor} from "./Actor";
@@ -17,7 +17,6 @@ export class Portal extends GameObject {
         super(transform);
 
         this.velocity = 2;
-        this.SpriteName = "portal"
     }
 
     get IsActive(): boolean {

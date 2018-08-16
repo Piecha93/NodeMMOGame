@@ -1,6 +1,6 @@
 import {GameObject} from "../game/objects/GameObject";
-import {Transform} from "../physics/Transform";
-import {Types} from "./GameObjectTypes";
+import {Transform, Position, Size} from "../physics/Transform";
+import {PrefabOptions, Prefabs} from "./GameObjectPrefabs";
 import {GameObjectsManager} from "./GameObjectsManager";
 
 export class GameObjectsFactory {
@@ -13,15 +13,41 @@ export class GameObjectsFactory {
     static CreateCallbacks: Array<Function> = [];
     static DestroyCallbacks: Array<Function> = [];
 
-    static InstatiateWithTransform(type: string, transform: Transform, id?: string, data?: [DataView, number]): GameObject {
+    static setOptions(object: Object, prefabOptions: PrefabOptions) {
+        for (let option in prefabOptions) {
+            if(option == "prefabSize") continue;
+
+            if(!object.hasOwnProperty(option)) {
+                throw name + " does not have property " + option;
+            }
+
+            object[option] = prefabOptions[option];
+        }
+    }
+
+    static InstatiateWithPosition(prefabName: string, position: Position, size?: Size, id?: string, data?: [DataView, number]): GameObject {
         let gameObject: GameObject;
 
-        gameObject = new (Types.ClassNamesToTypes.get(type))(transform);
+        let prefabOptions: PrefabOptions = Prefabs.PrefabsOptions.get(prefabName);
+
+        if(!size && prefabOptions && prefabOptions.prefabSize) {
+            size = prefabOptions.prefabSize;
+        }
+
+        let transform: Transform =  new Transform(position, size);
+
+        gameObject = new (Prefabs.PrefabsNameToTypes.get(prefabName))(transform);
+
+        if(prefabOptions) {
+            GameObjectsFactory.setOptions(gameObject, prefabOptions);
+        }
+
+        gameObject.Transform.resize();
 
         if(id) {
             gameObject.ID = id;
         } else {
-            gameObject.ID = Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString()
+            gameObject.ID = Prefabs.PrefabsNameToId.get(prefabName) + (GameObjectsFactory.NEXT_ID++).toString()
         }
 
         if(data) {
@@ -33,10 +59,8 @@ export class GameObjectsFactory {
         return gameObject;
     }
 
-    static Instatiate(type: string, id?: string, data?: [DataView, number]): GameObject {
-        let position: Transform = new Transform(0,0,32,32);
-
-        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
+    static Instatiate(prefabName: string, id?: string, data?: [DataView, number]): GameObject {
+        return GameObjectsFactory.InstatiateWithPosition(prefabName, [0, 0], null, id, data);
     }
 
     static InstatiateManually(gameObject: GameObject) {

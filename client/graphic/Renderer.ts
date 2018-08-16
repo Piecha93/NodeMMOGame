@@ -8,11 +8,10 @@ import {Camera} from "./Camera";
 import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
 import {TileMap} from "./TileMap";
 import Sprite = PIXI.Sprite;
-import {Types} from "../../shared/game_utils/factory/GameObjectTypes";
+import {Prefabs} from "../../shared/game_utils/factory/GameObjectPrefabs";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
-import {Player} from "../../shared/game_utils/game/objects/Player";
 import {Chunk} from "../../shared/game_utils/chunks/Chunk";
 
 
@@ -118,9 +117,9 @@ export class Renderer extends GameObjectsSubscriber {
     public onObjectCreate(gameObject: GameObject) {
         let gameObjectRender: GameObjectRender;
 
-        let type: string = Types.IdToClassNames.get(gameObject.ID[0]);
+        let type: string = Prefabs.IdToPrefabNames.get(gameObject.ID[0]);
 
-        if(type == "Player" || type == "Enemy") {
+        if(type == "DefaultPlayer" || type == "Michau") {
             gameObjectRender = new PlayerRender();
         } else if(type == "FireBall") {
             gameObjectRender = new GameObjectAnimationRender();

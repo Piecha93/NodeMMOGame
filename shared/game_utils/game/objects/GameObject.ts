@@ -2,7 +2,7 @@ import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {SharedConfig} from "../../../SharedConfig";
 import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
-import {SerializableObject, SerializableProperty} from "../../../serialize/NetworkDecorators";
+import {SerializableObject, SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
 

@@ -1,7 +1,10 @@
-import {SerializableProperty} from "../../serialize/NetworkDecorators";
+import {SerializableProperty} from "../../serialize/SerializeDecorators";
 import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable, SerializableTypes} from "../../serialize/Serializable"
 import {Polygon, Circle} from "detect-collisions";
+
+export type Position = [number, number];
+export type Size = number | [number, number];
 
 export class Transform extends Serializable {
     private shape: Polygon | Circle;
@@ -10,29 +13,53 @@ export class Transform extends Serializable {
     private height: number;
     private angle = 0;
 
-    constructor(x: number, y: number, width?: number, height?: number) {
+    constructor(position: Position, size?: Size) {
         super();
 
-        this.width = width || 32;
-        this.height = height || this.width;
+        let x: number = position[0];
+        let y: number = position[1];
 
-        if(!height) {
-            this.shape = new Circle(x, y, width);
+
+        let isCircle: boolean = false;
+
+        if(!size) {
+            this.width = 32;
+            this.height = 32;
+        }
+        else if(size instanceof Array) {
+            this.width = size[0];
+            this.height = size[1];
         } else {
-            let w: number = this.Width / 2;
-            let h: number = this.Height / 2;
+            this.width = size;
+            this.height = size;
+            isCircle = true;
+        }
+
+        if(isCircle) {
+            this.shape = new Circle(x, y, this.width);
+        } else {
+            let w: number = this.width / 2;
+            let h: number = this.height / 2;
 
             this.shape = new Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
         }
     }
 
-    rotate(angle: number) {
-        this.Rotation += angle;
+    resize() {
+        if(this.shape instanceof Polygon) {
+            let w: number = this.Width / 2;
+            let h: number = this.Height / 2;
+            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
+        } else { //circle
+            this.shape.radius = this.width;
+            this.height = this.shape.radius;
+            this.addChange(ChangesDict.WIDTH);
+            this.addChange(ChangesDict.HEIGHT);
+        }
     }
 
-    get Magnitude(): number {
-        return 0;
-        // return this.shape.pos.len();
+    rotate(angle: number) {
+        this.Rotation += angle;
     }
 
     get Body(): Polygon | Circle {
@@ -62,17 +89,9 @@ export class Transform extends Serializable {
     @SerializableProperty(ChangesDict.WIDTH, SerializableTypes.Uint16)
     set Width(width: number) {
         if(this.width == width) return;
+
         this.width = width;
-
-        if(this.shape instanceof Polygon) {
-            let w: number = this.Width / 2;
-            let h: number = this.Height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        } else { //circle
-            this.shape.radius = this.width;
-            this.height = this.shape.radius;
-        }
-
+        this.resize();
         this.addChange(ChangesDict.WIDTH);
     }
 
@@ -83,21 +102,18 @@ export class Transform extends Serializable {
     @SerializableProperty(ChangesDict.HEIGHT, SerializableTypes.Uint16)
     set Height(height: number) {
         if(this.height == height) return;
-        this.height = height;
 
-        if(this.shape instanceof Polygon) {
-            let w: number = this.Width / 2;
-            let h: number = this.Height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        } else { //circle
-            this.shape.radius = this.width;
-            this.height = this.shape.radius;
-        }
+        this.height = height;
+        this.resize();
         this.addChange(ChangesDict.HEIGHT);
     }
 
     get Height(): number {
         return this.height;
+    }
+
+    get Position(): Position {
+        return [this.X, this.Y];
     }
 
     @SerializableProperty(ChangesDict.ROTATION, SerializableTypes.Float32)

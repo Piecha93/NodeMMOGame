@@ -1,4 +1,4 @@
-import {PropNames} from "./NetworkDecorators";
+import {PropNames} from "./SerializeDecorators";
 import {SharedConfig} from "../SharedConfig";
 import {maskByteSize, setBit} from "../utils/functions/BitOperations";
 

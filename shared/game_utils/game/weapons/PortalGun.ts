@@ -1,7 +1,6 @@
 import {Actor} from "../objects/Actor";
 import {Weapon} from "./Weapon";
 import {GameObjectsFactory} from "../../factory/ObjectsFactory";
-import {Transform} from "../../physics/Transform";
 import {Portal} from "../objects/Portal";
 import {calcAngle} from "../../../utils/functions/CalcAngle";
 
@@ -13,13 +12,12 @@ export class PortalGun implements Weapon {
 
         let angle: number = calcAngle(position, [user.Transform.X, user.Transform.Y]);
 
-        let transform = new Transform(user.Transform.X, user.Transform.Y, 75, 75);
-        transform.Rotation = angle;
-
         if(this.portals[portalNum] != null) {
             this.portals[portalNum].destroy();
         }
-        this.portals[portalNum] = GameObjectsFactory.InstatiateWithTransform("Portal", transform) as Portal;
+        this.portals[portalNum] = GameObjectsFactory.Instatiate("Portal") as Portal;
+
+        this.portals[portalNum].Transform.Rotation = angle;
 
         this.portals[portalNum].addDestroyListener(() => {
             this.portals[portalNum] = null;

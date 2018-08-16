@@ -7,8 +7,6 @@ export class Item extends GameObject {
 
     constructor(transform: Transform) {
         super(transform);
-
-        this.SpriteName = "hp_potion";
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {

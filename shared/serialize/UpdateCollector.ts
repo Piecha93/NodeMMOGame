@@ -2,7 +2,7 @@ import {GameObject} from "../game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
 import {SharedConfig} from "../SharedConfig";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
-import {Types} from "../game_utils/factory/GameObjectTypes";
+import {Prefabs} from "../game_utils/factory/GameObjectPrefabs";
 import {ChunksManager} from "../game_utils/chunks/ChunksManager";
 import {Chunk} from "../game_utils/chunks/Chunk";
 
@@ -143,7 +143,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
             let gameObject: GameObject = this.getGameObject(id);
 
             if (gameObject == null) {
-                gameObject = GameObjectsFactory.Instatiate(Types.IdToClassNames.get(id[0]), id);
+                gameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), id);
             }
 
             offset = gameObject.deserialize(updateBufferView, offset);

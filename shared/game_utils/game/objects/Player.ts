@@ -75,7 +75,7 @@ export class Player extends Actor {
         this.addChange(ChangesDict.VELOCITY);
         // FOR TEST
 
-        // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        // let o: Obstacle = GameObjectsFactory.Instatiate("Wall") as Obstacle;
         // let splited = value.split(',');
         // o.Transform.X = Number(splited[0]) + this.Transform.X;
         // o.Transform.Y = Number(splited[1]) + this.Transform.Y;

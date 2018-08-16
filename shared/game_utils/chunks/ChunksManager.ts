@@ -172,7 +172,9 @@ export class ChunksManager extends GameObjectsSubscriber {
 
             if(!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
-                oldChunk.addLeaver(gameObject);
+                if(oldChunk) {
+                    oldChunk.addLeaver(gameObject);
+                }
                 gameObject.destroy();
                 return;
             }

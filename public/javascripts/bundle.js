@@ -2117,7 +2117,7 @@ class GameClient {
         this.localPlayerId = data['id'];
         this.reconciliation = new Reconciliation_1.Reconciliation();
         this.core = new GameCore_1.GameCore();
-        this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform(1, 1, 1)));
+        this.cursor = ObjectsFactory_1.GameObjectsFactory.InstatiateManually(new Cursor_1.Cursor(new Transform_1.Transform([1, 1], 1)));
         this.heartBeatSender.sendHeartBeat();
         this.inputHandler = new InputHandler_1.InputHandler(this.cursor);
         this.inputHandler.addSnapshotCallback((snapshot) => {
@@ -2580,7 +2580,7 @@ const PlayerRender_1 = require("./PlayerRender");
 const Camera_1 = require("./Camera");
 const GameObjectSpriteRender_1 = require("./GameObjectSpriteRender");
 const TileMap_1 = require("./TileMap");
-const GameObjectTypes_1 = require("../../shared/game_utils/factory/GameObjectTypes");
+const GameObjectPrefabs_1 = require("../../shared/game_utils/factory/GameObjectPrefabs");
 const GameObjectAnimationRender_1 = require("./GameObjectAnimationRender");
 const Hud_1 = require("./Hud");
 const ResourcesLoader_1 = require("./ResourcesLoader");
@@ -2655,8 +2655,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     }
     onObjectCreate(gameObject) {
         let gameObjectRender;
-        let type = GameObjectTypes_1.Types.IdToClassNames.get(gameObject.ID[0]);
-        if (type == "Player" || type == "Enemy") {
+        let type = GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(gameObject.ID[0]);
+        if (type == "DefaultPlayer" || type == "Michau") {
             gameObjectRender = new PlayerRender_1.PlayerRender();
         }
         else if (type == "FireBall") {
@@ -2689,7 +2689,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../shared/game_utils/factory/GameObjectTypes":91,"../../shared/game_utils/factory/GameObjectsSubscriber":93,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
+},{"../../shared/game_utils/factory/GameObjectPrefabs":91,"../../shared/game_utils/factory/GameObjectsSubscriber":93,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ResourceType;
@@ -12009,7 +12009,7 @@ class Chunk {
 exports.Chunk = Chunk;
 
 }).call(this,require("buffer").Buffer)
-},{"../../SharedConfig":87,"../../serialize/ObjectsSerializer":113,"../game/objects/Obstacle":100,"../game/objects/Player":101,"buffer":3,"fs":1}],90:[function(require,module,exports){
+},{"../../SharedConfig":87,"../../serialize/ObjectsSerializer":112,"../game/objects/Obstacle":100,"../game/objects/Player":101,"buffer":3,"fs":1}],90:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../factory/GameObjectsSubscriber");
@@ -12146,7 +12146,9 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             let oldChunk = this.objectsChunks.get(gameObject);
             if (!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
-                oldChunk.addLeaver(gameObject);
+                if (oldChunk) {
+                    oldChunk.addLeaver(gameObject);
+                }
                 gameObject.destroy();
                 return;
             }
@@ -12188,26 +12190,28 @@ const Player_1 = require("../game/objects/Player");
 const FireBall_1 = require("../game/objects/FireBall");
 const Enemy_1 = require("../game/objects/Enemy");
 const Portal_1 = require("../game/objects/Portal");
-class Types {
+class Prefabs {
+    static Register(name, gameObjectType, presetOptions) {
+        let shortId;
+        shortId = String.fromCharCode(Prefabs.shortIdCounter++);
+        Prefabs.PrefabsNameToTypes.set(name, gameObjectType);
+        Prefabs.PrefabsNameToId.set(name, shortId);
+        Prefabs.IdToPrefabNames.set(shortId, name);
+        Prefabs.PrefabsOptions.set(name, presetOptions);
+    }
 }
-Types.ClassNamesToId = new Map();
-Types.IdToClassNames = new Map();
-Types.ClassNamesToTypes = new Map();
-Types.shortIdCounter = 65;
-Types.RegisterGameObject = function (gameObjectType) {
-    Types.ClassNamesToTypes.set(gameObjectType.name, gameObjectType);
-    let shortId;
-    shortId = String.fromCharCode(Types.shortIdCounter++);
-    Types.ClassNamesToId.set(gameObjectType.name, shortId);
-    Types.IdToClassNames.set(shortId, gameObjectType.name);
-};
-exports.Types = Types;
-Types.RegisterGameObject(Player_1.Player);
-Types.RegisterGameObject(Enemy_1.Enemy);
-Types.RegisterGameObject(Obstacle_1.Obstacle);
-Types.RegisterGameObject(Item_1.Item);
-Types.RegisterGameObject(FireBall_1.FireBall);
-Types.RegisterGameObject(Portal_1.Portal);
+Prefabs.PrefabsNameToId = new Map();
+Prefabs.IdToPrefabNames = new Map();
+Prefabs.PrefabsNameToTypes = new Map();
+Prefabs.PrefabsOptions = new Map();
+Prefabs.shortIdCounter = 65;
+exports.Prefabs = Prefabs;
+Prefabs.Register("DefaultPlayer", Player_1.Player, { spriteName: "template" });
+Prefabs.Register("Michau", Enemy_1.Enemy, { spriteName: "template", name: "Michau", prefabSize: [32, 32] });
+Prefabs.Register("Wall", Obstacle_1.Obstacle, { spriteName: "wall" });
+Prefabs.Register("HpPotion", Item_1.Item, { spriteName: "hp_potion" });
+Prefabs.Register("FireBall", FireBall_1.FireBall, { spriteName: "flame", prefabSize: 15 });
+Prefabs.Register("Portal", Portal_1.Portal, { spriteName: "portal", prefabSize: 75 });
 
 },{"../game/objects/Enemy":96,"../game/objects/FireBall":97,"../game/objects/Item":99,"../game/objects/Obstacle":100,"../game/objects/Player":101,"../game/objects/Portal":102}],92:[function(require,module,exports){
 "use strict";
@@ -12257,20 +12261,39 @@ exports.GameObjectsSubscriber = GameObjectsSubscriber;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
-const GameObjectTypes_1 = require("./GameObjectTypes");
+const GameObjectPrefabs_1 = require("./GameObjectPrefabs");
 const GameObjectsManager_1 = require("./GameObjectsManager");
 class GameObjectsFactory {
     constructor() {
         throw new Error("Cannot instatiate this class");
     }
-    static InstatiateWithTransform(type, transform, id, data) {
+    static setOptions(object, prefabOptions) {
+        for (let option in prefabOptions) {
+            if (option == "prefabSize")
+                continue;
+            if (!object.hasOwnProperty(option)) {
+                throw name + " does not have property " + option;
+            }
+            object[option] = prefabOptions[option];
+        }
+    }
+    static InstatiateWithPosition(prefabName, position, size, id, data) {
         let gameObject;
-        gameObject = new (GameObjectTypes_1.Types.ClassNamesToTypes.get(type))(transform);
+        let prefabOptions = GameObjectPrefabs_1.Prefabs.PrefabsOptions.get(prefabName);
+        if (!size && prefabOptions && prefabOptions.prefabSize) {
+            size = prefabOptions.prefabSize;
+        }
+        let transform = new Transform_1.Transform(position, size);
+        gameObject = new (GameObjectPrefabs_1.Prefabs.PrefabsNameToTypes.get(prefabName))(transform);
+        if (prefabOptions) {
+            GameObjectsFactory.setOptions(gameObject, prefabOptions);
+        }
+        gameObject.Transform.resize();
         if (id) {
             gameObject.ID = id;
         }
         else {
-            gameObject.ID = GameObjectTypes_1.Types.ClassNamesToId.get(type) + (GameObjectsFactory.NEXT_ID++).toString();
+            gameObject.ID = GameObjectPrefabs_1.Prefabs.PrefabsNameToId.get(prefabName) + (GameObjectsFactory.NEXT_ID++).toString();
         }
         if (data) {
             gameObject.deserialize(data[0], data[1]);
@@ -12278,9 +12301,8 @@ class GameObjectsFactory {
         GameObjectsFactory.AddToListeners(gameObject);
         return gameObject;
     }
-    static Instatiate(type, id, data) {
-        let position = new Transform_1.Transform(0, 0, 32, 32);
-        return GameObjectsFactory.InstatiateWithTransform(type, position, id, data);
+    static Instatiate(prefabName, id, data) {
+        return GameObjectsFactory.InstatiateWithPosition(prefabName, [0, 0], null, id, data);
     }
     static InstatiateManually(gameObject) {
         GameObjectsFactory.AddToListeners(gameObject);
@@ -12304,7 +12326,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":107,"./GameObjectTypes":91,"./GameObjectsManager":92}],95:[function(require,module,exports){
+},{"../physics/Transform":107,"./GameObjectPrefabs":91,"./GameObjectsManager":92}],95:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12320,7 +12342,7 @@ const GameObject_1 = require("./GameObject");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const FireBall_1 = require("./FireBall");
 const Obstacle_1 = require("./Obstacle");
-const NetworkDecorators_1 = require("../../../serialize/NetworkDecorators");
+const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const Item_1 = require("./Item");
 const Serializable_1 = require("../../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
@@ -12439,28 +12461,28 @@ Actor.cornerDir = 0.7071;
 Actor.moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
 Actor.moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], Actor.prototype, "name", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.MAX_HP, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.MAX_HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "maxHp", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HP, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], Actor.prototype, "hp", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ANIMATION_TYPE, Serializable_1.SerializableTypes.String),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ANIMATION_TYPE, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], Actor.prototype, "animationType", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
     __metadata("design:type", Number)
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":111,"../../../serialize/NetworkDecorators":112,"../../../serialize/Serializable":114,"./FireBall":97,"./GameObject":98,"./Item":99,"./Obstacle":100}],96:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"./FireBall":97,"./GameObject":98,"./Item":99,"./Obstacle":100}],96:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -12520,15 +12542,13 @@ const Projectile_1 = require("./Projectile");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const Obstacle_1 = require("./Obstacle");
 const Actor_1 = require("./Actor");
-const NetworkDecorators_1 = require("../../../serialize/NetworkDecorators");
+const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const Serializable_1 = require("../../../serialize/Serializable");
 class FireBall extends Projectile_1.Projectile {
     constructor(transform) {
         super(transform);
         this.power = 25;
-        this.SpriteName = "flame";
         this.velocity = 1;
-        this.transform.Width = 30;
         this.lifeSpan = 2000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
@@ -12571,16 +12591,16 @@ class FireBall extends Projectile_1.Projectile {
     }
 }
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.POWER, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.POWER, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number)
 ], FireBall.prototype, "power", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.String),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.OWNER, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../../serialize/ChangesDict":111,"../../../serialize/NetworkDecorators":112,"../../../serialize/Serializable":114,"./Actor":95,"./Obstacle":100,"./Projectile":103}],98:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"./Actor":95,"./Obstacle":100,"./Projectile":103}],98:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12596,7 +12616,7 @@ const Transform_1 = require("../../physics/Transform");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const SharedConfig_1 = require("../../../SharedConfig");
 const Serializable_1 = require("../../../serialize/Serializable");
-const NetworkDecorators_1 = require("../../../serialize/NetworkDecorators");
+const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const ResourcesMap_1 = require("../../ResourcesMap");
 class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
@@ -12683,25 +12703,25 @@ class GameObject extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.SerializableObject("pos"),
+    SerializeDecorators_1.SerializableObject("pos"),
     __metadata("design:type", Transform_1.Transform)
 ], GameObject.prototype, "transform", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.VELOCITY, Serializable_1.SerializableTypes.Float32),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.VELOCITY, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number)
 ], GameObject.prototype, "velocity", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty("INV", Serializable_1.SerializableTypes.Uint8),
+    SerializeDecorators_1.SerializableProperty("INV", Serializable_1.SerializableTypes.Uint8),
     __metadata("design:type", Boolean)
 ], GameObject.prototype, "invisible", void 0);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.SPRITE_ID, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.SPRITE_ID, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../SharedConfig":87,"../../../serialize/ChangesDict":111,"../../../serialize/NetworkDecorators":112,"../../../serialize/Serializable":114,"../../ResourcesMap":88,"../../physics/Transform":107}],99:[function(require,module,exports){
+},{"../../../SharedConfig":87,"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"../../ResourcesMap":88,"../../physics/Transform":107}],99:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -12709,7 +12729,6 @@ class Item extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
         this.isClaimed = false;
-        this.SpriteName = "hp_potion";
     }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
@@ -12741,9 +12760,6 @@ const GameObject_1 = require("./GameObject");
 class Obstacle extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        transform.Height = 32;
-        transform.Width = 32;
-        this.SpriteName = "wall";
     }
     onCollisionEnter(gameObject, result) {
         throw "This method should never be called on Obstacle object";
@@ -12825,7 +12841,7 @@ class Player extends Actor_1.Actor {
         }
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
         // FOR TEST
-        // let o: Obstacle = GameObjectsFactory.Instatiate("Obstacle") as Obstacle;
+        // let o: Obstacle = GameObjectsFactory.Instatiate("Wall") as Obstacle;
         // let splited = value.split(',');
         // o.Transform.X = Number(splited[0]) + this.Transform.X;
         // o.Transform.Y = Number(splited[1]) + this.Transform.Y;
@@ -12865,7 +12881,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
-const NetworkDecorators_1 = require("../../../serialize/NetworkDecorators");
+const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const Obstacle_1 = require("./Obstacle");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const Actor_1 = require("./Actor");
@@ -12876,7 +12892,6 @@ class Portal extends GameObject_1.GameObject {
         this.couplingPortal = null;
         this.isAttached = false;
         this.velocity = 2;
-        this.SpriteName = "portal";
     }
     get IsActive() {
         if (this.couplingPortal == null) {
@@ -12934,12 +12949,12 @@ class Portal extends GameObject_1.GameObject {
     }
 }
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, Serializable_1.SerializableTypes.Int8),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.IS_ATTACHED, Serializable_1.SerializableTypes.Int8),
     __metadata("design:type", Boolean)
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../../serialize/ChangesDict":111,"../../../serialize/NetworkDecorators":112,"../../../serialize/Serializable":114,"./Actor":95,"./GameObject":98,"./Obstacle":100}],103:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"./Actor":95,"./GameObject":98,"./Obstacle":100}],103:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -12967,15 +12982,13 @@ exports.Projectile = Projectile;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
-const Transform_1 = require("../../physics/Transform");
 const CalcAngle_1 = require("../../../utils/functions/CalcAngle");
 class MagicWand {
     use(user, position, clickButton) {
-        let angle = CalcAngle_1.calcAngle(position, [user.Transform.X, user.Transform.Y]);
-        let transform = new Transform_1.Transform(user.Transform.X, user.Transform.Y, 20);
-        transform.Rotation = angle;
-        let fireBall = ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("FireBall", transform);
+        let angle = CalcAngle_1.calcAngle(position, user.Transform.Position);
+        let fireBall = ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("FireBall", [user.Transform.X, user.Transform.Y]);
         fireBall.Owner = user.ID;
+        fireBall.Transform.Rotation = angle;
     }
     ;
     equip() {
@@ -12985,21 +12998,20 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../../utils/functions/CalcAngle":119,"../../factory/ObjectsFactory":94,"../../physics/Transform":107}],105:[function(require,module,exports){
+},{"../../../utils/functions/CalcAngle":119,"../../factory/ObjectsFactory":94}],105:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
-const Transform_1 = require("../../physics/Transform");
 class ObjectsSpawner {
     use(user, position, clickButton) {
         if (clickButton == 0) {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Enemy", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
+            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
         }
         else if (clickButton == 2) {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Obstacle", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
+            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
         }
         else {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithTransform("Item", new Transform_1.Transform(Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32, 32, 32));
+            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("HpPotion", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
         }
     }
     ;
@@ -13010,7 +13022,7 @@ class ObjectsSpawner {
 }
 exports.ObjectsSpawner = ObjectsSpawner;
 
-},{"../../factory/ObjectsFactory":94,"../../physics/Transform":107}],106:[function(require,module,exports){
+},{"../../factory/ObjectsFactory":94}],106:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -13073,31 +13085,54 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const NetworkDecorators_1 = require("../../serialize/NetworkDecorators");
+const SerializeDecorators_1 = require("../../serialize/SerializeDecorators");
 const ChangesDict_1 = require("../../serialize/ChangesDict");
 const Serializable_1 = require("../../serialize/Serializable");
 const detect_collisions_1 = require("detect-collisions");
 class Transform extends Serializable_1.Serializable {
-    constructor(x, y, width, height) {
+    constructor(position, size) {
         super();
         this.angle = 0;
-        this.width = width || 32;
-        this.height = height || this.width;
-        if (!height) {
-            this.shape = new detect_collisions_1.Circle(x, y, width);
+        let x = position[0];
+        let y = position[1];
+        let isCircle = false;
+        if (!size) {
+            this.width = 32;
+            this.height = 32;
+        }
+        else if (size instanceof Array) {
+            this.width = size[0];
+            this.height = size[1];
         }
         else {
+            this.width = size;
+            this.height = size;
+            isCircle = true;
+        }
+        if (isCircle) {
+            this.shape = new detect_collisions_1.Circle(x, y, this.width);
+        }
+        else {
+            let w = this.width / 2;
+            let h = this.height / 2;
+            this.shape = new detect_collisions_1.Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
+        }
+    }
+    resize() {
+        if (this.shape instanceof detect_collisions_1.Polygon) {
             let w = this.Width / 2;
             let h = this.Height / 2;
-            this.shape = new detect_collisions_1.Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
+            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
+        }
+        else { //circle
+            this.shape.radius = this.width;
+            this.height = this.shape.radius;
+            this.addChange(ChangesDict_1.ChangesDict.WIDTH);
+            this.addChange(ChangesDict_1.ChangesDict.HEIGHT);
         }
     }
     rotate(angle) {
         this.Rotation += angle;
-    }
-    get Magnitude() {
-        return 0;
-        // return this.shape.pos.len();
     }
     get Body() {
         return this.shape;
@@ -13120,15 +13155,7 @@ class Transform extends Serializable_1.Serializable {
         if (this.width == width)
             return;
         this.width = width;
-        if (this.shape instanceof detect_collisions_1.Polygon) {
-            let w = this.Width / 2;
-            let h = this.Height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        }
-        else { //circle
-            this.shape.radius = this.width;
-            this.height = this.shape.radius;
-        }
+        this.resize();
         this.addChange(ChangesDict_1.ChangesDict.WIDTH);
     }
     get Width() {
@@ -13138,19 +13165,14 @@ class Transform extends Serializable_1.Serializable {
         if (this.height == height)
             return;
         this.height = height;
-        if (this.shape instanceof detect_collisions_1.Polygon) {
-            let w = this.Width / 2;
-            let h = this.Height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        }
-        else { //circle
-            this.shape.radius = this.width;
-            this.height = this.shape.radius;
-        }
+        this.resize();
         this.addChange(ChangesDict_1.ChangesDict.HEIGHT);
     }
     get Height() {
         return this.height;
+    }
+    get Position() {
+        return [this.X, this.Y];
     }
     set Rotation(angle) {
         if (this.shape instanceof detect_collisions_1.Polygon) {
@@ -13164,33 +13186,33 @@ class Transform extends Serializable_1.Serializable {
     }
 }
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "X", null);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Y", null);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Width", null);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Height", null);
 __decorate([
-    NetworkDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
     __metadata("design:type", Number),
     __metadata("design:paramtypes", [Number])
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":111,"../../serialize/NetworkDecorators":112,"../../serialize/Serializable":114,"detect-collisions":36}],108:[function(require,module,exports){
+},{"../../serialize/ChangesDict":111,"../../serialize/Serializable":113,"../../serialize/SerializeDecorators":114,"detect-collisions":36}],108:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -13319,6 +13341,239 @@ ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
 },{}],112:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
+const GameObjectPrefabs_1 = require("../game_utils/factory/GameObjectPrefabs");
+class ObjectsSerializer {
+    static serializeObject(gameObject) {
+        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
+        let updateBuffer = new ArrayBuffer(objectNeededSize);
+        let updateBufferView = new DataView(updateBuffer);
+        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
+        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
+        gameObject.serialize(updateBufferView, 5, true);
+        return updateBufferView;
+    }
+    static serializeChunk(chunk) {
+        let chunkCompleteUpdate = true;
+        let neededBufferSize = 0;
+        let objectsToUpdateMap = new Map();
+        chunk.Objects.forEach((gameObject) => {
+            let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
+            if (neededSize > 0) {
+                objectsToUpdateMap.set(gameObject, neededBufferSize);
+                //need 5 bits for obj ID
+                neededBufferSize += neededSize + ObjectsSerializer.OBJECT_ID_BYTES_LEN;
+            }
+        });
+        let updateBuffer = new ArrayBuffer(neededBufferSize);
+        let updateBufferView = new DataView(updateBuffer);
+        objectsToUpdateMap.forEach((offset, gameObject) => {
+            updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
+            updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
+            gameObject.serialize(updateBufferView, offset + ObjectsSerializer.OBJECT_ID_BYTES_LEN, chunkCompleteUpdate);
+        });
+        return updateBuffer;
+    }
+    static deserializeChunk(updateBuffer) {
+        let updateBufferView = new DataView(updateBuffer);
+        let offset = 0;
+        while (offset < updateBufferView.byteLength) {
+            let id = String.fromCharCode(updateBufferView.getUint8(offset));
+            id += updateBufferView.getUint32(offset + 1).toString();
+            offset += 5;
+            let gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(id[0]), undefined, [updateBufferView, offset]);
+            offset = gameObject.deserialize(updateBufferView, offset);
+        }
+    }
+}
+ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
+exports.ObjectsSerializer = ObjectsSerializer;
+
+},{"../game_utils/factory/GameObjectPrefabs":91,"../game_utils/factory/ObjectsFactory":94}],113:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const SerializeDecorators_1 = require("./SerializeDecorators");
+const SharedConfig_1 = require("../SharedConfig");
+const BitOperations_1 = require("../utils/functions/BitOperations");
+var SerializableTypes;
+(function (SerializableTypes) {
+    SerializableTypes[SerializableTypes["Int8"] = 0] = "Int8";
+    SerializableTypes[SerializableTypes["Int16"] = 1] = "Int16";
+    SerializableTypes[SerializableTypes["Int32"] = 2] = "Int32";
+    SerializableTypes[SerializableTypes["Uint8"] = 3] = "Uint8";
+    SerializableTypes[SerializableTypes["Uint16"] = 4] = "Uint16";
+    SerializableTypes[SerializableTypes["Uint32"] = 5] = "Uint32";
+    SerializableTypes[SerializableTypes["Float32"] = 6] = "Float32";
+    SerializableTypes[SerializableTypes["Float64"] = 7] = "Float64";
+    SerializableTypes[SerializableTypes["String"] = 8] = "String";
+    SerializableTypes[SerializableTypes["Object"] = 9] = "Object";
+})(SerializableTypes = exports.SerializableTypes || (exports.SerializableTypes = {}));
+class Serializable {
+    constructor() {
+        this.changes = new Set();
+        this.deserializedFields = new Set();
+        this.forceComplete = true;
+    }
+    addChange(change) {
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.changes.add(change);
+        }
+    }
+    hasChange(change) {
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            return this.changes.has(change);
+        }
+        else {
+            return this.deserializedFields.has(change);
+        }
+    }
+    get DeserializedFields() {
+        return this.deserializedFields;
+    }
+    calcNeededBufferSize(complete) {
+        if (this.forceComplete) {
+            complete = true;
+        }
+        let neededSize = 0;
+        let propsSize = this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].size;
+        this[SerializeDecorators_1.PropNames.CalcBytesFunctions].forEach((func, shortKey) => {
+            if (!complete && !this.changes.has(shortKey)) {
+                return;
+            }
+            neededSize += func(this, complete);
+        });
+        this[SerializeDecorators_1.PropNames.NestedSerializableObjects].forEach((key, short_key) => {
+            neededSize += this[key].calcNeededBufferSize(complete);
+        });
+        if (neededSize != 0) {
+            neededSize += BitOperations_1.maskByteSize(propsSize);
+        }
+        return neededSize;
+    }
+    getPropsSize() {
+        return this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].size;
+    }
+    getPropsMaskByteSize() {
+        let propsSize = this.getPropsSize();
+        let propsByteSize = BitOperations_1.maskByteSize(propsSize);
+        return propsByteSize == 3 ? 4 : propsByteSize;
+    }
+    serialize(updateBufferView, offset, complete = false) {
+        if (this.forceComplete) {
+            this.forceComplete = false;
+            complete = true;
+        }
+        let propsSize = this.getPropsSize();
+        let propsMaskByteSize = this.getPropsMaskByteSize();
+        let updatedOffset = offset + propsMaskByteSize;
+        let presentMask = 0;
+        if (complete) {
+            presentMask = Math.pow(2, propsSize) - 1;
+        }
+        if (this[SerializeDecorators_1.PropNames.SerializeFunctions]) {
+            this[SerializeDecorators_1.PropNames.SerializeFunctions].forEach((serializeFunc, shortKey) => {
+                if (this.changes.has(shortKey) || complete) {
+                    let index = this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
+                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
+                    presentMask = BitOperations_1.setBit(presentMask, index);
+                }
+            });
+        }
+        if (this[SerializeDecorators_1.PropNames.NestedSerializableObjects]) {
+            this[SerializeDecorators_1.PropNames.NestedSerializableObjects].forEach((key, shortKey) => {
+                let index = this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
+                let tmpOffset = updatedOffset;
+                updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
+                if (tmpOffset < updatedOffset) {
+                    presentMask = BitOperations_1.setBit(presentMask, index);
+                }
+            });
+        }
+        if (updatedOffset == (offset + propsMaskByteSize)) {
+            return offset;
+        }
+        if (propsMaskByteSize == 1) {
+            updateBufferView.setUint8(offset, presentMask);
+        }
+        else if (propsMaskByteSize == 2) {
+            updateBufferView.setUint16(offset, presentMask);
+        }
+        else if (propsMaskByteSize == 4) {
+            updateBufferView.setUint32(offset, presentMask);
+        }
+        this.changes.clear();
+        return updatedOffset;
+    }
+    deserialize(updateBufferView, offset) {
+        this.deserializedFields.clear();
+        let propsMaskByteSize = this.getPropsMaskByteSize();
+        let presentMask;
+        if (propsMaskByteSize == 1) {
+            presentMask = updateBufferView.getUint8(offset);
+        }
+        else if (propsMaskByteSize == 2) {
+            presentMask = updateBufferView.getUint16(offset);
+        }
+        else if (propsMaskByteSize == 4) {
+            presentMask = updateBufferView.getUint32(offset);
+        }
+        offset += propsMaskByteSize;
+        let objectsToDecode = [];
+        let index = 0;
+        while (presentMask) {
+            let bitMask = (1 << index);
+            if ((presentMask & bitMask) == 0) {
+                index++;
+                continue;
+            }
+            presentMask &= ~bitMask;
+            let shortKey = this[SerializeDecorators_1.PropNames.SerializeDecodeOrder].get(index);
+            let type = this[SerializeDecorators_1.PropNames.PropertyTypes].get(shortKey);
+            if (type == SerializableTypes.Object) {
+                objectsToDecode.push(index);
+            }
+            else {
+                offset += this[SerializeDecorators_1.PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                this.deserializedFields.add(shortKey);
+            }
+            index++;
+        }
+        objectsToDecode.forEach((index) => {
+            let shortKey = this[SerializeDecorators_1.PropNames.SerializeDecodeOrder].get(index);
+            let key = this[SerializeDecorators_1.PropNames.NestedSerializableObjects].get(shortKey);
+            offset = this[key].deserialize(updateBufferView, offset);
+        });
+        return offset;
+    }
+    //TEST FUNCTIONS
+    printSerializeOrder() {
+        console.log("SerializeEncodeOrder");
+        this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].forEach((val, key) => {
+            console.log(key + " : " + val);
+        });
+    }
+    printDeserializeOrder() {
+        console.log("SerializeDecodeOrder");
+        this[SerializeDecorators_1.PropNames.SerializeDecodeOrder].forEach((val, key) => {
+            console.log(key + " : " + val);
+        });
+    }
+}
+Serializable.TypesToBytesSize = new Map([
+    [SerializableTypes.Int8, 1],
+    [SerializableTypes.Int16, 2],
+    [SerializableTypes.Int32, 4],
+    [SerializableTypes.Uint8, 1],
+    [SerializableTypes.Uint16, 2],
+    [SerializableTypes.Uint32, 4],
+    [SerializableTypes.Float32, 4],
+    [SerializableTypes.Float64, 8],
+]);
+exports.Serializable = Serializable;
+
+},{"../SharedConfig":87,"../utils/functions/BitOperations":118,"./SerializeDecorators":114}],114:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -13488,246 +13743,13 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":114}],113:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
-const GameObjectTypes_1 = require("../game_utils/factory/GameObjectTypes");
-class ObjectsSerializer {
-    static serializeObject(gameObject) {
-        let objectNeededSize = gameObject.calcNeededBufferSize(true) + 5;
-        let updateBuffer = new ArrayBuffer(objectNeededSize);
-        let updateBufferView = new DataView(updateBuffer);
-        updateBufferView.setUint8(0, gameObject.ID.charCodeAt(0));
-        updateBufferView.setUint32(1, Number(gameObject.ID.slice(1)));
-        gameObject.serialize(updateBufferView, 5, true);
-        return updateBufferView;
-    }
-    static serializeChunk(chunk) {
-        let chunkCompleteUpdate = true;
-        let neededBufferSize = 0;
-        let objectsToUpdateMap = new Map();
-        chunk.Objects.forEach((gameObject) => {
-            let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
-            if (neededSize > 0) {
-                objectsToUpdateMap.set(gameObject, neededBufferSize);
-                //need 5 bits for obj ID
-                neededBufferSize += neededSize + ObjectsSerializer.OBJECT_ID_BYTES_LEN;
-            }
-        });
-        let updateBuffer = new ArrayBuffer(neededBufferSize);
-        let updateBufferView = new DataView(updateBuffer);
-        objectsToUpdateMap.forEach((offset, gameObject) => {
-            updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
-            updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
-            gameObject.serialize(updateBufferView, offset + ObjectsSerializer.OBJECT_ID_BYTES_LEN, chunkCompleteUpdate);
-        });
-        return updateBuffer;
-    }
-    static deserializeChunk(updateBuffer) {
-        let updateBufferView = new DataView(updateBuffer);
-        let offset = 0;
-        while (offset < updateBufferView.byteLength) {
-            let id = String.fromCharCode(updateBufferView.getUint8(offset));
-            id += updateBufferView.getUint32(offset + 1).toString();
-            offset += 5;
-            let gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), undefined, [updateBufferView, offset]);
-            offset = gameObject.deserialize(updateBufferView, offset);
-        }
-    }
-}
-ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
-exports.ObjectsSerializer = ObjectsSerializer;
-
-},{"../game_utils/factory/GameObjectTypes":91,"../game_utils/factory/ObjectsFactory":94}],114:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const NetworkDecorators_1 = require("./NetworkDecorators");
-const SharedConfig_1 = require("../SharedConfig");
-const BitOperations_1 = require("../utils/functions/BitOperations");
-var SerializableTypes;
-(function (SerializableTypes) {
-    SerializableTypes[SerializableTypes["Int8"] = 0] = "Int8";
-    SerializableTypes[SerializableTypes["Int16"] = 1] = "Int16";
-    SerializableTypes[SerializableTypes["Int32"] = 2] = "Int32";
-    SerializableTypes[SerializableTypes["Uint8"] = 3] = "Uint8";
-    SerializableTypes[SerializableTypes["Uint16"] = 4] = "Uint16";
-    SerializableTypes[SerializableTypes["Uint32"] = 5] = "Uint32";
-    SerializableTypes[SerializableTypes["Float32"] = 6] = "Float32";
-    SerializableTypes[SerializableTypes["Float64"] = 7] = "Float64";
-    SerializableTypes[SerializableTypes["String"] = 8] = "String";
-    SerializableTypes[SerializableTypes["Object"] = 9] = "Object";
-})(SerializableTypes = exports.SerializableTypes || (exports.SerializableTypes = {}));
-class Serializable {
-    constructor() {
-        this.changes = new Set();
-        this.deserializedFields = new Set();
-        this.forceComplete = true;
-    }
-    addChange(change) {
-        if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.changes.add(change);
-        }
-    }
-    hasChange(change) {
-        if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            return this.changes.has(change);
-        }
-        else {
-            return this.deserializedFields.has(change);
-        }
-    }
-    get DeserializedFields() {
-        return this.deserializedFields;
-    }
-    calcNeededBufferSize(complete) {
-        if (this.forceComplete) {
-            complete = true;
-        }
-        let neededSize = 0;
-        let propsSize = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].size;
-        this[NetworkDecorators_1.PropNames.CalcBytesFunctions].forEach((func, shortKey) => {
-            if (!complete && !this.changes.has(shortKey)) {
-                return;
-            }
-            neededSize += func(this, complete);
-        });
-        this[NetworkDecorators_1.PropNames.NestedSerializableObjects].forEach((key, short_key) => {
-            neededSize += this[key].calcNeededBufferSize(complete);
-        });
-        if (neededSize != 0) {
-            neededSize += BitOperations_1.maskByteSize(propsSize);
-        }
-        return neededSize;
-    }
-    getPropsSize() {
-        return this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].size;
-    }
-    getPropsMaskByteSize() {
-        let propsSize = this.getPropsSize();
-        let propsByteSize = BitOperations_1.maskByteSize(propsSize);
-        return propsByteSize == 3 ? 4 : propsByteSize;
-    }
-    serialize(updateBufferView, offset, complete = false) {
-        if (this.forceComplete) {
-            this.forceComplete = false;
-            complete = true;
-        }
-        let propsSize = this.getPropsSize();
-        let propsMaskByteSize = this.getPropsMaskByteSize();
-        let updatedOffset = offset + propsMaskByteSize;
-        let presentMask = 0;
-        if (complete) {
-            presentMask = Math.pow(2, propsSize) - 1;
-        }
-        if (this[NetworkDecorators_1.PropNames.SerializeFunctions]) {
-            this[NetworkDecorators_1.PropNames.SerializeFunctions].forEach((serializeFunc, shortKey) => {
-                if (this.changes.has(shortKey) || complete) {
-                    let index = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
-                    updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
-                    presentMask = BitOperations_1.setBit(presentMask, index);
-                }
-            });
-        }
-        if (this[NetworkDecorators_1.PropNames.NestedSerializableObjects]) {
-            this[NetworkDecorators_1.PropNames.NestedSerializableObjects].forEach((key, shortKey) => {
-                let index = this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].get(shortKey);
-                let tmpOffset = updatedOffset;
-                updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
-                if (tmpOffset < updatedOffset) {
-                    presentMask = BitOperations_1.setBit(presentMask, index);
-                }
-            });
-        }
-        if (updatedOffset == (offset + propsMaskByteSize)) {
-            return offset;
-        }
-        if (propsMaskByteSize == 1) {
-            updateBufferView.setUint8(offset, presentMask);
-        }
-        else if (propsMaskByteSize == 2) {
-            updateBufferView.setUint16(offset, presentMask);
-        }
-        else if (propsMaskByteSize == 4) {
-            updateBufferView.setUint32(offset, presentMask);
-        }
-        this.changes.clear();
-        return updatedOffset;
-    }
-    deserialize(updateBufferView, offset) {
-        this.deserializedFields.clear();
-        let propsMaskByteSize = this.getPropsMaskByteSize();
-        let presentMask;
-        if (propsMaskByteSize == 1) {
-            presentMask = updateBufferView.getUint8(offset);
-        }
-        else if (propsMaskByteSize == 2) {
-            presentMask = updateBufferView.getUint16(offset);
-        }
-        else if (propsMaskByteSize == 4) {
-            presentMask = updateBufferView.getUint32(offset);
-        }
-        offset += propsMaskByteSize;
-        let objectsToDecode = [];
-        let index = 0;
-        while (presentMask) {
-            let bitMask = (1 << index);
-            if ((presentMask & bitMask) == 0) {
-                index++;
-                continue;
-            }
-            presentMask &= ~bitMask;
-            let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
-            let type = this[NetworkDecorators_1.PropNames.PropertyTypes].get(shortKey);
-            if (type == SerializableTypes.Object) {
-                objectsToDecode.push(index);
-            }
-            else {
-                offset += this[NetworkDecorators_1.PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
-                this.deserializedFields.add(shortKey);
-            }
-            index++;
-        }
-        objectsToDecode.forEach((index) => {
-            let shortKey = this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].get(index);
-            let key = this[NetworkDecorators_1.PropNames.NestedSerializableObjects].get(shortKey);
-            offset = this[key].deserialize(updateBufferView, offset);
-        });
-        return offset;
-    }
-    //TEST FUNCTIONS
-    printSerializeOrder() {
-        console.log("SerializeEncodeOrder");
-        this[NetworkDecorators_1.PropNames.SerializeEncodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
-    }
-    printDeserializeOrder() {
-        console.log("SerializeDecodeOrder");
-        this[NetworkDecorators_1.PropNames.SerializeDecodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
-    }
-}
-Serializable.TypesToBytesSize = new Map([
-    [SerializableTypes.Int8, 1],
-    [SerializableTypes.Int16, 2],
-    [SerializableTypes.Int32, 4],
-    [SerializableTypes.Uint8, 1],
-    [SerializableTypes.Uint16, 2],
-    [SerializableTypes.Uint32, 4],
-    [SerializableTypes.Float32, 4],
-    [SerializableTypes.Float64, 8],
-]);
-exports.Serializable = Serializable;
-
-},{"../SharedConfig":87,"../utils/functions/BitOperations":118,"./NetworkDecorators":112}],115:[function(require,module,exports){
+},{"./Serializable":113}],115:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
 const SharedConfig_1 = require("../SharedConfig");
 const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
-const GameObjectTypes_1 = require("../game_utils/factory/GameObjectTypes");
+const GameObjectPrefabs_1 = require("../game_utils/factory/GameObjectPrefabs");
 class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor(chunksManager) {
         super();
@@ -13829,7 +13851,7 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             offset += 5;
             let gameObject = this.getGameObject(id);
             if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectTypes_1.Types.IdToClassNames.get(id[0]), id);
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(id[0]), id);
             }
             offset = gameObject.deserialize(updateBufferView, offset);
         }
@@ -13851,7 +13873,7 @@ UpdateCollector.OBJECT_ID_BYTES_LEN = 5;
 UpdateCollector.DESTROY_OBJECTS_ID = 255;
 exports.UpdateCollector = UpdateCollector;
 
-},{"../SharedConfig":87,"../game_utils/factory/GameObjectTypes":91,"../game_utils/factory/GameObjectsSubscriber":93,"../game_utils/factory/ObjectsFactory":94}],116:[function(require,module,exports){
+},{"../SharedConfig":87,"../game_utils/factory/GameObjectPrefabs":91,"../game_utils/factory/GameObjectsSubscriber":93,"../game_utils/factory/ObjectsFactory":94}],116:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {

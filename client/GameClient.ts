@@ -111,7 +111,7 @@ export class GameClient {
         this.reconciliation = new Reconciliation();
         this.core = new GameCore();
 
-        this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform(1,1,1))) as Cursor;
+        this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform([1,1],1))) as Cursor;
 
         this.heartBeatSender.sendHeartBeat();
         this.inputHandler = new InputHandler(this.cursor);
