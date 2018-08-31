@@ -4,7 +4,7 @@ import Texture = PIXI.Texture;
 import Sprite = PIXI.Sprite;
 import {SharedConfig} from "../../shared/SharedConfig";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Chunk} from "../../shared/game_utils/chunks/Chunk";
+import {Chunk} from "../../shared/chunks/Chunk";
 
 type Coords = [number, number];
 

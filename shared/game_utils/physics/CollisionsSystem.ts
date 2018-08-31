@@ -1,9 +1,11 @@
 import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
 import {GameObject} from "../game/objects/GameObject";
 import {Obstacle} from "../game/objects/Obstacle";
+import {SharedConfig} from "../../SharedConfig";
 
 export class CollisionsSystem extends Collisions {
     private bodyToObjectMap: Map<Body, GameObject> = new Map<Body, GameObject>();
+    private result: Result = new Result();
 
     constructor() {
         super();
@@ -12,6 +14,10 @@ export class CollisionsSystem extends Collisions {
     public insertObject(gameObject: GameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+
+        if(SharedConfig.IS_SERVER && gameObject instanceof Obstacle && this.checkObjectCollision(gameObject)) {
+            gameObject.destroy();
+        }
     }
 
     public removeObject(gameObject: GameObject) {
@@ -26,8 +32,6 @@ export class CollisionsSystem extends Collisions {
     public updateCollisions(gameObjects: Array<GameObject>) {
         // super.update();
 
-        let result = new Result();
-
         gameObjects.forEach((object: GameObject) => {
             if(object instanceof Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving
@@ -37,22 +41,32 @@ export class CollisionsSystem extends Collisions {
             let potentials: Body[] = object.Transform.Body.potentials();
 
             for(let body of potentials) {
-                if(object.Transform.Body.collides(body, result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), result)
+                if(object.Transform.Body.collides(body, this.result)) {
+                    object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result)
                 }
             }
         });
     }
 
+    public checkObjectCollision(object: GameObject): boolean {
+        let potentials: Body[] = object.Transform.Body.potentials();
+
+        for(let body of potentials) {
+            if(object.Transform.Body.collides(body)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public updateCollisionsForObject(gameObject: GameObject) {
         super.update();
-        let result = new Result();
 
         let potentials: Body[] = gameObject.Transform.Body.potentials();
 
         for(let body of potentials) {
-            if(gameObject.Transform.Body.collides(body, result)) {
-                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), result)
+            if(gameObject.Transform.Body.collides(body, this.result)) {
+                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), this.result)
             }
         }
     }

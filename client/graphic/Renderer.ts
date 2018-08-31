@@ -1,5 +1,6 @@
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 
+import Sprite = PIXI.Sprite;
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../../shared/game_utils/factory/GameObjectsSubscriber";
 import {GameObjectRender} from "./GameObjectRender";
@@ -7,12 +8,12 @@ import {PlayerRender} from "./PlayerRender";
 import {Camera} from "./Camera";
 import {GameObjectSpriteRender} from "./GameObjectSpriteRender";
 import {TileMap} from "./TileMap";
-import Sprite = PIXI.Sprite;
 import {Prefabs} from "../../shared/game_utils/factory/GameObjectPrefabs";
 import {GameObjectAnimationRender} from "./GameObjectAnimationRender";
 import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
-import {Chunk} from "../../shared/game_utils/chunks/Chunk";
+import {Chunk} from "../../shared/chunks/Chunk";
+import {Resource} from "./ResourcesLoader";
 
 
 export class Renderer extends GameObjectsSubscriber {
@@ -115,13 +116,17 @@ export class Renderer extends GameObjectsSubscriber {
     }
 
     public onObjectCreate(gameObject: GameObject) {
+        if(gameObject.IsDestroyed) {
+            return;
+        }
         let gameObjectRender: GameObjectRender;
 
         let type: string = Prefabs.IdToPrefabNames.get(gameObject.ID[0]);
 
+        let resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
         if(type == "DefaultPlayer" || type == "Michau") {
             gameObjectRender = new PlayerRender();
-        } else if(type == "FireBall") {
+        } else if(resource.type == ResourceType.ANIMATION || resource.type == ResourceType.OCTAGONAL_ANIMATION) {
             gameObjectRender = new GameObjectAnimationRender();
         } else {
             gameObjectRender = new GameObjectSpriteRender();
@@ -133,8 +138,10 @@ export class Renderer extends GameObjectsSubscriber {
     }
 
     public onObjectDestroy(gameObject: GameObject) {
-        this.renderObjects.get(gameObject).destroy();
-        this.renderObjects.delete(gameObject);
+        if(this.renderObjects.has(gameObject)) {
+            this.renderObjects.get(gameObject).destroy();
+            this.renderObjects.delete(gameObject);
+        }
     }
 
     set FocusedObject(gameObject: GameObject) {

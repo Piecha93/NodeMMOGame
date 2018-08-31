@@ -22,6 +22,8 @@ export class GameObject extends Serializable {
 
     private isDestroyed: boolean = false;
 
+    protected isChunkActivateTriger: boolean = false;
+
     constructor(transform: Transform) {
         super();
         this.transform = transform;
@@ -76,10 +78,11 @@ export class GameObject extends Serializable {
             return;
         }
 
+        this.isDestroyed = true;
+
         for(let listener of this.destroyListeners) {
             listener(this);
         }
-        this.isDestroyed = true;
     }
 
     get Transform(): Transform {
@@ -126,5 +129,9 @@ export class GameObject extends Serializable {
 
     get IsDestroyed(): boolean {
         return this.isDestroyed;
+    }
+
+    get IsChunkActivateTriger(): boolean {
+        return this.isChunkActivateTriger;
     }
 }

@@ -1,8 +1,8 @@
-import {Player} from "../game/objects/Player";
-import {GameObject} from "../game/objects/GameObject";
-import {Obstacle} from "../game/objects/Obstacle";
-import {ObjectsSerializer} from "../../serialize/ObjectsSerializer";
-import {SharedConfig} from "../../SharedConfig";
+import {Player} from "../game_utils/game/objects/Player";
+import {GameObject} from "../game_utils/game/objects/GameObject";
+import {Obstacle} from "../game_utils/game/objects/Obstacle";
+import {ObjectsSerializer} from "../serialize/ObjectsSerializer";
+import {SharedConfig} from "../SharedConfig";
 
 let fs = require('fs');
 
@@ -25,13 +25,13 @@ export class Chunk {
     readonly neighbors: Array<Chunk>;
     private leavers: Array<GameObject>;
 
-    private numOfPlayers: number;
-    private hasNewcomers: boolean = false;
+    private activateTriggers: number;
 
     private deactivatedTime: number;
     private isActive: boolean = false;
 
     private dumpedBuffer: ArrayBuffer = null;
+    private isNextUpdateComplete: boolean = false;
 
     constructor(x: number, y: number, size: number) {
         this.x = x;
@@ -41,9 +41,9 @@ export class Chunk {
         this.objects = [];
         this.neighbors = [];
         this.leavers = [];
-        this.numOfPlayers = 0;
+        this.activateTriggers = 0;
 
-        if(SharedConfig.IS_SERVER) {
+        if (SharedConfig.IS_SERVER) {
             this.deactivatedTime = -1;
         } else {
             this.deactivatedTime = -1;
@@ -57,10 +57,9 @@ export class Chunk {
     public addObject(gameObject: GameObject) {
         this.objects.push(gameObject);
 
-        if(gameObject instanceof Player) {
-            this.hasNewcomers = true;
-            this.numOfPlayers++;
-            if(SharedConfig.IS_SERVER) {
+        if (SharedConfig.IS_SERVER) {
+            if (gameObject.IsChunkActivateTriger) {
+                this.activateTriggers++;
                 this.activate();
                 this.activateNeighbors();
             }
@@ -73,10 +72,10 @@ export class Chunk {
             this.objects.splice(index, 1);
         }
 
-        if(gameObject instanceof Player) {
-            this.numOfPlayers--;
-            if(this.numOfPlayers <= 0) {
-                if(!this.HasPlayersInNeighborhood) {
+        if (gameObject instanceof Player) {
+            this.activateTriggers--;
+            if (this.activateTriggers <= 0) {
+                if (!this.HasPlayersInNeighborhood) {
                     this.deactivate();
                 }
                 this.deactivateNeighborsIfNoPlayers()
@@ -85,14 +84,14 @@ export class Chunk {
     }
 
     private activateNeighbors() {
-        for(let i: number = 0; i < this.neighbors.length; i++) {
+        for (let i: number = 0; i < this.neighbors.length; i++) {
             this.neighbors[i].activate();
         }
     }
 
     private deactivateNeighborsIfNoPlayers() {
-        for(let i: number = 0; i < this.neighbors.length; i++) {
-            if(!this.neighbors[i].HasPlayersInNeighborhood) {
+        for (let i: number = 0; i < this.neighbors.length; i++) {
+            if (!this.neighbors[i].HasPlayersInNeighborhood) {
                 this.neighbors[i].deactivate();
             }
         }
@@ -111,21 +110,17 @@ export class Chunk {
     }
 
     public hasObjectInNeighborhood(gameObject: GameObject): boolean {
-        if(this.hasObject(gameObject)) {
+        if (this.hasObject(gameObject)) {
             return true;
         }
 
-        for(let i: number = 0; i < this.neighbors.length; i++) {
-            if(this.neighbors[i].hasObject(gameObject)) {
+        for (let i: number = 0; i < this.neighbors.length; i++) {
+            if (this.neighbors[i].hasObject(gameObject)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    public resetHasNewComers() {
-        this.hasNewcomers = false;
     }
 
     public activate() {
@@ -134,17 +129,17 @@ export class Chunk {
     }
 
     public deactivate() {
-        if(this.IsDeactivateTimePassed && SharedConfig.IS_SERVER) {
+        if (this.IsDeactivateTimePassed && SharedConfig.IS_SERVER) {
             this.deactivatedTime = Date.now();
         }
     }
 
     public reload() {
-        if(this.isActive) {
+        if (this.isActive) {
             return;
         }
 
-        if(!this.dumpedBuffer) {
+        if (!this.dumpedBuffer) {
             let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
             try {
                 let buffer: Buffer = fs.readFileSync(fileName);
@@ -154,7 +149,7 @@ export class Chunk {
             }
         }
 
-        if(this.dumpedBuffer) {
+        if (this.dumpedBuffer) {
             ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
         }
 
@@ -163,7 +158,7 @@ export class Chunk {
     }
 
     public dumpToMemory() {
-        if(this.dumpedBuffer || !this.isActive) {
+        if (this.dumpedBuffer || !this.isActive) {
             return;
         }
 
@@ -186,8 +181,8 @@ export class Chunk {
 
     private clearNotObstacles() {
         let numOfObjectsToBeSaved: number = 0;
-        while(this.objects.length > numOfObjectsToBeSaved) {
-            if(!(this.objects[numOfObjectsToBeSaved] instanceof Obstacle)) {
+        while (this.objects.length > numOfObjectsToBeSaved) {
+            if (!(this.objects[numOfObjectsToBeSaved] instanceof Obstacle)) {
                 this.objects[numOfObjectsToBeSaved].destroy();
             } else {
                 numOfObjectsToBeSaved++;
@@ -195,39 +190,29 @@ export class Chunk {
         }
     }
 
+    get IsNextUpdateComplete(): boolean {
+        return this.isNextUpdateComplete;
+    }
+
+    set IsNextUpdateComplete(isNextUpdateComplete: boolean) {
+        this.isNextUpdateComplete = isNextUpdateComplete;
+    }
+
     get Objects(): Array<GameObject> {
         return this.objects;
     }
 
-    get HasNewcomers(): boolean {
-        return this.hasNewcomers;
-    }
-
-    get HasNewcomersInNeighborhood(): boolean {
-        if(this.HasNewcomers) {
-            return true;
-        }
-
-        for(let i: number = 0; i < this.neighbors.length; i++) {
-            if(this.neighbors[i].HasNewcomers) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     get HasPlayers(): boolean {
-        return this.numOfPlayers > 0;
+        return this.activateTriggers > 0;
     }
 
     get HasPlayersInNeighborhood(): boolean {
-        if(this.HasPlayers) {
+        if (this.HasPlayers) {
             return true;
         }
 
-        for(let i: number = 0; i < this.neighbors.length; i++) {
-            if(this.neighbors[i].HasPlayers) {
+        for (let i: number = 0; i < this.neighbors.length; i++) {
+            if (this.neighbors[i].HasPlayers) {
                 return true;
             }
         }

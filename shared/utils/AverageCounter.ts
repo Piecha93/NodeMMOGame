@@ -1,14 +1,14 @@
 export class AverageCounter {
     private history: Array<number> = [];
-    private historySize: number;
+    readonly historyMaxSize: number;
 
     constructor(historySize: number) {
-        this.historySize = historySize;
+        this.historyMaxSize = historySize;
     }
 
     add(val: number) {
         this.history.push(val);
-        if(this.history.length > 30) this.history.splice(0, 1);
+        while(this.history.length > this.historyMaxSize) this.history.splice(0, 1);
     }
 
     calculate(val?: number): number {

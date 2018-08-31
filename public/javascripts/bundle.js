@@ -2654,12 +2654,16 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.renderer.render(this.hud);
     }
     onObjectCreate(gameObject) {
+        if (gameObject.IsDestroyed) {
+            return;
+        }
         let gameObjectRender;
         let type = GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(gameObject.ID[0]);
+        let resource = this.resourcesLoader.getResource(gameObject.SpriteName);
         if (type == "DefaultPlayer" || type == "Michau") {
             gameObjectRender = new PlayerRender_1.PlayerRender();
         }
-        else if (type == "FireBall") {
+        else if (resource.type == ResourcesLoader_1.ResourceType.ANIMATION || resource.type == ResourcesLoader_1.ResourceType.OCTAGONAL_ANIMATION) {
             gameObjectRender = new GameObjectAnimationRender_1.GameObjectAnimationRender();
         }
         else {
@@ -2670,8 +2674,10 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.rootContainer.addChild(gameObjectRender);
     }
     onObjectDestroy(gameObject) {
-        this.renderObjects.get(gameObject).destroy();
-        this.renderObjects.delete(gameObject);
+        if (this.renderObjects.has(gameObject)) {
+            this.renderObjects.get(gameObject).destroy();
+            this.renderObjects.delete(gameObject);
+        }
     }
     set FocusedObject(gameObject) {
         this.camera.Follower = this.renderObjects.get(gameObject).position;
@@ -11665,7 +11671,7 @@ module.exports = yeast;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameWorld_1 = require("./GameWorld");
-const ChunksManager_1 = require("./game_utils/chunks/ChunksManager");
+const ChunksManager_1 = require("./chunks/ChunksManager");
 const UpdateCollector_1 = require("./serialize/UpdateCollector");
 const DeltaTimer_1 = require("./utils/DeltaTimer");
 class GameCore {
@@ -11695,14 +11701,7 @@ class GameCore {
         }
     }
     collectUpdate() {
-        let update = this.updateCollector.collectUpdate();
-        let chunks = this.chunksManager.Chunks;
-        for (let i = 0; i < chunks.length; i++) {
-            for (let j = 0; j < chunks[i].length; j++) {
-                chunks[i][j].resetHasNewComers();
-            }
-        }
-        return update;
+        return this.updateCollector.collectUpdate();
     }
     decodeUpdate(updateBuffer) {
         this.updateCollector.decodeUpdate(updateBuffer);
@@ -11716,7 +11715,7 @@ class GameCore {
 }
 exports.GameCore = GameCore;
 
-},{"./GameWorld":86,"./game_utils/chunks/ChunksManager":90,"./serialize/UpdateCollector":115,"./utils/DeltaTimer":117}],86:[function(require,module,exports){
+},{"./GameWorld":86,"./chunks/ChunksManager":89,"./serialize/UpdateCollector":115,"./utils/DeltaTimer":117}],86:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
@@ -11750,6 +11749,9 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.chunksManager.rebuild();
     }
     onObjectCreate(gameObject) {
+        if (gameObject.IsDestroyed) {
+            return;
+        }
         this.collistionsSystem.insertObject(gameObject);
     }
     onObjectDestroy(gameObject) {
@@ -11794,43 +11796,13 @@ SharedConfig.ORIGIN = getOrigin();
 exports.SharedConfig = SharedConfig;
 
 },{}],88:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class ResourcesMap {
-    static RegisterResource(name) {
-        ResourcesMap.NameToId.set(name, this.shortIdCounter);
-        ResourcesMap.IdToName.set(this.shortIdCounter++, name);
-    }
-}
-ResourcesMap.NameToId = new Map();
-ResourcesMap.IdToName = new Map();
-ResourcesMap.shortIdCounter = 0;
-exports.ResourcesMap = ResourcesMap;
-ResourcesMap.RegisterResource('none');
-ResourcesMap.RegisterResource('wall');
-ResourcesMap.RegisterResource('bunny');
-ResourcesMap.RegisterResource('dyzma');
-ResourcesMap.RegisterResource('kamis');
-ResourcesMap.RegisterResource('michau');
-ResourcesMap.RegisterResource('panda');
-ResourcesMap.RegisterResource('bullet');
-ResourcesMap.RegisterResource('fireball');
-ResourcesMap.RegisterResource('bluebolt');
-ResourcesMap.RegisterResource('hp_potion');
-ResourcesMap.RegisterResource('portal');
-ResourcesMap.RegisterResource('white');
-ResourcesMap.RegisterResource('flame');
-ResourcesMap.RegisterResource('template');
-ResourcesMap.RegisterResource('terrain');
-
-},{}],89:[function(require,module,exports){
 (function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Player_1 = require("../game/objects/Player");
-const Obstacle_1 = require("../game/objects/Obstacle");
-const ObjectsSerializer_1 = require("../../serialize/ObjectsSerializer");
-const SharedConfig_1 = require("../../SharedConfig");
+const Player_1 = require("../game_utils/game/objects/Player");
+const Obstacle_1 = require("../game_utils/game/objects/Obstacle");
+const ObjectsSerializer_1 = require("../serialize/ObjectsSerializer");
+const SharedConfig_1 = require("../SharedConfig");
 let fs = require('fs');
 function toArrayBuffer(buffer) {
     let ab = new ArrayBuffer(buffer.length);
@@ -11842,16 +11814,16 @@ function toArrayBuffer(buffer) {
 }
 class Chunk {
     constructor(x, y, size) {
-        this.hasNewcomers = false;
         this.isActive = false;
         this.dumpedBuffer = null;
+        this.isNextUpdateComplete = false;
         this.x = x;
         this.y = y;
         this.size = size;
         this.objects = [];
         this.neighbors = [];
         this.leavers = [];
-        this.numOfPlayers = 0;
+        this.activateTriggers = 0;
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.deactivatedTime = -1;
         }
@@ -11864,10 +11836,10 @@ class Chunk {
     }
     addObject(gameObject) {
         this.objects.push(gameObject);
-        if (gameObject instanceof Player_1.Player) {
-            this.hasNewcomers = true;
-            this.numOfPlayers++;
-            if (SharedConfig_1.SharedConfig.IS_SERVER) {
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            if (gameObject.IsChunkActivateTriger) {
+                // this.hasNewcomers = true;
+                this.activateTriggers++;
                 this.activate();
                 this.activateNeighbors();
             }
@@ -11879,8 +11851,8 @@ class Chunk {
             this.objects.splice(index, 1);
         }
         if (gameObject instanceof Player_1.Player) {
-            this.numOfPlayers--;
-            if (this.numOfPlayers <= 0) {
+            this.activateTriggers--;
+            if (this.activateTriggers <= 0) {
                 if (!this.HasPlayersInNeighborhood) {
                     this.deactivate();
                 }
@@ -11920,9 +11892,9 @@ class Chunk {
         }
         return false;
     }
-    resetHasNewComers() {
-        this.hasNewcomers = false;
-    }
+    // public resetHasNewcomers() {
+    //     this.hasNewcomers = false;
+    // }
     activate() {
         this.deactivatedTime = -1;
         this.reload();
@@ -11959,7 +11931,8 @@ class Chunk {
         this.clearNotObstacles();
         this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
         let fileName = "data/" + this.x + "." + this.y + ".chunk";
-        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => { });
+        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {
+        });
         this.clearAll();
         this.isActive = false;
     }
@@ -11979,25 +11952,32 @@ class Chunk {
             }
         }
     }
+    get IsNextUpdateComplete() {
+        return this.isNextUpdateComplete;
+    }
+    set IsNextUpdateComplete(isNextUpdateComplete) {
+        this.isNextUpdateComplete = isNextUpdateComplete;
+    }
     get Objects() {
         return this.objects;
     }
-    get HasNewcomers() {
-        return this.hasNewcomers;
-    }
-    get HasNewcomersInNeighborhood() {
-        if (this.HasNewcomers) {
-            return true;
-        }
-        for (let i = 0; i < this.neighbors.length; i++) {
-            if (this.neighbors[i].HasNewcomers) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // get HasNewcomers(): boolean {
+    //     return this.hasNewcomers;
+    // }
+    // get HasNewcomersInNeighborhood(): boolean {
+    //     if (this.HasNewcomers) {
+    //         return true;
+    //     }
+    // for (let i: number = 0; i < this.neighbors.length; i++) {
+    //     if (this.neighbors[i].HasNewcomers) {
+    //         return true;
+    //     }
+    // }
+    //
+    // return false;
+    // }
     get HasPlayers() {
-        return this.numOfPlayers > 0;
+        return this.activateTriggers > 0;
     }
     get HasPlayersInNeighborhood() {
         if (this.HasPlayers) {
@@ -12029,14 +12009,14 @@ class Chunk {
 exports.Chunk = Chunk;
 
 }).call(this,require("buffer").Buffer)
-},{"../../SharedConfig":87,"../../serialize/ObjectsSerializer":112,"../game/objects/Obstacle":100,"../game/objects/Player":101,"buffer":3,"fs":1}],90:[function(require,module,exports){
+},{"../SharedConfig":87,"../game_utils/game/objects/Obstacle":100,"../game_utils/game/objects/Player":101,"../serialize/ObjectsSerializer":112,"buffer":3,"fs":1}],89:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const GameObjectsSubscriber_1 = require("../factory/GameObjectsSubscriber");
-const SharedConfig_1 = require("../../SharedConfig");
+const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
+const SharedConfig_1 = require("../SharedConfig");
 const Chunk_1 = require("./Chunk");
-const ChangesDict_1 = require("../../serialize/ChangesDict");
-const Player_1 = require("../game/objects/Player");
+const ChangesDict_1 = require("../serialize/ChangesDict");
+const Player_1 = require("../game_utils/game/objects/Player");
 class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
@@ -12137,6 +12117,9 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.objectsChunks.get(gameObject);
     }
     onObjectCreate(gameObject) {
+        if (gameObject.IsDestroyed) {
+            return;
+        }
         let chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
         if (!chunk) {
             console.log("Created object outside chunk! "
@@ -12152,6 +12135,9 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
+        if (gameObject instanceof Player_1.Player) {
+            this.setFullUpdateToNewNeighbors(null, chunk);
+        }
     }
     onObjectDestroy(gameObject) {
         this.remove(gameObject);
@@ -12162,9 +12148,9 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 //chunk cannot change if object did not move
                 return;
             }
-            let chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+            let newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
             let oldChunk = this.objectsChunks.get(gameObject);
-            if (!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
+            if (!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
                 if (oldChunk) {
                     oldChunk.addLeaver(gameObject);
@@ -12172,15 +12158,41 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 gameObject.destroy();
                 return;
             }
-            if (oldChunk == chunk) {
+            if (oldChunk == newChunk) {
                 return;
+            }
+            if (gameObject instanceof Player_1.Player) {
+                this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
             }
             oldChunk.removeObject(gameObject);
             oldChunk.addLeaver(gameObject);
-            chunk.addObject(gameObject);
-            this.objectsChunks.set(gameObject, chunk);
+            newChunk.addObject(gameObject);
+            this.objectsChunks.set(gameObject, newChunk);
             gameObject.forceCompleteUpdate();
         });
+    }
+    setFullUpdateToNewNeighbors(oldChunk, newChunk) {
+        //need to clone newNeighbors, because it could be modified
+        let newNeighbors = Object.assign([], newChunk.Neighbors);
+        if (oldChunk) {
+            let oldNeighbors = oldChunk.Neighbors;
+            let oldInNewIdx = newNeighbors.indexOf(oldChunk);
+            if (oldInNewIdx != -1) {
+                newNeighbors.splice(oldInNewIdx, 1);
+            }
+            for (let i = 0; i < oldNeighbors.length; i++) {
+                let oldInNewIdx = newNeighbors.indexOf(oldNeighbors[i]);
+                if (oldInNewIdx != -1) {
+                    newNeighbors.splice(oldInNewIdx, 1);
+                }
+            }
+        }
+        else {
+            newChunk.IsNextUpdateComplete = true;
+        }
+        for (let i = 0; i < newNeighbors.length; i++) {
+            newNeighbors[i].IsNextUpdateComplete = true;
+        }
     }
     remove(gameObject) {
         if (this.objectsChunks.has(gameObject)) {
@@ -12201,7 +12213,37 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../../SharedConfig":87,"../../serialize/ChangesDict":111,"../factory/GameObjectsSubscriber":93,"../game/objects/Player":101,"./Chunk":89}],91:[function(require,module,exports){
+},{"../SharedConfig":87,"../game_utils/factory/GameObjectsSubscriber":93,"../game_utils/game/objects/Player":101,"../serialize/ChangesDict":111,"./Chunk":88}],90:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class ResourcesMap {
+    static RegisterResource(name) {
+        ResourcesMap.NameToId.set(name, this.shortIdCounter);
+        ResourcesMap.IdToName.set(this.shortIdCounter++, name);
+    }
+}
+ResourcesMap.NameToId = new Map();
+ResourcesMap.IdToName = new Map();
+ResourcesMap.shortIdCounter = 0;
+exports.ResourcesMap = ResourcesMap;
+ResourcesMap.RegisterResource('none');
+ResourcesMap.RegisterResource('wall');
+ResourcesMap.RegisterResource('bunny');
+ResourcesMap.RegisterResource('dyzma');
+ResourcesMap.RegisterResource('kamis');
+ResourcesMap.RegisterResource('michau');
+ResourcesMap.RegisterResource('panda');
+ResourcesMap.RegisterResource('bullet');
+ResourcesMap.RegisterResource('fireball');
+ResourcesMap.RegisterResource('bluebolt');
+ResourcesMap.RegisterResource('hp_potion');
+ResourcesMap.RegisterResource('portal');
+ResourcesMap.RegisterResource('white');
+ResourcesMap.RegisterResource('flame');
+ResourcesMap.RegisterResource('template');
+ResourcesMap.RegisterResource('terrain');
+
+},{}],91:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("../game/objects/Obstacle");
@@ -12330,14 +12372,18 @@ class GameObjectsFactory {
     }
     static AddToListeners(gameObject) {
         GameObjectsManager_1.GameObjectsManager.gameObjectsMapById.set(gameObject.ID, gameObject);
-        GameObjectsFactory.CreateCallbacks.forEach((callback) => {
-            callback(gameObject);
-        });
         GameObjectsFactory.DestroyCallbacks.forEach((callback) => {
             gameObject.addDestroyListener(callback);
         });
         gameObject.addDestroyListener(() => {
             GameObjectsManager_1.GameObjectsManager.gameObjectsMapById.delete(gameObject.ID);
+        });
+        GameObjectsFactory.CreateCallbacks.forEach((callback) => {
+            if (gameObject.IsDestroyed) {
+                //do not call create callbacks if game object is destroyed during creation!
+                return;
+            }
+            callback(gameObject);
         });
     }
 }
@@ -12375,9 +12421,6 @@ class Actor extends GameObject_1.GameObject {
         this.hp = this.maxHp;
         this.velocity = 0.3;
         this.name = "";
-        this.transform.Width = 32;
-        this.transform.Height = 32;
-        this.SpriteName = "template";
         this.animationType = "idle";
     }
     updatePosition(delta) {
@@ -12412,8 +12455,6 @@ class Actor extends GameObject_1.GameObject {
         if (gameObject instanceof Obstacle_1.Obstacle) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
-            this.Transform.addChange(ChangesDict_1.ChangesDict.X);
-            this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
     hit(power) {
@@ -12538,7 +12579,7 @@ class Enemy extends Actor_1.Actor {
             this.timeSinceLastShot = Math.random() * 2000;
             for (let i = 0; i < 1; i++) {
                 let pos = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
-                this.weapon.use(this, pos, 0);
+                // this.weapon.use(this, pos, 0);
                 this.MoveDirection = Math.round(Math.random() * 8);
             }
         }
@@ -12648,6 +12689,8 @@ class GameObject extends Serializable_1.Serializable {
         this.velocity = 0;
         this.invisible = false;
         this.isDestroyed = false;
+        // private isDestroyInNextUpdate: boolean = false;
+        this.isChunkActivateTriger = false;
         this.transform = transform;
         this.SpriteName = "none";
         this.destroyListeners = new Set();
@@ -12666,6 +12709,11 @@ class GameObject extends Serializable_1.Serializable {
         this.forceComplete = true;
     }
     update(delta) {
+        // if(this.isDestroyInNextUpdate) {
+        //     console.log("destroy next")
+        //     this.destroy();
+        //     return;
+        // }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverUpdate(delta);
         }
@@ -12685,11 +12733,14 @@ class GameObject extends Serializable_1.Serializable {
         if (this.isDestroyed) {
             return;
         }
+        this.isDestroyed = true;
         for (let listener of this.destroyListeners) {
             listener(this);
         }
-        this.isDestroyed = true;
     }
+    // destroyInNextUpdate() {
+    //     this.isDestroyInNextUpdate = true;
+    // }
     get Transform() {
         return this.transform;
     }
@@ -12724,6 +12775,9 @@ class GameObject extends Serializable_1.Serializable {
     get IsDestroyed() {
         return this.isDestroyed;
     }
+    get IsChunkActivateTriger() {
+        return this.isChunkActivateTriger;
+    }
 }
 __decorate([
     SerializeDecorators_1.SerializableObject("pos"),
@@ -12744,7 +12798,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../SharedConfig":87,"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"../../ResourcesMap":88,"../../physics/Transform":107}],99:[function(require,module,exports){
+},{"../../../SharedConfig":87,"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"../../ResourcesMap":90,"../../physics/Transform":107}],99:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -12818,6 +12872,7 @@ class Player extends Actor_1.Actor {
         // this.weapon = new PortalGun();
         // this.weapon = new MagicWand();
         this.weapon = new ObjectsSpawner_1.ObjectsSpawner();
+        this.isChunkActivateTriger = true;
     }
     setInput(inputSnapshot) {
         let inputCommands = inputSnapshot.Commands;
@@ -13027,14 +13082,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
 class ObjectsSpawner {
     use(user, position, clickButton) {
-        if (clickButton == 0) {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
-        }
-        else if (clickButton == 2) {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
-        }
-        else {
-            ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("HpPotion", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+        for (let i = 0; i < 20; i++) {
+            if (clickButton == 0) {
+                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+            }
+            else if (clickButton == 2) {
+                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+            }
+            else {
+                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("HpPotion", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+            }
         }
     }
     ;
@@ -13050,14 +13107,19 @@ exports.ObjectsSpawner = ObjectsSpawner;
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
 const Obstacle_1 = require("../game/objects/Obstacle");
+const SharedConfig_1 = require("../../SharedConfig");
 class CollisionsSystem extends detect_collisions_1.Collisions {
     constructor() {
         super();
         this.bodyToObjectMap = new Map();
+        this.result = new detect_collisions_1.Result();
     }
     insertObject(gameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject instanceof Obstacle_1.Obstacle && this.checkObjectCollision(gameObject)) {
+            gameObject.destroy();
+        }
     }
     removeObject(gameObject) {
         super.remove(gameObject.Transform.Body);
@@ -13068,7 +13130,6 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
     }
     updateCollisions(gameObjects) {
         // super.update();
-        let result = new detect_collisions_1.Result();
         gameObjects.forEach((object) => {
             if (object instanceof Obstacle_1.Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving
@@ -13077,26 +13138,34 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
             }
             let potentials = object.Transform.Body.potentials();
             for (let body of potentials) {
-                if (object.Transform.Body.collides(body, result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), result);
+                if (object.Transform.Body.collides(body, this.result)) {
+                    object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result);
                 }
             }
         });
     }
+    checkObjectCollision(object) {
+        let potentials = object.Transform.Body.potentials();
+        for (let body of potentials) {
+            if (object.Transform.Body.collides(body)) {
+                return true;
+            }
+        }
+        return false;
+    }
     updateCollisionsForObject(gameObject) {
         super.update();
-        let result = new detect_collisions_1.Result();
         let potentials = gameObject.Transform.Body.potentials();
         for (let body of potentials) {
-            if (gameObject.Transform.Body.collides(body, result)) {
-                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), result);
+            if (gameObject.Transform.Body.collides(body, this.result)) {
+                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), this.result);
             }
         }
     }
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../game/objects/Obstacle":100,"detect-collisions":36}],107:[function(require,module,exports){
+},{"../../SharedConfig":87,"../game/objects/Obstacle":100,"detect-collisions":36}],107:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -13570,19 +13639,6 @@ class Serializable {
         });
         return offset;
     }
-    //TEST FUNCTIONS
-    printSerializeOrder() {
-        console.log("SerializeEncodeOrder");
-        this[SerializeDecorators_1.PropNames.SerializeEncodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
-    }
-    printDeserializeOrder() {
-        console.log("SerializeDecodeOrder");
-        this[SerializeDecorators_1.PropNames.SerializeDecodeOrder].forEach((val, key) => {
-            console.log(key + " : " + val);
-        });
-    }
 }
 Serializable.TypesToBytesSize = new Map([
     [SerializableTypes.Int8, 1],
@@ -13788,12 +13844,12 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
     }
     onObjectDestroy(gameObject) {
+        let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        if (!chunk) {
+            // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+            return;
+        }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-            if (!chunk) {
-                // console.log("WARNING! destroyed object that doesn't belong to any chunk");
-                return;
-            }
             this.destroyedObjects.get(chunk).push(gameObject.ID);
         }
     }
@@ -13811,7 +13867,8 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                     continue;
                 }
                 //if chunk has new players inside we need to send complete update to them
-                let chunkCompleteUpdate = chunk.HasNewcomersInNeighborhood;
+                let chunkCompleteUpdate = chunk.IsNextUpdateComplete;
+                chunk.IsNextUpdateComplete = false;
                 let neededBufferSize = 0;
                 let objectsToUpdateMap = new Map();
                 chunk.Objects.forEach((gameObject) => {
@@ -13902,11 +13959,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {
     constructor(historySize) {
         this.history = [];
-        this.historySize = historySize;
+        this.historyMaxSize = historySize;
     }
     add(val) {
         this.history.push(val);
-        if (this.history.length > 30)
+        while (this.history.length > this.historyMaxSize)
             this.history.splice(0, 1);
     }
     calculate(val) {

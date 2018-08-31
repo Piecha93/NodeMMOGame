@@ -1,9 +1,9 @@
-import {GameObjectsSubscriber} from "../factory/GameObjectsSubscriber";
-import {GameObject} from "../game/objects/GameObject";
-import {SharedConfig} from "../../SharedConfig";
+import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
+import {GameObject} from "../game_utils/game/objects/GameObject";
+import {SharedConfig} from "../SharedConfig";
 import {Chunk} from "./Chunk";
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {Player} from "../game/objects/Player";
+import {ChangesDict} from "../serialize/ChangesDict";
+import {Player} from "../game_utils/game/objects/Player";
 
 
 export class ChunksManager extends GameObjectsSubscriber {
@@ -135,6 +135,10 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     public onObjectCreate(gameObject: GameObject) {
+        if(gameObject.IsDestroyed) {
+            return;
+        }
+
         let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
         if(!chunk) {
@@ -153,6 +157,10 @@ export class ChunksManager extends GameObjectsSubscriber {
 
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
+
+        if(gameObject instanceof Player) {
+            this.setFullUpdateToNewNeighbors(null, chunk);
+        }
     }
 
     public onObjectDestroy(gameObject: GameObject) {
@@ -166,11 +174,11 @@ export class ChunksManager extends GameObjectsSubscriber {
                 return;
             }
 
-            let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+            let newChunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
             let oldChunk: Chunk = this.objectsChunks.get(gameObject);
 
-            if(!chunk || (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
+            if(!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
                 // console.log("Object went outside chunk! " + object.ID);
                 if(oldChunk) {
                     oldChunk.addLeaver(gameObject);
@@ -179,17 +187,48 @@ export class ChunksManager extends GameObjectsSubscriber {
                 return;
             }
 
-            if(oldChunk == chunk) {
+            if(oldChunk == newChunk) {
                 return;
+            }
+
+            if(gameObject instanceof Player) {
+                this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
             }
 
             oldChunk.removeObject(gameObject);
             oldChunk.addLeaver(gameObject);
 
-            chunk.addObject(gameObject);
-            this.objectsChunks.set(gameObject, chunk);
+            newChunk.addObject(gameObject);
+            this.objectsChunks.set(gameObject, newChunk);
             gameObject.forceCompleteUpdate();
         });
+    }
+
+    private setFullUpdateToNewNeighbors(oldChunk: Chunk, newChunk: Chunk) {
+        //need to clone newNeighbors, because it could be modified
+        let newNeighbors: Array<Chunk> = Object.assign([], newChunk.Neighbors);
+
+        if(oldChunk) {
+            let oldNeighbors: Array<Chunk> = oldChunk.Neighbors;
+
+            let oldInNewIdx: number = newNeighbors.indexOf(oldChunk);
+            if (oldInNewIdx != -1) {
+                newNeighbors.splice(oldInNewIdx, 1);
+            }
+
+            for (let i: number = 0; i < oldNeighbors.length; i++) {
+                let oldInNewIdx: number = newNeighbors.indexOf(oldNeighbors[i]);
+                if (oldInNewIdx != -1) {
+                    newNeighbors.splice(oldInNewIdx, 1);
+                }
+            }
+        } else {
+            newChunk.IsNextUpdateComplete = true;
+        }
+
+        for(let i: number = 0; i < newNeighbors.length; i++) {
+            newNeighbors[i].IsNextUpdateComplete = true;
+        }
     }
 
     private remove(gameObject: GameObject) {

@@ -202,20 +202,4 @@ export abstract class Serializable {
 
         return offset;
     }
-
-
-    //TEST FUNCTIONS
-    public printSerializeOrder() {
-        console.log("SerializeEncodeOrder");
-        this[PropNames.SerializeEncodeOrder].forEach((val: number, key: string) => {
-            console.log(key + " : " + val);
-        });
-    }
-
-    public printDeserializeOrder() {
-        console.log("SerializeDecodeOrder");
-        this[PropNames.SerializeDecodeOrder].forEach((val: number, key: string) => {
-            console.log(key + " : " + val);
-        });
-    }
 }

@@ -3,8 +3,8 @@ import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber
 import {SharedConfig} from "../SharedConfig";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 import {Prefabs} from "../game_utils/factory/GameObjectPrefabs";
-import {ChunksManager} from "../game_utils/chunks/ChunksManager";
-import {Chunk} from "../game_utils/chunks/Chunk";
+import {ChunksManager} from "../chunks/ChunksManager";
+import {Chunk} from "../chunks/Chunk";
 
 
 export class UpdateCollector extends GameObjectsSubscriber {
@@ -32,14 +32,14 @@ export class UpdateCollector extends GameObjectsSubscriber {
     }
 
     protected onObjectDestroy(gameObject: GameObject) {
+        let chunk: Chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+
+        if(!chunk) {
+            // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+            return;
+        }
+
         if(SharedConfig.IS_SERVER) {
-            let chunk: Chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-
-            if(!chunk) {
-                // console.log("WARNING! destroyed object that doesn't belong to any chunk");
-                return;
-            }
-
             this.destroyedObjects.get(chunk).push(gameObject.ID);
         }
     }
@@ -62,7 +62,9 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 }
 
                 //if chunk has new players inside we need to send complete update to them
-                let chunkCompleteUpdate: boolean = chunk.HasNewcomersInNeighborhood;
+                let chunkCompleteUpdate: boolean = chunk.IsNextUpdateComplete;
+                chunk.IsNextUpdateComplete = false;
+
                 let neededBufferSize: number = 0;
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
 

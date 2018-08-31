@@ -14,7 +14,7 @@ import {InputSnapshot} from "../shared/input/InputSnapshot";
 import {Cursor} from "./input/Cursor";
 import {Transform} from "../shared/game_utils/physics/Transform";
 import {AverageCounter} from "../shared/utils/AverageCounter";
-import {Chunk} from "../shared/game_utils/chunks/Chunk";
+import {Chunk} from "../shared/chunks/Chunk";
 import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {Reconciliation} from "./Reconciliation";

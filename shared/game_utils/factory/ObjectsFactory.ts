@@ -72,15 +72,20 @@ export class GameObjectsFactory {
     private static AddToListeners(gameObject: GameObject) {
         GameObjectsManager.gameObjectsMapById.set(gameObject.ID, gameObject);
 
-        GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
-            callback(gameObject);
-        });
         GameObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
             gameObject.addDestroyListener(callback);
         });
 
         gameObject.addDestroyListener(() => {
             GameObjectsManager.gameObjectsMapById.delete(gameObject.ID);
+        });
+
+        GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
+            if(gameObject.IsDestroyed) {
+                //do not call create callbacks if game object is destroyed during creation!
+                return;
+            }
+            callback(gameObject);
         });
     }
 }

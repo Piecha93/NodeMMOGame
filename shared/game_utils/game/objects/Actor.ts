@@ -38,10 +38,6 @@ export abstract class Actor extends GameObject {
         this.velocity = 0.3;
         this.name = "";
 
-        this.transform.Width = 32;
-        this.transform.Height = 32;
-
-        this.SpriteName = "template";
         this.animationType = "idle";
     }
 
@@ -79,8 +75,6 @@ export abstract class Actor extends GameObject {
         if(gameObject instanceof Obstacle) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
-            this.Transform.addChange(ChangesDict.X);
-            this.Transform.addChange(ChangesDict.Y);
         }
     }
 

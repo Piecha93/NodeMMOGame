@@ -10,7 +10,7 @@ import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../shared/game_utils/game/objects/Enemy";
 import {Item} from "../shared/game_utils/game/objects/Item";
-import {Chunk} from "../shared/game_utils/chunks/Chunk";
+import {Chunk} from "../shared/chunks/Chunk";
 import {SharedConfig} from "../shared/SharedConfig";
 import {ObjectsSerializer} from "../shared/serialize/ObjectsSerializer";
 import {GameCore} from "../shared/GameCore";
@@ -216,20 +216,20 @@ export class GameServer {
     }
 
     private getRandomInsideMap(): number {
-        return Math.floor(Math.random() * (SharedConfig.numOfChunksX * SharedConfig.chunkSize - 100)) + 50;
+        return Math.round((Math.floor(Math.random() * (SharedConfig.numOfChunksX * SharedConfig.chunkSize - 100)) + 50) / 32) * 32;
     }
 
     private initTestObjects() {
         let o: GameObject;
 
-        // for (let i = 0; i < 100000; i++) {
-        //     o = GameObjectsFactory.InstatiateWithTransform("Wall",
-        //         new Transform(this.getRandomInsideMap(), this.getRandomInsideMap()));
-        //
-        //     if (i % 1000 == 0) {
-        //         console.log(i)
-        //     }
-        // }
+        for (let i = 0; i < 10000; i++) {
+            o = GameObjectsFactory.InstatiateWithPosition("Wall",
+                [this.getRandomInsideMap(), this.getRandomInsideMap()]);
+
+            if (i % 1000 == 0) {
+                console.log(i)
+            }
+        }
 
         let wallsCounter = 0;
         for (let i = 0; i < (SharedConfig.numOfChunksX * SharedConfig.chunkSize / 32); i++) {

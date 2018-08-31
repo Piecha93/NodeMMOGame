@@ -1,5 +1,5 @@
 import {GameObject} from "../game_utils/game/objects/GameObject";
-import {Chunk} from "../game_utils/chunks/Chunk";
+import {Chunk} from "../chunks/Chunk";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 import {Prefabs} from "../game_utils/factory/GameObjectPrefabs";
 

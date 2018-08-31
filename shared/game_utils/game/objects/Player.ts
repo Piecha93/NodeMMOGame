@@ -25,6 +25,7 @@ export class Player extends Actor {
         // this.weapon = new PortalGun();
         // this.weapon = new MagicWand();
         this.weapon = new ObjectsSpawner();
+        this.isChunkActivateTriger = true;
     }
 
     private lastInputSnapshot: InputSnapshot = null;

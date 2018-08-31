@@ -2,8 +2,8 @@ import {GameObject} from "./game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "./game_utils/factory/GameObjectsSubscriber";
 import {CollisionsSystem} from "./game_utils/physics/CollisionsSystem";
 import {Map} from "./game_utils/Map";
-import {ChunksManager} from "./game_utils/chunks/ChunksManager";
-import {Chunk} from "./game_utils/chunks/Chunk";
+import {ChunksManager} from "./chunks/ChunksManager";
+import {Chunk} from "./chunks/Chunk";
 import {SharedConfig} from ".//SharedConfig";
 
 export class GameWorld extends GameObjectsSubscriber {
@@ -41,6 +41,9 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public onObjectCreate(gameObject: GameObject) {
+        if(gameObject.IsDestroyed) {
+            return;
+        }
         this.collistionsSystem.insertObject(gameObject);
     }
 
