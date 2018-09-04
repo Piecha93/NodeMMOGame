@@ -55,18 +55,6 @@ export abstract class Actor extends GameObject {
 
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
-        if(gameObject instanceof FireBall) {
-            let bullet: FireBall = gameObject as FireBall ;
-            if (bullet.Owner == this.ID) {
-                return;
-            }
-            this.hit(bullet.Power);
-        } else if(gameObject instanceof Item) {
-            let item: Item = gameObject as Item;
-            if(item.Claim()) {
-                this.heal(50);
-            }
-        }
     }
 
     protected commonCollision(gameObject: GameObject, result: Result) {

@@ -11838,7 +11838,6 @@ class Chunk {
         this.objects.push(gameObject);
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             if (gameObject.IsChunkActivateTriger) {
-                // this.hasNewcomers = true;
                 this.activateTriggers++;
                 this.activate();
                 this.activateNeighbors();
@@ -11892,9 +11891,6 @@ class Chunk {
         }
         return false;
     }
-    // public resetHasNewcomers() {
-    //     this.hasNewcomers = false;
-    // }
     activate() {
         this.deactivatedTime = -1;
         this.reload();
@@ -11931,8 +11927,7 @@ class Chunk {
         this.clearNotObstacles();
         this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
         let fileName = "data/" + this.x + "." + this.y + ".chunk";
-        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {
-        });
+        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => { });
         this.clearAll();
         this.isActive = false;
     }
@@ -11961,21 +11956,6 @@ class Chunk {
     get Objects() {
         return this.objects;
     }
-    // get HasNewcomers(): boolean {
-    //     return this.hasNewcomers;
-    // }
-    // get HasNewcomersInNeighborhood(): boolean {
-    //     if (this.HasNewcomers) {
-    //         return true;
-    //     }
-    // for (let i: number = 0; i < this.neighbors.length; i++) {
-    //     if (this.neighbors[i].HasNewcomers) {
-    //         return true;
-    //     }
-    // }
-    //
-    // return false;
-    // }
     get HasPlayers() {
         return this.activateTriggers > 0;
     }
@@ -12406,10 +12386,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
-const FireBall_1 = require("./FireBall");
 const Obstacle_1 = require("./Obstacle");
 const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
-const Item_1 = require("./Item");
 const Serializable_1 = require("../../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
@@ -12436,19 +12414,6 @@ class Actor extends GameObject_1.GameObject {
     }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
-        if (gameObject instanceof FireBall_1.FireBall) {
-            let bullet = gameObject;
-            if (bullet.Owner == this.ID) {
-                return;
-            }
-            this.hit(bullet.Power);
-        }
-        else if (gameObject instanceof Item_1.Item) {
-            let item = gameObject;
-            if (item.Claim()) {
-                this.heal(50);
-            }
-        }
     }
     commonCollision(gameObject, result) {
         super.commonCollision(gameObject, result);
@@ -12546,7 +12511,7 @@ __decorate([
 ], Actor.prototype, "faceDirection", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"./FireBall":97,"./GameObject":98,"./Item":99,"./Obstacle":100}],96:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":111,"../../../serialize/Serializable":113,"../../../serialize/SerializeDecorators":114,"./GameObject":98,"./Obstacle":100}],96:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -12579,7 +12544,7 @@ class Enemy extends Actor_1.Actor {
             this.timeSinceLastShot = Math.random() * 2000;
             for (let i = 0; i < 1; i++) {
                 let pos = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
-                // this.weapon.use(this, pos, 0);
+                this.weapon.use(this, pos, 0);
                 this.MoveDirection = Math.round(Math.random() * 8);
             }
         }
@@ -12625,6 +12590,7 @@ class FireBall extends Projectile_1.Projectile {
         }
         else if (gameObject instanceof Actor_1.Actor) {
             if (gameObject.ID != this.owner) {
+                gameObject.hit(this.power);
                 this.destroy();
             }
         }
@@ -12689,13 +12655,15 @@ class GameObject extends Serializable_1.Serializable {
         this.velocity = 0;
         this.invisible = false;
         this.isDestroyed = false;
-        // private isDestroyInNextUpdate: boolean = false;
         this.isChunkActivateTriger = false;
         this.transform = transform;
         this.SpriteName = "none";
         this.destroyListeners = new Set();
     }
     onCollisionEnter(gameObject, result) {
+        if (this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverCollision(gameObject, result);
         }
@@ -12709,11 +12677,6 @@ class GameObject extends Serializable_1.Serializable {
         this.forceComplete = true;
     }
     update(delta) {
-        // if(this.isDestroyInNextUpdate) {
-        //     console.log("destroy next")
-        //     this.destroy();
-        //     return;
-        // }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverUpdate(delta);
         }
@@ -12738,9 +12701,6 @@ class GameObject extends Serializable_1.Serializable {
             listener(this);
         }
     }
-    // destroyInNextUpdate() {
-    //     this.isDestroyInNextUpdate = true;
-    // }
     get Transform() {
         return this.transform;
     }
@@ -12802,13 +12762,16 @@ exports.GameObject = GameObject;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
+const Actor_1 = require("./Actor");
 class Item extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        this.isClaimed = false;
     }
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
+        if (gameObject instanceof Actor_1.Actor) {
+            gameObject.heal(50);
+        }
         this.destroy();
     }
     commonCollision(gameObject, result) {
@@ -12820,17 +12783,10 @@ class Item extends GameObject_1.GameObject {
     commonUpdate(delta) {
         super.commonUpdate(delta);
     }
-    Claim() {
-        if (this.isClaimed == false) {
-            this.isClaimed = true;
-            return true;
-        }
-        return false;
-    }
 }
 exports.Item = Item;
 
-},{"./GameObject":98}],100:[function(require,module,exports){
+},{"./Actor":95,"./GameObject":98}],100:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -13129,7 +13085,6 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
         super.update();
     }
     updateCollisions(gameObjects) {
-        // super.update();
         gameObjects.forEach((object) => {
             if (object instanceof Obstacle_1.Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving

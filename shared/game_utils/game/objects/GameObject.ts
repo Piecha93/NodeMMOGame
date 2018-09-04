@@ -9,12 +9,11 @@ import {ResourcesMap} from "../../ResourcesMap";
 export class GameObject extends Serializable {
     protected id: string = "";
     protected spriteName: string;
+
     @SerializableObject("pos")
     protected transform: Transform;
-
     @SerializableProperty(ChangesDict.VELOCITY, SerializableTypes.Float32)
     protected velocity: number = 0;
-
     @SerializableProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
@@ -28,11 +27,15 @@ export class GameObject extends Serializable {
         super();
         this.transform = transform;
 
-        this.SpriteName  = "none";
+        this.SpriteName = "none";
         this.destroyListeners = new Set<Function>();
     }
 
     onCollisionEnter(gameObject: GameObject, result: Result) {
+        if(this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
+
         if(SharedConfig.IS_SERVER) {
             this.serverCollision(gameObject, result);
         }

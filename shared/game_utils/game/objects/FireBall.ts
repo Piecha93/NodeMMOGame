@@ -26,11 +26,12 @@ export class FireBall extends Projectile {
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
         if(gameObject instanceof FireBall) {
-            if((gameObject as FireBall).owner != this.owner) {
+            if(gameObject.owner != this.owner) {
                 this.destroy();
             }
         } else if(gameObject instanceof Actor) {
             if(gameObject.ID != this.owner) {
+                gameObject.hit(this.power);
                 this.destroy()
             }
         } else if(gameObject instanceof Obstacle) {

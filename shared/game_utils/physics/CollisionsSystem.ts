@@ -30,8 +30,6 @@ export class CollisionsSystem extends Collisions {
     }
 
     public updateCollisions(gameObjects: Array<GameObject>) {
-        // super.update();
-
         gameObjects.forEach((object: GameObject) => {
             if(object instanceof Obstacle) {
                 //no need to calculate collisions for obstacles since they are not moving
