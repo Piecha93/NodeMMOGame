@@ -69,6 +69,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
 
                 chunk.Objects.forEach((gameObject: GameObject) => {
+                    if(gameObject.IsDestroyed) return;
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
@@ -80,6 +81,10 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 //when object leaves chunk, we need to send his position last time to clients,
                 //so they are able to detect object is no longer in their chunks
                 chunk.Leavers.forEach((gameObject: GameObject) => {
+                    if(gameObject.IsDestroyed) {
+                        this.destroyedObjects.get(chunk).push(gameObject.ID);
+                        return;
+                    }
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
@@ -114,6 +119,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                         updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
                         updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
                         destrotObjectsOffset += 5;
+                        // console.log("destroy3 " + id + ", chunk " + chunk.x + "-" + chunk.y);
                     });
                 }
 

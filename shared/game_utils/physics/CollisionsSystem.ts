@@ -21,8 +21,10 @@ export class CollisionsSystem extends Collisions {
     }
 
     public removeObject(gameObject: GameObject) {
-        super.remove(gameObject.Transform.Body);
-        this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        if(this.bodyToObjectMap.has(gameObject.Transform.Body)) {
+            super.remove(gameObject.Transform.Body);
+            this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        }
     }
 
     public update() {
@@ -39,7 +41,7 @@ export class CollisionsSystem extends Collisions {
             let potentials: Body[] = object.Transform.Body.potentials();
 
             for(let body of potentials) {
-                if(object.Transform.Body.collides(body, this.result)) {
+                if(this.bodyToObjectMap.has(body) && object.Transform.Body.collides(body, this.result)) {
                     object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result)
                 }
             }

@@ -5,9 +5,10 @@ import {GameObjectsFactory} from "../../factory/ObjectsFactory";
 
 export class ObjectsSpawner implements Weapon {
     public use(user: Actor, position: [number, number], clickButton: number) {
-        for(let i = 0; i < 20; i++) {
+        for(let i = 0; i < 1; i++) {
             if (clickButton == 0) {
-                GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                let gg = GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]) as Actor;
+                gg.Name = "Michau " + gg.ID;
             } else if (clickButton == 2) {
                 GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             } else {

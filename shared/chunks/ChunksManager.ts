@@ -125,7 +125,8 @@ export class ChunksManager extends GameObjectsSubscriber {
             return null;
         }
 
-        // console.log("chunk " + [idxX, idxY] + " coords " + [x, y]);
+        // if(SharedConfig.IS_SERVER)
+            // console.log("chunk " + [idxX, idxY] + " coords " + [x, y]);
 
         return this.chunks[idxX][idxY];
     }

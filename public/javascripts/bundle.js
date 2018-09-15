@@ -12090,6 +12090,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         if (idxY >= this.numOfChunksY || idxY < 0) {
             return null;
         }
+        // if(SharedConfig.IS_SERVER)
         // console.log("chunk " + [idxX, idxY] + " coords " + [x, y]);
         return this.chunks[idxX][idxY];
     }
@@ -12693,6 +12694,8 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners.delete(listener);
     }
     destroy() {
+        if (SharedConfig_1.SharedConfig.IS_SERVER)
+            console.log("destroy " + this.ID);
         if (this.isDestroyed) {
             return;
         }
@@ -13038,9 +13041,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
 class ObjectsSpawner {
     use(user, position, clickButton) {
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 1; i++) {
             if (clickButton == 0) {
-                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                let gg = ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                gg.Name = "Michau " + gg.ID;
             }
             else if (clickButton == 2) {
                 ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
@@ -13078,8 +13082,10 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
         }
     }
     removeObject(gameObject) {
-        super.remove(gameObject.Transform.Body);
-        this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        if (this.bodyToObjectMap.has(gameObject.Transform.Body)) {
+            super.remove(gameObject.Transform.Body);
+            this.bodyToObjectMap.delete(gameObject.Transform.Body);
+        }
     }
     update() {
         super.update();
@@ -13093,7 +13099,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
             }
             let potentials = object.Transform.Body.potentials();
             for (let body of potentials) {
-                if (object.Transform.Body.collides(body, this.result)) {
+                if (this.bodyToObjectMap.has(body) && object.Transform.Body.collides(body, this.result)) {
                     object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result);
                 }
             }
@@ -13827,6 +13833,8 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 let neededBufferSize = 0;
                 let objectsToUpdateMap = new Map();
                 chunk.Objects.forEach((gameObject) => {
+                    if (gameObject.IsDestroyed)
+                        return;
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
@@ -13837,6 +13845,10 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 //when object leaves chunk, we need to send his position last time to clients,
                 //so they are able to detect object is no longer in their chunks
                 chunk.Leavers.forEach((gameObject) => {
+                    if (gameObject.IsDestroyed) {
+                        this.destroyedObjects.get(chunk).push(gameObject.ID);
+                        return;
+                    }
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
                     if (neededSize > 0) {
                         objectsToUpdateMap.set(gameObject, neededBufferSize);
@@ -13864,6 +13876,7 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                         updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
                         updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
                         destrotObjectsOffset += 5;
+                        // console.log("destroy3 " + id + ", chunk " + chunk.x + "-" + chunk.y);
                     });
                 }
                 chunk.resetLeavers();
