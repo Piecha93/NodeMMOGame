@@ -173,7 +173,7 @@ export class Chunk {
         this.isActive = false;
     }
 
-    private clearAll() {
+    public clearAll() {
         while (this.objects.length > 0) {
             this.objects[0].destroy();
         }

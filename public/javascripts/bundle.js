@@ -2088,7 +2088,6 @@ class GameClient {
     startGameLoop() {
         this.core.gameLoop();
         this.renderer.setCurrentChunk(this.core.ChunksManager.getObjectChunk(this.localPlayer));
-        this.clearUnusedChunks();
         this.renderer.update();
         this.updateDebugWindow();
         let deviation = this.renderer.CameraDeviation;
@@ -2139,6 +2138,8 @@ class GameClient {
             this.core.decodeUpdate(update[i][1]);
         }
         if (this.localPlayer) {
+            this.core.ChunksManager.rebuild();
+            this.clearUnusedChunks();
             this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);
         }
     }
@@ -2154,15 +2155,13 @@ class GameClient {
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
     clearUnusedChunks() {
-        let playerChunks = [this.core.ChunksManager.getObjectChunk(this.localPlayer)];
+        let playerChunks = [this.core.ChunksManager.getChunkByCoords(this.localPlayer.Transform.X, this.localPlayer.Transform.Y)];
         playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
         let chunk;
         let chunksIter = this.core.ChunksManager.ChunksIterator();
         while (chunk = chunksIter.next().value) {
             if (playerChunks.indexOf(chunk) == -1) {
-                while (chunk.Objects.length) {
-                    chunk.Objects[0].destroy();
-                }
+                chunk.clearAll();
             }
         }
     }
