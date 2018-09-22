@@ -77,8 +77,6 @@ export class GameObject extends Serializable {
     }
 
     destroy() {
-        // if(SharedConfig.IS_SERVER)
-        //     console.log("destroy " + this.ID);
         if(this.isDestroyed) {
             return;
         }

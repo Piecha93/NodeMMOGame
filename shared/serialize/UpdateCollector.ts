@@ -81,6 +81,9 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 //when object leaves chunk, we need to send his position last time to clients,
                 //so they are able to detect object is no longer in their chunks
                 chunk.Leavers.forEach((gameObject: GameObject) => {
+                    if(objectsToUpdateMap.has(gameObject)) {
+                        return;
+                    }
                     if(gameObject.IsDestroyed) {
                         this.destroyedObjects.get(chunk).push(gameObject.ID);
                         return;
@@ -99,7 +102,9 @@ export class UpdateCollector extends GameObjectsSubscriber {
                     neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
                 }
 
-                if(neededBufferSize == 0) {
+                if (neededBufferSize == 0) {
+                    chunk.resetLeavers();
+                    this.destroyedObjects.set(chunk, []);
                     continue;
                 }
 

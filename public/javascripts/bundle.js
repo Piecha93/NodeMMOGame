@@ -12694,8 +12694,6 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners.delete(listener);
     }
     destroy() {
-        if (SharedConfig_1.SharedConfig.IS_SERVER)
-            console.log("destroy " + this.ID);
         if (this.isDestroyed) {
             return;
         }
@@ -13845,6 +13843,9 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                 //when object leaves chunk, we need to send his position last time to clients,
                 //so they are able to detect object is no longer in their chunks
                 chunk.Leavers.forEach((gameObject) => {
+                    if (objectsToUpdateMap.has(gameObject)) {
+                        return;
+                    }
                     if (gameObject.IsDestroyed) {
                         this.destroyedObjects.get(chunk).push(gameObject.ID);
                         return;
@@ -13861,6 +13862,8 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
                     neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
                 }
                 if (neededBufferSize == 0) {
+                    chunk.resetLeavers();
+                    this.destroyedObjects.set(chunk, []);
                     continue;
                 }
                 let updateBuffer = new ArrayBuffer(neededBufferSize);
