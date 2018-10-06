@@ -2600,7 +2600,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 1 / 5,
+            resolution: 1,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2700,8 +2700,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024 * 5;
-Renderer.HEIGHT = 576 * 5;
+Renderer.WIDTH = 1024;
+Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
 },{"../../shared/game_utils/factory/GameObjectPrefabs":91,"../../shared/game_utils/factory/GameObjectsSubscriber":93,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
