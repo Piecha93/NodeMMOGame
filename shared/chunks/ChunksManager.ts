@@ -170,39 +170,43 @@ export class ChunksManager extends GameObjectsSubscriber {
 
     public rebuild() {
         this.GameObjectsMapById.forEach((gameObject: GameObject) => {
-            if((!gameObject.Transform.hasChange(ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict.Y))) {
-                //chunk cannot change if object did not move
-                return;
-            }
-
-            let newChunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-
-            let oldChunk: Chunk = this.objectsChunks.get(gameObject);
-
-            if(!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
-                // console.log("Object went outside chunk! " + object.ID);
-                if(oldChunk) {
-                    oldChunk.addLeaver(gameObject);
-                }
-                gameObject.destroy();
-                return;
-            }
-
-            if(oldChunk == newChunk) {
-                return;
-            }
-
-            if(gameObject instanceof Player) {
-                this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
-            }
-
-            oldChunk.removeObject(gameObject);
-            oldChunk.addLeaver(gameObject);
-
-            newChunk.addObject(gameObject);
-            this.objectsChunks.set(gameObject, newChunk);
-            gameObject.forceCompleteUpdate();
+            this.rebuildOne(gameObject);
         });
+    }
+
+    public rebuildOne(gameObject: GameObject) {
+        if((!gameObject.Transform.hasChange(ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict.Y))) {
+            //chunk cannot change if object did not move
+            return;
+        }
+
+        let newChunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+
+        let oldChunk: Chunk = this.objectsChunks.get(gameObject);
+
+        if(!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
+            // console.log("Object went outside chunk! " + object.ID);
+            if(oldChunk) {
+                oldChunk.addLeaver(gameObject);
+            }
+            gameObject.destroy();
+            return;
+        }
+
+        if(oldChunk == newChunk) {
+            return;
+        }
+
+        if(gameObject instanceof Player) {
+            this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
+        }
+
+        oldChunk.removeObject(gameObject);
+        oldChunk.addLeaver(gameObject);
+
+        newChunk.addObject(gameObject);
+        this.objectsChunks.set(gameObject, newChunk);
+        gameObject.forceCompleteUpdate();
     }
 
     private setFullUpdateToNewNeighbors(oldChunk: Chunk, newChunk: Chunk) {

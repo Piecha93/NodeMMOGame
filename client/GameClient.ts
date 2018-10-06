@@ -18,6 +18,8 @@ import {Chunk} from "../shared/chunks/Chunk";
 import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {Reconciliation} from "./Reconciliation";
+import {TicksCounter} from "../shared/utils/TicksCounter";
+
 
 const customParser = require('socket.io-msgpack-parser');
 const io = require('socket.io-client');
@@ -40,6 +42,8 @@ export class GameClient {
     private localPlayerId: string = "";
 
     private timer: DeltaTimer = new DeltaTimer;
+    private tickCounter: TicksCounter = TicksCounter.Instance;
+    private coreChunk: Chunk;
 
     constructor() {
         this.connect();
@@ -78,6 +82,7 @@ export class GameClient {
         this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
 
+        this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
 
@@ -96,6 +101,10 @@ export class GameClient {
 
         this.socket.on(SocketMsgs.UPDATE_GAME, (data: any) => {
             this.onServerUpdate(data);
+        });
+
+        this.socket.on(SocketMsgs.CHUNK_MOVED, (chunkPosition: [number, number]) => {
+            this.onChunkMoved(chunkPosition);
         });
 
         this.socket.on(SocketMsgs.ERROR, (errorMessage: string) => {
@@ -137,14 +146,19 @@ export class GameClient {
             this.core.decodeUpdate(update[i][1]);
         }
         if(this.localPlayer) {
-            this.core.ChunksManager.rebuild();
-            this.clearUnusedChunks();
             this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);
+        }
+        if(this.coreChunk) {
+            this.clearUnusedChunks(this.coreChunk);
         }
     }
 
     private onUpdateSnapshotData(lastSnapshotData?: [number, number]) {
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
+    }
+
+    private onChunkMoved(chunkPosition: [number, number]) {
+        this.coreChunk = this.core.ChunksManager.Chunks[chunkPosition[0]][chunkPosition[1]];
     }
 
     private updateDebugWindow() {
@@ -157,14 +171,14 @@ export class GameClient {
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
 
-    private clearUnusedChunks() {
-        let playerChunks: Array<Chunk> = [this.core.ChunksManager.getChunkByCoords(this.localPlayer.Transform.X, this.localPlayer.Transform.Y)];
-        playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
+    private clearUnusedChunks(coreChunk: Chunk) {
+        let coreChunks: Array<Chunk> = [coreChunk];
+        coreChunks = coreChunks.concat(coreChunk.Neighbors);
 
         let chunk: Chunk;
         let chunksIter = this.core.ChunksManager.ChunksIterator();
         while(chunk = chunksIter.next().value) {
-            if(playerChunks.indexOf(chunk) == -1) {
+            if(coreChunks.indexOf(chunk) == -1) {
                 chunk.clearAll();
             }
         }

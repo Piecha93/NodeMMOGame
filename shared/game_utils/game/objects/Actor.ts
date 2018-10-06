@@ -88,7 +88,7 @@ export abstract class Actor extends GameObject {
     private static moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 
     public parseMoveDir(): [number, number] {
-        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]]
+        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]];
     }
 
     get MaxHP(): number {

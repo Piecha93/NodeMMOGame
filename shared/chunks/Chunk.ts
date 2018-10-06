@@ -239,4 +239,8 @@ export class Chunk {
     get TimeSinceDeactivation(): number {
         return Date.now() - this.deactivatedTime;
     }
+
+    get Position(): [number, number] {
+        return [this.x, this.y];
+    }
 }

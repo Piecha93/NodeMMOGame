@@ -1,4 +1,4 @@
-export function maskByteSize(num: number) {
+export function calcPropsMaskByteSize(num: number) {
     return Math.ceil(num / 8);
 }
 

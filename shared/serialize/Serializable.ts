@@ -1,6 +1,7 @@
 import {PropNames} from "./SerializeDecorators";
 import {SharedConfig} from "../SharedConfig";
-import {maskByteSize, setBit} from "../utils/functions/BitOperations";
+import {calcPropsMaskByteSize, setBit} from "../utils/functions/BitOperations";
+import {TicksCounter} from "../utils/TicksCounter";
 
 export enum SerializableTypes {
     Int8,
@@ -32,6 +33,7 @@ export abstract class Serializable {
     protected forceComplete: boolean;
     protected changes: Set<string>;
     protected deserializedFields: Set<string>;
+    protected lastUpdateTick: number = 0;
 
     protected constructor() {
         this.changes = new Set<string>();
@@ -51,10 +53,6 @@ export abstract class Serializable {
         } else {
             return this.deserializedFields.has(change);
         }
-    }
-
-    get DeserializedFields():Set<string> {
-        return this.deserializedFields;
     }
 
     public calcNeededBufferSize(complete: boolean): number {
@@ -79,7 +77,7 @@ export abstract class Serializable {
         });
 
         if(neededSize != 0) {
-            neededSize += maskByteSize(propsSize);
+            neededSize += calcPropsMaskByteSize(propsSize);
         }
 
         return neededSize;
@@ -91,7 +89,7 @@ export abstract class Serializable {
 
     private getPropsMaskByteSize(): number {
         let propsSize: number = this.getPropsSize();
-        let propsByteSize: number = maskByteSize(propsSize);
+        let propsByteSize: number = calcPropsMaskByteSize(propsSize);
         return propsByteSize == 3 ? 4 : propsByteSize
     }
 
@@ -156,6 +154,8 @@ export abstract class Serializable {
     public deserialize(updateBufferView: DataView, offset: number): number {
         this.deserializedFields.clear();
 
+        this.lastUpdateTick = TicksCounter.Instance.LastTickNumber;
+
         let propsMaskByteSize: number = this.getPropsMaskByteSize();
 
         let presentMask: number;
@@ -201,5 +201,13 @@ export abstract class Serializable {
         });
 
         return offset;
+    }
+
+    get DeserializedFields():Set<string> {
+        return this.deserializedFields;
+    }
+
+    get LastUpdateTick(): number {
+        return this.lastUpdateTick;
     }
 }

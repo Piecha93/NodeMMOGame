@@ -28,6 +28,8 @@ export class GameServer {
     private core: GameCore;
     private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
 
+    private lastChunkSent: Map<Player, Chunk> = new Map<Player, Chunk>(); //TODO move this somewhere else
+
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
     }
@@ -77,6 +79,7 @@ export class GameServer {
     }
 
     private onConnection(socket: SocketIO.Server) {
+        socket.compress(false);
         // use to fake latency
         // (function() {
         //     let oldEmit = socket.emit;
@@ -190,6 +193,12 @@ export class GameServer {
                 if(snapshot && snapshot.isMoving()) {
                     client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }
+
+                if(this.lastChunkSent.get(player) != chunk) {
+                    client.Socket.emit(SocketMsgs.CHUNK_MOVED, chunk.Position);
+                    this.lastChunkSent.set(player, chunk);
+                }
+
                 if(updateArray.length > 0) {
                     client.Socket.emit(SocketMsgs.UPDATE_GAME, updateArray);
                 }

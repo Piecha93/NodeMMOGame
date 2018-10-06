@@ -2056,6 +2056,7 @@ const AverageCounter_1 = require("../shared/utils/AverageCounter");
 const GameCore_1 = require("../shared/GameCore");
 const GameObjectsManager_1 = require("../shared/game_utils/factory/GameObjectsManager");
 const Reconciliation_1 = require("./Reconciliation");
+const TicksCounter_1 = require("../shared/utils/TicksCounter");
 const customParser = require('socket.io-msgpack-parser');
 const io = require('socket.io-client');
 class GameClient {
@@ -2064,6 +2065,7 @@ class GameClient {
         this.localPlayer = null;
         this.localPlayerId = "";
         this.timer = new DeltaTimer_1.DeltaTimer;
+        this.tickCounter = TicksCounter_1.TicksCounter.Instance;
         this.connect();
         this.inputSender = new InputSender_1.InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender_1.HeartBeatSender(this.socket);
@@ -2093,6 +2095,7 @@ class GameClient {
         let deviation = this.renderer.CameraDeviation;
         this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
+        this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
     configureSocket() {
@@ -2107,6 +2110,9 @@ class GameClient {
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, (data) => {
             this.onServerUpdate(data);
+        });
+        this.socket.on(SocketMsgs_1.SocketMsgs.CHUNK_MOVED, (chunkPosition) => {
+            this.onChunkMoved(chunkPosition);
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (errorMessage) => {
             console.log("Server error: " + errorMessage);
@@ -2138,13 +2144,17 @@ class GameClient {
             this.core.decodeUpdate(update[i][1]);
         }
         if (this.localPlayer) {
-            this.core.ChunksManager.rebuild();
-            this.clearUnusedChunks();
             this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);
+        }
+        if (this.coreChunk) {
+            this.clearUnusedChunks(this.coreChunk);
         }
     }
     onUpdateSnapshotData(lastSnapshotData) {
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
+    }
+    onChunkMoved(chunkPosition) {
+        this.coreChunk = this.core.ChunksManager.Chunks[chunkPosition[0]][chunkPosition[1]];
     }
     updateDebugWindow() {
         let delta = this.timer.getDelta();
@@ -2154,13 +2164,13 @@ class GameClient {
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
-    clearUnusedChunks() {
-        let playerChunks = [this.core.ChunksManager.getChunkByCoords(this.localPlayer.Transform.X, this.localPlayer.Transform.Y)];
-        playerChunks = playerChunks.concat(playerChunks[0].Neighbors);
+    clearUnusedChunks(coreChunk) {
+        let coreChunks = [coreChunk];
+        coreChunks = coreChunks.concat(coreChunk.Neighbors);
         let chunk;
         let chunksIter = this.core.ChunksManager.ChunksIterator();
         while (chunk = chunksIter.next().value) {
-            if (playerChunks.indexOf(chunk) == -1) {
+            if (coreChunks.indexOf(chunk) == -1) {
                 chunk.clearAll();
             }
         }
@@ -2168,7 +2178,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../shared/GameCore":85,"../shared/game_utils/factory/GameObjectsManager":92,"../shared/game_utils/factory/ObjectsFactory":94,"../shared/game_utils/physics/Transform":107,"../shared/net/SocketMsgs":110,"../shared/utils/AverageCounter":116,"../shared/utils/DeltaTimer":117,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":69,"socket.io-msgpack-parser":76}],10:[function(require,module,exports){
+},{"../shared/GameCore":85,"../shared/game_utils/factory/GameObjectsManager":92,"../shared/game_utils/factory/ObjectsFactory":94,"../shared/game_utils/physics/Transform":107,"../shared/net/SocketMsgs":110,"../shared/utils/AverageCounter":116,"../shared/utils/DeltaTimer":117,"../shared/utils/TicksCounter":118,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":69,"socket.io-msgpack-parser":76}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("../shared/serialize/ChangesDict");
@@ -2590,7 +2600,7 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             view: document.getElementById("game-canvas"),
             antialias: false,
             transparent: false,
-            resolution: 1,
+            resolution: 1 / 5,
             clearBeforeRender: false
         });
         this.rootContainer = new PIXI.Container();
@@ -2690,8 +2700,8 @@ class Renderer extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.camera.MouseDeviation;
     }
 }
-Renderer.WIDTH = 1024;
-Renderer.HEIGHT = 576;
+Renderer.WIDTH = 1024 * 5;
+Renderer.HEIGHT = 576 * 5;
 exports.Renderer = Renderer;
 
 },{"../../shared/game_utils/factory/GameObjectPrefabs":91,"../../shared/game_utils/factory/GameObjectsSubscriber":93,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
@@ -11984,6 +11994,9 @@ class Chunk {
     get TimeSinceDeactivation() {
         return Date.now() - this.deactivatedTime;
     }
+    get Position() {
+        return [this.x, this.y];
+    }
 }
 exports.Chunk = Chunk;
 
@@ -12124,32 +12137,35 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     }
     rebuild() {
         this.GameObjectsMapById.forEach((gameObject) => {
-            if ((!gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.Y))) {
-                //chunk cannot change if object did not move
-                return;
-            }
-            let newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-            let oldChunk = this.objectsChunks.get(gameObject);
-            if (!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
-                // console.log("Object went outside chunk! " + object.ID);
-                if (oldChunk) {
-                    oldChunk.addLeaver(gameObject);
-                }
-                gameObject.destroy();
-                return;
-            }
-            if (oldChunk == newChunk) {
-                return;
-            }
-            if (gameObject instanceof Player_1.Player) {
-                this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
-            }
-            oldChunk.removeObject(gameObject);
-            oldChunk.addLeaver(gameObject);
-            newChunk.addObject(gameObject);
-            this.objectsChunks.set(gameObject, newChunk);
-            gameObject.forceCompleteUpdate();
+            this.rebuildOne(gameObject);
         });
+    }
+    rebuildOne(gameObject) {
+        if ((!gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.Y))) {
+            //chunk cannot change if object did not move
+            return;
+        }
+        let newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        let oldChunk = this.objectsChunks.get(gameObject);
+        if (!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
+            // console.log("Object went outside chunk! " + object.ID);
+            if (oldChunk) {
+                oldChunk.addLeaver(gameObject);
+            }
+            gameObject.destroy();
+            return;
+        }
+        if (oldChunk == newChunk) {
+            return;
+        }
+        if (gameObject instanceof Player_1.Player) {
+            this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
+        }
+        oldChunk.removeObject(gameObject);
+        oldChunk.addLeaver(gameObject);
+        newChunk.addObject(gameObject);
+        this.objectsChunks.set(gameObject, newChunk);
+        gameObject.forceCompleteUpdate();
     }
     setFullUpdateToNewNeighbors(oldChunk, newChunk) {
         //need to clone newNeighbors, because it could be modified
@@ -13032,7 +13048,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../../utils/functions/CalcAngle":119,"../../factory/ObjectsFactory":94}],105:[function(require,module,exports){
+},{"../../../utils/functions/CalcAngle":120,"../../factory/ObjectsFactory":94}],105:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -13345,9 +13361,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 let messageCode = 0;
 class SocketMsgs {
 }
-//shared
 SocketMsgs.CHAT_MESSAGE = String.fromCharCode(messageCode++);
-//client
 SocketMsgs.CLIENT_READY = String.fromCharCode(messageCode++);
 SocketMsgs.HEARTBEAT = String.fromCharCode(messageCode++);
 SocketMsgs.INPUT_SNAPSHOT = String.fromCharCode(messageCode++);
@@ -13359,7 +13373,7 @@ SocketMsgs.FIRST_UPDATE_GAME = String.fromCharCode(messageCode++);
 SocketMsgs.UPDATE_GAME = String.fromCharCode(messageCode++);
 SocketMsgs.HEARTBEAT_RESPONSE = String.fromCharCode(messageCode++);
 SocketMsgs.UPDATE_SNAPSHOT_DATA = String.fromCharCode(messageCode++);
-SocketMsgs.NEW_MAP_CHUNK = String.fromCharCode(messageCode++);
+SocketMsgs.CHUNK_MOVED = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 
@@ -13447,6 +13461,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const SerializeDecorators_1 = require("./SerializeDecorators");
 const SharedConfig_1 = require("../SharedConfig");
 const BitOperations_1 = require("../utils/functions/BitOperations");
+const TicksCounter_1 = require("../utils/TicksCounter");
 var SerializableTypes;
 (function (SerializableTypes) {
     SerializableTypes[SerializableTypes["Int8"] = 0] = "Int8";
@@ -13462,6 +13477,7 @@ var SerializableTypes;
 })(SerializableTypes = exports.SerializableTypes || (exports.SerializableTypes = {}));
 class Serializable {
     constructor() {
+        this.lastUpdateTick = 0;
         this.changes = new Set();
         this.deserializedFields = new Set();
         this.forceComplete = true;
@@ -13479,9 +13495,6 @@ class Serializable {
             return this.deserializedFields.has(change);
         }
     }
-    get DeserializedFields() {
-        return this.deserializedFields;
-    }
     calcNeededBufferSize(complete) {
         if (this.forceComplete) {
             complete = true;
@@ -13498,7 +13511,7 @@ class Serializable {
             neededSize += this[key].calcNeededBufferSize(complete);
         });
         if (neededSize != 0) {
-            neededSize += BitOperations_1.maskByteSize(propsSize);
+            neededSize += BitOperations_1.calcPropsMaskByteSize(propsSize);
         }
         return neededSize;
     }
@@ -13507,7 +13520,7 @@ class Serializable {
     }
     getPropsMaskByteSize() {
         let propsSize = this.getPropsSize();
-        let propsByteSize = BitOperations_1.maskByteSize(propsSize);
+        let propsByteSize = BitOperations_1.calcPropsMaskByteSize(propsSize);
         return propsByteSize == 3 ? 4 : propsByteSize;
     }
     serialize(updateBufferView, offset, complete = false) {
@@ -13558,6 +13571,7 @@ class Serializable {
     }
     deserialize(updateBufferView, offset) {
         this.deserializedFields.clear();
+        this.lastUpdateTick = TicksCounter_1.TicksCounter.Instance.LastTickNumber;
         let propsMaskByteSize = this.getPropsMaskByteSize();
         let presentMask;
         if (propsMaskByteSize == 1) {
@@ -13597,6 +13611,12 @@ class Serializable {
         });
         return offset;
     }
+    get DeserializedFields() {
+        return this.deserializedFields;
+    }
+    get LastUpdateTick() {
+        return this.lastUpdateTick;
+    }
 }
 Serializable.TypesToBytesSize = new Map([
     [SerializableTypes.Int8, 1],
@@ -13610,7 +13630,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../SharedConfig":87,"../utils/functions/BitOperations":118,"./SerializeDecorators":114}],114:[function(require,module,exports){
+},{"../SharedConfig":87,"../utils/TicksCounter":118,"../utils/functions/BitOperations":119,"./SerializeDecorators":114}],114:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -13901,7 +13921,8 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             offset += 5;
             let gameObject = this.getGameObject(id);
             if (gameObject == null) {
-                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(id[0]), id);
+                const prefabId = id[0];
+                gameObject = ObjectsFactory_1.GameObjectsFactory.Instatiate(GameObjectPrefabs_1.Prefabs.IdToPrefabNames.get(prefabId), id, [updateBufferView, offset]);
             }
             offset = gameObject.deserialize(updateBufferView, offset);
         }
@@ -13973,17 +13994,40 @@ exports.DeltaTimer = DeltaTimer;
 },{}],118:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-function maskByteSize(num) {
+class TicksCounter {
+    constructor() {
+        this.ticks = 0;
+    }
+    update() {
+        this.ticks++;
+    }
+    get LastTickNumber() {
+        return this.ticks;
+    }
+    static get Instance() {
+        if (!TicksCounter.instance) {
+            TicksCounter.instance = new TicksCounter();
+        }
+        return TicksCounter.instance;
+    }
+}
+TicksCounter.instance = null;
+exports.TicksCounter = TicksCounter;
+
+},{}],119:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+function calcPropsMaskByteSize(num) {
     return Math.ceil(num / 8);
 }
-exports.maskByteSize = maskByteSize;
+exports.calcPropsMaskByteSize = calcPropsMaskByteSize;
 function setBit(val, bitIndex) {
     val |= (1 << bitIndex);
     return val;
 }
 exports.setBit = setBit;
 
-},{}],119:[function(require,module,exports){
+},{}],120:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function calcAngle(p1, p2) {

@@ -13,6 +13,7 @@ import {GameServer} from "./server/GameServer";
 import {SharedConfig, Origin} from "./shared/SharedConfig";
 import {Database, IUserModel} from "./server/database/Database";
 import shortid = require("shortid");
+import {MemoryStore, Store} from "express-session";
 const customParser: any = require('socket.io-msgpack-parser');
 
 SharedConfig.ORIGIN = Origin.SERVER;
@@ -25,9 +26,19 @@ const httpServer: http.Server = http.createServer(app);
 const sockets: SocketIO.Server = require('socket.io')(httpServer, {parser: customParser});
 const database: Database = Database.Instance;
 const MongoStoreExpress = connectMongo(express_session);
-const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});
+// const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});
+
+
+class StoreStub extends MemoryStore
+{
+    public user_id = "";
+}
+
+let storeStub: StoreStub = new StoreStub();
+
 const session = express_session({
-    store: sessionStore,
+    // store: sessionStore,
+    store: storeStub,
     secret: "mysecret",
     resave: true,
     saveUninitialized: true

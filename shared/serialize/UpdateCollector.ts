@@ -156,7 +156,8 @@ export class UpdateCollector extends GameObjectsSubscriber {
             let gameObject: GameObject = this.getGameObject(id);
 
             if (gameObject == null) {
-                gameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), id);
+                const prefabId = id[0];
+                gameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(prefabId), id, [updateBufferView, offset]);
             }
 
             offset = gameObject.deserialize(updateBufferView, offset);
