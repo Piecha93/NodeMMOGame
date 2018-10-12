@@ -11751,9 +11751,9 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.collistionsSystem.update();
         while (chunk = chunksIter.next().value) {
             this.collistionsSystem.updateCollisions(chunk.Objects);
-            if (!chunk.IsDeactivateTimePassed && !chunk.IsActive && SharedConfig_1.SharedConfig.IS_SERVER) {
-                chunk.dumpToMemory();
-            }
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.chunksManager.deactivateUnusedChunks();
         }
         this.chunksManager.rebuild();
     }
@@ -11805,11 +11805,8 @@ SharedConfig.ORIGIN = getOrigin();
 exports.SharedConfig = SharedConfig;
 
 },{}],88:[function(require,module,exports){
-(function (Buffer){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Player_1 = require("../game_utils/game/objects/Player");
-const Obstacle_1 = require("../game_utils/game/objects/Obstacle");
 const ObjectsSerializer_1 = require("../serialize/ObjectsSerializer");
 const SharedConfig_1 = require("../SharedConfig");
 let fs = require('fs');
@@ -11834,10 +11831,11 @@ class Chunk {
         this.leavers = [];
         this.activateTriggers = 0;
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.deactivatedTime = -1;
+            this.activate();
+            this.startDeactivationTimer();
         }
         else {
-            this.deactivatedTime = -1;
+            this.activate();
         }
     }
     addNeighbor(neighborChunk) {
@@ -11845,12 +11843,11 @@ class Chunk {
     }
     addObject(gameObject) {
         this.objects.push(gameObject);
-        if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            if (gameObject.IsChunkActivateTriger) {
-                this.activateTriggers++;
-                this.activate();
-                this.activateNeighbors();
-            }
+        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsChunkActivateTriger) {
+            this.activateTriggers++;
+            // console.log("chunk " + this.Position + "activate trigers++ " + this.activateTriggers);
+            this.activate();
+            this.activateNeighbors();
         }
     }
     removeObject(gameObject) {
@@ -11858,11 +11855,12 @@ class Chunk {
         if (index > -1) {
             this.objects.splice(index, 1);
         }
-        if (gameObject instanceof Player_1.Player) {
+        if (gameObject.IsChunkActivateTriger) {
             this.activateTriggers--;
+            // console.log("chunk " + this.Position + "activate trigers-- " + this.activateTriggers);
             if (this.activateTriggers <= 0) {
                 if (!this.HasPlayersInNeighborhood) {
-                    this.deactivate();
+                    this.startDeactivationTimer();
                 }
                 this.deactivateNeighborsIfNoPlayers();
             }
@@ -11876,7 +11874,7 @@ class Chunk {
     deactivateNeighborsIfNoPlayers() {
         for (let i = 0; i < this.neighbors.length; i++) {
             if (!this.neighbors[i].HasPlayersInNeighborhood) {
-                this.neighbors[i].deactivate();
+                this.neighbors[i].startDeactivationTimer();
             }
         }
     }
@@ -11901,18 +11899,21 @@ class Chunk {
         return false;
     }
     activate() {
+        if (this.isActive) {
+            this.deactivatedTime = -1;
+            return;
+        }
+        this.isActive = true;
         this.deactivatedTime = -1;
         this.reload();
     }
-    deactivate() {
-        if (this.IsDeactivateTimePassed && SharedConfig_1.SharedConfig.IS_SERVER) {
+    startDeactivationTimer() {
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            // console.log("start deactivation timer for chunk " + this.Position);
             this.deactivatedTime = Date.now();
         }
     }
     reload() {
-        if (this.isActive) {
-            return;
-        }
         if (!this.dumpedBuffer) {
             let fileName = "data/" + this.x + "." + this.y + ".chunk";
             try {
@@ -11926,17 +11927,19 @@ class Chunk {
         if (this.dumpedBuffer) {
             ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
         }
+        // console.log("load chunk " + this.Position + " buff " + this.dumpedBuffer);
         this.dumpedBuffer = null;
-        this.isActive = true;
     }
-    dumpToMemory() {
+    deactivate() {
+        // console.log("deactivate " + this.dumpedBuffer + " " + this.isActive);
         if (this.dumpedBuffer || !this.isActive) {
             return;
         }
-        this.clearNotObstacles();
+        // console.log("dump chunk " + this.Position);
+        this.clearNotStatic();
         this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
-        let fileName = "data/" + this.x + "." + this.y + ".chunk";
-        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => { });
+        // let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+        // fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
         this.clearAll();
         this.isActive = false;
     }
@@ -11945,10 +11948,10 @@ class Chunk {
             this.objects[0].destroy();
         }
     }
-    clearNotObstacles() {
+    clearNotStatic() {
         let numOfObjectsToBeSaved = 0;
         while (this.objects.length > numOfObjectsToBeSaved) {
-            if (!(this.objects[numOfObjectsToBeSaved] instanceof Obstacle_1.Obstacle)) {
+            if (!(this.objects[numOfObjectsToBeSaved].IsCollisionStatic)) {
                 this.objects[numOfObjectsToBeSaved].destroy();
             }
             else {
@@ -11989,9 +11992,13 @@ class Chunk {
         return this.isActive;
     }
     get IsDeactivateTimePassed() {
-        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < SharedConfig_1.SharedConfig.chunkDeactivationTime;
+        if (this.deactivatedTime == -1) {
+            return false;
+        }
+        return this.TimeSinceDeactivation > SharedConfig_1.SharedConfig.chunkDeactivationTime;
     }
     get TimeSinceDeactivation() {
+        // console.log("time since " + (Date.now() - this.deactivatedTime));
         return Date.now() - this.deactivatedTime;
     }
     get Position() {
@@ -12000,15 +12007,13 @@ class Chunk {
 }
 exports.Chunk = Chunk;
 
-}).call(this,require("buffer").Buffer)
-},{"../SharedConfig":87,"../game_utils/game/objects/Obstacle":100,"../game_utils/game/objects/Player":101,"../serialize/ObjectsSerializer":112,"buffer":3,"fs":1}],89:[function(require,module,exports){
+},{"../SharedConfig":87,"../serialize/ObjectsSerializer":112,"fs":1}],89:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
 const SharedConfig_1 = require("../SharedConfig");
 const Chunk_1 = require("./Chunk");
 const ChangesDict_1 = require("../serialize/ChangesDict");
-const Player_1 = require("../game_utils/game/objects/Player");
 class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
     constructor() {
         super();
@@ -12115,21 +12120,20 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
         let chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
         if (!chunk) {
-            console.log("Created object outside chunk! "
-                + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
+            console.log("Created object outside chunk! " + gameObject.ID + " " + gameObject.Transform.Position);
             gameObject.destroy();
             return;
         }
-        if (!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player)) {
-            console.log("Created not Player object in inactive chunk! "
+        if (!chunk.IsActive && !gameObject.IsChunkActivateTriger) {
+            console.log("Created not chunk activate triger object in inactive chunk! "
                 + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
             gameObject.destroy();
             return;
         }
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
-        if (gameObject instanceof Player_1.Player) {
-            this.setFullUpdateToNewNeighbors(null, chunk);
+        if (gameObject.IsChunkFullUpdateTriger) {
+            this.setFullUpdateForNewNeighbors(null, chunk);
         }
     }
     onObjectDestroy(gameObject) {
@@ -12147,8 +12151,8 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
         let newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
         let oldChunk = this.objectsChunks.get(gameObject);
-        if (!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player_1.Player))) {
-            // console.log("Object went outside chunk! " + object.ID);
+        if (!newChunk || (!newChunk.IsActive && !gameObject.IsChunkActivateTriger)) {
+            // console.log("Object went outside chunk! " + gameObject.ID);
             if (oldChunk) {
                 oldChunk.addLeaver(gameObject);
             }
@@ -12158,8 +12162,8 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         if (oldChunk == newChunk) {
             return;
         }
-        if (gameObject instanceof Player_1.Player) {
-            this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
+        if (gameObject.IsChunkFullUpdateTriger) {
+            this.setFullUpdateForNewNeighbors(oldChunk, newChunk);
         }
         oldChunk.removeObject(gameObject);
         oldChunk.addLeaver(gameObject);
@@ -12167,7 +12171,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         this.objectsChunks.set(gameObject, newChunk);
         gameObject.forceCompleteUpdate();
     }
-    setFullUpdateToNewNeighbors(oldChunk, newChunk) {
+    setFullUpdateForNewNeighbors(oldChunk, newChunk) {
         //need to clone newNeighbors, because it could be modified
         let newNeighbors = Object.assign([], newChunk.Neighbors);
         if (oldChunk) {
@@ -12190,6 +12194,13 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             newNeighbors[i].IsNextUpdateComplete = true;
         }
     }
+    deactivateUnusedChunks() {
+        for (let chunk of this.ChunksIterator()) {
+            if (chunk.IsDeactivateTimePassed && chunk.IsActive) {
+                chunk.deactivate();
+            }
+        }
+    }
     remove(gameObject) {
         if (this.objectsChunks.has(gameObject)) {
             this.objectsChunks.get(gameObject).removeObject(gameObject);
@@ -12209,7 +12220,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../SharedConfig":87,"../game_utils/factory/GameObjectsSubscriber":93,"../game_utils/game/objects/Player":101,"../serialize/ChangesDict":111,"./Chunk":88}],90:[function(require,module,exports){
+},{"../SharedConfig":87,"../game_utils/factory/GameObjectsSubscriber":93,"../serialize/ChangesDict":111,"./Chunk":88}],90:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -12672,6 +12683,9 @@ class GameObject extends Serializable_1.Serializable {
         this.invisible = false;
         this.isDestroyed = false;
         this.isChunkActivateTriger = false;
+        this.isChunkFullUpdateTriger = false;
+        //if true object will not recive onCollisionEnter event
+        this.isCollisionStatic = false;
         this.transform = transform;
         this.SpriteName = "none";
         this.destroyListeners = new Set();
@@ -12754,6 +12768,12 @@ class GameObject extends Serializable_1.Serializable {
     get IsChunkActivateTriger() {
         return this.isChunkActivateTriger;
     }
+    get IsChunkFullUpdateTriger() {
+        return this.isChunkFullUpdateTriger;
+    }
+    get IsCollisionStatic() {
+        return this.isCollisionStatic;
+    }
 }
 __decorate([
     SerializeDecorators_1.SerializableObject("pos"),
@@ -12806,18 +12826,23 @@ exports.Item = Item;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
+const Player_1 = require("./Player");
 class Obstacle extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
+        this.isCollisionStatic = true;
     }
-    onCollisionEnter(gameObject, result) {
-        throw "This method should never be called on Obstacle object";
-    }
+    // onCollisionEnter(gameObject: GameObject, result: Result) {
+    // throw "This method should never be called on Obstacle object";
+    // }
     serverCollision(gameObject, result) {
-        throw "This method should never be called on Obstacle object";
+        if (gameObject instanceof Player_1.Player || gameObject instanceof Obstacle) {
+            this.Transform.X -= result.overlap * result.overlap_x;
+            this.Transform.Y -= result.overlap * result.overlap_y;
+        }
     }
     commonCollision(gameObject, result) {
-        throw "This method should never be called on Obstacle object";
+        // throw "This method should never be called on Obstacle object";
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -12828,7 +12853,7 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":98}],101:[function(require,module,exports){
+},{"./GameObject":98,"./Player":101}],101:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../../input/InputCommands");
@@ -12845,6 +12870,7 @@ class Player extends Actor_1.Actor {
         // this.weapon = new MagicWand();
         this.weapon = new ObjectsSpawner_1.ObjectsSpawner();
         this.isChunkActivateTriger = true;
+        this.isChunkFullUpdateTriger = true;
     }
     setInput(inputSnapshot) {
         let inputCommands = inputSnapshot.Commands;
@@ -13079,7 +13105,6 @@ exports.ObjectsSpawner = ObjectsSpawner;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
-const Obstacle_1 = require("../game/objects/Obstacle");
 const SharedConfig_1 = require("../../SharedConfig");
 class CollisionsSystem extends detect_collisions_1.Collisions {
     constructor() {
@@ -13090,7 +13115,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
     insertObject(gameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
-        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject instanceof Obstacle_1.Obstacle && this.checkObjectCollision(gameObject)) {
+        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsCollisionStatic && this.checkObjectCollision(gameObject)) {
             gameObject.destroy();
         }
     }
@@ -13105,7 +13130,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
     }
     updateCollisions(gameObjects) {
         gameObjects.forEach((object) => {
-            if (object instanceof Obstacle_1.Obstacle) {
+            if (object.IsCollisionStatic) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles
                 return;
@@ -13139,7 +13164,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../../SharedConfig":87,"../game/objects/Obstacle":100,"detect-collisions":36}],107:[function(require,module,exports){
+},{"../../SharedConfig":87,"detect-collisions":36}],107:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;

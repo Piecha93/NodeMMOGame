@@ -1,6 +1,5 @@
 import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
 import {GameObject} from "../game/objects/GameObject";
-import {Obstacle} from "../game/objects/Obstacle";
 import {SharedConfig} from "../../SharedConfig";
 
 export class CollisionsSystem extends Collisions {
@@ -15,7 +14,7 @@ export class CollisionsSystem extends Collisions {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
 
-        if(SharedConfig.IS_SERVER && gameObject instanceof Obstacle && this.checkObjectCollision(gameObject)) {
+        if(SharedConfig.IS_SERVER && gameObject.IsCollisionStatic && this.checkObjectCollision(gameObject)) {
             gameObject.destroy();
         }
     }
@@ -33,7 +32,7 @@ export class CollisionsSystem extends Collisions {
 
     public updateCollisions(gameObjects: Array<GameObject>) {
         gameObjects.forEach((object: GameObject) => {
-            if(object instanceof Obstacle) {
+            if(object.IsCollisionStatic) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles
                 return;

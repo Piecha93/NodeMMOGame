@@ -143,14 +143,13 @@ export class ChunksManager extends GameObjectsSubscriber {
         let chunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
 
         if(!chunk) {
-            console.log("Created object outside chunk! "
-                + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
+            console.log("Created object outside chunk! " + gameObject.ID + " " + gameObject.Transform.Position);
             gameObject.destroy();
             return;
         }
 
-        if(!chunk.IsDeactivateTimePassed && !(gameObject instanceof Player)) {
-            console.log("Created not Player object in inactive chunk! "
+        if(!chunk.IsActive && !gameObject.IsChunkActivateTriger) {
+            console.log("Created not chunk activate triger object in inactive chunk! "
                 + gameObject.ID + " " + [gameObject.Transform.X, gameObject.Transform.Y]);
             gameObject.destroy();
             return;
@@ -159,8 +158,8 @@ export class ChunksManager extends GameObjectsSubscriber {
         chunk.addObject(gameObject);
         this.objectsChunks.set(gameObject, chunk);
 
-        if(gameObject instanceof Player) {
-            this.setFullUpdateToNewNeighbors(null, chunk);
+        if(gameObject.IsChunkFullUpdateTriger) {
+            this.setFullUpdateForNewNeighbors(null, chunk);
         }
     }
 
@@ -184,8 +183,8 @@ export class ChunksManager extends GameObjectsSubscriber {
 
         let oldChunk: Chunk = this.objectsChunks.get(gameObject);
 
-        if(!newChunk || (!newChunk.IsDeactivateTimePassed && !(gameObject instanceof Player))) {
-            // console.log("Object went outside chunk! " + object.ID);
+        if(!newChunk || (!newChunk.IsActive && !gameObject.IsChunkActivateTriger)) {
+            // console.log("Object went outside chunk! " + gameObject.ID);
             if(oldChunk) {
                 oldChunk.addLeaver(gameObject);
             }
@@ -197,8 +196,8 @@ export class ChunksManager extends GameObjectsSubscriber {
             return;
         }
 
-        if(gameObject instanceof Player) {
-            this.setFullUpdateToNewNeighbors(oldChunk, newChunk);
+        if(gameObject.IsChunkFullUpdateTriger) {
+            this.setFullUpdateForNewNeighbors(oldChunk, newChunk);
         }
 
         oldChunk.removeObject(gameObject);
@@ -209,7 +208,7 @@ export class ChunksManager extends GameObjectsSubscriber {
         gameObject.forceCompleteUpdate();
     }
 
-    private setFullUpdateToNewNeighbors(oldChunk: Chunk, newChunk: Chunk) {
+    private setFullUpdateForNewNeighbors(oldChunk: Chunk, newChunk: Chunk) {
         //need to clone newNeighbors, because it could be modified
         let newNeighbors: Array<Chunk> = Object.assign([], newChunk.Neighbors);
 
@@ -233,6 +232,14 @@ export class ChunksManager extends GameObjectsSubscriber {
 
         for(let i: number = 0; i < newNeighbors.length; i++) {
             newNeighbors[i].IsNextUpdateComplete = true;
+        }
+    }
+
+    public deactivateUnusedChunks() {
+        for(let chunk of this.ChunksIterator()) {
+            if (chunk.IsDeactivateTimePassed && chunk.IsActive) {
+                chunk.deactivate();
+            }
         }
     }
 

@@ -231,7 +231,7 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 10000; i++) {
             o = GameObjectsFactory.InstatiateWithPosition("Wall",
                 [this.getRandomInsideMap(), this.getRandomInsideMap()]);
 
@@ -291,10 +291,10 @@ export class GameServer {
             spawnItem();
         }
 
-        let chunksIter = this.core.ChunksManager.ChunksIterator();
-        let chunk: Chunk;
-        while (chunk = chunksIter.next().value) {
-            chunk.deactivate();
-        }
+        // let chunksIter = this.core.ChunksManager.ChunksIterator();
+        // let chunk: Chunk;
+        // while (chunk = chunksIter.next().value) {
+        //     chunk.deactivate();
+        // }
     }
 }

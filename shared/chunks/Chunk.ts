@@ -44,9 +44,10 @@ export class Chunk {
         this.activateTriggers = 0;
 
         if (SharedConfig.IS_SERVER) {
-            this.deactivatedTime = -1;
+            this.activate();
+            this.startDeactivationTimer();
         } else {
-            this.deactivatedTime = -1;
+            this.activate();
         }
     }
 
@@ -57,12 +58,11 @@ export class Chunk {
     public addObject(gameObject: GameObject) {
         this.objects.push(gameObject);
 
-        if (SharedConfig.IS_SERVER) {
-            if (gameObject.IsChunkActivateTriger) {
-                this.activateTriggers++;
-                this.activate();
-                this.activateNeighbors();
-            }
+        if (SharedConfig.IS_SERVER && gameObject.IsChunkActivateTriger) {
+            this.activateTriggers++;
+            // console.log("chunk " + this.Position + "activate trigers++ " + this.activateTriggers);
+            this.activate();
+            this.activateNeighbors();
         }
     }
 
@@ -72,11 +72,12 @@ export class Chunk {
             this.objects.splice(index, 1);
         }
 
-        if (gameObject instanceof Player) {
+        if (gameObject.IsChunkActivateTriger) {
             this.activateTriggers--;
+            // console.log("chunk " + this.Position + "activate trigers-- " + this.activateTriggers);
             if (this.activateTriggers <= 0) {
                 if (!this.HasPlayersInNeighborhood) {
-                    this.deactivate();
+                    this.startDeactivationTimer();
                 }
                 this.deactivateNeighborsIfNoPlayers()
             }
@@ -92,7 +93,7 @@ export class Chunk {
     private deactivateNeighborsIfNoPlayers() {
         for (let i: number = 0; i < this.neighbors.length; i++) {
             if (!this.neighbors[i].HasPlayersInNeighborhood) {
-                this.neighbors[i].deactivate();
+                this.neighbors[i].startDeactivationTimer();
             }
         }
     }
@@ -124,21 +125,25 @@ export class Chunk {
     }
 
     public activate() {
+        if (this.isActive) {
+            this.deactivatedTime = -1;
+            return;
+        }
+
+        this.isActive = true;
         this.deactivatedTime = -1;
+
         this.reload();
     }
 
-    public deactivate() {
-        if (this.IsDeactivateTimePassed && SharedConfig.IS_SERVER) {
+    public startDeactivationTimer() {
+        if (SharedConfig.IS_SERVER) {
+            // console.log("start deactivation timer for chunk " + this.Position);
             this.deactivatedTime = Date.now();
         }
     }
 
     public reload() {
-        if (this.isActive) {
-            return;
-        }
-
         if (!this.dumpedBuffer) {
             let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
             try {
@@ -153,21 +158,24 @@ export class Chunk {
             ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
         }
 
+        // console.log("load chunk " + this.Position + " buff " + this.dumpedBuffer);
+
         this.dumpedBuffer = null;
-        this.isActive = true;
     }
 
-    public dumpToMemory() {
+    public deactivate() {
+        // console.log("deactivate " + this.dumpedBuffer + " " + this.isActive);
         if (this.dumpedBuffer || !this.isActive) {
             return;
         }
 
-        this.clearNotObstacles();
+        // console.log("dump chunk " + this.Position);
+        this.clearNotStatic();
 
         this.dumpedBuffer = ObjectsSerializer.serializeChunk(this);
 
-        let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
-        fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
+        // let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+        // fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
 
         this.clearAll();
         this.isActive = false;
@@ -179,10 +187,10 @@ export class Chunk {
         }
     }
 
-    private clearNotObstacles() {
+    private clearNotStatic() {
         let numOfObjectsToBeSaved: number = 0;
         while (this.objects.length > numOfObjectsToBeSaved) {
-            if (!(this.objects[numOfObjectsToBeSaved] instanceof Obstacle)) {
+            if (!(this.objects[numOfObjectsToBeSaved].IsCollisionStatic)) {
                 this.objects[numOfObjectsToBeSaved].destroy();
             } else {
                 numOfObjectsToBeSaved++;
@@ -233,10 +241,14 @@ export class Chunk {
     }
 
     get IsDeactivateTimePassed(): boolean {
-        return this.deactivatedTime == -1 || this.TimeSinceDeactivation < SharedConfig.chunkDeactivationTime;
+        if(this.deactivatedTime == -1) {
+            return false;
+        }
+        return this.TimeSinceDeactivation > SharedConfig.chunkDeactivationTime;
     }
 
     get TimeSinceDeactivation(): number {
+        // console.log("time since " + (Date.now() - this.deactivatedTime));
         return Date.now() - this.deactivatedTime;
     }
 

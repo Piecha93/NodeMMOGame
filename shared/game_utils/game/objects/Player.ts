@@ -26,6 +26,7 @@ export class Player extends Actor {
         // this.weapon = new MagicWand();
         this.weapon = new ObjectsSpawner();
         this.isChunkActivateTriger = true;
+        this.isChunkFullUpdateTriger = true;
     }
 
     private lastInputSnapshot: InputSnapshot = null;

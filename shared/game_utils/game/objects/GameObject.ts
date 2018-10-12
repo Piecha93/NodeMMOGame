@@ -22,6 +22,10 @@ export class GameObject extends Serializable {
     private isDestroyed: boolean = false;
 
     protected isChunkActivateTriger: boolean = false;
+    protected isChunkFullUpdateTriger: boolean = false;
+
+    //if true object will not recive onCollisionEnter event
+    protected isCollisionStatic: boolean = false;
 
     constructor(transform: Transform) {
         super();
@@ -136,5 +140,13 @@ export class GameObject extends Serializable {
 
     get IsChunkActivateTriger(): boolean {
         return this.isChunkActivateTriger;
+    }
+
+    get IsChunkFullUpdateTriger(): boolean {
+        return this.isChunkFullUpdateTriger;
+    }
+
+    get IsCollisionStatic(): boolean {
+        return this.isCollisionStatic;
     }
 }
