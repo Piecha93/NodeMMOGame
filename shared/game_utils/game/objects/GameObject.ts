@@ -26,6 +26,8 @@ export class GameObject extends Serializable {
 
     //if true object will not recive onCollisionEnter event
     protected isCollisionStatic: boolean = false;
+    //if true objects cannot go through it
+    protected isSolid: boolean = false;
 
     constructor(transform: Transform) {
         super();
@@ -117,8 +119,10 @@ export class GameObject extends Serializable {
     }
 
     set SpriteName(spriteName: string) {
-        this.spriteName = spriteName;
-        this.addChange(ChangesDict.SPRITE_ID);
+        if(this.spriteName != spriteName) {
+            this.spriteName = spriteName;
+            this.addChange(ChangesDict.SPRITE_ID);
+        }
     }
 
     @SerializableProperty(ChangesDict.SPRITE_ID, SerializableTypes.Uint16)
@@ -148,5 +152,9 @@ export class GameObject extends Serializable {
 
     get IsCollisionStatic(): boolean {
         return this.isCollisionStatic;
+    }
+
+    get IsSolid(): boolean {
+        return this.isSolid;
     }
 }

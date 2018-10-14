@@ -78,6 +78,8 @@ export class GameClient {
 
         this.updateDebugWindow();
 
+        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
+
         let deviation: [number, number] = this.renderer.CameraDeviation;
         this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
         this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
@@ -118,7 +120,8 @@ export class GameClient {
         this.reconciliation = new Reconciliation();
         this.core = new GameCore();
 
-        this.cursor = GameObjectsFactory.InstatiateManually(new Cursor(new Transform([1,1],1))) as Cursor;
+        this.cursor = new Cursor(new Transform([1,1],1));//GameObjectsFactory.InstatiateManually(new Cursor(new Transform([1,1],1))) as Cursor;
+        this.core.CollisionsSystem.insertObject(this.cursor);
 
         this.heartBeatSender.sendHeartBeat();
         this.inputHandler = new InputHandler(this.cursor);

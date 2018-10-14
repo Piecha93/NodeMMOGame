@@ -5,6 +5,7 @@ import {GameObject} from "../game/objects/GameObject";
 import {FireBall} from "../game/objects/FireBall";
 import {Enemy} from "../game/objects/Enemy";
 import {Portal} from "../game/objects/Portal";
+import {Doors} from "../game/objects/Doors";
 
 export interface Constructor<T> extends Function {
     new(...params: any[]): T; prototype: T;
@@ -44,5 +45,6 @@ Prefabs.Register("DefaultPlayer", Player, {spriteName: "template"});
 Prefabs.Register("Michau", Enemy, {spriteName: "template", name: "Michau", prefabSize: [32, 32]});
 Prefabs.Register("Wall", Obstacle, {spriteName: "wall"});
 Prefabs.Register("HpPotion", Item, {spriteName: "hp_potion"});
+Prefabs.Register("Doors", Doors, {spriteName: "doors_closed"});
 Prefabs.Register("FireBall", FireBall, {spriteName: "flame", prefabSize: 15});
 Prefabs.Register("Portal", Portal, {spriteName: "portal", prefabSize: 75});

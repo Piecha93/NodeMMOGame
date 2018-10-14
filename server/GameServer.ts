@@ -290,11 +290,5 @@ export class GameServer {
         for (let i = 0; i < 0; i++) {
             spawnItem();
         }
-
-        // let chunksIter = this.core.ChunksManager.ChunksIterator();
-        // let chunk: Chunk;
-        // while (chunk = chunksIter.next().value) {
-        //     chunk.deactivate();
-        // }
     }
 }

@@ -28,3 +28,5 @@ ResourcesMap.RegisterResource('white');
 ResourcesMap.RegisterResource('flame');
 ResourcesMap.RegisterResource('template');
 ResourcesMap.RegisterResource('terrain');
+ResourcesMap.RegisterResource('doors_closed');
+ResourcesMap.RegisterResource('doors_open');

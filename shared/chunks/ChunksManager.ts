@@ -184,7 +184,7 @@ export class ChunksManager extends GameObjectsSubscriber {
         let oldChunk: Chunk = this.objectsChunks.get(gameObject);
 
         if(!newChunk || (!newChunk.IsActive && !gameObject.IsChunkActivateTriger)) {
-            // console.log("Object went outside chunk! " + gameObject.ID);
+            console.log("Object went outside chunk! " + gameObject.ID);
             if(oldChunk) {
                 oldChunk.addLeaver(gameObject);
             }

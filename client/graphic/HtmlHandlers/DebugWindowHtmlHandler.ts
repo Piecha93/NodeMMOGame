@@ -19,6 +19,7 @@ export class DebugWindowHtmlHandler {
         this.Ping = "";
         this.Fps = "";
         this.GameObjectCounter = "0";
+        this.CursorObjectSpan = "";
         this.Position = "0";
 
         this.debugWindowDiv.appendChild(this.pingSpan);
@@ -26,7 +27,6 @@ export class DebugWindowHtmlHandler {
         this.debugWindowDiv.appendChild(this.gameObjectCounterSpan);
         this.debugWindowDiv.appendChild(this.cursorObjectSpan);
         this.debugWindowDiv.appendChild(this.positionSpan);
-
     }
 
     static get Instance(): DebugWindowHtmlHandler {
@@ -49,6 +49,7 @@ export class DebugWindowHtmlHandler {
     }
 
     set CursorObjectSpan(cursorObject: string) {
+        console.log("asd");
         this.cursorObjectSpan.innerHTML = "<br>" + "cursorObject: " + cursorObject;
     }
 

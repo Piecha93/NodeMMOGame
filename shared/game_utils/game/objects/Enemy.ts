@@ -22,7 +22,7 @@ export class Enemy extends Actor {
 
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
-        if(gameObject instanceof Obstacle) {
+        if(gameObject.IsSolid) {
             this.MoveDirection = Math.round(Math.random() * 8);
         }
     }

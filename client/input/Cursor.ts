@@ -1,6 +1,5 @@
 import {Transform} from "../../shared/game_utils/physics/Transform";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Enemy} from "../../shared/game_utils/game/objects/Enemy";
 import {Result} from "detect-collisions";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 
@@ -16,12 +15,12 @@ export class Cursor extends GameObject {
 
     }
 
+    destroy() {
+        super.destroy();
+    }
+
     protected commonCollision(gameObject: GameObject, result: Result) {
-        if(gameObject instanceof Enemy) {
-            DebugWindowHtmlHandler.Instance.CursorObjectSpan = (gameObject as Enemy).Name;
-        } else {
-            DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.SpriteName;
-        }
+        DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
     }
 }
 

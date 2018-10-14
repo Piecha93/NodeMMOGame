@@ -92,7 +92,6 @@ export class InputHandler {
     }
 
     private onMouseUp(mouseEvent: MouseEvent): boolean {
-
         this.mouseButtonsDown.set(mouseEvent.button, false);
         return true;
     }

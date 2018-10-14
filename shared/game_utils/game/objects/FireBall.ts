@@ -2,7 +2,6 @@ import {Projectile} from "./Projectile";
 import {GameObject} from "./GameObject";
 import {Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
-import {Obstacle} from "./Obstacle";
 import {Actor} from "./Actor";
 import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
@@ -16,7 +15,6 @@ export class FireBall extends Projectile {
 
     constructor(transform: Transform) {
         super(transform);
-
         this.velocity = 1;
 
         this.lifeSpan = 2000;
@@ -34,7 +32,7 @@ export class FireBall extends Projectile {
                 gameObject.hit(this.power);
                 this.destroy()
             }
-        } else if(gameObject instanceof Obstacle) {
+        } else if(gameObject.IsSolid) {
             this.destroy();
         }
     }

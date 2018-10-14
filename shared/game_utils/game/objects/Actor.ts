@@ -60,7 +60,7 @@ export abstract class Actor extends GameObject {
     protected commonCollision(gameObject: GameObject, result: Result) {
         super.commonCollision(gameObject, result);
 
-        if(gameObject instanceof Obstacle) {
+        if(gameObject.IsSolid) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
         }

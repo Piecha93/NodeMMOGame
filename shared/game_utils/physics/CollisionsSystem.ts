@@ -14,7 +14,7 @@ export class CollisionsSystem extends Collisions {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
 
-        if(SharedConfig.IS_SERVER && gameObject.IsCollisionStatic && this.checkObjectCollision(gameObject)) {
+        if(SharedConfig.IS_SERVER && gameObject.IsSolid && this.checkObjectCollision(gameObject)) {
             gameObject.destroy();
         }
     }

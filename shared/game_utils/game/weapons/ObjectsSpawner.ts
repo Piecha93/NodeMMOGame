@@ -12,7 +12,7 @@ export class ObjectsSpawner implements Weapon {
             } else if (clickButton == 2) {
                 GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             } else {
-                GameObjectsFactory.InstatiateWithPosition("HpPotion", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                GameObjectsFactory.InstatiateWithPosition("Doors", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             }
         }
     };

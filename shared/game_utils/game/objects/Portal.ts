@@ -36,7 +36,7 @@ export class Portal extends GameObject {
         if(gameObject instanceof Portal) {
             this.destroy();
             return;
-        } else if(gameObject instanceof Obstacle) {
+        } else if(gameObject.IsSolid) {
             this.isAttached = true;
 
             this.Transform.X -= result.overlap * result.overlap_x;

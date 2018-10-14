@@ -62,6 +62,8 @@ export class Renderer extends GameObjectsSubscriber {
         this.resourcesLoader.registerResource('hp_potion', 'resources/images/hp_potion.png', ResourceType.SPRITE);
         this.resourcesLoader.registerResource('portal', 'resources/images/portal.png', ResourceType.SPRITE);
         this.resourcesLoader.registerResource('white', 'resources/images/white.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('doors_open', 'resources/images/doors_open.png', ResourceType.SPRITE);
+        this.resourcesLoader.registerResource('doors_closed', 'resources/images/doors_closed.png', ResourceType.SPRITE);
         this.resourcesLoader.registerResource('flame', 'resources/animations/flame/flame.json', ResourceType.ANIMATION);
         this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourceType.OCTAGONAL_ANIMATION);
         this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourceType.OCTAGONAL_ANIMATION);

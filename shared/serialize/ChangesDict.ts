@@ -2,6 +2,7 @@ export class ChangesDict {
     //GameObject
     public static SPRITE_ID = "SPRITE_ID";
     public static VELOCITY = "VELOCITY";
+    public static ISOPEN = "ISOPEN";
 
     //Actor
     public static HP = "HP";
