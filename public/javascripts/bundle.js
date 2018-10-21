@@ -2151,6 +2151,7 @@ class GameClient {
         }
     }
     onUpdateSnapshotData(lastSnapshotData) {
+        console.log("last snapshjott " + lastSnapshotData);
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
     }
     onChunkMoved(chunkPosition) {
@@ -2983,58 +2984,61 @@ const InputCommands_1 = require("../../shared/input/InputCommands");
 const keypress = require("keypress.js").keypress;
 class InputHandler {
     constructor(cursor) {
+        this.isUp = false;
+        this.isDown = false;
+        this.isLeft = false;
+        this.isRight = false;
         console.log(keypress);
         this.listener = new keypress.Listener();
         this.cursor = cursor;
         this.mouseButtonsDown = new Map();
-        //TODO change 0,1,2 to proper enum
-        this.mouseButtonsDown.set(0, false);
-        this.mouseButtonsDown.set(1, false);
-        this.mouseButtonsDown.set(2, false);
+        this.mouseButtonsDown.set(InputCommands_1.MouseKeys.LEFT, false);
+        this.mouseButtonsDown.set(InputCommands_1.MouseKeys.MIDDLE, false);
+        this.mouseButtonsDown.set(InputCommands_1.MouseKeys.RIGHT, false);
         this.clickPosition = null;
         this.snapshotCallbacks = [];
         this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
         this.listener.register_combo({
-            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP),
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.UP),
             on_keydown: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, -1);
+                this.isUp = true;
                 this.invokeSnapshotCallbacks();
             },
             on_keyup: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, 0);
+                this.isUp = false;
                 this.invokeSnapshotCallbacks();
             }
         });
         this.listener.register_combo({
-            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN),
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.DOWN),
             on_keydown: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 1);
+                this.isDown = true;
                 this.invokeSnapshotCallbacks();
             },
             on_keyup: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 0);
+                this.isDown = false;
                 this.invokeSnapshotCallbacks();
             }
         });
         this.listener.register_combo({
-            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT),
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.LEFT),
             on_keydown: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, -1);
+                this.isLeft = true;
                 this.invokeSnapshotCallbacks();
             },
             on_keyup: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, 0);
+                this.isLeft = false;
                 this.invokeSnapshotCallbacks();
             }
         });
         this.listener.register_combo({
-            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT),
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.RIGHT),
             on_keydown: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 1);
+                this.isRight = true;
                 this.invokeSnapshotCallbacks();
             },
             on_keyup: () => {
-                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 0);
+                this.isRight = false;
                 this.invokeSnapshotCallbacks();
             }
         });
@@ -3071,20 +3075,20 @@ class InputHandler {
         this.snapshotCallbacks.push(callback);
     }
     onMouseDown(mouseEvent, isRecursion) {
-        this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
         if (!isRecursion) {
             this.mouseButtonsDown.set(mouseEvent.button, true);
         }
         else if (!this.mouseButtonsDown.get(mouseEvent.button)) {
             return true;
         }
+        this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
         this.mouseButton = mouseEvent.button;
-        this.invokeSnapshotCallbacks();
         if (this.mouseButtonsDown.get(mouseEvent.button)) {
             setTimeout(() => {
                 this.onMouseDown(mouseEvent, true);
             }, 100);
         }
+        this.invokeSnapshotCallbacks();
         return true;
     }
     onMouseUp(mouseEvent) {
@@ -3092,11 +3096,29 @@ class InputHandler {
         return true;
     }
     invokeSnapshotCallbacks() {
+        if (this.isUp) {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL, -1);
+        }
+        else if (this.isDown) {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL, 1);
+        }
+        else {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL, 0);
+        }
+        if (this.isRight) {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL, 1);
+        }
+        else if (this.isLeft) {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL, -1);
+        }
+        else {
+            this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL, 0);
+        }
         if (this.clickPosition != null) {
-            if (this.mouseButton == 0) {
+            if (this.mouseButton == InputCommands_1.MouseKeys.LEFT) {
                 this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
             }
-            else if (this.mouseButton == 2) {
+            else if (this.mouseButton == InputCommands_1.MouseKeys.RIGHT) {
                 this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
             }
             else {
@@ -3118,10 +3140,10 @@ exports.InputHandler = InputHandler;
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../shared/input/InputCommands");
 exports.InputKeyMap = new Map([
-    [InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, 'w'],
-    [InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 's'],
-    [InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, 'a'],
-    [InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 'd'],
+    [InputCommands_1.INPUT_COMMAND.UP, 'w'],
+    [InputCommands_1.INPUT_COMMAND.DOWN, 's'],
+    [InputCommands_1.INPUT_COMMAND.LEFT, 'a'],
+    [InputCommands_1.INPUT_COMMAND.RIGHT, 'd'],
     [InputCommands_1.INPUT_COMMAND.INTERACT, 'e'],
     [InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON, 'q'],
     [InputCommands_1.INPUT_COMMAND.TEST, 'f'],
@@ -13011,8 +13033,6 @@ class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.lastInputSnapshot = null;
-        this.horizontalInput = [0, 0];
-        this.verticalInput = [0, 0];
         this.velocity = 0.25;
         // this.weapon = new PortalGun();
         // this.weapon = new MagicWand();
@@ -13025,22 +13045,22 @@ class Player extends Actor_1.Actor {
         inputCommands.forEach((value, key) => {
             if (SharedConfig_1.SharedConfig.IS_CLIENT && Player.onlyServerActions.has(key))
                 return;
-            if (key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP || key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) {
-                this.setHorizontalInput(parseFloat(value), key);
+            if (key == InputCommands_1.INPUT_COMMAND.HORIZONTAL) {
+                this.Horizontal = parseFloat(value);
                 this.lastInputSnapshot = inputSnapshot;
             }
-            else if (key == InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT || key == InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT) {
-                this.setVerticalInput(parseFloat(value), key);
+            else if (key == InputCommands_1.INPUT_COMMAND.VERTICAL) {
+                this.Vertical = parseFloat(value);
                 this.lastInputSnapshot = inputSnapshot;
             }
             else if (key == InputCommands_1.INPUT_COMMAND.LEFT_MOUSE) {
-                this.mouseClickAction(value, 0);
+                this.mouseClickAction(value, InputCommands_1.MouseKeys.LEFT);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE) {
-                this.mouseClickAction(value, 2);
+                this.mouseClickAction(value, InputCommands_1.MouseKeys.RIGHT);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE) {
-                this.mouseClickAction(value, 1);
+                this.mouseClickAction(value, InputCommands_1.MouseKeys.MIDDLE);
             }
             else if (key == InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON) {
                 this.switchWeaponAction(value);
@@ -13049,26 +13069,6 @@ class Player extends Actor_1.Actor {
                 this.testAction(value);
             }
         });
-    }
-    setHorizontalInput(value, key) {
-        let idx = key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN ? 0 : 1;
-        this.horizontalInput[idx] = value;
-        if (value != 0) {
-            this.Horizontal = this.horizontalInput[idx];
-        }
-        else {
-            this.Horizontal = this.horizontalInput[idx == 0 ? 1 : 0];
-        }
-    }
-    setVerticalInput(value, key) {
-        let idx = key == InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT ? 0 : 1;
-        this.verticalInput[idx] = value;
-        if (value != 0) {
-            this.Vertical = this.verticalInput[idx];
-        }
-        else {
-            this.Vertical = this.verticalInput[idx == 0 ? 1 : 0];
-        }
     }
     mouseClickAction(position, clickButton) {
         let splited = position.split(',').map((val) => { return parseFloat(val); });
@@ -13246,14 +13246,15 @@ exports.MagicWand = MagicWand;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
+const InputCommands_1 = require("../../../input/InputCommands");
 class ObjectsSpawner {
     use(user, position, clickButton) {
-        for (let i = 0; i < 1; i++) {
-            if (clickButton == 0) {
+        for (let i = 0; i < 10; i++) {
+            if (clickButton == InputCommands_1.MouseKeys.LEFT) {
                 let gg = ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
                 gg.Name = "Michau " + gg.ID;
             }
-            else if (clickButton == 2) {
+            else if (clickButton == InputCommands_1.MouseKeys.RIGHT) {
                 ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             }
             else {
@@ -13269,7 +13270,7 @@ class ObjectsSpawner {
 }
 exports.ObjectsSpawner = ObjectsSpawner;
 
-},{"../../factory/ObjectsFactory":95}],108:[function(require,module,exports){
+},{"../../../input/InputCommands":110,"../../factory/ObjectsFactory":95}],108:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -13477,17 +13478,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
 (function (INPUT_COMMAND) {
     // MOVE_DIRECTION,
-    INPUT_COMMAND[INPUT_COMMAND["HORIZONTAL_UP"] = 0] = "HORIZONTAL_UP";
-    INPUT_COMMAND[INPUT_COMMAND["HORIZONTAL_DOWN"] = 1] = "HORIZONTAL_DOWN";
-    INPUT_COMMAND[INPUT_COMMAND["VERTICAL_LEFT"] = 2] = "VERTICAL_LEFT";
-    INPUT_COMMAND[INPUT_COMMAND["VERTICAL_RIGHT"] = 3] = "VERTICAL_RIGHT";
-    INPUT_COMMAND[INPUT_COMMAND["LEFT_MOUSE"] = 4] = "LEFT_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["RIGHT_MOUSE"] = 5] = "RIGHT_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["MIDDLE_MOUSE"] = 6] = "MIDDLE_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["INTERACT"] = 7] = "INTERACT";
-    INPUT_COMMAND[INPUT_COMMAND["SWITCH_WEAPON"] = 8] = "SWITCH_WEAPON";
-    INPUT_COMMAND[INPUT_COMMAND["TEST"] = 9] = "TEST";
+    INPUT_COMMAND[INPUT_COMMAND["UP"] = 0] = "UP";
+    INPUT_COMMAND[INPUT_COMMAND["DOWN"] = 1] = "DOWN";
+    INPUT_COMMAND[INPUT_COMMAND["HORIZONTAL"] = 2] = "HORIZONTAL";
+    INPUT_COMMAND[INPUT_COMMAND["LEFT"] = 3] = "LEFT";
+    INPUT_COMMAND[INPUT_COMMAND["RIGHT"] = 4] = "RIGHT";
+    INPUT_COMMAND[INPUT_COMMAND["VERTICAL"] = 5] = "VERTICAL";
+    INPUT_COMMAND[INPUT_COMMAND["LEFT_MOUSE"] = 6] = "LEFT_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["RIGHT_MOUSE"] = 7] = "RIGHT_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["MIDDLE_MOUSE"] = 8] = "MIDDLE_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["INTERACT"] = 9] = "INTERACT";
+    INPUT_COMMAND[INPUT_COMMAND["SWITCH_WEAPON"] = 10] = "SWITCH_WEAPON";
+    INPUT_COMMAND[INPUT_COMMAND["TEST"] = 11] = "TEST";
 })(INPUT_COMMAND = exports.INPUT_COMMAND || (exports.INPUT_COMMAND = {}));
+var MouseKeys;
+(function (MouseKeys) {
+    MouseKeys[MouseKeys["LEFT"] = 0] = "LEFT";
+    MouseKeys[MouseKeys["MIDDLE"] = 1] = "MIDDLE";
+    MouseKeys[MouseKeys["RIGHT"] = 2] = "RIGHT";
+})(MouseKeys = exports.MouseKeys || (exports.MouseKeys = {}));
 
 },{}],111:[function(require,module,exports){
 "use strict";
@@ -13510,10 +13519,8 @@ class InputSnapshot {
         this.commandList.set(command, value);
     }
     isMoving() {
-        return (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
-            (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) != 0) ||
-            (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
-            (this.Commands.has(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT) && this.Commands.get(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT) != 0);
+        return (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL) != 0) ||
+            (this.Commands.has(InputCommands_1.INPUT_COMMAND.VERTICAL) && this.Commands.get(InputCommands_1.INPUT_COMMAND.VERTICAL) != 0);
     }
     serializeSnapshot() {
         let serializedSnapshot = '';
