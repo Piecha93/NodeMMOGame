@@ -25,7 +25,7 @@ export class InputSnapshot {
     public isMoving(): boolean {
         return (this.Commands.has(INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
                (this.Commands.has(INPUT_COMMAND.HORIZONTAL_DOWN) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_DOWN) != 0) ||
-               (this.Commands.has(INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
+               (this.Commands.has(INPUT_COMMAND.VERTICAL_RIGHT) && this.Commands.get(INPUT_COMMAND.VERTICAL_RIGHT) != 0) ||
                (this.Commands.has(INPUT_COMMAND.VERTICAL_LEFT) && this.Commands.get(INPUT_COMMAND.VERTICAL_LEFT) != 0)
     }
 
