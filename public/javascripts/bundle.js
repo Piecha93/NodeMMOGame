@@ -2037,7 +2037,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../shared/net/SocketMsgs":111,"./graphic/HtmlHandlers/ChatHtmlHandler":15}],9:[function(require,module,exports){
+},{"../shared/net/SocketMsgs":112,"./graphic/HtmlHandlers/ChatHtmlHandler":15}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2091,10 +2091,9 @@ class GameClient {
         this.renderer.setCurrentChunk(this.core.ChunksManager.getObjectChunk(this.localPlayer));
         this.renderer.update();
         this.updateDebugWindow();
-        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
         let deviation = this.renderer.CameraDeviation;
-        this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
-        this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
+        this.cursor.move(this.localPlayer.Transform.X + deviation[0], this.localPlayer.Transform.Y + deviation[1]);
+        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
         this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
@@ -2179,7 +2178,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../shared/GameCore":85,"../shared/game_utils/factory/GameObjectsManager":92,"../shared/game_utils/physics/Transform":108,"../shared/net/SocketMsgs":111,"../shared/utils/AverageCounter":117,"../shared/utils/DeltaTimer":118,"../shared/utils/TicksCounter":119,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":69,"socket.io-msgpack-parser":76}],10:[function(require,module,exports){
+},{"../shared/GameCore":86,"../shared/game_utils/factory/GameObjectsManager":93,"../shared/game_utils/physics/Transform":109,"../shared/net/SocketMsgs":112,"../shared/utils/AverageCounter":118,"../shared/utils/DeltaTimer":119,"../shared/utils/TicksCounter":120,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":70,"socket.io-msgpack-parser":77}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("../shared/serialize/ChangesDict");
@@ -2246,7 +2245,7 @@ class Reconciliation {
 }
 exports.Reconciliation = Reconciliation;
 
-},{"../shared/serialize/ChangesDict":112}],11:[function(require,module,exports){
+},{"../shared/serialize/ChangesDict":113}],11:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2291,6 +2290,7 @@ const ResourcesLoader_1 = require("../graphic/ResourcesLoader");
 class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
     constructor() {
         super();
+        this.lastDirectionKey = "D";
     }
     setObject(gameObject) {
         super.setObject(gameObject);
@@ -2317,19 +2317,37 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
         if (resource.type == ResourcesLoader_1.ResourceType.OCTAGONAL_ANIMATION) {
             let actor = this.objectRef;
             let resource = ResourcesLoader_1.ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
-            let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];
-            return resource.textures.get(animationDirection);
+            this.lastDirectionKey = this.directonsToDirectionKey(actor.Horizontal, actor.Vertical);
+            return resource.textures.get(this.lastDirectionKey);
         }
         else {
             return resource.textures.get(this.objectRef.SpriteName);
         }
+    }
+    directonsToDirectionKey(horizontal, vertical) {
+        let dir = "";
+        if (horizontal == -1) {
+            dir += "U";
+        }
+        else if (horizontal == 1) {
+            dir += "D";
+        }
+        if (vertical == -1) {
+            dir += "L";
+        }
+        else if (vertical == 1) {
+            dir += "R";
+        }
+        if (dir == "") {
+            dir = this.lastDirectionKey;
+        }
+        return dir;
     }
     destroy() {
         super.destroy();
         this.animation.destroy();
     }
 }
-GameObjectAnimationRender.Tags = ["U", "UR", "R", "DR", "D", "DL", "L", "UL"];
 exports.GameObjectAnimationRender = GameObjectAnimationRender;
 
 },{"../graphic/ResourcesLoader":20,"./GameObjectRender":13}],13:[function(require,module,exports){
@@ -2510,7 +2528,6 @@ class DebugWindowHtmlHandler {
         this.gameObjectCounterSpan.innerHTML = "<br>" + "GameObjects: " + gameObjects;
     }
     set CursorObjectSpan(cursorObject) {
-        console.log("asd");
         this.cursorObjectSpan.innerHTML = "<br>" + "cursorObject: " + cursorObject;
     }
     set Position(position) {
@@ -2709,7 +2726,7 @@ Renderer.WIDTH = 1024;
 Renderer.HEIGHT = 576;
 exports.Renderer = Renderer;
 
-},{"../../shared/game_utils/factory/GameObjectPrefabs":91,"../../shared/game_utils/factory/GameObjectsSubscriber":93,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
+},{"../../shared/game_utils/factory/GameObjectPrefabs":92,"../../shared/game_utils/factory/GameObjectsSubscriber":94,"./Camera":11,"./GameObjectAnimationRender":12,"./GameObjectSpriteRender":14,"./Hud":17,"./PlayerRender":18,"./ResourcesLoader":20,"./TileMap":21}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ResourceType;
@@ -2912,7 +2929,7 @@ class TileMap extends PIXI.Container {
 }
 exports.TileMap = TileMap;
 
-},{"../../shared/SharedConfig":87}],22:[function(require,module,exports){
+},{"../../shared/SharedConfig":88}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("../../shared/game_utils/game/objects/GameObject");
@@ -2920,6 +2937,8 @@ const DebugWindowHtmlHandler_1 = require("../graphic/HtmlHandlers/DebugWindowHtm
 class Cursor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
+        this.onObjectId = null;
+        this.interactMessage = "";
         this.invisible = true;
     }
     commonUpdate(delta) {
@@ -2930,57 +2949,126 @@ class Cursor extends GameObject_1.GameObject {
     }
     commonCollision(gameObject, result) {
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
+        this.onObjectId = gameObject.ID;
+        if (gameObject.InteractPopUpMessage != null) {
+            this.interactMessage = gameObject.InteractPopUpMessage;
+            DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
+        }
+        else {
+            this.interactMessage = null;
+        }
+    }
+    move(x, y) {
+        this.Transform.X = x;
+        this.Transform.Y = y;
+        this.onObjectId = null;
+        this.interactMessage = null;
+    }
+    get OnObjectId() {
+        return this.onObjectId;
+    }
+    get InteractMessage() {
+        return this.interactMessage;
     }
 }
 exports.Cursor = Cursor;
 
-},{"../../shared/game_utils/game/objects/GameObject":99,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],23:[function(require,module,exports){
+},{"../../shared/game_utils/game/objects/GameObject":100,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],23:[function(require,module,exports){
 "use strict";
+/// <reference path="../../node_modules/@types/keypress.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputSnapshot_1 = require("../../shared/input/InputSnapshot");
-const InputMap_1 = require("./InputMap");
+const InputKeyMap_1 = require("./InputKeyMap");
 const InputCommands_1 = require("../../shared/input/InputCommands");
+const keypress = require("keypress.js").keypress;
 class InputHandler {
     constructor(cursor) {
-        this.lastDirection = 0;
+        console.log(keypress);
+        this.listener = new keypress.Listener();
         this.cursor = cursor;
-        this.pressedKeys = new Set();
-        this.releasedKeys = new Set();
         this.mouseButtonsDown = new Map();
+        //TODO change 0,1,2 to proper enum
         this.mouseButtonsDown.set(0, false);
         this.mouseButtonsDown.set(1, false);
         this.mouseButtonsDown.set(2, false);
         this.clickPosition = null;
-        this.mousePosition = [0, 0];
         this.snapshotCallbacks = [];
-        document.addEventListener("keydown", this.onKeyDown.bind(this));
-        document.addEventListener("keyup", this.onKeyUp.bind(this));
+        this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, -1);
+                this.invokeSnapshotCallbacks();
+            },
+            on_keyup: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, 0);
+                this.invokeSnapshotCallbacks();
+            }
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 1);
+                this.invokeSnapshotCallbacks();
+            },
+            on_keyup: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 0);
+                this.invokeSnapshotCallbacks();
+            }
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, -1);
+                this.invokeSnapshotCallbacks();
+            },
+            on_keyup: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, 0);
+                this.invokeSnapshotCallbacks();
+            }
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 1);
+                this.invokeSnapshotCallbacks();
+            },
+            on_keyup: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 0);
+                this.invokeSnapshotCallbacks();
+            }
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.INTERACT),
+            prevent_repeat: false,
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.INTERACT, this.cursor.OnObjectId);
+                this.invokeSnapshotCallbacks();
+            },
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON, null);
+                this.invokeSnapshotCallbacks();
+            },
+        });
+        this.listener.register_combo({
+            keys: InputKeyMap_1.InputKeyMap.get(InputCommands_1.INPUT_COMMAND.TEST),
+            on_keydown: () => {
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.TEST, this.cursor.Transform.Position);
+                this.invokeSnapshotCallbacks();
+            },
+        });
         window.addEventListener("mousedown", this.onMouseDown.bind(this));
         window.addEventListener("mouseup", this.onMouseUp.bind(this));
-        window.addEventListener("mousemove", this.onMouseMove.bind(this));
         window.addEventListener("contextmenu", (e) => {
-            // console.log("win context menu");
-            // console.log(e);
             e.preventDefault();
             return false;
         });
     }
     addSnapshotCallback(callback) {
         this.snapshotCallbacks.push(callback);
-    }
-    onKeyDown(event) {
-        if (InputMap_1.InputMap.has(event.code) && !this.pressedKeys.has(event.code)) {
-            this.releasedKeys.delete(event.code);
-            this.pressedKeys.add(event.code);
-            this.invokeSnapshotCallbacks();
-        }
-    }
-    onKeyUp(event) {
-        if (InputMap_1.InputMap.has(event.code) && this.pressedKeys.has(event.code)) {
-            this.pressedKeys.delete(event.code);
-            this.releasedKeys.add(event.code);
-            this.invokeSnapshotCallbacks();
-        }
     }
     onMouseDown(mouseEvent, isRecursion) {
         this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
@@ -3003,103 +3091,43 @@ class InputHandler {
         this.mouseButtonsDown.set(mouseEvent.button, false);
         return true;
     }
-    onMouseMove(mouseEvent) {
-        let canvas = document.getElementById("game-canvas");
-        let rect = canvas.getBoundingClientRect();
-        this.mousePosition = [mouseEvent.x - rect.width / 2 - rect.left, mouseEvent.y - rect.height / 2 - rect.top];
-    }
     invokeSnapshotCallbacks() {
-        let snapshot = this.createInputSnapshot();
-        if (snapshot.Commands.size == 0) {
-            return;
-        }
-        this.snapshotCallbacks.forEach((callback) => {
-            callback(snapshot);
-        });
-    }
-    createInputSnapshot() {
-        let inputSnapshot = new InputSnapshot_1.InputSnapshot;
-        let directionBuffor = [];
-        this.pressedKeys.forEach((key) => {
-            let input = InputMap_1.InputMap.get(key);
-            if (input == InputMap_1.INPUT.UP || input == InputMap_1.INPUT.DOWN || input == InputMap_1.INPUT.LEFT || input == InputMap_1.INPUT.RIGHT) {
-                directionBuffor.push(input);
-            }
-            if (input == InputMap_1.INPUT.WALL) {
-                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.WALL, this.mousePosition.toString());
-            }
-        });
-        let newDirection = this.parseDirection(directionBuffor);
-        this.lastDirection = newDirection;
-        inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION, newDirection.toString());
         if (this.clickPosition != null) {
             if (this.mouseButton == 0) {
-                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.LEFT_MOUSE, this.clickPosition.toString());
             }
             else if (this.mouseButton == 2) {
-                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE, this.clickPosition.toString());
             }
             else {
-                inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE, this.clickPosition.toString());
+                this.inputSnapshot.append(InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE, this.clickPosition.toString());
             }
             this.clickPosition = null;
         }
-        this.releasedKeys.clear();
-        return inputSnapshot;
-    }
-    parseDirection(directionBuffor) {
-        let direction = 0;
-        if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
-            direction = 2;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
-            direction = 4;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
-            direction = 6;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1 && directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
-            direction = 8;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.UP) != -1) {
-            direction = 1;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.RIGHT) != -1) {
-            direction = 3;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.LEFT) != -1) {
-            direction = 7;
-        }
-        else if (directionBuffor.indexOf(InputMap_1.INPUT.DOWN) != -1) {
-            direction = 5;
-        }
-        return direction;
+        this.inputSnapshot.resetTime();
+        this.snapshotCallbacks.forEach((callback) => {
+            callback(this.inputSnapshot);
+        });
+        this.inputSnapshot = new InputSnapshot_1.InputSnapshot;
     }
 }
 exports.InputHandler = InputHandler;
 
-},{"../../shared/input/InputCommands":109,"../../shared/input/InputSnapshot":110,"./InputMap":24}],24:[function(require,module,exports){
+},{"../../shared/input/InputCommands":110,"../../shared/input/InputSnapshot":111,"./InputKeyMap":24,"keypress.js":63}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var INPUT;
-(function (INPUT) {
-    INPUT[INPUT["NONE"] = 0] = "NONE";
-    INPUT[INPUT["UP"] = 1] = "UP";
-    INPUT[INPUT["DOWN"] = 2] = "DOWN";
-    INPUT[INPUT["LEFT"] = 3] = "LEFT";
-    INPUT[INPUT["RIGHT"] = 4] = "RIGHT";
-    INPUT[INPUT["FIRE"] = 5] = "FIRE";
-    INPUT[INPUT["WALL"] = 6] = "WALL";
-})(INPUT = exports.INPUT || (exports.INPUT = {}));
-exports.InputMap = new Map([
-    ['KeyW', INPUT.UP],
-    ['KeyS', INPUT.DOWN],
-    ['KeyA', INPUT.LEFT],
-    ['KeyD', INPUT.RIGHT],
-    ['KeyF', INPUT.WALL],
+const InputCommands_1 = require("../../shared/input/InputCommands");
+exports.InputKeyMap = new Map([
+    [InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP, 'w'],
+    [InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN, 's'],
+    [InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT, 'a'],
+    [InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT, 'd'],
+    [InputCommands_1.INPUT_COMMAND.INTERACT, 'e'],
+    [InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON, 'q'],
+    [InputCommands_1.INPUT_COMMAND.TEST, 'f'],
 ]);
 
-},{}],25:[function(require,module,exports){
+},{"../../shared/input/InputCommands":110}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SharedConfig_1 = require("../shared/SharedConfig");
@@ -3109,7 +3137,7 @@ window.onload = () => {
     new GameClient_1.GameClient();
 };
 
-},{"../shared/SharedConfig":87,"./GameClient":9}],26:[function(require,module,exports){
+},{"../shared/SharedConfig":88,"./GameClient":9}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../shared/net/SocketMsgs");
@@ -3148,7 +3176,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../shared/net/SocketMsgs":111,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],27:[function(require,module,exports){
+},{"../../shared/net/SocketMsgs":112,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../shared/net/SocketMsgs");
@@ -3166,7 +3194,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../shared/net/SocketMsgs":111}],28:[function(require,module,exports){
+},{"../../shared/net/SocketMsgs":112}],28:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -6016,7 +6044,7 @@ Socket.prototype.filterUpgrades = function (upgrades) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./transport":47,"./transports/index":48,"component-emitter":34,"debug":54,"engine.io-parser":56,"indexof":62,"parseqs":67,"parseuri":68}],47:[function(require,module,exports){
+},{"./transport":47,"./transports/index":48,"component-emitter":34,"debug":54,"engine.io-parser":56,"indexof":62,"parseqs":68,"parseuri":69}],47:[function(require,module,exports){
 /**
  * Module dependencies.
  */
@@ -7130,7 +7158,7 @@ Polling.prototype.uri = function () {
   return schema + '://' + (ipv6 ? '[' + this.hostname + ']' : this.hostname) + port + this.path + query;
 };
 
-},{"../transport":47,"component-inherit":35,"debug":54,"engine.io-parser":56,"parseqs":67,"xmlhttprequest-ssl":53,"yeast":84}],52:[function(require,module,exports){
+},{"../transport":47,"component-inherit":35,"debug":54,"engine.io-parser":56,"parseqs":68,"xmlhttprequest-ssl":53,"yeast":85}],52:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -7420,7 +7448,7 @@ WS.prototype.check = function () {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../transport":47,"component-inherit":35,"debug":54,"engine.io-parser":56,"parseqs":67,"ws":2,"yeast":84}],53:[function(require,module,exports){
+},{"../transport":47,"component-inherit":35,"debug":54,"engine.io-parser":56,"parseqs":68,"ws":2,"yeast":85}],53:[function(require,module,exports){
 (function (global){
 // browser shim for xmlhttprequest module
 
@@ -7887,7 +7915,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":63}],56:[function(require,module,exports){
+},{"ms":64}],56:[function(require,module,exports){
 (function (global){
 /**
  * Module dependencies.
@@ -8878,6 +8906,41 @@ module.exports = function(arr, obj){
   return -1;
 };
 },{}],63:[function(require,module,exports){
+/*
+  Keypress version 2.1.5 (c) 2018 David Mauro.
+  Licensed under the Apache License, Version 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+*/
+(function(){var o,u,x,y,z,r,v,A,E,B,F,G,q,s,p,k,t,C,H,D={}.hasOwnProperty,j=[].indexOf||function(a){for(var c=0,b=this.length;c<b;c++)if(c in this&&this[c]===a)return c;return-1};r={is_unordered:!1,is_counting:!1,is_exclusive:!1,is_solitary:!1,prevent_default:!1,prevent_repeat:!1,normalize_caps_lock:!1};C="meta alt option ctrl shift cmd".split(" ");k="ctrl";o={debug:!1};var w=function(a){var c,b;for(c in a)D.call(a,c)&&(b=a[c],!1!==b&&(this[c]=b));this.keys=this.keys||[];this.count=this.count||0};
+w.prototype.allows_key_repeat=function(){return!this.prevent_repeat&&"function"===typeof this.on_keydown};w.prototype.reset=function(){this.count=0;return this.keyup_fired=null};var g=function(a,c){var b,d;"undefined"!==typeof jQuery&&null!==jQuery&&a instanceof jQuery&&(1!==a.length&&p("Warning: your jQuery selector should have exactly one object."),a=a[0]);this.should_force_event_defaults=this.should_suppress_event_defaults=!1;this.sequence_delay=800;this._registered_combos=[];this._keys_down=[];
+this._active_combos=[];this._sequence=[];this._sequence_timer=null;this._prevent_capture=!1;this._defaults=c||{};for(b in r)D.call(r,b)&&(d=r[b],this._defaults[b]=this._defaults[b]||d);this.element=a||document.body;b=function(a,b,c){a.addEventListener?a.addEventListener(b,c):a.attachEvent&&a.attachEvent("on"+b,c);return c};var e=this;this.keydown_event=b(this.element,"keydown",function(a){a=a||window.event;e._receive_input(a,true);return e._bug_catcher(a)});var f=this;this.keyup_event=b(this.element,
+"keyup",function(a){a=a||window.event;return f._receive_input(a,false)});var h=this;this.blur_event=b(window,"blur",function(){var a,b,c,d;d=h._keys_down;b=0;for(c=d.length;b<c;b++){a=d[b];h._key_up(a,{})}return h._keys_down=[]})};g.prototype.destroy=function(){var a;a=function(a,b,d){if(null!=a.removeEventListener)return a.removeEventListener(b,d);if(null!=a.removeEvent)return a.removeEvent("on"+b,d)};a(this.element,"keydown",this.keydown_event);a(this.element,"keyup",this.keyup_event);return a(window,
+"blur",this.blur_event)};g.prototype._bug_catcher=function(a){var c,b;if("cmd"===k&&0<=j.call(this._keys_down,"cmd")&&"cmd"!==(c=y(null!=(b=a.keyCode)?b:a.key))&&"shift"!==c&&"alt"!==c&&"caps"!==c&&"tab"!==c)return this._receive_input(a,!1)};g.prototype._cmd_bug_check=function(a){return"cmd"===k&&0<=j.call(this._keys_down,"cmd")&&0>j.call(a,"cmd")?!1:!0};g.prototype._prevent_default=function(a,c){if((c||this.should_suppress_event_defaults)&&!this.should_force_event_defaults)if(a.preventDefault?a.preventDefault():
+a.returnValue=!1,a.stopPropagation)return a.stopPropagation()};g.prototype._get_active_combos=function(a){var c,b;c=[];b=v(this._keys_down,function(b){return b!==a});b.push(a);this._match_combo_arrays(b,function(a){return function(b){if(a._cmd_bug_check(b.keys))return c.push(b)}}(this));this._fuzzy_match_combo_arrays(b,function(a){return function(b){if(!(0<=j.call(c,b))&&!b.is_solitary&&a._cmd_bug_check(b.keys))return c.push(b)}}(this));return c};g.prototype._get_potential_combos=function(a){var c,
+b,d,e,f;b=[];f=this._registered_combos;d=0;for(e=f.length;d<e;d++)c=f[d],c.is_sequence||0<=j.call(c.keys,a)&&this._cmd_bug_check(c.keys)&&b.push(c);return b};g.prototype._add_to_active_combos=function(a){var c,b,d,e,f,h,i,g,n,l,m;h=!1;f=!0;d=!1;if(0<=j.call(this._active_combos,a))return!0;if(this._active_combos.length){e=i=0;for(l=this._active_combos.length;0<=l?i<l:i>l;e=0<=l?++i:--i)if((c=this._active_combos[e])&&c.is_exclusive&&a.is_exclusive){c=c.keys;if(!h){g=0;for(n=c.length;g<n;g++)if(b=c[g],
+h=!0,0>j.call(a.keys,b)){h=!1;break}}if(f&&!h){m=a.keys;g=0;for(n=m.length;g<n;g++)if(b=m[g],f=!1,0>j.call(c,b)){f=!0;break}}h&&(d?(c=this._active_combos.splice(e,1)[0],null!=c&&c.reset()):(c=this._active_combos.splice(e,1,a)[0],null!=c&&c.reset(),d=!0),f=!1)}}f&&this._active_combos.unshift(a);return h||f};g.prototype._remove_from_active_combos=function(a){var c,b,d,e;b=d=0;for(e=this._active_combos.length;0<=e?d<e:d>e;b=0<=e?++d:--d)if(c=this._active_combos[b],c===a){a=this._active_combos.splice(b,
+1)[0];a.reset();break}};g.prototype._get_possible_sequences=function(){var a,c,b,d,e,f,h,i,g,n,l,m;d=[];n=this._registered_combos;f=0;for(g=n.length;f<g;f++){a=n[f];c=h=1;for(l=this._sequence.length;1<=l?h<=l:h>=l;c=1<=l?++h:--h)if(e=this._sequence.slice(-c),a.is_sequence){if(0>j.call(a.keys,"shift")&&(e=v(e,function(a){return"shift"!==a}),!e.length))continue;c=i=0;for(m=e.length;0<=m?i<m:i>m;c=0<=m?++i:--i)if(a.keys[c]===e[c])b=!0;else{b=!1;break}b&&d.push(a)}}return d};g.prototype._add_key_to_sequence=
+function(a,c){var b,d,e,f;this._sequence.push(a);d=this._get_possible_sequences();if(d.length){e=0;for(f=d.length;e<f;e++)b=d[e],this._prevent_default(c,b.prevent_default);this._sequence_timer&&clearTimeout(this._sequence_timer);if(-1<this.sequence_delay){var h=this;this._sequence_timer=setTimeout(function(){return h._sequence=[]},this.sequence_delay)}}else this._sequence=[]};g.prototype._get_sequence=function(a){var c,b,d,e,f,h,i,g,n,l,m,k;l=this._registered_combos;h=0;for(n=l.length;h<n;h++)if(c=
+l[h],c.is_sequence){b=i=1;for(m=this._sequence.length;1<=m?i<=m:i>=m;b=1<=m?++i:--i)if(f=v(this._sequence,function(a){return 0<=j.call(c.keys,"shift")?!0:"shift"!==a}).slice(-b),c.keys.length===f.length){b=g=0;for(k=f.length;0<=k?g<k:g>k;b=0<=k?++g:--g)if(e=f[b],!(0>j.call(c.keys,"shift")&&"shift"===e)&&!("shift"===a&&0>j.call(c.keys,"shift")))if(c.keys[b]===e)d=!0;else{d=!1;break}}if(d)return c.is_exclusive&&(this._sequence=[]),c}return!1};g.prototype._receive_input=function(a,c){var b,d;if(this._prevent_capture)this._keys_down.length&&
+(this._keys_down=[]);else if(b=y(null!=(d=a.keyCode)?d:a.key),(c||this._keys_down.length||!("alt"===b||b===k))&&b)return c?this._key_down(b,a):this._key_up(b,a)};g.prototype._fire=function(a,c,b,d){"function"===typeof c["on_"+a]&&this._prevent_default(b,!0!==c["on_"+a].call(c["this"],b,c.count,d));"release"===a&&(c.count=0);if("keyup"===a)return c.keyup_fired=!0};g.prototype._match_combo_arrays=function(a,c){var b,d,e,f,h;h=this._registered_combos;e=0;for(f=h.length;e<f;e++)d=h[e],b=a.slice(0),d.normalize_caps_lock&&
+0<=j.call(b,"caps")&&b.splice(b.indexOf("caps"),1),(!d.is_unordered&&x(b,d.keys)||d.is_unordered&&u(b,d.keys))&&c(d)};g.prototype._fuzzy_match_combo_arrays=function(a,c){var b,d,e,f;f=this._registered_combos;d=0;for(e=f.length;d<e;d++)b=f[d],(!b.is_unordered&&B(b.keys,a)||b.is_unordered&&E(b.keys,a))&&c(b)};g.prototype._keys_remain=function(a){var c,b,d,e;e=a.keys;b=0;for(d=e.length;b<d;b++)if(a=e[b],0<=j.call(this._keys_down,a)){c=!0;break}return c};g.prototype._key_down=function(a,c){var b,d,e,
+f,h;(b=z(a,c))&&(a=b);this._add_key_to_sequence(a,c);(b=this._get_sequence(a))&&this._fire("keydown",b,c);for(e in t)b=t[e],c[b]&&(e===a||0<=j.call(this._keys_down,e)||this._keys_down.push(e));for(e in t)if(b=t[e],e!==a&&0<=j.call(this._keys_down,e)&&!c[b]&&!("cmd"===e&&"cmd"!==k)){b=d=0;for(f=this._keys_down.length;0<=f?d<f:d>f;b=0<=f?++d:--d)this._keys_down[b]===e&&this._keys_down.splice(b,1)}d=this._get_active_combos(a);e=this._get_potential_combos(a);f=0;for(h=d.length;f<h;f++)b=d[f],this._handle_combo_down(b,
+e,a,c);if(e.length){d=0;for(f=e.length;d<f;d++)b=e[d],this._prevent_default(c,b.prevent_default)}0>j.call(this._keys_down,a)&&this._keys_down.push(a)};g.prototype._handle_combo_down=function(a,c,b,d){var e,f,h,g,k;if(0>j.call(a.keys,b))return!1;this._prevent_default(d,a&&a.prevent_default);e=!1;if(0<=j.call(this._keys_down,b)&&(e=!0,!a.allows_key_repeat()))return!1;h=this._add_to_active_combos(a,b);b=a.keyup_fired=!1;if(a.is_exclusive){g=0;for(k=c.length;g<k;g++)if(f=c[g],f.is_exclusive&&f.keys.length>
+a.keys.length){b=!0;break}}if(!b&&(a.is_counting&&"function"===typeof a.on_keydown&&(a.count+=1),h))return this._fire("keydown",a,d,e)};g.prototype._key_up=function(a,c){var b,d,e,f,h,g;b=a;(e=z(a,c))&&(a=e);e=s[b];c.shiftKey?e&&0<=j.call(this._keys_down,e)||(a=b):b&&0<=j.call(this._keys_down,b)||(a=e);(f=this._get_sequence(a))&&this._fire("keyup",f,c);if(0>j.call(this._keys_down,a))return!1;f=h=0;for(g=this._keys_down.length;0<=g?h<g:h>g;f=0<=g?++h:--h)if((d=this._keys_down[f])===a||d===e||d===b){this._keys_down.splice(f,
+1);break}d=this._active_combos.length;e=[];g=this._active_combos;f=0;for(h=g.length;f<h;f++)b=g[f],0<=j.call(b.keys,a)&&e.push(b);f=0;for(h=e.length;f<h;f++)b=e[f],this._handle_combo_up(b,c,a);if(1<d){h=this._active_combos;d=0;for(f=h.length;d<f;d++)b=h[d],void 0===b||0<=j.call(e,b)||this._keys_remain(b)||this._remove_from_active_combos(b)}};g.prototype._handle_combo_up=function(a,c,b){var d,e;this._prevent_default(c,a&&a.prevent_default);e=this._keys_remain(a);if(!a.keyup_fired&&(d=this._keys_down.slice(),
+d.push(b),!a.is_solitary||u(d,a.keys)))this._fire("keyup",a,c),a.is_counting&&("function"===typeof a.on_keyup&&"function"!==typeof a.on_keydown)&&(a.count+=1);e||(this._fire("release",a,c),this._remove_from_active_combos(a))};g.prototype.simple_combo=function(a,c){return this.register_combo({keys:a,on_keydown:c})};g.prototype.counting_combo=function(a,c){return this.register_combo({keys:a,is_counting:!0,is_unordered:!1,on_keydown:c})};g.prototype.sequence_combo=function(a,c){return this.register_combo({keys:a,
+on_keydown:c,is_sequence:!0,is_exclusive:!0})};g.prototype.register_combo=function(a){var c,b,d;"string"===typeof a.keys&&(a.keys=a.keys.split(" "));d=this._defaults;for(c in d)D.call(d,c)&&(b=d[c],void 0===a[c]&&(a[c]=b));a=new w(a);if(H(a))return this._registered_combos.push(a),a};g.prototype.register_many=function(a){var c,b,d,e;e=[];b=0;for(d=a.length;b<d;b++)c=a[b],e.push(this.register_combo(c));return e};g.prototype.unregister_combo=function(a){var c,b,d,e,f,g;if(!a)return!1;var i=this;b=function(a){var b,
+c,d,e;e=[];b=c=0;for(d=i._registered_combos.length;0<=d?c<d:c>d;b=0<=d?++c:--c)if(a===i._registered_combos[b]){i._registered_combos.splice(b,1);break}else e.push(void 0);return e};if(a instanceof w)return b(a);if("string"===typeof a){a=a.split(" ");c=d=0;for(e=a.length;0<=e?d<e:d>e;c=0<=e?++d:--d)"meta"===a[c]&&(a[c]=k)}f=this._registered_combos;g=[];d=0;for(e=f.length;d<e;d++)c=f[d],null!=c&&(c.is_unordered&&u(a,c.keys)||!c.is_unordered&&x(a,c.keys)?g.push(b(c)):g.push(void 0));return g};g.prototype.unregister_many=
+function(a){var c,b,d,e;e=[];b=0;for(d=a.length;b<d;b++)c=a[b],e.push(this.unregister_combo(c));return e};g.prototype.get_registered_combos=function(){return this._registered_combos};g.prototype.reset=function(){return this._registered_combos=[]};g.prototype.listen=function(){return this._prevent_capture=!1};g.prototype.stop_listening=function(){return this._prevent_capture=!0};g.prototype.get_meta_key=function(){return k};o.Listener=g;y=function(a){return q[a]};v=function(a,c){var b;if(a.filter)return a.filter(c);
+var d,e,f;f=[];d=0;for(e=a.length;d<e;d++)b=a[d],c(b)&&f.push(b);return f};u=function(a,c){var b,d,e;if(a.length!==c.length)return!1;d=0;for(e=a.length;d<e;d++)if(b=a[d],!(0<=j.call(c,b)))return!1;return!0};x=function(a,c){var b,d,e;if(a.length!==c.length)return!1;b=d=0;for(e=a.length;0<=e?d<e:d>e;b=0<=e?++d:--d)if(a[b]!==c[b])return!1;return!0};E=function(a,c){var b,d,e;d=0;for(e=a.length;d<e;d++)if(b=a[d],0>j.call(c,b))return!1;return!0};A=Array.prototype.indexOf||function(a,c){var b,d,e;b=d=0;
+for(e=a.length;0<=e?d<=e:d>=e;b=0<=e?++d:--d)if(a[b]===c)return b;return-1};B=function(a,c){var b,d,e,f;e=d=0;for(f=a.length;e<f;e++)if(b=a[e],b=A.call(c,b),b>=d)d=b;else return!1;return!0};p=function(){if(o.debug)return console.log.apply(console,arguments)};F=function(a){var c,b,d;c=!1;for(d in q)if(b=q[d],a===b){c=!0;break}if(!c)for(d in s)if(b=s[d],a===b){c=!0;break}return c};H=function(a){var c,b,d,e,f,g,i;f=!0;a.keys.length||p("You're trying to bind a combo with no keys:",a);b=g=0;for(i=a.keys.length;0<=
+i?g<i:g>i;b=0<=i?++g:--g)d=a.keys[b],(c=G[d])&&(d=a.keys[b]=c),"meta"===d&&a.keys.splice(b,1,k),"cmd"===d&&p('Warning: use the "meta" key rather than "cmd" for Windows compatibility');i=a.keys;c=0;for(g=i.length;c<g;c++)d=i[c],F(d)||(p('Do not recognize the key "'+d+'"'),f=!1);if(0<=j.call(a.keys,"meta")||0<=j.call(a.keys,"cmd")){c=a.keys.slice();g=0;for(i=C.length;g<i;g++)d=C[g],-1<(b=A.call(c,d))&&c.splice(b,1);1<c.length&&(p("META and CMD key combos cannot have more than 1 non-modifier keys",a,
+c),f=!1)}for(e in a)"undefined"===r[e]&&p("The property "+e+" is not a valid combo property. Your combo has still been registered.");return f};z=function(a,c){var b;if(!c.shiftKey)return!1;b=s[a];return null!=b?b:!1};t={cmd:"metaKey",ctrl:"ctrlKey",shift:"shiftKey",alt:"altKey"};G={escape:"esc",control:"ctrl",command:"cmd","break":"pause",windows:"cmd",option:"alt",caps_lock:"caps",apostrophe:"'",semicolon:";",tilde:"~",accent:"`",scroll_lock:"scroll",num_lock:"num"};s={"/":"?",".":">",",":"<","'":'"',
+";":":","[":"{","]":"}","\\":"|","`":"~","=":"+","-":"_",1:"!",2:"@",3:"#",4:"$",5:"%",6:"^",7:"&",8:"*",9:"(","0":")"};q={"0":"\\",8:"backspace",9:"tab",12:"num",13:"enter",16:"shift",17:"ctrl",18:"alt",19:"pause",20:"caps",27:"esc",32:"space",33:"pageup",34:"pagedown",35:"end",36:"home",37:"left",38:"up",39:"right",40:"down",44:"print",45:"insert",46:"delete",48:"0",49:"1",50:"2",51:"3",52:"4",53:"5",54:"6",55:"7",56:"8",57:"9",65:"a",66:"b",67:"c",68:"d",69:"e",70:"f",71:"g",72:"h",73:"i",74:"j",
+75:"k",76:"l",77:"m",78:"n",79:"o",80:"p",81:"q",82:"r",83:"s",84:"t",85:"u",86:"v",87:"w",88:"x",89:"y",90:"z",91:"cmd",92:"cmd",93:"cmd",96:"num_0",97:"num_1",98:"num_2",99:"num_3",100:"num_4",101:"num_5",102:"num_6",103:"num_7",104:"num_8",105:"num_9",106:"num_multiply",107:"num_add",108:"num_enter",109:"num_subtract",110:"num_decimal",111:"num_divide",112:"f1",113:"f2",114:"f3",115:"f4",116:"f5",117:"f6",118:"f7",119:"f8",120:"f9",121:"f10",122:"f11",123:"f12",124:"print",144:"num",145:"scroll",
+186:";",187:"=",188:",",189:"-",190:".",191:"/",192:"`",219:"[",220:"\\",221:"]",222:"'",223:"`",224:"cmd",225:"alt",57392:"ctrl",63289:"num",59:";",61:"=",173:"-"};o._keycode_dictionary=q;o._is_array_in_array_sorted=B;-1!==navigator.userAgent.indexOf("Mac OS X")&&(k="cmd");-1!==navigator.userAgent.indexOf("Opera")&&(q["17"]="cmd");"function"===typeof define&&define.amd?define([],function(){return o}):"undefined"!==typeof exports&&null!==exports?exports.keypress=o:window.keypress=o}).call(this);
+
+},{}],64:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -9031,7 +9094,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 'use strict';
 
 function Decoder(buffer) {
@@ -9314,7 +9377,7 @@ function decode(buffer) {
 
 module.exports = decode;
 
-},{}],65:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 'use strict';
 
 function utf8Write(view, offset, str) {
@@ -9621,11 +9684,11 @@ function encode(value) {
 
 module.exports = encode;
 
-},{}],66:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 exports.encode = require('./encode');
 exports.decode = require('./decode');
 
-},{"./decode":64,"./encode":65}],67:[function(require,module,exports){
+},{"./decode":65,"./encode":66}],68:[function(require,module,exports){
 /**
  * Compiles a querystring
  * Returns string representation of the object
@@ -9664,7 +9727,7 @@ exports.decode = function(qs){
   return qry;
 };
 
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 /**
  * Parses an URI
  *
@@ -9705,7 +9768,7 @@ module.exports = function parseuri(str) {
     return uri;
 };
 
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -9801,7 +9864,7 @@ exports.connect = lookup;
 exports.Manager = require('./manager');
 exports.Socket = require('./socket');
 
-},{"./manager":70,"./socket":72,"./url":73,"debug":74,"socket.io-parser":78}],70:[function(require,module,exports){
+},{"./manager":71,"./socket":73,"./url":74,"debug":75,"socket.io-parser":79}],71:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10376,7 +10439,7 @@ Manager.prototype.onreconnect = function () {
   this.emitAll('reconnect', attempt);
 };
 
-},{"./on":71,"./socket":72,"backo2":30,"component-bind":33,"component-emitter":34,"debug":74,"engine.io-client":45,"indexof":62,"socket.io-parser":78}],71:[function(require,module,exports){
+},{"./on":72,"./socket":73,"backo2":30,"component-bind":33,"component-emitter":34,"debug":75,"engine.io-client":45,"indexof":62,"socket.io-parser":79}],72:[function(require,module,exports){
 
 /**
  * Module exports.
@@ -10402,7 +10465,7 @@ function on (obj, ev, fn) {
   };
 }
 
-},{}],72:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -10842,7 +10905,7 @@ Socket.prototype.binary = function (binary) {
   return this;
 };
 
-},{"./on":71,"component-bind":33,"component-emitter":34,"debug":74,"has-binary2":59,"parseqs":67,"socket.io-parser":78,"to-array":83}],73:[function(require,module,exports){
+},{"./on":72,"component-bind":33,"component-emitter":34,"debug":75,"has-binary2":59,"parseqs":68,"socket.io-parser":79,"to-array":84}],74:[function(require,module,exports){
 (function (global){
 
 /**
@@ -10921,11 +10984,11 @@ function url (uri, loc) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"debug":74,"parseuri":68}],74:[function(require,module,exports){
+},{"debug":75,"parseuri":69}],75:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
-},{"./debug":75,"_process":7,"dup":54}],75:[function(require,module,exports){
+},{"./debug":76,"_process":7,"dup":54}],76:[function(require,module,exports){
 arguments[4][55][0].apply(exports,arguments)
-},{"dup":55,"ms":63}],76:[function(require,module,exports){
+},{"dup":55,"ms":64}],77:[function(require,module,exports){
 
 var msgpack = require('notepack.io');
 var Emitter = require('component-emitter');
@@ -10995,7 +11058,7 @@ Decoder.prototype.destroy = function () {};
 exports.Encoder = Encoder;
 exports.Decoder = Decoder;
 
-},{"component-emitter":34,"notepack.io":66}],77:[function(require,module,exports){
+},{"component-emitter":34,"notepack.io":67}],78:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -11140,7 +11203,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":79,"isarray":82}],78:[function(require,module,exports){
+},{"./is-buffer":80,"isarray":83}],79:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -11559,7 +11622,7 @@ function error(msg) {
   };
 }
 
-},{"./binary":77,"./is-buffer":79,"component-emitter":34,"debug":80,"isarray":82}],79:[function(require,module,exports){
+},{"./binary":78,"./is-buffer":80,"component-emitter":34,"debug":81,"isarray":83}],80:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -11587,13 +11650,13 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 arguments[4][54][0].apply(exports,arguments)
-},{"./debug":81,"_process":7,"dup":54}],81:[function(require,module,exports){
+},{"./debug":82,"_process":7,"dup":54}],82:[function(require,module,exports){
 arguments[4][55][0].apply(exports,arguments)
-},{"dup":55,"ms":63}],82:[function(require,module,exports){
+},{"dup":55,"ms":64}],83:[function(require,module,exports){
 arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],83:[function(require,module,exports){
+},{"dup":6}],84:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -11608,7 +11671,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],84:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 'use strict';
 
 var alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'.split('')
@@ -11678,7 +11741,7 @@ yeast.encode = encode;
 yeast.decode = decode;
 module.exports = yeast;
 
-},{}],85:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameWorld_1 = require("./GameWorld");
@@ -11726,7 +11789,7 @@ class GameCore {
 }
 exports.GameCore = GameCore;
 
-},{"./GameWorld":86,"./chunks/ChunksManager":89,"./serialize/UpdateCollector":116,"./utils/DeltaTimer":118}],86:[function(require,module,exports){
+},{"./GameWorld":87,"./chunks/ChunksManager":90,"./serialize/UpdateCollector":117,"./utils/DeltaTimer":119}],87:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
@@ -11774,7 +11837,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{".//SharedConfig":87,"./game_utils/factory/GameObjectsSubscriber":93,"./game_utils/physics/CollisionsSystem":107}],87:[function(require,module,exports){
+},{".//SharedConfig":88,"./game_utils/factory/GameObjectsSubscriber":94,"./game_utils/physics/CollisionsSystem":108}],88:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -11806,7 +11869,7 @@ SharedConfig.chunkDeactivationTime = 10000;
 SharedConfig.ORIGIN = getOrigin();
 exports.SharedConfig = SharedConfig;
 
-},{}],88:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsSerializer_1 = require("../serialize/ObjectsSerializer");
@@ -12009,7 +12072,7 @@ class Chunk {
 }
 exports.Chunk = Chunk;
 
-},{"../SharedConfig":87,"../serialize/ObjectsSerializer":113,"fs":1}],89:[function(require,module,exports){
+},{"../SharedConfig":88,"../serialize/ObjectsSerializer":114,"fs":1}],90:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -12222,7 +12285,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../SharedConfig":87,"../game_utils/factory/GameObjectsSubscriber":93,"../serialize/ChangesDict":112,"./Chunk":88}],90:[function(require,module,exports){
+},{"../SharedConfig":88,"../game_utils/factory/GameObjectsSubscriber":94,"../serialize/ChangesDict":113,"./Chunk":89}],91:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -12254,7 +12317,7 @@ ResourcesMap.RegisterResource('terrain');
 ResourcesMap.RegisterResource('doors_closed');
 ResourcesMap.RegisterResource('doors_open');
 
-},{}],91:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Obstacle_1 = require("../game/objects/Obstacle");
@@ -12288,7 +12351,7 @@ Prefabs.Register("Doors", Doors_1.Doors, { spriteName: "doors_closed" });
 Prefabs.Register("FireBall", FireBall_1.FireBall, { spriteName: "flame", prefabSize: 15 });
 Prefabs.Register("Portal", Portal_1.Portal, { spriteName: "portal", prefabSize: 75 });
 
-},{"../game/objects/Doors":96,"../game/objects/Enemy":97,"../game/objects/FireBall":98,"../game/objects/Item":100,"../game/objects/Obstacle":101,"../game/objects/Player":102,"../game/objects/Portal":103}],92:[function(require,module,exports){
+},{"../game/objects/Doors":97,"../game/objects/Enemy":98,"../game/objects/FireBall":99,"../game/objects/Item":101,"../game/objects/Obstacle":102,"../game/objects/Player":103,"../game/objects/Portal":104}],93:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectsManager;
@@ -12309,7 +12372,7 @@ var GameObjectsManager;
     GameObjectsManager.DestroyGameObjectById = DestroyGameObjectById;
 })(GameObjectsManager = exports.GameObjectsManager || (exports.GameObjectsManager = {}));
 
-},{}],93:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("./ObjectsFactory");
@@ -12332,7 +12395,7 @@ class GameObjectsSubscriber {
 }
 exports.GameObjectsSubscriber = GameObjectsSubscriber;
 
-},{"./GameObjectsManager":92,"./ObjectsFactory":94}],94:[function(require,module,exports){
+},{"./GameObjectsManager":93,"./ObjectsFactory":95}],95:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Transform_1 = require("../physics/Transform");
@@ -12405,7 +12468,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":108,"./GameObjectPrefabs":91,"./GameObjectsManager":92}],95:[function(require,module,exports){
+},{"../physics/Transform":109,"./GameObjectPrefabs":92,"./GameObjectsManager":93}],96:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12424,8 +12487,8 @@ const Serializable_1 = require("../../../serialize/Serializable");
 class Actor extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
-        this.faceDirection = 5;
-        this.moveDirection = 0;
+        this.horizontal = 0;
+        this.vertical = 0;
         this.weapon = null;
         this.maxHp = 200;
         this.hp = this.maxHp;
@@ -12469,7 +12532,14 @@ class Actor extends GameObject_1.GameObject {
         this.addChange(ChangesDict_1.ChangesDict.HP);
     }
     parseMoveDir() {
-        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]];
+        let speed = 0;
+        if (this.horizontal != 0 && this.vertical != 0) {
+            speed = 0.7071;
+        }
+        else if (this.horizontal != 0 || this.vertical != 0) {
+            speed = 1;
+        }
+        return [speed * this.vertical, speed * this.horizontal];
     }
     get MaxHP() {
         return this.maxHp;
@@ -12484,22 +12554,35 @@ class Actor extends GameObject_1.GameObject {
         this.name = name;
         this.addChange(ChangesDict_1.ChangesDict.NAME);
     }
-    set MoveDirection(direction) {
-        if (direction >= 0 && direction <= 8) {
-            if (this.moveDirection == 0 && direction != 0) {
-                this.animationType = "run";
-                this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
-            }
-            else if (this.moveDirection != 0 && direction == 0) {
-                this.animationType = "idle";
-                this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
-            }
-            this.moveDirection = direction;
-            if (direction != 0 && this.faceDirection != direction) {
-                this.faceDirection = direction;
-                this.addChange(ChangesDict_1.ChangesDict.FACE_DIR);
-            }
+    set Horizontal(horizontal) {
+        if (this.horizontal == horizontal)
+            return;
+        this.horizontal = horizontal;
+        this.addChange(ChangesDict_1.ChangesDict.HORIZONTAL);
+        this.setAnimationType();
+    }
+    set Vertical(vertical) {
+        if (this.vertical == vertical)
+            return;
+        this.vertical = vertical;
+        this.addChange(ChangesDict_1.ChangesDict.VERTICAL);
+        this.setAnimationType();
+    }
+    setAnimationType() {
+        if (this.horizontal != 0 || this.vertical != 0) {
+            this.animationType = "run";
+            this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
         }
+        else {
+            this.animationType = "idle";
+            this.addChange(ChangesDict_1.ChangesDict.ANIMATION_TYPE);
+        }
+    }
+    get Horizontal() {
+        return this.horizontal;
+    }
+    get Vertical() {
+        return this.vertical;
     }
     get SpriteName() {
         return this.spriteName + "_" + this.animationType;
@@ -12508,19 +12591,10 @@ class Actor extends GameObject_1.GameObject {
         this.spriteName = spriteName;
         this.addChange(ChangesDict_1.ChangesDict.SPRITE_ID);
     }
-    get MoveDirection() {
-        return this.moveDirection;
-    }
-    get FaceDirection() {
-        return this.faceDirection;
-    }
     set Weapon(weapon) {
         this.weapon = weapon;
     }
 }
-Actor.cornerDir = 0.7071;
-Actor.moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
-Actor.moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
 __decorate([
     SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.NAME, Serializable_1.SerializableTypes.String),
     __metadata("design:type", String)
@@ -12538,12 +12612,16 @@ __decorate([
     __metadata("design:type", String)
 ], Actor.prototype, "animationType", void 0);
 __decorate([
-    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.FACE_DIR, Serializable_1.SerializableTypes.Uint8),
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HORIZONTAL, Serializable_1.SerializableTypes.Int8),
     __metadata("design:type", Number)
-], Actor.prototype, "faceDirection", void 0);
+], Actor.prototype, "horizontal", void 0);
+__decorate([
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.VERTICAL, Serializable_1.SerializableTypes.Int8),
+    __metadata("design:type", Number)
+], Actor.prototype, "vertical", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":112,"../../../serialize/Serializable":114,"../../../serialize/SerializeDecorators":115,"./GameObject":99}],96:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./GameObject":100}],97:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12559,7 +12637,6 @@ const GameObject_1 = require("./GameObject");
 const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const Serializable_1 = require("../../../serialize/Serializable");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
-const FireBall_1 = require("./FireBall");
 class Doors extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
@@ -12567,10 +12644,6 @@ class Doors extends GameObject_1.GameObject {
         this.isSolid = true;
     }
     serverCollision(gameObject, result) {
-        if (gameObject instanceof FireBall_1.FireBall) {
-            this.isOpen = !this.isOpen;
-            this.addChange(ChangesDict_1.ChangesDict.ISOPEN);
-        }
     }
     commonCollision(gameObject, result) {
         // throw "This method should never be called on Obstacle object";
@@ -12589,6 +12662,16 @@ class Doors extends GameObject_1.GameObject {
             this.isSolid = true;
         }
     }
+    open() {
+        this.isOpen = !this.isOpen;
+        this.addChange(ChangesDict_1.ChangesDict.ISOPEN);
+    }
+    interact() {
+        this.open();
+    }
+    get InteractPopUpMessage() {
+        return "Open";
+    }
 }
 __decorate([
     SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ISOPEN, Serializable_1.SerializableTypes.Uint8),
@@ -12596,7 +12679,7 @@ __decorate([
 ], Doors.prototype, "isOpen", void 0);
 exports.Doors = Doors;
 
-},{"../../../serialize/ChangesDict":112,"../../../serialize/Serializable":114,"../../../serialize/SerializeDecorators":115,"./FireBall":98,"./GameObject":99}],97:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./GameObject":100}],98:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -12615,7 +12698,8 @@ class Enemy extends Actor_1.Actor {
     serverCollision(gameObject, result) {
         super.serverCollision(gameObject, result);
         if (gameObject.IsSolid) {
-            this.MoveDirection = Math.round(Math.random() * 8);
+            this.Horizontal = Math.round(Math.random() * 2) - 1;
+            this.Vertical = Math.round(Math.random() * 2) - 1;
         }
     }
     serverUpdate(delta) {
@@ -12629,7 +12713,8 @@ class Enemy extends Actor_1.Actor {
             for (let i = 0; i < 1; i++) {
                 let pos = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
                 this.weapon.use(this, pos, 0);
-                this.MoveDirection = Math.round(Math.random() * 8);
+                this.Horizontal = Math.round(Math.random() * 2) - 1;
+                this.Vertical = Math.round(Math.random() * 2) - 1;
             }
         }
         this.updatePosition(delta);
@@ -12639,7 +12724,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../../serialize/ChangesDict":112,"../weapons/MagicWand":105,"./Actor":95}],98:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":113,"../weapons/MagicWand":106,"./Actor":96}],99:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12713,7 +12798,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../../serialize/ChangesDict":112,"../../../serialize/Serializable":114,"../../../serialize/SerializeDecorators":115,"./Actor":95,"./Projectile":104}],99:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./Actor":96,"./Projectile":105}],100:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12789,6 +12874,8 @@ class GameObject extends Serializable_1.Serializable {
             listener(this);
         }
     }
+    interact() {
+    }
     get Transform() {
         return this.transform;
     }
@@ -12837,6 +12924,9 @@ class GameObject extends Serializable_1.Serializable {
     get IsSolid() {
         return this.isSolid;
     }
+    get InteractPopUpMessage() {
+        return null;
+    }
 }
 __decorate([
     SerializeDecorators_1.SerializableObject("pos"),
@@ -12857,7 +12947,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../SharedConfig":87,"../../../serialize/ChangesDict":112,"../../../serialize/Serializable":114,"../../../serialize/SerializeDecorators":115,"../../ResourcesMap":90,"../../physics/Transform":108}],100:[function(require,module,exports){
+},{"../../../SharedConfig":88,"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"../../ResourcesMap":91,"../../physics/Transform":109}],101:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -12885,7 +12975,7 @@ class Item extends GameObject_1.GameObject {
 }
 exports.Item = Item;
 
-},{"./Actor":95,"./GameObject":99}],101:[function(require,module,exports){
+},{"./Actor":96,"./GameObject":100}],102:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -12908,18 +12998,21 @@ class Obstacle extends GameObject_1.GameObject {
 }
 exports.Obstacle = Obstacle;
 
-},{"./GameObject":99}],102:[function(require,module,exports){
+},{"./GameObject":100}],103:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const SharedConfig_1 = require("../../../SharedConfig");
+const MagicWand_1 = require("../weapons/MagicWand");
 const ObjectsSpawner_1 = require("../weapons/ObjectsSpawner");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.lastInputSnapshot = null;
+        this.horizontalInput = [0, 0];
+        this.verticalInput = [0, 0];
         this.velocity = 0.25;
         // this.weapon = new PortalGun();
         // this.weapon = new MagicWand();
@@ -12932,8 +13025,12 @@ class Player extends Actor_1.Actor {
         inputCommands.forEach((value, key) => {
             if (SharedConfig_1.SharedConfig.IS_CLIENT && Player.onlyServerActions.has(key))
                 return;
-            if (key == InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION) {
-                this.moveDirectionAction(value);
+            if (key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP || key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) {
+                this.setHorizontalInput(parseFloat(value), key);
+                this.lastInputSnapshot = inputSnapshot;
+            }
+            else if (key == InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT || key == InputCommands_1.INPUT_COMMAND.VERTICAL_RIGHT) {
+                this.setVerticalInput(parseFloat(value), key);
                 this.lastInputSnapshot = inputSnapshot;
             }
             else if (key == InputCommands_1.INPUT_COMMAND.LEFT_MOUSE) {
@@ -12945,15 +13042,32 @@ class Player extends Actor_1.Actor {
             else if (key == InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE) {
                 this.mouseClickAction(value, 1);
             }
-            else if (key == InputCommands_1.INPUT_COMMAND.WALL) {
-                this.wallAction(value);
+            else if (key == InputCommands_1.INPUT_COMMAND.SWITCH_WEAPON) {
+                this.switchWeaponAction(value);
+            }
+            else if (key == InputCommands_1.INPUT_COMMAND.TEST) {
+                this.testAction(value);
             }
         });
     }
-    moveDirectionAction(direction) {
-        let newDirection = parseInt(direction);
-        if (newDirection != this.moveDirection) {
-            this.MoveDirection = parseInt(direction);
+    setHorizontalInput(value, key) {
+        let idx = key == InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN ? 0 : 1;
+        this.horizontalInput[idx] = value;
+        if (value != 0) {
+            this.Horizontal = this.horizontalInput[idx];
+        }
+        else {
+            this.Horizontal = this.horizontalInput[idx == 0 ? 1 : 0];
+        }
+    }
+    setVerticalInput(value, key) {
+        let idx = key == InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT ? 0 : 1;
+        this.verticalInput[idx] = value;
+        if (value != 0) {
+            this.Vertical = this.verticalInput[idx];
+        }
+        else {
+            this.Vertical = this.verticalInput[idx == 0 ? 1 : 0];
         }
     }
     mouseClickAction(position, clickButton) {
@@ -12963,7 +13077,15 @@ class Player extends Actor_1.Actor {
         //     this.weapon.use(this, Math.random() * 7, clickButton);
         // }
     }
-    wallAction(coords) {
+    switchWeaponAction(value) {
+        if (this.weapon instanceof ObjectsSpawner_1.ObjectsSpawner) {
+            this.weapon = new MagicWand_1.MagicWand();
+        }
+        else {
+            this.weapon = new ObjectsSpawner_1.ObjectsSpawner();
+        }
+    }
+    testAction(value) {
         // this.invisible = !this.invisible;
         // this.addChange("INV");
         this.velocity += 0.8;
@@ -12971,14 +13093,6 @@ class Player extends Actor_1.Actor {
             this.velocity = 0.25;
         }
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
-        // FOR TEST
-        // let o: Obstacle = GameObjectsFactory.Instatiate("Wall") as Obstacle;
-        // let splited = value.split(',');
-        // o.Transform.X = Number(splited[0]) + this.Transform.X;
-        // o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-        //
-        // this.Transform.addChange(ChangesDict.X);
-        // this.Transform.addChange(ChangesDict.Y);
     }
     commonUpdate(delta) {
         super.commonUpdate(delta);
@@ -12995,11 +13109,11 @@ Player.onlyServerActions = new Set([
     InputCommands_1.INPUT_COMMAND.LEFT_MOUSE,
     InputCommands_1.INPUT_COMMAND.RIGHT_MOUSE,
     InputCommands_1.INPUT_COMMAND.MIDDLE_MOUSE,
-    InputCommands_1.INPUT_COMMAND.WALL
+    InputCommands_1.INPUT_COMMAND.TEST
 ]);
 exports.Player = Player;
 
-},{"../../../SharedConfig":87,"../../../input/InputCommands":109,"../../../serialize/ChangesDict":112,"../weapons/ObjectsSpawner":106,"./Actor":95}],103:[function(require,module,exports){
+},{"../../../SharedConfig":88,"../../../input/InputCommands":110,"../../../serialize/ChangesDict":113,"../weapons/MagicWand":106,"../weapons/ObjectsSpawner":107,"./Actor":96}],104:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -13084,7 +13198,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../../serialize/ChangesDict":112,"../../../serialize/Serializable":114,"../../../serialize/SerializeDecorators":115,"./Actor":95,"./GameObject":99}],104:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./Actor":96,"./GameObject":100}],105:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -13108,7 +13222,7 @@ class Projectile extends GameObject_1.GameObject {
 }
 exports.Projectile = Projectile;
 
-},{"./GameObject":99}],105:[function(require,module,exports){
+},{"./GameObject":100}],106:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -13128,7 +13242,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../../utils/functions/CalcAngle":121,"../../factory/ObjectsFactory":94}],106:[function(require,module,exports){
+},{"../../../utils/functions/CalcAngle":122,"../../factory/ObjectsFactory":95}],107:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -13155,7 +13269,7 @@ class ObjectsSpawner {
 }
 exports.ObjectsSpawner = ObjectsSpawner;
 
-},{"../../factory/ObjectsFactory":94}],107:[function(require,module,exports){
+},{"../../factory/ObjectsFactory":95}],108:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
@@ -13218,7 +13332,7 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
 }
 exports.CollisionsSystem = CollisionsSystem;
 
-},{"../../SharedConfig":87,"detect-collisions":36}],108:[function(require,module,exports){
+},{"../../SharedConfig":88,"detect-collisions":36}],109:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -13357,25 +13471,25 @@ __decorate([
 ], Transform.prototype, "Rotation", null);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":112,"../../serialize/Serializable":114,"../../serialize/SerializeDecorators":115,"detect-collisions":36}],109:[function(require,module,exports){
+},{"../../serialize/ChangesDict":113,"../../serialize/Serializable":115,"../../serialize/SerializeDecorators":116,"detect-collisions":36}],110:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
 (function (INPUT_COMMAND) {
-    INPUT_COMMAND[INPUT_COMMAND["MOVE_DIRECTION"] = 0] = "MOVE_DIRECTION";
-    INPUT_COMMAND[INPUT_COMMAND["LEFT_MOUSE"] = 1] = "LEFT_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["RIGHT_MOUSE"] = 2] = "RIGHT_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["MIDDLE_MOUSE"] = 3] = "MIDDLE_MOUSE";
-    INPUT_COMMAND[INPUT_COMMAND["WALL"] = 4] = "WALL";
+    // MOVE_DIRECTION,
+    INPUT_COMMAND[INPUT_COMMAND["HORIZONTAL_UP"] = 0] = "HORIZONTAL_UP";
+    INPUT_COMMAND[INPUT_COMMAND["HORIZONTAL_DOWN"] = 1] = "HORIZONTAL_DOWN";
+    INPUT_COMMAND[INPUT_COMMAND["VERTICAL_LEFT"] = 2] = "VERTICAL_LEFT";
+    INPUT_COMMAND[INPUT_COMMAND["VERTICAL_RIGHT"] = 3] = "VERTICAL_RIGHT";
+    INPUT_COMMAND[INPUT_COMMAND["LEFT_MOUSE"] = 4] = "LEFT_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["RIGHT_MOUSE"] = 5] = "RIGHT_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["MIDDLE_MOUSE"] = 6] = "MIDDLE_MOUSE";
+    INPUT_COMMAND[INPUT_COMMAND["INTERACT"] = 7] = "INTERACT";
+    INPUT_COMMAND[INPUT_COMMAND["SWITCH_WEAPON"] = 8] = "SWITCH_WEAPON";
+    INPUT_COMMAND[INPUT_COMMAND["TEST"] = 9] = "TEST";
 })(INPUT_COMMAND = exports.INPUT_COMMAND || (exports.INPUT_COMMAND = {}));
-// delete this later
-// export const InputCommands: Map<string, INPUT_COMMAND> = new Map<string, INPUT_COMMAND>([
-//     ["D", INPUT_COMMAND.MOVE_DIRECTION],
-//     ["C", INPUT_COMMAND.FIRE],
-//     ["W", INPUT_COMMAND.WALL],
-// ]);
 
-},{}],110:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -13383,7 +13497,7 @@ const DeltaTimer_1 = require("../utils/DeltaTimer");
 class InputSnapshot {
     constructor(serializedSnapshot) {
         this.snapshotDelta = 0;
-        this.time = DeltaTimer_1.DeltaTimer.getTimestamp();
+        this.resetTime();
         if (serializedSnapshot) {
             this.deserialize(serializedSnapshot);
         }
@@ -13396,7 +13510,10 @@ class InputSnapshot {
         this.commandList.set(command, value);
     }
     isMoving() {
-        return this.Commands.has(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION) && this.Commands.get(InputCommands_1.INPUT_COMMAND.MOVE_DIRECTION) != "0";
+        return (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
+            (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_DOWN) != 0) ||
+            (this.Commands.has(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(InputCommands_1.INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
+            (this.Commands.has(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT) && this.Commands.get(InputCommands_1.INPUT_COMMAND.VERTICAL_LEFT) != 0);
     }
     serializeSnapshot() {
         let serializedSnapshot = '';
@@ -13414,6 +13531,9 @@ class InputSnapshot {
             let splited = command.split(':');
             this.commandList.set(Number(splited[0]), splited[1]);
         });
+    }
+    resetTime() {
+        this.time = DeltaTimer_1.DeltaTimer.getTimestamp();
     }
     get CreateTime() {
         return this.time;
@@ -13434,7 +13554,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../input/InputCommands":109,"../utils/DeltaTimer":118}],111:[function(require,module,exports){
+},{"../input/InputCommands":110,"../utils/DeltaTimer":119}],112:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 let messageCode = 0;
@@ -13456,7 +13576,7 @@ SocketMsgs.CHUNK_MOVED = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 
-},{}],112:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
@@ -13470,7 +13590,8 @@ ChangesDict.HP = "HP";
 ChangesDict.MAX_HP = "MAX_HP";
 ChangesDict.NAME = "NAME";
 ChangesDict.ANIMATION_TYPE = "ANIMATION_TYPE";
-ChangesDict.FACE_DIR = "FACE_DIR";
+ChangesDict.HORIZONTAL = "HORIZONTAL";
+ChangesDict.VERTICAL = "VERTICAL";
 //Projectile
 ChangesDict.OWNER = "O";
 ChangesDict.POWER = "B";
@@ -13484,7 +13605,7 @@ ChangesDict.ROTATION = "ROTATION";
 ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],113:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
@@ -13535,7 +13656,7 @@ class ObjectsSerializer {
 ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
 exports.ObjectsSerializer = ObjectsSerializer;
 
-},{"../game_utils/factory/GameObjectPrefabs":91,"../game_utils/factory/ObjectsFactory":94}],114:[function(require,module,exports){
+},{"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/ObjectsFactory":95}],115:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SerializeDecorators_1 = require("./SerializeDecorators");
@@ -13710,7 +13831,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../SharedConfig":87,"../utils/TicksCounter":119,"../utils/functions/BitOperations":120,"./SerializeDecorators":115}],115:[function(require,module,exports){
+},{"../SharedConfig":88,"../utils/TicksCounter":120,"../utils/functions/BitOperations":121,"./SerializeDecorators":116}],116:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -13880,7 +14001,7 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":114}],116:[function(require,module,exports){
+},{"./Serializable":115}],117:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -14024,7 +14145,7 @@ UpdateCollector.OBJECT_ID_BYTES_LEN = 5;
 UpdateCollector.DESTROY_OBJECTS_ID = 255;
 exports.UpdateCollector = UpdateCollector;
 
-},{"../SharedConfig":87,"../game_utils/factory/GameObjectPrefabs":91,"../game_utils/factory/GameObjectsSubscriber":93,"../game_utils/factory/ObjectsFactory":94}],117:[function(require,module,exports){
+},{"../SharedConfig":88,"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/GameObjectsSubscriber":94,"../game_utils/factory/ObjectsFactory":95}],118:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {
@@ -14051,7 +14172,7 @@ class AverageCounter {
 }
 exports.AverageCounter = AverageCounter;
 
-},{}],118:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -14071,7 +14192,7 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],119:[function(require,module,exports){
+},{}],120:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class TicksCounter {
@@ -14094,7 +14215,7 @@ class TicksCounter {
 TicksCounter.instance = null;
 exports.TicksCounter = TicksCounter;
 
-},{}],120:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function calcPropsMaskByteSize(num) {
@@ -14107,7 +14228,7 @@ function setBit(val, bitIndex) {
 }
 exports.setBit = setBit;
 
-},{}],121:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function calcAngle(p1, p2) {

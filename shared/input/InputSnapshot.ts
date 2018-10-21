@@ -5,25 +5,28 @@ export class InputSnapshot {
     static NextId = 0;
     private id: number;
     private time: number;
-    private commandList: Map<INPUT_COMMAND, string>;
+    private commandList: Map<INPUT_COMMAND, any>;
     private snapshotDelta: number = 0;
 
     constructor(serializedSnapshot?: string) {
-        this.time = DeltaTimer.getTimestamp();
+        this.resetTime();
         if(serializedSnapshot) {
             this.deserialize(serializedSnapshot);
         } else {
             this.id = InputSnapshot.NextId++;
-            this.commandList = new Map<INPUT_COMMAND, string>();
+            this.commandList = new Map<INPUT_COMMAND, any>();
         }
     }
 
-    public append(command: INPUT_COMMAND, value: string) {
+    public append(command: INPUT_COMMAND, value: any) {
         this.commandList.set(command, value);
     }
 
     public isMoving(): boolean {
-        return this.Commands.has(INPUT_COMMAND.MOVE_DIRECTION) && this.Commands.get(INPUT_COMMAND.MOVE_DIRECTION) != "0";
+        return (this.Commands.has(INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
+               (this.Commands.has(INPUT_COMMAND.HORIZONTAL_DOWN) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_DOWN) != 0) ||
+               (this.Commands.has(INPUT_COMMAND.HORIZONTAL_UP) && this.Commands.get(INPUT_COMMAND.HORIZONTAL_UP) != 0) ||
+               (this.Commands.has(INPUT_COMMAND.VERTICAL_LEFT) && this.Commands.get(INPUT_COMMAND.VERTICAL_LEFT) != 0)
     }
 
     public serializeSnapshot(): string {
@@ -49,6 +52,10 @@ export class InputSnapshot {
         });
     }
 
+    public resetTime() {
+        this.time = DeltaTimer.getTimestamp();
+    }
+
     get CreateTime(): number {
         return this.time;
     }
@@ -65,7 +72,7 @@ export class InputSnapshot {
         return this.id;
     }
 
-    get Commands(): Map<INPUT_COMMAND, string> {
+    get Commands(): Map<INPUT_COMMAND, any> {
         return this.commandList;
     }
 }

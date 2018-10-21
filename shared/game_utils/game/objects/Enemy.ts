@@ -4,7 +4,7 @@ import {ChangesDict} from "../../../serialize/ChangesDict";
 import {MagicWand} from "../weapons/MagicWand";
 import {GameObject} from "./GameObject";
 import {Result} from "detect-collisions/collisions";
-import {Obstacle} from "./Obstacle";
+
 
 export class Enemy extends Actor {
     private timeSinceLastShot = 1000;
@@ -23,8 +23,8 @@ export class Enemy extends Actor {
     protected serverCollision(gameObject: GameObject, result: Result) {
         super.serverCollision(gameObject, result);
         if(gameObject.IsSolid) {
-            this.MoveDirection = Math.round(Math.random() * 8);
-        }
+            this.Horizontal = Math.round(Math.random() * 2) - 1;
+            this.Vertical = Math.round(Math.random() * 2) - 1;        }
     }
 
     protected serverUpdate(delta: number) {
@@ -39,7 +39,9 @@ export class Enemy extends Actor {
             for(let i = 0; i < 1; i++) {
                 let pos: [number, number] = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
                 this.weapon.use(this, pos, 0);
-                this.MoveDirection = Math.round(Math.random() * 8);
+
+                this.Horizontal = Math.round(Math.random() * 2) - 1;
+                this.Vertical = Math.round(Math.random() * 2) - 1;
             }
         }
 

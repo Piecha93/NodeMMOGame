@@ -5,6 +5,7 @@ import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {SerializableTypes} from "../../../serialize/Serializable";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {FireBall} from "./FireBall";
+import {Actor} from "./Actor";
 
 export class Doors extends GameObject {
 
@@ -18,10 +19,6 @@ export class Doors extends GameObject {
     }
 
     protected serverCollision(gameObject: GameObject, result: Result) {
-        if(gameObject instanceof FireBall) {
-            this.isOpen = !this.isOpen;
-            this.addChange(ChangesDict.ISOPEN)
-        }
     }
 
     protected commonCollision(gameObject: GameObject, result: Result) {
@@ -43,5 +40,18 @@ export class Doors extends GameObject {
             this.SpriteName = "doors_closed";
             this.isSolid = true;
         }
+    }
+
+    open() {
+        this.isOpen = !this.isOpen;
+        this.addChange(ChangesDict.ISOPEN);
+    }
+
+    interact() {
+        this.open();
+    }
+
+    get InteractPopUpMessage(): string {
+        return "Open";
     }
 }

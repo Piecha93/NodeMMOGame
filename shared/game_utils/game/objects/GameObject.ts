@@ -5,6 +5,7 @@ import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
 import {SerializableObject, SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
+import {Actor} from "./Actor";
 
 export class GameObject extends Serializable {
     protected id: string = "";
@@ -94,6 +95,10 @@ export class GameObject extends Serializable {
         }
     }
 
+    interact() {
+
+    }
+
     get Transform(): Transform {
         return this.transform;
     }
@@ -156,5 +161,9 @@ export class GameObject extends Serializable {
 
     get IsSolid(): boolean {
         return this.isSolid;
+    }
+
+    get InteractPopUpMessage(): string {
+        return null;
     }
 }

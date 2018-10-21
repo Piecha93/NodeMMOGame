@@ -78,11 +78,10 @@ export class GameClient {
 
         this.updateDebugWindow();
 
-        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
-
         let deviation: [number, number] = this.renderer.CameraDeviation;
-        this.cursor.Transform.X = this.localPlayer.Transform.X + deviation[0];
-        this.cursor.Transform.Y = this.localPlayer.Transform.Y + deviation[1];
+        this.cursor.move(this.localPlayer.Transform.X + deviation[0], this.localPlayer.Transform.Y + deviation[1]);
+
+        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
 
         this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));

@@ -6,7 +6,7 @@ import {Actor} from "../../shared/game_utils/game/objects/Actor";
 export class GameObjectAnimationRender extends GameObjectRender {
     private animation: PIXI.extras.AnimatedSprite;
 
-    protected static Tags: Array<string> = ["U", "UR","R","DR","D","DL","L","UL"];
+    private lastDirectionKey: string = "D";
 
     constructor() {
         super();
@@ -49,12 +49,34 @@ export class GameObjectAnimationRender extends GameObjectRender {
         if(resource.type == ResourceType.OCTAGONAL_ANIMATION) {
             let actor: Actor = (this.objectRef as Actor);
             let resource: Resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
-            let animationDirection = GameObjectAnimationRender.Tags[actor.FaceDirection - 1];
 
-            return resource.textures.get(animationDirection);
+            this.lastDirectionKey = this.directonsToDirectionKey(actor.Horizontal, actor.Vertical);
+
+            return resource.textures.get(this.lastDirectionKey);
         } else {
             return resource.textures.get(this.objectRef.SpriteName);
         }
+    }
+
+    private directonsToDirectionKey(horizontal: number, vertical: number): string {
+        let dir: string = "";
+        if(horizontal == -1) {
+            dir += "U";
+        } else if(horizontal == 1) {
+            dir += "D";
+        }
+
+        if(vertical == -1) {
+            dir += "L";
+        } else if(vertical == 1) {
+            dir += "R";
+        }
+
+        if(dir == "") {
+            dir = this.lastDirectionKey;
+        }
+
+        return dir;
     }
 
     public destroy() {

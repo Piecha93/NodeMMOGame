@@ -17,6 +17,7 @@ import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
 import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
+import {INPUT_COMMAND} from "../shared/input/InputCommands";
 
 
 export class GameServer {
@@ -140,6 +141,13 @@ export class GameServer {
             let snapshot: InputSnapshot = new InputSnapshot();
             snapshot.deserialize(data);
             player.setInput(snapshot);
+
+            if(snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
+                let gameObject: GameObject = GameObjectsManager.GetGameObjectById(snapshot.Commands.get(INPUT_COMMAND.INTERACT)) as GameObject;
+                if(gameObject) {
+                    gameObject.interact();
+                }
+            }
 
             this.playersLastSnapshots.set(player, snapshot);
         });

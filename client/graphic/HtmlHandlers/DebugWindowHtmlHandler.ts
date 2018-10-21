@@ -49,7 +49,6 @@ export class DebugWindowHtmlHandler {
     }
 
     set CursorObjectSpan(cursorObject: string) {
-        console.log("asd");
         this.cursorObjectSpan.innerHTML = "<br>" + "cursorObject: " + cursorObject;
     }
 

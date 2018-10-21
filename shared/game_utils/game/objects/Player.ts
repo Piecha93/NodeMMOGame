@@ -13,7 +13,7 @@ export class Player extends Actor {
         INPUT_COMMAND.LEFT_MOUSE,
         INPUT_COMMAND.RIGHT_MOUSE,
         INPUT_COMMAND.MIDDLE_MOUSE,
-        INPUT_COMMAND.WALL
+        INPUT_COMMAND.TEST
     ]);
 
 
@@ -37,25 +37,49 @@ export class Player extends Actor {
         inputCommands.forEach((value: string, key: INPUT_COMMAND) => {
             if (SharedConfig.IS_CLIENT && Player.onlyServerActions.has(key)) return;
 
-            if(key == INPUT_COMMAND.MOVE_DIRECTION) {
-                this.moveDirectionAction(value);
+            if (key == INPUT_COMMAND.HORIZONTAL_UP || key == INPUT_COMMAND.HORIZONTAL_DOWN) {
+                this.setHorizontalInput(parseFloat(value), key);
                 this.lastInputSnapshot = inputSnapshot;
-            } else if(key == INPUT_COMMAND.LEFT_MOUSE) {
+            } else if (key == INPUT_COMMAND.VERTICAL_LEFT || key == INPUT_COMMAND.VERTICAL_RIGHT) {
+                this.setVerticalInput(parseFloat(value), key);
+                this.lastInputSnapshot = inputSnapshot;
+            } else if (key == INPUT_COMMAND.LEFT_MOUSE) {
                 this.mouseClickAction(value, 0);
-            } else if(key == INPUT_COMMAND.RIGHT_MOUSE) {
+            } else if (key == INPUT_COMMAND.RIGHT_MOUSE) {
                 this.mouseClickAction(value, 2);
-            }else if(key == INPUT_COMMAND.MIDDLE_MOUSE) {
+            } else if (key == INPUT_COMMAND.MIDDLE_MOUSE) {
                 this.mouseClickAction(value, 1);
-            } else if(key == INPUT_COMMAND.WALL) {
-                this.wallAction(value);
+            } else if (key == INPUT_COMMAND.SWITCH_WEAPON) {
+                this.switchWeaponAction(value);
+            } else if (key == INPUT_COMMAND.TEST) {
+                this.testAction(value);
             }
         });
     }
 
-    private moveDirectionAction(direction: string) {
-        let newDirection: number = parseInt(direction);
-        if(newDirection != this.moveDirection) {
-            this.MoveDirection = parseInt(direction);
+    private horizontalInput: [number, number] = [0, 0];
+    private verticalInput: [number, number] = [0, 0];
+
+    private setHorizontalInput(value: number, key) {
+        let idx: number = key == INPUT_COMMAND.HORIZONTAL_DOWN ? 0 : 1;
+
+        this.horizontalInput[idx] = value;
+
+        if(value != 0) {
+            this.Horizontal = this.horizontalInput[idx];
+        } else {
+            this.Horizontal = this.horizontalInput[idx == 0 ? 1 : 0];
+        }
+    }
+    private setVerticalInput(value: number, key) {
+        let idx: number = key == INPUT_COMMAND.VERTICAL_LEFT ? 0 : 1;
+
+        this.verticalInput[idx] = value;
+
+        if(value != 0) {
+            this.Vertical = this.verticalInput[idx];
+        } else {
+            this.Vertical = this.verticalInput[idx == 0 ? 1 : 0];
         }
     }
 
@@ -67,7 +91,15 @@ export class Player extends Actor {
         // }
     }
 
-    private wallAction(coords) {
+    private switchWeaponAction(value) {
+        if(this.weapon instanceof ObjectsSpawner) {
+            this.weapon = new MagicWand();
+        } else {
+            this.weapon = new ObjectsSpawner();
+        }
+    }
+
+    private testAction(value) {
         // this.invisible = !this.invisible;
         // this.addChange("INV");
         this.velocity += 0.8;
@@ -75,15 +107,6 @@ export class Player extends Actor {
             this.velocity = 0.25;
         }
         this.addChange(ChangesDict.VELOCITY);
-        // FOR TEST
-
-        // let o: Obstacle = GameObjectsFactory.Instatiate("Wall") as Obstacle;
-        // let splited = value.split(',');
-        // o.Transform.X = Number(splited[0]) + this.Transform.X;
-        // o.Transform.Y = Number(splited[1]) + this.Transform.Y;
-        //
-        // this.Transform.addChange(ChangesDict.X);
-        // this.Transform.addChange(ChangesDict.Y);
     }
 
     protected commonUpdate(delta: number) {

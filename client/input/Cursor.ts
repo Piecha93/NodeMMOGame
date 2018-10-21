@@ -4,6 +4,10 @@ import {Result} from "detect-collisions";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
 
 export class Cursor extends GameObject {
+
+    private onObjectId: string = null;
+    private interactMessage: string = "";
+
     constructor(transform: Transform) {
         super(transform);
 
@@ -12,7 +16,6 @@ export class Cursor extends GameObject {
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
-
     }
 
     destroy() {
@@ -21,6 +24,31 @@ export class Cursor extends GameObject {
 
     protected commonCollision(gameObject: GameObject, result: Result) {
         DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
+
+        this.onObjectId = gameObject.ID;
+
+        if(gameObject.InteractPopUpMessage != null) {
+            this.interactMessage = gameObject.InteractPopUpMessage;
+            DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
+        } else {
+            this.interactMessage = null;
+        }
+    }
+
+    public move(x: number, y: number) {
+        this.Transform.X = x;
+        this.Transform.Y = y;
+
+        this.onObjectId = null;
+        this.interactMessage = null;
+    }
+
+    get OnObjectId(): string {
+        return this.onObjectId;
+    }
+
+    get InteractMessage(): string {
+        return this.interactMessage;
     }
 }
 

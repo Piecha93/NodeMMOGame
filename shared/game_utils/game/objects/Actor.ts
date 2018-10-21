@@ -23,10 +23,10 @@ export abstract class Actor extends GameObject {
     @SerializableProperty(ChangesDict.ANIMATION_TYPE, SerializableTypes.String)
     protected animationType: string;
 
-    @SerializableProperty(ChangesDict.FACE_DIR, SerializableTypes.Uint8)
-    protected faceDirection: number = 5;
-
-    protected moveDirection: number = 0;
+    @SerializableProperty(ChangesDict.HORIZONTAL, SerializableTypes.Int8)
+    protected horizontal: number = 0;
+    @SerializableProperty(ChangesDict.VERTICAL, SerializableTypes.Int8)
+    protected vertical: number = 0;
 
     protected weapon: Weapon = null;
 
@@ -82,13 +82,15 @@ export abstract class Actor extends GameObject {
         this.addChange(ChangesDict.HP);
     }
 
-    private static cornerDir: number = 0.7071;
-
-    private static moveDirsX = [0, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir, -1, -Actor.cornerDir];
-    private static moveDirsY = [0, -1, -Actor.cornerDir, 0, Actor.cornerDir, 1, Actor.cornerDir, 0, -Actor.cornerDir];
-
     public parseMoveDir(): [number, number] {
-        return [Actor.moveDirsX[this.moveDirection], Actor.moveDirsY[this.moveDirection]];
+        let speed: number = 0;
+        if(this.horizontal != 0 && this.vertical != 0) {
+            speed = 0.7071;
+        } else if(this.horizontal != 0 || this.vertical != 0) {
+            speed = 1;
+        }
+
+        return [speed * this.vertical, speed * this.horizontal];
     }
 
     get MaxHP(): number {
@@ -108,22 +110,40 @@ export abstract class Actor extends GameObject {
         this.addChange(ChangesDict.NAME);
     }
 
-    set MoveDirection(direction: number) {
-        if(direction >= 0 && direction <= 8) {
-            if(this.moveDirection == 0 && direction != 0) {
-                this.animationType = "run";
-                this.addChange(ChangesDict.ANIMATION_TYPE);
-            } else if(this.moveDirection != 0 && direction == 0) {
-                this.animationType = "idle";
-                this.addChange(ChangesDict.ANIMATION_TYPE);
-            }
+    set Horizontal(horizontal: number) {
+        if(this.horizontal == horizontal) return;
 
-            this.moveDirection = direction;
-            if(direction != 0 && this.faceDirection != direction) {
-                this.faceDirection = direction;
-                this.addChange(ChangesDict.FACE_DIR);
-            }
+        this.horizontal = horizontal;
+        this.addChange(ChangesDict.HORIZONTAL);
+
+        this.setAnimationType();
+    }
+
+    set Vertical(vertical: number) {
+        if(this.vertical == vertical) return;
+
+        this.vertical = vertical;
+        this.addChange(ChangesDict.VERTICAL);
+
+        this.setAnimationType();
+    }
+
+    private setAnimationType() {
+        if(this.horizontal != 0 || this.vertical != 0) {
+            this.animationType = "run";
+            this.addChange(ChangesDict.ANIMATION_TYPE);
+        } else {
+            this.animationType = "idle";
+            this.addChange(ChangesDict.ANIMATION_TYPE);
         }
+    }
+
+    get Horizontal(): number {
+        return this.horizontal;
+    }
+
+    get Vertical(): number {
+        return this.vertical;
     }
 
     get SpriteName(): string {
@@ -133,15 +153,6 @@ export abstract class Actor extends GameObject {
     set SpriteName(spriteName: string) {
         this.spriteName = spriteName;
         this.addChange(ChangesDict.SPRITE_ID);
-    }
-
-
-    get MoveDirection(): number {
-        return this.moveDirection;
-    }
-
-    get FaceDirection(): number {
-        return this.faceDirection;
     }
 
     set Weapon(weapon: Weapon) {
