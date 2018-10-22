@@ -62,6 +62,10 @@ export class Transform extends Serializable {
         this.Rotation += angle;
     }
 
+    distanceTo(transform: Transform) {
+        return Transform.Distance(this, transform);
+    }
+
     get Body(): Polygon | Circle {
         return this.shape;
     }
@@ -127,5 +131,10 @@ export class Transform extends Serializable {
     get Rotation(): number {
         this.addChange(ChangesDict.ROTATION);
         return this.angle;
+    }
+
+
+    static Distance(t1: Transform, t2: Transform): number {
+        return Math.sqrt(Math.pow(t1.X - t2.X, 2) + Math.pow(t1.Y - t2.Y, 2));
     }
 }

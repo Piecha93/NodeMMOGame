@@ -17,7 +17,7 @@ import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
 import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
-import {INPUT_COMMAND} from "../shared/input/InputCommands";
+import {ClientsInputSnapshotHandler} from "./ClientsInputSnapshotHandler";
 
 
 export class GameServer {
@@ -27,9 +27,10 @@ export class GameServer {
     private userIdToSocketMap: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
 
     private core: GameCore;
-    private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
+
 
     private lastChunkSent: Map<Player, Chunk> = new Map<Player, Chunk>(); //TODO move this somewhere else
+    private clientsInputSnapshotHandler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
 
     constructor(sockets: SocketIO.Server) {
         this.sockets = sockets;
@@ -132,24 +133,13 @@ export class GameServer {
             this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
         });
 
-        socket.on(SocketMsgs.INPUT_SNAPSHOT, (data) => {
+        socket.on(SocketMsgs.INPUT_SNAPSHOT, (snapshotData: string) => {
             let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
             if(player == null) {
                 return;
             }
 
-            let snapshot: InputSnapshot = new InputSnapshot();
-            snapshot.deserialize(data);
-            player.setInput(snapshot);
-
-            if(snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
-                let gameObject: GameObject = GameObjectsManager.GetGameObjectById(snapshot.Commands.get(INPUT_COMMAND.INTERACT)) as GameObject;
-                if(gameObject) {
-                    gameObject.interact();
-                }
-            }
-
-            this.playersLastSnapshots.set(player, snapshot);
+            this.clientsInputSnapshotHandler.setSnapshot(player, snapshotData);
         });
 
         socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
@@ -197,7 +187,7 @@ export class GameServer {
                     }
                 });
 
-                let snapshot: InputSnapshot = this.playersLastSnapshots.get(player);
+                let snapshot: InputSnapshot = this.clientsInputSnapshotHandler.getPlayerLastSnapshot(player);
                 if(snapshot && snapshot.isMoving()) {
                     client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }

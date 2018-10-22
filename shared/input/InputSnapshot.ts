@@ -10,11 +10,12 @@ export class InputSnapshot {
 
     constructor(serializedSnapshot?: string) {
         this.resetTime();
+        this.commandList = new Map<INPUT_COMMAND, any>();
+
         if(serializedSnapshot) {
             this.deserialize(serializedSnapshot);
         } else {
             this.id = InputSnapshot.NextId++;
-            this.commandList = new Map<INPUT_COMMAND, any>();
         }
     }
 

@@ -12667,11 +12667,6 @@ class Doors extends GameObject_1.GameObject {
         this.isOpen = false;
         this.isSolid = true;
     }
-    serverOnCollisionExit(gameObject) {
-        if (this.isOpen) {
-            this.open();
-        }
-    }
     serverUpdate(delta) {
         super.serverUpdate(delta);
     }
@@ -12858,7 +12853,6 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners = new Set();
     }
     onCollisionEnter(gameObject, result) {
-        // console.log("on collision enter");
         if (this.IsDestroyed || gameObject.IsDestroyed) {
             return;
         }
@@ -12868,7 +12862,6 @@ class GameObject extends Serializable_1.Serializable {
         this.commonOnCollisionEnter(gameObject, result);
     }
     onCollisionStay(gameObject, result) {
-        // console.log("on collision stay");
         if (this.IsDestroyed || gameObject.IsDestroyed) {
             return;
         }
@@ -12878,7 +12871,6 @@ class GameObject extends Serializable_1.Serializable {
         this.commonOnCollisionStay(gameObject, result);
     }
     onCollisionExit(gameObject) {
-        // console.log("on collision exit");
         if (this.IsDestroyed || gameObject.IsDestroyed) {
             return;
         }
@@ -13350,17 +13342,14 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
                 }
                 if (gameObject.Transform.Body.collides(body, this.result)) {
                     if (!oldCollidingObjects.has(colidedGameObject)) {
-                        console.log("enter " + colidedGameObject.ID);
                         gameObject.onCollisionEnter(colidedGameObject, this.result);
                     }
-                    console.log("object " + colidedGameObject.ID);
                     newCollidingObjects.add(colidedGameObject);
                     gameObject.onCollisionStay(colidedGameObject, this.result);
                 }
             }
             for (let object of oldCollidingObjects) {
                 if (!newCollidingObjects.has(object)) {
-                    console.log("exit " + object.ID);
                     gameObject.onCollisionExit(object);
                 }
             }
@@ -13449,6 +13438,9 @@ class Transform extends Serializable_1.Serializable {
     rotate(angle) {
         this.Rotation += angle;
     }
+    distanceTo(transform) {
+        return Transform.Distance(this, transform);
+    }
     get Body() {
         return this.shape;
     }
@@ -13498,6 +13490,9 @@ class Transform extends Serializable_1.Serializable {
     get Rotation() {
         this.addChange(ChangesDict_1.ChangesDict.ROTATION);
         return this.angle;
+    }
+    static Distance(t1, t2) {
+        return Math.sqrt(Math.pow(t1.X - t2.X, 2) + Math.pow(t1.Y - t2.Y, 2));
     }
 }
 __decorate([
@@ -13562,12 +13557,12 @@ class InputSnapshot {
     constructor(serializedSnapshot) {
         this.snapshotDelta = 0;
         this.resetTime();
+        this.commandList = new Map();
         if (serializedSnapshot) {
             this.deserialize(serializedSnapshot);
         }
         else {
             this.id = InputSnapshot.NextId++;
-            this.commandList = new Map();
         }
     }
     append(command, value) {
