@@ -20,8 +20,8 @@ export class Enemy extends Actor {
         super.commonUpdate(delta);
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
-        super.serverCollision(gameObject, result);
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.serverOnCollisionEnter(gameObject, result);
         if(gameObject.IsSolid) {
             this.Horizontal = Math.round(Math.random() * 2) - 1;
             this.Vertical = Math.round(Math.random() * 2) - 1;        }

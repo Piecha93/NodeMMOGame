@@ -13,6 +13,7 @@ export class CollisionsSystem extends Collisions {
     public insertObject(gameObject: GameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+        this.collidingObjectsMap.set(gameObject, new Set<GameObject>());
 
         if(SharedConfig.IS_SERVER && gameObject.IsSolid && this.checkObjectCollision(gameObject)) {
             gameObject.destroy();
@@ -24,26 +25,52 @@ export class CollisionsSystem extends Collisions {
             super.remove(gameObject.Transform.Body);
             this.bodyToObjectMap.delete(gameObject.Transform.Body);
         }
+
+        if(this.collidingObjectsMap.has(gameObject)) {
+            this.collidingObjectsMap.delete(gameObject);
+        }
     }
 
     public update() {
         super.update();
     }
 
+    private collidingObjectsMap: Map<GameObject, Set<GameObject>> = new Map<GameObject, Set<GameObject>>();
+
     public updateCollisions(gameObjects: Array<GameObject>) {
-        gameObjects.forEach((object: GameObject) => {
-            if(object.IsCollisionStatic) {
+        gameObjects.forEach((gameObject: GameObject) => {
+            if(gameObject.IsCollisionStatic) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles
                 return;
             }
-            let potentials: Body[] = object.Transform.Body.potentials();
+            let potentials: Body[] = gameObject.Transform.Body.potentials();
+
+            let oldCollidingObjects: Set<GameObject> = this.collidingObjectsMap.get(gameObject);
+            let newCollidingObjects: Set<GameObject> = new Set<GameObject>();
 
             for(let body of potentials) {
-                if(this.bodyToObjectMap.has(body) && object.Transform.Body.collides(body, this.result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result)
+                let colidedGameObject: GameObject = this.bodyToObjectMap.get(body);
+                if(!colidedGameObject) {
+                    continue;
+                }
+
+                if(gameObject.Transform.Body.collides(body, this.result)) {
+                    if(!oldCollidingObjects.has(colidedGameObject)) {
+                        gameObject.onCollisionEnter(colidedGameObject, this.result)
+                    }
+                    newCollidingObjects.add(colidedGameObject);
+                    gameObject.onCollisionStay(colidedGameObject, this.result)
                 }
             }
+
+            for(let object of oldCollidingObjects) {
+                if(!newCollidingObjects.has(object)) {
+                    gameObject.onCollisionExit(object);
+                }
+            }
+
+            this.collidingObjectsMap.set(gameObject, newCollidingObjects);
         });
     }
 

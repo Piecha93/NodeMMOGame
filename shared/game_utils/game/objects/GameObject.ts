@@ -44,17 +44,49 @@ export class GameObject extends Serializable {
         }
 
         if(SharedConfig.IS_SERVER) {
-            this.serverCollision(gameObject, result);
+            this.serverOnCollisionEnter(gameObject, result);
         }
-        this.commonCollision(gameObject, result);
+        this.commonOnCollisionEnter(gameObject, result);
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
+    onCollisionStay(gameObject: GameObject, result: Result) {
+        if(this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
 
+        if(SharedConfig.IS_SERVER) {
+            this.serverOnCollisionStay(gameObject, result);
+        }
+        this.commonOnCollisionStay(gameObject, result);
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
+    onCollisionExit(gameObject: GameObject) {
+        if(this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
 
+        if(SharedConfig.IS_SERVER) {
+            this.serverOnCollisionExit(gameObject);
+        }
+        this.commonOnCollisionExit(gameObject);
+    }
+
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+    }
+
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+    }
+
+    protected serverOnCollisionStay(gameObject: GameObject, result: Result) {
+    }
+
+    protected commonOnCollisionStay(gameObject: GameObject, result: Result) {
+    }
+
+    protected serverOnCollisionExit(gameObject: GameObject) {
+    }
+
+    protected commonOnCollisionExit(gameObject: GameObject) {
     }
 
     public forceCompleteUpdate() {

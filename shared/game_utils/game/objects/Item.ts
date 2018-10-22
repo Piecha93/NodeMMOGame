@@ -8,8 +8,8 @@ export class Item extends GameObject {
         super(transform);
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
-        super.serverCollision(gameObject, result);
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.serverOnCollisionEnter(gameObject, result);
 
         if(gameObject instanceof Actor) {
             gameObject.heal(50)
@@ -17,8 +17,8 @@ export class Item extends GameObject {
         this.destroy();
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
-        super.commonCollision(gameObject, result);
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
 
     protected serverUpdate(delta: number) {

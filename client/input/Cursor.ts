@@ -22,7 +22,7 @@ export class Cursor extends GameObject {
         super.destroy();
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
         DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
 
         this.onObjectId = gameObject.ID;

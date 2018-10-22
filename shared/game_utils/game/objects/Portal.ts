@@ -32,7 +32,7 @@ export class Portal extends GameObject {
         return this.isAttached && this.couplingPortal.isAttached;
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
         if(gameObject instanceof Portal) {
             this.destroy();
             return;
@@ -59,11 +59,11 @@ export class Portal extends GameObject {
                 this.destroy();
             }
         }
-        super.serverCollision(gameObject, result);
+        super.serverOnCollisionEnter(gameObject, result);
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
-        super.commonCollision(gameObject, result);
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
 
     protected serverUpdate(delta: number) {

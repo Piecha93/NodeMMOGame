@@ -2151,7 +2151,6 @@ class GameClient {
         }
     }
     onUpdateSnapshotData(lastSnapshotData) {
-        console.log("last snapshjott " + lastSnapshotData);
         this.reconciliation.LastServerSnapshotData = lastSnapshotData;
     }
     onChunkMoved(chunkPosition) {
@@ -2948,7 +2947,7 @@ class Cursor extends GameObject_1.GameObject {
     destroy() {
         super.destroy();
     }
-    commonCollision(gameObject, result) {
+    commonOnCollisionEnter(gameObject, result) {
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
         this.onObjectId = gameObject.ID;
         if (gameObject.InteractPopUpMessage != null) {
@@ -12529,11 +12528,14 @@ class Actor extends GameObject_1.GameObject {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    serverCollision(gameObject, result) {
-        super.serverCollision(gameObject, result);
+    serverOnCollisionEnter(gameObject, result) {
+        super.serverOnCollisionEnter(gameObject, result);
     }
-    commonCollision(gameObject, result) {
-        super.commonCollision(gameObject, result);
+    commonOnCollisionEnter(gameObject, result) {
+        super.commonOnCollisionEnter(gameObject, result);
+    }
+    commonOnCollisionStay(gameObject, result) {
+        super.commonOnCollisionStay(gameObject, result);
         if (gameObject.IsSolid) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
@@ -12665,10 +12667,10 @@ class Doors extends GameObject_1.GameObject {
         this.isOpen = false;
         this.isSolid = true;
     }
-    serverCollision(gameObject, result) {
-    }
-    commonCollision(gameObject, result) {
-        // throw "This method should never be called on Obstacle object";
+    serverOnCollisionExit(gameObject) {
+        if (this.isOpen) {
+            this.open();
+        }
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -12717,8 +12719,8 @@ class Enemy extends Actor_1.Actor {
     commonUpdate(delta) {
         super.commonUpdate(delta);
     }
-    serverCollision(gameObject, result) {
-        super.serverCollision(gameObject, result);
+    serverOnCollisionEnter(gameObject, result) {
+        super.serverOnCollisionEnter(gameObject, result);
         if (gameObject.IsSolid) {
             this.Horizontal = Math.round(Math.random() * 2) - 1;
             this.Vertical = Math.round(Math.random() * 2) - 1;
@@ -12771,8 +12773,8 @@ class FireBall extends Projectile_1.Projectile {
         this.lifeSpan = 2000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
-    serverCollision(gameObject, result) {
-        super.serverCollision(gameObject, result);
+    serverOnCollisionEnter(gameObject, result) {
+        super.serverOnCollisionEnter(gameObject, result);
         if (gameObject instanceof FireBall) {
             if (gameObject.owner != this.owner) {
                 this.destroy();
@@ -12788,8 +12790,8 @@ class FireBall extends Projectile_1.Projectile {
             this.destroy();
         }
     }
-    commonCollision(gameObject, result) {
-        super.commonCollision(gameObject, result);
+    commonOnCollisionEnter(gameObject, result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
     get Power() {
         return this.power;
@@ -12856,17 +12858,46 @@ class GameObject extends Serializable_1.Serializable {
         this.destroyListeners = new Set();
     }
     onCollisionEnter(gameObject, result) {
+        // console.log("on collision enter");
         if (this.IsDestroyed || gameObject.IsDestroyed) {
             return;
         }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.serverCollision(gameObject, result);
+            this.serverOnCollisionEnter(gameObject, result);
         }
-        this.commonCollision(gameObject, result);
+        this.commonOnCollisionEnter(gameObject, result);
     }
-    serverCollision(gameObject, result) {
+    onCollisionStay(gameObject, result) {
+        // console.log("on collision stay");
+        if (this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.serverOnCollisionStay(gameObject, result);
+        }
+        this.commonOnCollisionStay(gameObject, result);
     }
-    commonCollision(gameObject, result) {
+    onCollisionExit(gameObject) {
+        // console.log("on collision exit");
+        if (this.IsDestroyed || gameObject.IsDestroyed) {
+            return;
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.serverOnCollisionExit(gameObject);
+        }
+        this.commonOnCollisionExit(gameObject);
+    }
+    serverOnCollisionEnter(gameObject, result) {
+    }
+    commonOnCollisionEnter(gameObject, result) {
+    }
+    serverOnCollisionStay(gameObject, result) {
+    }
+    commonOnCollisionStay(gameObject, result) {
+    }
+    serverOnCollisionExit(gameObject) {
+    }
+    commonOnCollisionExit(gameObject) {
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -12978,15 +13009,15 @@ class Item extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
     }
-    serverCollision(gameObject, result) {
-        super.serverCollision(gameObject, result);
+    serverOnCollisionEnter(gameObject, result) {
+        super.serverOnCollisionEnter(gameObject, result);
         if (gameObject instanceof Actor_1.Actor) {
             gameObject.heal(50);
         }
         this.destroy();
     }
-    commonCollision(gameObject, result) {
-        super.commonCollision(gameObject, result);
+    commonOnCollisionEnter(gameObject, result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13007,9 +13038,9 @@ class Obstacle extends GameObject_1.GameObject {
         this.isCollisionStatic = true;
         this.isSolid = true;
     }
-    serverCollision(gameObject, result) {
+    serverOnCollisionEnter(gameObject, result) {
     }
-    commonCollision(gameObject, result) {
+    commonOnCollisionEnter(gameObject, result) {
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13147,7 +13178,7 @@ class Portal extends GameObject_1.GameObject {
         }
         return this.isAttached && this.couplingPortal.isAttached;
     }
-    serverCollision(gameObject, result) {
+    serverOnCollisionEnter(gameObject, result) {
         if (gameObject instanceof Portal) {
             this.destroy();
             return;
@@ -13171,10 +13202,10 @@ class Portal extends GameObject_1.GameObject {
                 this.destroy();
             }
         }
-        super.serverCollision(gameObject, result);
+        super.serverOnCollisionEnter(gameObject, result);
     }
-    commonCollision(gameObject, result) {
-        super.commonCollision(gameObject, result);
+    commonOnCollisionEnter(gameObject, result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13249,7 +13280,7 @@ const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
 const InputCommands_1 = require("../../../input/InputCommands");
 class ObjectsSpawner {
     use(user, position, clickButton) {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 1; i++) {
             if (clickButton == InputCommands_1.MouseKeys.LEFT) {
                 let gg = ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Michau", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
                 gg.Name = "Michau " + gg.ID;
@@ -13280,10 +13311,12 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
         super();
         this.bodyToObjectMap = new Map();
         this.result = new detect_collisions_1.Result();
+        this.collidingObjectsMap = new Map();
     }
     insertObject(gameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
+        this.collidingObjectsMap.set(gameObject, new Set());
         if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsSolid && this.checkObjectCollision(gameObject)) {
             gameObject.destroy();
         }
@@ -13293,23 +13326,45 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
             super.remove(gameObject.Transform.Body);
             this.bodyToObjectMap.delete(gameObject.Transform.Body);
         }
+        if (this.collidingObjectsMap.has(gameObject)) {
+            this.collidingObjectsMap.delete(gameObject);
+        }
     }
     update() {
         super.update();
     }
     updateCollisions(gameObjects) {
-        gameObjects.forEach((object) => {
-            if (object.IsCollisionStatic) {
+        gameObjects.forEach((gameObject) => {
+            if (gameObject.IsCollisionStatic) {
                 //no need to calculate collisions for obstacles since they are not moving
                 //that hack gives us huge performance boost when we have thousands of obstacles
                 return;
             }
-            let potentials = object.Transform.Body.potentials();
+            let potentials = gameObject.Transform.Body.potentials();
+            let oldCollidingObjects = this.collidingObjectsMap.get(gameObject);
+            let newCollidingObjects = new Set();
             for (let body of potentials) {
-                if (this.bodyToObjectMap.has(body) && object.Transform.Body.collides(body, this.result)) {
-                    object.onCollisionEnter(this.bodyToObjectMap.get(body), this.result);
+                let colidedGameObject = this.bodyToObjectMap.get(body);
+                if (!colidedGameObject) {
+                    continue;
+                }
+                if (gameObject.Transform.Body.collides(body, this.result)) {
+                    if (!oldCollidingObjects.has(colidedGameObject)) {
+                        console.log("enter " + colidedGameObject.ID);
+                        gameObject.onCollisionEnter(colidedGameObject, this.result);
+                    }
+                    console.log("object " + colidedGameObject.ID);
+                    newCollidingObjects.add(colidedGameObject);
+                    gameObject.onCollisionStay(colidedGameObject, this.result);
                 }
             }
+            for (let object of oldCollidingObjects) {
+                if (!newCollidingObjects.has(object)) {
+                    console.log("exit " + object.ID);
+                    gameObject.onCollisionExit(object);
+                }
+            }
+            this.collidingObjectsMap.set(gameObject, newCollidingObjects);
         });
     }
     checkObjectCollision(object) {

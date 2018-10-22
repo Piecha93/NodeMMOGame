@@ -4,8 +4,7 @@ import {Result} from "detect-collisions";
 import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {SerializableTypes} from "../../../serialize/Serializable";
 import {ChangesDict} from "../../../serialize/ChangesDict";
-import {FireBall} from "./FireBall";
-import {Actor} from "./Actor";
+
 
 export class Doors extends GameObject {
 
@@ -16,13 +15,6 @@ export class Doors extends GameObject {
         super(transform);
 
         this.isSolid = true;
-    }
-
-    protected serverCollision(gameObject: GameObject, result: Result) {
-    }
-
-    protected commonCollision(gameObject: GameObject, result: Result) {
-        // throw "This method should never be called on Obstacle object";
     }
 
     protected serverUpdate(delta: number) {

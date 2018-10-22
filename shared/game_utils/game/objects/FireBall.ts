@@ -21,8 +21,8 @@ export class FireBall extends Projectile {
         this.addChange(ChangesDict.VELOCITY);
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
-        super.serverCollision(gameObject, result);
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.serverOnCollisionEnter(gameObject, result);
         if(gameObject instanceof FireBall) {
             if(gameObject.owner != this.owner) {
                 this.destroy();
@@ -37,8 +37,8 @@ export class FireBall extends Projectile {
         }
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
-        super.commonCollision(gameObject, result);
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.commonOnCollisionEnter(gameObject, result);
     }
 
     get Power(): number {

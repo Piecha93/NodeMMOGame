@@ -11,10 +11,10 @@ export class Obstacle extends GameObject {
         this.isSolid = true;
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
     }
 
     protected serverUpdate(delta: number) {

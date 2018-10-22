@@ -53,12 +53,16 @@ export abstract class Actor extends GameObject {
         }
     }
 
-    protected serverCollision(gameObject: GameObject, result: Result) {
-        super.serverCollision(gameObject, result);
+    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.serverOnCollisionEnter(gameObject, result);
     }
 
-    protected commonCollision(gameObject: GameObject, result: Result) {
-        super.commonCollision(gameObject, result);
+    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.commonOnCollisionEnter(gameObject, result);
+    }
+
+    protected commonOnCollisionStay(gameObject: GameObject, result: Result) {
+        super.commonOnCollisionStay(gameObject, result);
 
         if(gameObject.IsSolid) {
             this.Transform.X -= result.overlap * result.overlap_x;
