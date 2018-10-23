@@ -229,7 +229,7 @@ export class GameServer {
     private initTestObjects() {
         let o: GameObject;
 
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 1000; i++) {
             o = GameObjectsFactory.InstatiateWithPosition("Wall",
                 [this.getRandomInsideMap(), this.getRandomInsideMap()]);
 
@@ -237,27 +237,6 @@ export class GameServer {
                 console.log(i)
             }
         }
-
-        let wallsCounter = 0;
-        for (let i = 0; i < (SharedConfig.numOfChunksX * SharedConfig.chunkSize / 32); i++) {
-            o = GameObjectsFactory.InstatiateWithPosition("Wall", [i * 32, 0]);
-
-            o = GameObjectsFactory.InstatiateWithPosition("Wall",
-                [i * 32, SharedConfig.numOfChunksY * SharedConfig.chunkSize - 32]);
-
-            wallsCounter += 2;
-        }
-
-        for (let i = 1; i < (SharedConfig.numOfChunksY * SharedConfig.chunkSize / 32) - 1; i++) {
-            wallsCounter += 2;
-            o = GameObjectsFactory.InstatiateWithPosition("Wall",
-                [0, i * 32]);
-
-            o = GameObjectsFactory.InstatiateWithPosition("Wall",
-                [SharedConfig.numOfChunksX * SharedConfig.chunkSize - 32, i * 32]);
-        }
-
-        console.log("wallsCounter " + wallsCounter);
 
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {

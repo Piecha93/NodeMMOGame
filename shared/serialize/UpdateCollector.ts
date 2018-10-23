@@ -32,10 +32,10 @@ export class UpdateCollector extends GameObjectsSubscriber {
     }
 
     protected onObjectDestroy(gameObject: GameObject) {
-        let chunk: Chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        let chunk: Chunk = this.chunksManager.getObjectChunk(gameObject);
 
         if(!chunk) {
-            // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+            console.log("WARNING! destroyed object that doesn't belong to any chunk");
             return;
         }
 

@@ -14,8 +14,8 @@ function getOrigin(): Origin {
 
 export class SharedConfig {
     public static chunkSize: number = 32 * 40;
-    public static numOfChunksX: number = 10;
-    public static numOfChunksY: number = 10;
+    public static numOfChunksX: number = 5;
+    public static numOfChunksY: number = 5;
 
     public static chunkDeactivationTime = 10000;
 

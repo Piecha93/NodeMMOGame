@@ -3,7 +3,6 @@ import {GameObject} from "../game_utils/game/objects/GameObject";
 import {SharedConfig} from "../SharedConfig";
 import {Chunk} from "./Chunk";
 import {ChangesDict} from "../serialize/ChangesDict";
-import {Player} from "../game_utils/game/objects/Player";
 
 
 export class ChunksManager extends GameObjectsSubscriber {
@@ -105,7 +104,7 @@ export class ChunksManager extends GameObjectsSubscriber {
         }
     }
 
-    public getChunkByCoords(x: number, y: number): Chunk {
+    private getChunkByCoords(x: number, y: number): Chunk {
         let idxX: number = Math.floor(x / this.chunkSize);
 
         if(idxX >= this.numOfChunksX || idxX < 0) {
@@ -132,6 +131,11 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     public getObjectChunk(gameObject: GameObject): Chunk {
+        let chunk: Chunk = this.objectsChunks.get(gameObject);
+        if(!chunk) {
+            this.correctObjectPositionIfOutOfBounds(gameObject);
+            return this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        }
         return this.objectsChunks.get(gameObject);
     }
 
@@ -173,6 +177,24 @@ export class ChunksManager extends GameObjectsSubscriber {
         });
     }
 
+    private correctObjectPositionIfOutOfBounds(gameObject: GameObject) {
+        if(gameObject.Transform.X <= 0) {
+            gameObject.Transform.X = 1;
+        }
+
+        if(gameObject.Transform.X >= this.numOfChunksX * this.chunkSize) {
+            gameObject.Transform.X = this.numOfChunksX * this.chunkSize - 1;
+        }
+
+        if(gameObject.Transform.Y <= 0) {
+            gameObject.Transform.Y = 1;
+        }
+
+        if(gameObject.Transform.Y >= this.numOfChunksY * this.chunkSize) {
+            gameObject.Transform.Y = this.numOfChunksY * this.chunkSize - 1;
+        }
+    }
+
     public rebuildOne(gameObject: GameObject) {
         if((!gameObject.Transform.hasChange(ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict.Y))) {
             //chunk cannot change if object did not move
@@ -180,14 +202,16 @@ export class ChunksManager extends GameObjectsSubscriber {
         }
 
         let newChunk: Chunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-
         let oldChunk: Chunk = this.objectsChunks.get(gameObject);
 
-        if(!newChunk || (!newChunk.IsActive && !gameObject.IsChunkActivateTriger)) {
-            console.log("Object went outside chunk! " + gameObject.ID);
-            if(oldChunk) {
-                oldChunk.addLeaver(gameObject);
-            }
+        if(!newChunk) {
+            this.correctObjectPositionIfOutOfBounds(gameObject);
+            newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        }
+
+        if(!newChunk.IsActive && !gameObject.IsChunkActivateTriger) {
+            console.log("Object went outside active chunk! " + gameObject.ID);
+            oldChunk.addLeaver(gameObject);
             gameObject.destroy();
             return;
         }

@@ -248,11 +248,14 @@ export class Chunk {
     }
 
     get TimeSinceDeactivation(): number {
-        // console.log("time since " + (Date.now() - this.deactivatedTime));
         return Date.now() - this.deactivatedTime;
     }
 
     get Position(): [number, number] {
         return [this.x, this.y];
+    }
+
+    get Size(): number {
+        return this.size;
     }
 }

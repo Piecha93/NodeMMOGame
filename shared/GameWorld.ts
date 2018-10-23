@@ -19,26 +19,26 @@ export class GameWorld extends GameObjectsSubscriber {
     }
 
     public update(delta: number) {
-            let chunk: Chunk;
+        let chunk: Chunk;
 
-            let chunksIter = this.chunksManager.ChunksIterator();
-            while(chunk = chunksIter.next().value) {
-                for (let i = 0; i < chunk.Objects.length; i++) {
-                    chunk.Objects[i].update(delta);
-                }
+        let chunksIter = this.chunksManager.ChunksIterator();
+        while(chunk = chunksIter.next().value) {
+            for (let i = 0; i < chunk.Objects.length; i++) {
+                chunk.Objects[i].update(delta);
             }
+        }
 
-            chunksIter = this.chunksManager.ChunksIterator();
-            this.collistionsSystem.update();
-            while(chunk = chunksIter.next().value) {
-                this.collistionsSystem.updateCollisions(chunk.Objects);
-            }
+        chunksIter = this.chunksManager.ChunksIterator();
+        this.collistionsSystem.update();
+        while(chunk = chunksIter.next().value) {
+            this.collistionsSystem.updateCollisions(chunk.Objects);
+        }
 
-            if(SharedConfig.IS_SERVER) {
-                this.chunksManager.deactivateUnusedChunks();
-            }
+        if(SharedConfig.IS_SERVER) {
+            this.chunksManager.deactivateUnusedChunks();
+        }
 
-            this.chunksManager.rebuild();
+        this.chunksManager.rebuild();
     }
 
     public onObjectCreate(gameObject: GameObject) {

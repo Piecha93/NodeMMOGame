@@ -11884,8 +11884,8 @@ class SharedConfig {
     }
 }
 SharedConfig.chunkSize = 32 * 40;
-SharedConfig.numOfChunksX = 10;
-SharedConfig.numOfChunksY = 10;
+SharedConfig.numOfChunksX = 5;
+SharedConfig.numOfChunksY = 5;
 SharedConfig.chunkDeactivationTime = 10000;
 SharedConfig.ORIGIN = getOrigin();
 exports.SharedConfig = SharedConfig;
@@ -12084,11 +12084,13 @@ class Chunk {
         return this.TimeSinceDeactivation > SharedConfig_1.SharedConfig.chunkDeactivationTime;
     }
     get TimeSinceDeactivation() {
-        // console.log("time since " + (Date.now() - this.deactivatedTime));
         return Date.now() - this.deactivatedTime;
     }
     get Position() {
         return [this.x, this.y];
+    }
+    get Size() {
+        return this.size;
     }
 }
 exports.Chunk = Chunk;
@@ -12198,6 +12200,11 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         return this.chunks[idxX][idxY];
     }
     getObjectChunk(gameObject) {
+        let chunk = this.objectsChunks.get(gameObject);
+        if (!chunk) {
+            this.correctObjectPositionIfOutOfBounds(gameObject);
+            return this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        }
         return this.objectsChunks.get(gameObject);
     }
     onObjectCreate(gameObject) {
@@ -12230,6 +12237,20 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
             this.rebuildOne(gameObject);
         });
     }
+    correctObjectPositionIfOutOfBounds(gameObject) {
+        if (gameObject.Transform.X <= 0) {
+            gameObject.Transform.X = 1;
+        }
+        if (gameObject.Transform.X >= this.numOfChunksX * this.chunkSize) {
+            gameObject.Transform.X = this.numOfChunksX * this.chunkSize - 1;
+        }
+        if (gameObject.Transform.Y <= 0) {
+            gameObject.Transform.Y = 1;
+        }
+        if (gameObject.Transform.Y >= this.numOfChunksY * this.chunkSize) {
+            gameObject.Transform.Y = this.numOfChunksY * this.chunkSize - 1;
+        }
+    }
     rebuildOne(gameObject) {
         if ((!gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.X) && !gameObject.Transform.hasChange(ChangesDict_1.ChangesDict.Y))) {
             //chunk cannot change if object did not move
@@ -12237,11 +12258,13 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
         let newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
         let oldChunk = this.objectsChunks.get(gameObject);
-        if (!newChunk || (!newChunk.IsActive && !gameObject.IsChunkActivateTriger)) {
-            console.log("Object went outside chunk! " + gameObject.ID);
-            if (oldChunk) {
-                oldChunk.addLeaver(gameObject);
-            }
+        if (!newChunk) {
+            this.correctObjectPositionIfOutOfBounds(gameObject);
+            newChunk = this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        }
+        if (!newChunk.IsActive && !gameObject.IsChunkActivateTriger) {
+            console.log("Object went outside active chunk! " + gameObject.ID);
+            oldChunk.addLeaver(gameObject);
             gameObject.destroy();
             return;
         }
@@ -12729,8 +12752,10 @@ class Enemy extends Actor_1.Actor {
         this.timeSinceLastShot -= delta;
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = Math.random() * 2000;
-            for (let i = 0; i < 1; i++) {
+            for (let i = 0; i < 100; i++) {
                 let pos = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
+                pos[0] += this.Transform.X;
+                pos[1] += this.Transform.Y;
                 this.weapon.use(this, pos, 0);
                 this.Horizontal = Math.round(Math.random() * 2) - 1;
                 this.Vertical = Math.round(Math.random() * 2) - 1;
@@ -14080,9 +14105,9 @@ class UpdateCollector extends GameObjectsSubscriber_1.GameObjectsSubscriber {
         }
     }
     onObjectDestroy(gameObject) {
-        let chunk = this.chunksManager.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
+        let chunk = this.chunksManager.getObjectChunk(gameObject);
         if (!chunk) {
-            // console.log("WARNING! destroyed object that doesn't belong to any chunk");
+            console.log("WARNING! destroyed object that doesn't belong to any chunk");
             return;
         }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
