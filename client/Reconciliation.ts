@@ -66,7 +66,7 @@ export class Reconciliation {
                     player.Transform.Y += moveFactors[1] * player.Velocity * step;
                 }
 
-                collisionsSystem.updateCollisionsForObject(player);
+                collisionsSystem.updateCollisionsForGameObject(player);
             }
         }
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);

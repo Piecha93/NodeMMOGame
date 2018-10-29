@@ -17,7 +17,7 @@ export class FireBall extends Projectile {
         super(transform);
         this.velocity = 1;
 
-        this.lifeSpan = 2000;
+        this.lifeSpan = 20000;
         this.addChange(ChangesDict.VELOCITY);
     }
 
@@ -37,8 +37,8 @@ export class FireBall extends Projectile {
         }
     }
 
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
 
     get Power(): number {

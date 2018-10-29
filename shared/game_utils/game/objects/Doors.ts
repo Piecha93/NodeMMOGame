@@ -15,6 +15,7 @@ export class Doors extends GameObject {
         super(transform);
 
         this.isSolid = true;
+        this.isChunkDeactivationPersistent = true;
     }
 
     protected serverUpdate(delta: number) {

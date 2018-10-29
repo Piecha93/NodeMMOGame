@@ -5,9 +5,16 @@ import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
 import {SerializableObject, SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
-import {Actor} from "./Actor";
+import {Collider} from "../../physics/Collider";
 
-export class GameObject extends Serializable {
+// interface Collidable {
+//     onCollisionEnter(gameObject: GameObject, result: Result);
+//     onCollisionStay(gameObject: GameObject, result: Result);
+//     onCollisionExit(gameObject: GameObject);
+// }
+
+
+export class GameObject extends Serializable {// implements Collidable {
     protected id: string = "";
     protected spriteName: string;
 
@@ -18,12 +25,15 @@ export class GameObject extends Serializable {
     @SerializableProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
+    private collider: Collider = null;
+
     private destroyListeners: Set<Function>;
 
     private isDestroyed: boolean = false;
 
     protected isChunkActivateTriger: boolean = false;
     protected isChunkFullUpdateTriger: boolean = false;
+    protected isChunkDeactivationPersistent: boolean = false;
 
     //if true object will not recive onCollisionEnter event
     protected isCollisionStatic: boolean = false;
@@ -46,7 +56,7 @@ export class GameObject extends Serializable {
         if(SharedConfig.IS_SERVER) {
             this.serverOnCollisionEnter(gameObject, result);
         }
-        this.commonOnCollisionEnter(gameObject, result);
+        this.sharedOnCollisionEnter(gameObject, result);
     }
 
     onCollisionStay(gameObject: GameObject, result: Result) {
@@ -57,7 +67,7 @@ export class GameObject extends Serializable {
         if(SharedConfig.IS_SERVER) {
             this.serverOnCollisionStay(gameObject, result);
         }
-        this.commonOnCollisionStay(gameObject, result);
+        this.sharedOnCollisionStay(gameObject, result);
     }
 
     onCollisionExit(gameObject: GameObject) {
@@ -68,25 +78,25 @@ export class GameObject extends Serializable {
         if(SharedConfig.IS_SERVER) {
             this.serverOnCollisionExit(gameObject);
         }
-        this.commonOnCollisionExit(gameObject);
+        this.sharedOnCollisionExit(gameObject);
     }
 
     protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
     }
 
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
     }
 
     protected serverOnCollisionStay(gameObject: GameObject, result: Result) {
     }
 
-    protected commonOnCollisionStay(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionStay(gameObject: GameObject, result: Result) {
     }
 
     protected serverOnCollisionExit(gameObject: GameObject) {
     }
 
-    protected commonOnCollisionExit(gameObject: GameObject) {
+    protected sharedOnCollisionExit(gameObject: GameObject) {
     }
 
     public forceCompleteUpdate() {
@@ -187,6 +197,10 @@ export class GameObject extends Serializable {
         return this.isChunkFullUpdateTriger;
     }
 
+    get IsChunkDeactivationPersistent(): boolean {
+        return this.isChunkDeactivationPersistent;
+    }
+
     get IsCollisionStatic(): boolean {
         return this.isCollisionStatic;
     }
@@ -197,5 +211,9 @@ export class GameObject extends Serializable {
 
     get InteractPopUpMessage(): string {
         return null;
+    }
+
+    get Collider(): Collider {
+        return this.collider;
     }
 }

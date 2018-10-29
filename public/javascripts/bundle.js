@@ -2093,7 +2093,7 @@ class GameClient {
         this.updateDebugWindow();
         let deviation = this.renderer.CameraDeviation;
         this.cursor.move(this.localPlayer.Transform.X + deviation[0], this.localPlayer.Transform.Y + deviation[1]);
-        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
+        this.core.CollisionsSystem.updateCollisionsForGameObject(this.cursor);
         this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
     }
@@ -2110,7 +2110,7 @@ class GameClient {
         this.socket.on(SocketMsgs_1.SocketMsgs.UPDATE_GAME, (data) => {
             this.onServerUpdate(data);
         });
-        this.socket.on(SocketMsgs_1.SocketMsgs.CHUNK_MOVED, (chunkPosition) => {
+        this.socket.on(SocketMsgs_1.SocketMsgs.CHUNK_CHANGED, (chunkPosition) => {
             this.onChunkMoved(chunkPosition);
         });
         this.socket.on(SocketMsgs_1.SocketMsgs.ERROR, (errorMessage) => {
@@ -2233,7 +2233,7 @@ class Reconciliation {
                 if (player.Transform.DeserializedFields.has(ChangesDict_1.ChangesDict.Y)) {
                     player.Transform.Y += moveFactors[1] * player.Velocity * step;
                 }
-                collisionsSystem.updateCollisionsForObject(player);
+                collisionsSystem.updateCollisionsForGameObject(player);
             }
         }
         this.inputHistory = this.inputHistory.splice(histElemsToRemove);
@@ -2947,7 +2947,7 @@ class Cursor extends GameObject_1.GameObject {
     destroy() {
         super.destroy();
     }
-    commonOnCollisionEnter(gameObject, result) {
+    sharedOnCollisionStay(gameObject, result) {
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
         this.onObjectId = gameObject.ID;
         if (gameObject.InteractPopUpMessage != null) {
@@ -2957,6 +2957,10 @@ class Cursor extends GameObject_1.GameObject {
         else {
             this.interactMessage = null;
         }
+    }
+    sharedOnCollisionExit(gameObject) {
+        this.interactMessage = null;
+        DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
     }
     move(x, y) {
         this.Transform.X = x;
@@ -12551,14 +12555,8 @@ class Actor extends GameObject_1.GameObject {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    serverOnCollisionEnter(gameObject, result) {
-        super.serverOnCollisionEnter(gameObject, result);
-    }
-    commonOnCollisionEnter(gameObject, result) {
-        super.commonOnCollisionEnter(gameObject, result);
-    }
-    commonOnCollisionStay(gameObject, result) {
-        super.commonOnCollisionStay(gameObject, result);
+    sharedOnCollisionStay(gameObject, result) {
+        super.sharedOnCollisionStay(gameObject, result);
         if (gameObject.IsSolid) {
             this.Transform.X -= result.overlap * result.overlap_x;
             this.Transform.Y -= result.overlap * result.overlap_y;
@@ -12689,6 +12687,7 @@ class Doors extends GameObject_1.GameObject {
         super(transform);
         this.isOpen = false;
         this.isSolid = true;
+        this.isChunkDeactivationPersistent = true;
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -12752,7 +12751,7 @@ class Enemy extends Actor_1.Actor {
         this.timeSinceLastShot -= delta;
         if (this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = Math.random() * 2000;
-            for (let i = 0; i < 100; i++) {
+            for (let i = 0; i < 1; i++) {
                 let pos = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
                 pos[0] += this.Transform.X;
                 pos[1] += this.Transform.Y;
@@ -12790,7 +12789,7 @@ class FireBall extends Projectile_1.Projectile {
         super(transform);
         this.power = 25;
         this.velocity = 1;
-        this.lifeSpan = 2000;
+        this.lifeSpan = 20000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
     serverOnCollisionEnter(gameObject, result) {
@@ -12810,8 +12809,8 @@ class FireBall extends Projectile_1.Projectile {
             this.destroy();
         }
     }
-    commonOnCollisionEnter(gameObject, result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    sharedOnCollisionEnter(gameObject, result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
     get Power() {
         return this.power;
@@ -12860,15 +12859,22 @@ const SharedConfig_1 = require("../../../SharedConfig");
 const Serializable_1 = require("../../../serialize/Serializable");
 const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const ResourcesMap_1 = require("../../ResourcesMap");
+// interface Collidable {
+//     onCollisionEnter(gameObject: GameObject, result: Result);
+//     onCollisionStay(gameObject: GameObject, result: Result);
+//     onCollisionExit(gameObject: GameObject);
+// }
 class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
         super();
         this.id = "";
         this.velocity = 0;
         this.invisible = false;
+        this.collider = null;
         this.isDestroyed = false;
         this.isChunkActivateTriger = false;
         this.isChunkFullUpdateTriger = false;
+        this.isChunkDeactivationPersistent = false;
         //if true object will not recive onCollisionEnter event
         this.isCollisionStatic = false;
         //if true objects cannot go through it
@@ -12884,7 +12890,7 @@ class GameObject extends Serializable_1.Serializable {
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverOnCollisionEnter(gameObject, result);
         }
-        this.commonOnCollisionEnter(gameObject, result);
+        this.sharedOnCollisionEnter(gameObject, result);
     }
     onCollisionStay(gameObject, result) {
         if (this.IsDestroyed || gameObject.IsDestroyed) {
@@ -12893,7 +12899,7 @@ class GameObject extends Serializable_1.Serializable {
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverOnCollisionStay(gameObject, result);
         }
-        this.commonOnCollisionStay(gameObject, result);
+        this.sharedOnCollisionStay(gameObject, result);
     }
     onCollisionExit(gameObject) {
         if (this.IsDestroyed || gameObject.IsDestroyed) {
@@ -12902,19 +12908,19 @@ class GameObject extends Serializable_1.Serializable {
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
             this.serverOnCollisionExit(gameObject);
         }
-        this.commonOnCollisionExit(gameObject);
+        this.sharedOnCollisionExit(gameObject);
     }
     serverOnCollisionEnter(gameObject, result) {
     }
-    commonOnCollisionEnter(gameObject, result) {
+    sharedOnCollisionEnter(gameObject, result) {
     }
     serverOnCollisionStay(gameObject, result) {
     }
-    commonOnCollisionStay(gameObject, result) {
+    sharedOnCollisionStay(gameObject, result) {
     }
     serverOnCollisionExit(gameObject) {
     }
-    commonOnCollisionExit(gameObject) {
+    sharedOnCollisionExit(gameObject) {
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -12988,6 +12994,9 @@ class GameObject extends Serializable_1.Serializable {
     get IsChunkFullUpdateTriger() {
         return this.isChunkFullUpdateTriger;
     }
+    get IsChunkDeactivationPersistent() {
+        return this.isChunkDeactivationPersistent;
+    }
     get IsCollisionStatic() {
         return this.isCollisionStatic;
     }
@@ -12996,6 +13005,9 @@ class GameObject extends Serializable_1.Serializable {
     }
     get InteractPopUpMessage() {
         return null;
+    }
+    get Collider() {
+        return this.collider;
     }
 }
 __decorate([
@@ -13033,8 +13045,8 @@ class Item extends GameObject_1.GameObject {
         }
         this.destroy();
     }
-    commonOnCollisionEnter(gameObject, result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    sharedOnCollisionEnter(gameObject, result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13054,10 +13066,7 @@ class Obstacle extends GameObject_1.GameObject {
         super(transform);
         this.isCollisionStatic = true;
         this.isSolid = true;
-    }
-    serverOnCollisionEnter(gameObject, result) {
-    }
-    commonOnCollisionEnter(gameObject, result) {
+        this.isChunkDeactivationPersistent = true;
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13221,8 +13230,8 @@ class Portal extends GameObject_1.GameObject {
         }
         super.serverOnCollisionEnter(gameObject, result);
     }
-    commonOnCollisionEnter(gameObject, result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    sharedOnCollisionEnter(gameObject, result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13327,14 +13336,14 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
     constructor() {
         super();
         this.bodyToObjectMap = new Map();
-        this.result = new detect_collisions_1.Result();
-        this.collidingObjectsMap = new Map();
+        this.resultHolder = new detect_collisions_1.Result();
+        this.collidingBodiesMap = new Map();
     }
     insertObject(gameObject) {
         super.insert(gameObject.Transform.Body);
         this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
-        this.collidingObjectsMap.set(gameObject, new Set());
-        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsSolid && this.checkObjectCollision(gameObject)) {
+        this.collidingBodiesMap.set(gameObject.Transform.Body, new Set());
+        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsSolid && CollisionsSystem.isObjectColiding(gameObject)) {
             gameObject.destroy();
         }
     }
@@ -13343,8 +13352,8 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
             super.remove(gameObject.Transform.Body);
             this.bodyToObjectMap.delete(gameObject.Transform.Body);
         }
-        if (this.collidingObjectsMap.has(gameObject)) {
-            this.collidingObjectsMap.delete(gameObject);
+        if (this.collidingBodiesMap.has(gameObject)) {
+            this.collidingBodiesMap.delete(gameObject);
         }
     }
     update() {
@@ -13352,36 +13361,56 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
     }
     updateCollisions(gameObjects) {
         gameObjects.forEach((gameObject) => {
-            if (gameObject.IsCollisionStatic) {
-                //no need to calculate collisions for obstacles since they are not moving
-                //that hack gives us huge performance boost when we have thousands of obstacles
-                return;
+            this.updateCollisionsForGameObject(gameObject);
+        });
+    }
+    updateCollisionsForGameObject(gameObject) {
+        if (gameObject.IsCollisionStatic) {
+            //no need to calculate collisions for obstacles since they are not moving
+            //that hack gives us huge performance boost when we have thousands of obstacles
+            return;
+        }
+        let objectBody = gameObject.Transform.Body;
+        // let potentials: Body[] = objectBody.potentials();
+        let oldCollidingBodies = this.collidingBodiesMap.get(objectBody);
+        let newCollidingBodies = new Set();
+        for (let body of this.CollisionBodyIterator(gameObject)) {
+            let colidedGameObject = this.bodyToObjectMap.get(body);
+            if (!colidedGameObject) {
+                continue;
             }
-            let potentials = gameObject.Transform.Body.potentials();
-            let oldCollidingObjects = this.collidingObjectsMap.get(gameObject);
-            let newCollidingObjects = new Set();
-            for (let body of potentials) {
+            if (!oldCollidingBodies.has(body)) {
+                gameObject.onCollisionEnter(colidedGameObject, this.resultHolder);
+            }
+            newCollidingBodies.add(body);
+            gameObject.onCollisionStay(colidedGameObject, this.resultHolder);
+        }
+        // for(let body of potentials) {
+        //     let colidedGameObject: GameObject = this.bodyToObjectMap.get(body);
+        //     if(!colidedGameObject) {
+        //         continue;
+        //     }
+        //
+        //     if(objectBody.collides(body, this.resultHolder)) {
+        //         if(!oldCollidingBodies.has(body)) {
+        //             gameObject.onCollisionEnter(colidedGameObject, this.resultHolder)
+        //         }
+        //         newCollidingBodies.add(body);
+        //         gameObject.onCollisionStay(colidedGameObject, this.resultHolder)
+        //     }
+        // }
+        for (let body of oldCollidingBodies) {
+            if (!newCollidingBodies.has(body)) {
                 let colidedGameObject = this.bodyToObjectMap.get(body);
                 if (!colidedGameObject) {
                     continue;
                 }
-                if (gameObject.Transform.Body.collides(body, this.result)) {
-                    if (!oldCollidingObjects.has(colidedGameObject)) {
-                        gameObject.onCollisionEnter(colidedGameObject, this.result);
-                    }
-                    newCollidingObjects.add(colidedGameObject);
-                    gameObject.onCollisionStay(colidedGameObject, this.result);
-                }
+                gameObject.onCollisionExit(colidedGameObject);
             }
-            for (let object of oldCollidingObjects) {
-                if (!newCollidingObjects.has(object)) {
-                    gameObject.onCollisionExit(object);
-                }
-            }
-            this.collidingObjectsMap.set(gameObject, newCollidingObjects);
-        });
+        }
+        this.collidingBodiesMap.set(objectBody, newCollidingBodies);
     }
-    checkObjectCollision(object) {
+    static isObjectColiding(object) {
         let potentials = object.Transform.Body.potentials();
         for (let body of potentials) {
             if (object.Transform.Body.collides(body)) {
@@ -13390,12 +13419,11 @@ class CollisionsSystem extends detect_collisions_1.Collisions {
         }
         return false;
     }
-    updateCollisionsForObject(gameObject) {
-        super.update();
-        let potentials = gameObject.Transform.Body.potentials();
-        for (let body of potentials) {
-            if (gameObject.Transform.Body.collides(body, this.result)) {
-                gameObject.onCollisionEnter(this.bodyToObjectMap.get(body), this.result);
+    *CollisionBodyIterator(object) {
+        let objectBody = object.Transform.Body;
+        for (let body of objectBody.potentials()) {
+            if (objectBody.collides(body, this.resultHolder)) {
+                yield body;
             }
         }
     }
@@ -13654,7 +13682,7 @@ SocketMsgs.FIRST_UPDATE_GAME = String.fromCharCode(messageCode++);
 SocketMsgs.UPDATE_GAME = String.fromCharCode(messageCode++);
 SocketMsgs.HEARTBEAT_RESPONSE = String.fromCharCode(messageCode++);
 SocketMsgs.UPDATE_SNAPSHOT_DATA = String.fromCharCode(messageCode++);
-SocketMsgs.CHUNK_MOVED = String.fromCharCode(messageCode++);
+SocketMsgs.CHUNK_CHANGED = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 

@@ -15,6 +15,6 @@ export class SocketMsgs {
     public static UPDATE_GAME = String.fromCharCode(messageCode++);
     public static HEARTBEAT_RESPONSE = String.fromCharCode(messageCode++);
     public static UPDATE_SNAPSHOT_DATA = String.fromCharCode(messageCode++);
-    public static CHUNK_MOVED = String.fromCharCode(messageCode++);
+    public static CHUNK_CHANGED = String.fromCharCode(messageCode++);
     public static ERROR = String.fromCharCode(messageCode++);
 }

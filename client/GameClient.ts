@@ -81,7 +81,7 @@ export class GameClient {
         let deviation: [number, number] = this.renderer.CameraDeviation;
         this.cursor.move(this.localPlayer.Transform.X + deviation[0], this.localPlayer.Transform.Y + deviation[1]);
 
-        this.core.CollisionsSystem.updateCollisionsForObject(this.cursor);
+        this.core.CollisionsSystem.updateCollisionsForGameObject(this.cursor);
 
         this.tickCounter.update();
         requestAnimationFrame(this.startGameLoop.bind(this));
@@ -104,7 +104,7 @@ export class GameClient {
             this.onServerUpdate(data);
         });
 
-        this.socket.on(SocketMsgs.CHUNK_MOVED, (chunkPosition: [number, number]) => {
+        this.socket.on(SocketMsgs.CHUNK_CHANGED, (chunkPosition: [number, number]) => {
             this.onChunkMoved(chunkPosition);
         });
 

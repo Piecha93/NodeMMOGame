@@ -22,7 +22,7 @@ export class Cursor extends GameObject {
         super.destroy();
     }
 
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionStay(gameObject: GameObject, result: Result) {
         DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
 
         this.onObjectId = gameObject.ID;
@@ -33,6 +33,11 @@ export class Cursor extends GameObject {
         } else {
             this.interactMessage = null;
         }
+    }
+
+    protected sharedOnCollisionExit(gameObject: GameObject) {
+        this.interactMessage = null;
+        DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
     }
 
     public move(x: number, y: number) {

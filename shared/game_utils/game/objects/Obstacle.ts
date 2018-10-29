@@ -9,21 +9,14 @@ export class Obstacle extends GameObject {
 
         this.isCollisionStatic = true;
         this.isSolid = true;
-    }
-
-    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
-    }
-
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
+        this.isChunkDeactivationPersistent = true;
     }
 
     protected serverUpdate(delta: number) {
         super.serverUpdate(delta);
-
     }
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
-
     }
 }

@@ -193,7 +193,7 @@ export class GameServer {
                 }
 
                 if(this.lastChunkSent.get(player) != chunk) {
-                    client.Socket.emit(SocketMsgs.CHUNK_MOVED, chunk.Position);
+                    client.Socket.emit(SocketMsgs.CHUNK_CHANGED, chunk.Position);
                     this.lastChunkSent.set(player, chunk);
                 }
 

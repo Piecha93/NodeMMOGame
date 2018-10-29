@@ -3,7 +3,7 @@ import {ChangesDict} from "../../serialize/ChangesDict";
 import {Serializable, SerializableTypes} from "../../serialize/Serializable"
 import {Polygon, Circle} from "detect-collisions";
 
-export type Position = [number, number];
+export type Vector2 = [number, number];
 export type Size = number | [number, number];
 
 export class Transform extends Serializable {
@@ -13,7 +13,7 @@ export class Transform extends Serializable {
     private height: number;
     private angle = 0;
 
-    constructor(position: Position, size?: Size) {
+    constructor(position: Vector2, size?: Size) {
         super();
 
         let x: number = position[0];
@@ -116,7 +116,7 @@ export class Transform extends Serializable {
         return this.height;
     }
 
-    get Position(): Position {
+    get Position(): Vector2 {
         return [this.X, this.Y];
     }
 

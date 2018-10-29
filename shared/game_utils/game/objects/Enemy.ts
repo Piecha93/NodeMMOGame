@@ -24,7 +24,8 @@ export class Enemy extends Actor {
         super.serverOnCollisionEnter(gameObject, result);
         if(gameObject.IsSolid) {
             this.Horizontal = Math.round(Math.random() * 2) - 1;
-            this.Vertical = Math.round(Math.random() * 2) - 1;        }
+            this.Vertical = Math.round(Math.random() * 2) - 1;
+        }
     }
 
     protected serverUpdate(delta: number) {
@@ -36,7 +37,7 @@ export class Enemy extends Actor {
         this.timeSinceLastShot -= delta;
         if(this.timeSinceLastShot <= 0) {
             this.timeSinceLastShot = Math.random() * 2000;
-            for(let i = 0; i < 100; i++) {
+            for(let i = 0; i < 1; i++) {
                 let pos: [number, number] = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
                 pos[0] += this.Transform.X;
                 pos[1] += this.Transform.Y;

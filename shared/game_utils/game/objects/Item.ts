@@ -17,8 +17,8 @@ export class Item extends GameObject {
         this.destroy();
     }
 
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
 
     protected serverUpdate(delta: number) {

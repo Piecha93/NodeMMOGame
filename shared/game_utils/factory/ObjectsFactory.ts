@@ -1,5 +1,5 @@
 import {GameObject} from "../game/objects/GameObject";
-import {Transform, Position, Size} from "../physics/Transform";
+import {Transform, Vector2, Size} from "../physics/Transform";
 import {PrefabOptions, Prefabs} from "./GameObjectPrefabs";
 import {GameObjectsManager} from "./GameObjectsManager";
 
@@ -25,7 +25,7 @@ export class GameObjectsFactory {
         }
     }
 
-    static InstatiateWithPosition(prefabName: string, position: Position, size?: Size, id?: string, data?: [DataView, number]): GameObject {
+    static InstatiateWithPosition(prefabName: string, position: Vector2, size?: Size, id?: string, data?: [DataView, number]): GameObject {
         let gameObject: GameObject;
 
         let prefabOptions: PrefabOptions = Prefabs.PrefabsOptions.get(prefabName);

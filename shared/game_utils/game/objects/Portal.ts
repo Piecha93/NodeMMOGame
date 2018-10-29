@@ -62,8 +62,8 @@ export class Portal extends GameObject {
         super.serverOnCollisionEnter(gameObject, result);
     }
 
-    protected commonOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.commonOnCollisionEnter(gameObject, result);
+    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
+        super.sharedOnCollisionEnter(gameObject, result);
     }
 
     protected serverUpdate(delta: number) {
