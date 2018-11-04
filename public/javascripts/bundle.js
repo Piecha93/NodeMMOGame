@@ -2037,7 +2037,7 @@ class Chat {
 }
 exports.Chat = Chat;
 
-},{"../shared/net/SocketMsgs":112,"./graphic/HtmlHandlers/ChatHtmlHandler":15}],9:[function(require,module,exports){
+},{"../shared/net/SocketMsgs":115,"./graphic/HtmlHandlers/ChatHtmlHandler":15}],9:[function(require,module,exports){
 "use strict";
 /// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2178,7 +2178,7 @@ class GameClient {
 }
 exports.GameClient = GameClient;
 
-},{"../shared/GameCore":86,"../shared/game_utils/factory/GameObjectsManager":93,"../shared/game_utils/physics/Transform":109,"../shared/net/SocketMsgs":112,"../shared/utils/AverageCounter":118,"../shared/utils/DeltaTimer":119,"../shared/utils/TicksCounter":120,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":70,"socket.io-msgpack-parser":77}],10:[function(require,module,exports){
+},{"../shared/GameCore":86,"../shared/game_utils/factory/GameObjectsManager":93,"../shared/game_utils/physics/Transform":112,"../shared/net/SocketMsgs":115,"../shared/utils/AverageCounter":121,"../shared/utils/DeltaTimer":122,"../shared/utils/TicksCounter":123,".//net/InputSender":27,"./Chat":8,"./Reconciliation":10,"./graphic/HtmlHandlers/DebugWindowHtmlHandler":16,"./graphic/Renderer":19,"./input/Cursor":22,"./input/InputHandler":23,"./net/HeartBeatSender":26,"socket.io-client":70,"socket.io-msgpack-parser":77}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ChangesDict_1 = require("../shared/serialize/ChangesDict");
@@ -2245,7 +2245,7 @@ class Reconciliation {
 }
 exports.Reconciliation = Reconciliation;
 
-},{"../shared/serialize/ChangesDict":113}],11:[function(require,module,exports){
+},{"../shared/serialize/ChangesDict":116}],11:[function(require,module,exports){
 "use strict";
 /// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2299,15 +2299,15 @@ class GameObjectAnimationRender extends GameObjectRender_1.GameObjectRender {
         this.addChild(this.animation);
         this.animation.animationSpeed = 0.2;
         this.animation.play();
-        this.animation.width = this.objectRef.Transform.Width;
-        this.animation.height = this.objectRef.Transform.Height;
+        this.animation.width = this.objectRef.Transform.ScaleX;
+        this.animation.height = this.objectRef.Transform.ScaleY;
         this.animation.anchor.set(0.5, 0.5);
     }
     update() {
         super.update();
         this.updateAnimationTextures();
-        this.animation.width = this.objectRef.Transform.Width;
-        this.animation.height = this.objectRef.Transform.Height;
+        this.animation.width = this.objectRef.Transform.ScaleX;
+        this.animation.height = this.objectRef.Transform.ScaleY;
     }
     updateAnimationTextures() {
         this.animation.textures = this.getAnimationTextures();
@@ -2395,8 +2395,8 @@ class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
         this.objectRef = gameObjectReference;
         this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectRef.SpriteName]);
         this.addChild(this.sprite);
-        this.sprite.width = this.objectRef.Transform.Width;
-        this.sprite.height = this.objectRef.Transform.Height;
+        this.sprite.width = this.objectRef.Transform.ScaleX;
+        this.sprite.height = this.objectRef.Transform.ScaleY;
         this.sprite.anchor.set(0.5, 0.5);
     }
     update() {
@@ -2404,8 +2404,8 @@ class GameObjectSpriteRender extends GameObjectRender_1.GameObjectRender {
         if (this.sprite.texture != PIXI.utils.TextureCache[this.objectRef.SpriteName]) {
             this.sprite.texture = PIXI.utils.TextureCache[this.objectRef.SpriteName];
         }
-        this.sprite.width = this.objectRef.Transform.Width;
-        this.sprite.height = this.objectRef.Transform.Height;
+        this.sprite.width = this.objectRef.Transform.ScaleX;
+        this.sprite.height = this.objectRef.Transform.ScaleY;
     }
     destroy() {
         super.destroy();
@@ -2586,7 +2586,7 @@ class PlayerRender extends GameObjectAnimationRender_1.GameObjectAnimationRender
         this.addChild(this.nameText);
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-this.objectRef.Transform.Width / 2, -this.objectRef.Transform.Height / 2 - 13, this.objectRef.Transform.Width, 7);
+        this.hpBar.drawRect(-this.objectRef.Transform.ScaleX / 2, -this.objectRef.Transform.ScaleY / 2 - 13, this.objectRef.Transform.ScaleX, 7);
         this.addChild(this.hpBar);
     }
     update() {
@@ -2947,7 +2947,8 @@ class Cursor extends GameObject_1.GameObject {
     destroy() {
         super.destroy();
     }
-    sharedOnCollisionStay(gameObject, result) {
+    sharedOnCollisionStay(collision) {
+        let gameObject = collision.ColliderB.Parent;
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
         this.onObjectId = gameObject.ID;
         if (gameObject.InteractPopUpMessage != null) {
@@ -2958,7 +2959,8 @@ class Cursor extends GameObject_1.GameObject {
             this.interactMessage = null;
         }
     }
-    sharedOnCollisionExit(gameObject) {
+    sharedOnCollisionExit(collision) {
+        let gameObject = collision.ColliderB.Parent;
         this.interactMessage = null;
         DebugWindowHtmlHandler_1.DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
     }
@@ -2967,6 +2969,7 @@ class Cursor extends GameObject_1.GameObject {
         this.Transform.Y = y;
         this.onObjectId = null;
         this.interactMessage = null;
+        this.update(0);
     }
     get OnObjectId() {
         return this.onObjectId;
@@ -3138,7 +3141,7 @@ class InputHandler {
 }
 exports.InputHandler = InputHandler;
 
-},{"../../shared/input/InputCommands":110,"../../shared/input/InputSnapshot":111,"./InputKeyMap":24,"keypress.js":63}],24:[function(require,module,exports){
+},{"../../shared/input/InputCommands":113,"../../shared/input/InputSnapshot":114,"./InputKeyMap":24,"keypress.js":63}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../shared/input/InputCommands");
@@ -3152,7 +3155,7 @@ exports.InputKeyMap = new Map([
     [InputCommands_1.INPUT_COMMAND.TEST, 'f'],
 ]);
 
-},{"../../shared/input/InputCommands":110}],25:[function(require,module,exports){
+},{"../../shared/input/InputCommands":113}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SharedConfig_1 = require("../shared/SharedConfig");
@@ -3201,7 +3204,7 @@ class HeartBeatSender {
 }
 exports.HeartBeatSender = HeartBeatSender;
 
-},{"../../shared/net/SocketMsgs":112,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],27:[function(require,module,exports){
+},{"../../shared/net/SocketMsgs":115,"../graphic/HtmlHandlers/DebugWindowHtmlHandler":16}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SocketMsgs_1 = require("../../shared/net/SocketMsgs");
@@ -3219,7 +3222,7 @@ class InputSender {
 }
 exports.InputSender = InputSender;
 
-},{"../../shared/net/SocketMsgs":112}],28:[function(require,module,exports){
+},{"../../shared/net/SocketMsgs":115}],28:[function(require,module,exports){
 module.exports = after
 
 function after(count, callback, err_cb) {
@@ -11814,7 +11817,7 @@ class GameCore {
 }
 exports.GameCore = GameCore;
 
-},{"./GameWorld":87,"./chunks/ChunksManager":90,"./serialize/UpdateCollector":117,"./utils/DeltaTimer":119}],87:[function(require,module,exports){
+},{"./GameWorld":87,"./chunks/ChunksManager":90,"./serialize/UpdateCollector":120,"./utils/DeltaTimer":122}],87:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("./game_utils/factory/GameObjectsSubscriber");
@@ -11862,7 +11865,7 @@ class GameWorld extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.GameWorld = GameWorld;
 
-},{".//SharedConfig":88,"./game_utils/factory/GameObjectsSubscriber":94,"./game_utils/physics/CollisionsSystem":108}],88:[function(require,module,exports){
+},{".//SharedConfig":88,"./game_utils/factory/GameObjectsSubscriber":94,"./game_utils/physics/CollisionsSystem":111}],88:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Origin;
@@ -11890,7 +11893,7 @@ class SharedConfig {
 SharedConfig.chunkSize = 32 * 40;
 SharedConfig.numOfChunksX = 5;
 SharedConfig.numOfChunksY = 5;
-SharedConfig.chunkDeactivationTime = 10000;
+SharedConfig.chunkDeactivationTime = 1000;
 SharedConfig.ORIGIN = getOrigin();
 exports.SharedConfig = SharedConfig;
 
@@ -12004,16 +12007,15 @@ class Chunk {
         }
     }
     reload() {
-        if (!this.dumpedBuffer) {
-            let fileName = "data/" + this.x + "." + this.y + ".chunk";
-            try {
-                let buffer = fs.readFileSync(fileName);
-                this.dumpedBuffer = toArrayBuffer(buffer);
-            }
-            catch (e) {
-                console.log("no data file found");
-            }
-        }
+        // if (!this.dumpedBuffer) {
+        //     let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+        //     try {
+        //         let buffer: Buffer = fs.readFileSync(fileName);
+        //         this.dumpedBuffer = toArrayBuffer(buffer);
+        //     } catch (e) {
+        //         console.log("no data file found");
+        //     }
+        // }
         if (this.dumpedBuffer) {
             ObjectsSerializer_1.ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
         }
@@ -12021,12 +12023,10 @@ class Chunk {
         this.dumpedBuffer = null;
     }
     deactivate() {
-        // console.log("deactivate " + this.dumpedBuffer + " " + this.isActive);
         if (this.dumpedBuffer || !this.isActive) {
             return;
         }
-        // console.log("dump chunk " + this.Position);
-        this.clearNotStatic();
+        this.clearNotPersistent();
         this.dumpedBuffer = ObjectsSerializer_1.ObjectsSerializer.serializeChunk(this);
         // let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
         // fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
@@ -12038,10 +12038,10 @@ class Chunk {
             this.objects[0].destroy();
         }
     }
-    clearNotStatic() {
+    clearNotPersistent() {
         let numOfObjectsToBeSaved = 0;
         while (this.objects.length > numOfObjectsToBeSaved) {
-            if (!(this.objects[numOfObjectsToBeSaved].IsCollisionStatic)) {
+            if (!(this.objects[numOfObjectsToBeSaved].IsChunkDeactivationPersistent)) {
                 this.objects[numOfObjectsToBeSaved].destroy();
             }
             else {
@@ -12099,7 +12099,7 @@ class Chunk {
 }
 exports.Chunk = Chunk;
 
-},{"../SharedConfig":88,"../serialize/ObjectsSerializer":114,"fs":1}],90:[function(require,module,exports){
+},{"../SharedConfig":88,"../serialize/ObjectsSerializer":117,"fs":1}],90:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -12333,7 +12333,7 @@ class ChunksManager extends GameObjectsSubscriber_1.GameObjectsSubscriber {
 }
 exports.ChunksManager = ChunksManager;
 
-},{"../SharedConfig":88,"../game_utils/factory/GameObjectsSubscriber":94,"../serialize/ChangesDict":113,"./Chunk":89}],91:[function(require,module,exports){
+},{"../SharedConfig":88,"../game_utils/factory/GameObjectsSubscriber":94,"../serialize/ChangesDict":116,"./Chunk":89}],91:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ResourcesMap {
@@ -12375,14 +12375,15 @@ const FireBall_1 = require("../game/objects/FireBall");
 const Enemy_1 = require("../game/objects/Enemy");
 const Portal_1 = require("../game/objects/Portal");
 const Doors_1 = require("../game/objects/Doors");
+const PlatformTriggerTest_1 = require("../game/objects/PlatformTriggerTest");
 class Prefabs {
-    static Register(name, gameObjectType, presetOptions) {
+    static Register(name, gameObjectType, prefabOptions) {
         let shortId;
         shortId = String.fromCharCode(Prefabs.shortIdCounter++);
         Prefabs.PrefabsNameToTypes.set(name, gameObjectType);
         Prefabs.PrefabsNameToId.set(name, shortId);
         Prefabs.IdToPrefabNames.set(shortId, name);
-        Prefabs.PrefabsOptions.set(name, presetOptions);
+        Prefabs.PrefabsOptions.set(name, prefabOptions);
     }
 }
 Prefabs.PrefabsNameToId = new Map();
@@ -12398,8 +12399,9 @@ Prefabs.Register("HpPotion", Item_1.Item, { spriteName: "hp_potion" });
 Prefabs.Register("Doors", Doors_1.Doors, { spriteName: "doors_closed" });
 Prefabs.Register("FireBall", FireBall_1.FireBall, { spriteName: "flame", prefabSize: 15 });
 Prefabs.Register("Portal", Portal_1.Portal, { spriteName: "portal", prefabSize: 75 });
+Prefabs.Register("PlatformTriggerTest", PlatformTriggerTest_1.PlatformTriggerTest, { prefabSize: [100, 100] });
 
-},{"../game/objects/Doors":97,"../game/objects/Enemy":98,"../game/objects/FireBall":99,"../game/objects/Item":101,"../game/objects/Obstacle":102,"../game/objects/Player":103,"../game/objects/Portal":104}],93:[function(require,module,exports){
+},{"../game/objects/Doors":97,"../game/objects/Enemy":98,"../game/objects/FireBall":99,"../game/objects/Item":101,"../game/objects/Obstacle":102,"../game/objects/PlatformTriggerTest":103,"../game/objects/Player":104,"../game/objects/Portal":105}],93:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var GameObjectsManager;
@@ -12474,7 +12476,6 @@ class GameObjectsFactory {
         if (prefabOptions) {
             GameObjectsFactory.setOptions(gameObject, prefabOptions);
         }
-        gameObject.Transform.resize();
         if (id) {
             gameObject.ID = id;
         }
@@ -12484,6 +12485,7 @@ class GameObjectsFactory {
         if (data) {
             gameObject.deserialize(data[0], data[1]);
         }
+        gameObject.updateColliders();
         GameObjectsFactory.AddToListeners(gameObject);
         return gameObject;
     }
@@ -12516,7 +12518,7 @@ GameObjectsFactory.CreateCallbacks = [];
 GameObjectsFactory.DestroyCallbacks = [];
 exports.GameObjectsFactory = GameObjectsFactory;
 
-},{"../physics/Transform":109,"./GameObjectPrefabs":92,"./GameObjectsManager":93}],96:[function(require,module,exports){
+},{"../physics/Transform":112,"./GameObjectPrefabs":92,"./GameObjectsManager":93}],96:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12555,11 +12557,12 @@ class Actor extends GameObject_1.GameObject {
             this.Transform.addChange(ChangesDict_1.ChangesDict.Y);
         }
     }
-    sharedOnCollisionStay(gameObject, result) {
-        super.sharedOnCollisionStay(gameObject, result);
+    sharedOnCollisionStay(collision) {
+        super.sharedOnCollisionStay(collision);
+        let gameObject = collision.ColliderB.Parent;
         if (gameObject.IsSolid) {
-            this.Transform.X -= result.overlap * result.overlap_x;
-            this.Transform.Y -= result.overlap * result.overlap_y;
+            this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
+            this.Transform.Y -= collision.Result.overlap * collision.Result.overlap_y;
         }
     }
     hit(power) {
@@ -12632,6 +12635,9 @@ class Actor extends GameObject_1.GameObject {
     get SpriteName() {
         return this.spriteName + "_" + this.animationType;
     }
+    get Weapon() {
+        return this.weapon;
+    }
     set SpriteName(spriteName) {
         this.spriteName = spriteName;
         this.addChange(ChangesDict_1.ChangesDict.SPRITE_ID);
@@ -12666,7 +12672,7 @@ __decorate([
 ], Actor.prototype, "vertical", void 0);
 exports.Actor = Actor;
 
-},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./GameObject":100}],97:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":116,"../../../serialize/Serializable":118,"../../../serialize/SerializeDecorators":119,"./GameObject":100}],97:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12720,7 +12726,7 @@ __decorate([
 ], Doors.prototype, "isOpen", void 0);
 exports.Doors = Doors;
 
-},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./GameObject":100}],98:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":116,"../../../serialize/Serializable":118,"../../../serialize/SerializeDecorators":119,"./GameObject":100}],98:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Actor_1 = require("./Actor");
@@ -12736,8 +12742,9 @@ class Enemy extends Actor_1.Actor {
     commonUpdate(delta) {
         super.commonUpdate(delta);
     }
-    serverOnCollisionEnter(gameObject, result) {
-        super.serverOnCollisionEnter(gameObject, result);
+    serverOnCollisionEnter(collision) {
+        super.serverOnCollisionEnter(collision);
+        let gameObject = collision.ColliderB.Parent;
         if (gameObject.IsSolid) {
             this.Horizontal = Math.round(Math.random() * 2) - 1;
             this.Vertical = Math.round(Math.random() * 2) - 1;
@@ -12767,7 +12774,7 @@ class Enemy extends Actor_1.Actor {
 }
 exports.Enemy = Enemy;
 
-},{"../../../serialize/ChangesDict":113,"../weapons/MagicWand":106,"./Actor":96}],99:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":116,"../weapons/MagicWand":107,"./Actor":96}],99:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12792,8 +12799,9 @@ class FireBall extends Projectile_1.Projectile {
         this.lifeSpan = 20000;
         this.addChange(ChangesDict_1.ChangesDict.VELOCITY);
     }
-    serverOnCollisionEnter(gameObject, result) {
-        super.serverOnCollisionEnter(gameObject, result);
+    serverOnCollisionEnter(collision) {
+        super.serverOnCollisionEnter(collision);
+        let gameObject = collision.ColliderB.Parent;
         if (gameObject instanceof FireBall) {
             if (gameObject.owner != this.owner) {
                 this.destroy();
@@ -12808,9 +12816,6 @@ class FireBall extends Projectile_1.Projectile {
         else if (gameObject.IsSolid) {
             this.destroy();
         }
-    }
-    sharedOnCollisionEnter(gameObject, result) {
-        super.sharedOnCollisionEnter(gameObject, result);
     }
     get Power() {
         return this.power;
@@ -12841,7 +12846,7 @@ __decorate([
 ], FireBall.prototype, "owner", void 0);
 exports.FireBall = FireBall;
 
-},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./Actor":96,"./Projectile":105}],100:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":116,"../../../serialize/Serializable":118,"../../../serialize/SerializeDecorators":119,"./Actor":96,"./Projectile":106}],100:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -12859,18 +12864,14 @@ const SharedConfig_1 = require("../../../SharedConfig");
 const Serializable_1 = require("../../../serialize/Serializable");
 const SerializeDecorators_1 = require("../../../serialize/SerializeDecorators");
 const ResourcesMap_1 = require("../../ResourcesMap");
-// interface Collidable {
-//     onCollisionEnter(gameObject: GameObject, result: Result);
-//     onCollisionStay(gameObject: GameObject, result: Result);
-//     onCollisionExit(gameObject: GameObject);
-// }
+const Collider_1 = require("../../physics/Collider");
 class GameObject extends Serializable_1.Serializable {
     constructor(transform) {
         super();
         this.id = "";
         this.velocity = 0;
         this.invisible = false;
-        this.collider = null;
+        this.colliders = [];
         this.isDestroyed = false;
         this.isChunkActivateTriger = false;
         this.isChunkFullUpdateTriger = false;
@@ -12880,47 +12881,92 @@ class GameObject extends Serializable_1.Serializable {
         //if true objects cannot go through it
         this.isSolid = false;
         this.transform = transform;
+        this.addCollider([transform.ScaleX, transform.ScaleY]);
         this.SpriteName = "none";
         this.destroyListeners = new Set();
     }
-    onCollisionEnter(gameObject, result) {
-        if (this.IsDestroyed || gameObject.IsDestroyed) {
+    addCollider(size) {
+        let collider = new Collider_1.Collider(this, size);
+        this.colliders.push(collider);
+        return collider;
+    }
+    onCollisionEnter(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.serverOnCollisionEnter(gameObject, result);
+            this.serverOnCollisionEnter(collision);
         }
-        this.sharedOnCollisionEnter(gameObject, result);
+        this.sharedOnCollisionEnter(collision);
     }
-    onCollisionStay(gameObject, result) {
-        if (this.IsDestroyed || gameObject.IsDestroyed) {
+    onCollisionStay(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.serverOnCollisionStay(gameObject, result);
+            this.serverOnCollisionStay(collision);
         }
-        this.sharedOnCollisionStay(gameObject, result);
+        this.sharedOnCollisionStay(collision);
     }
-    onCollisionExit(gameObject) {
-        if (this.IsDestroyed || gameObject.IsDestroyed) {
+    onCollisionExit(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
         if (SharedConfig_1.SharedConfig.IS_SERVER) {
-            this.serverOnCollisionExit(gameObject);
+            this.serverOnCollisionExit(collision);
         }
-        this.sharedOnCollisionExit(gameObject);
+        this.sharedOnCollisionExit(collision);
     }
-    serverOnCollisionEnter(gameObject, result) {
+    serverOnCollisionEnter(collision) {
     }
-    sharedOnCollisionEnter(gameObject, result) {
+    sharedOnCollisionEnter(collision) {
     }
-    serverOnCollisionStay(gameObject, result) {
+    serverOnCollisionStay(collision) {
     }
-    sharedOnCollisionStay(gameObject, result) {
+    sharedOnCollisionStay(collision) {
     }
-    serverOnCollisionExit(gameObject) {
+    serverOnCollisionExit(collision) {
     }
-    sharedOnCollisionExit(gameObject) {
+    sharedOnCollisionExit(collision) {
+    }
+    onTriggerEnter(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.serverOnTriggerEnter(collision);
+        }
+        this.sharedOnTriggerEnter(collision);
+    }
+    onTriggerStay(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.serverOnTriggerStay(collision);
+        }
+        this.sharedOnTriggerStay(collision);
+    }
+    onTriggerExit(collision) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER) {
+            this.serverOnTriggerExit(collision);
+        }
+        this.sharedOnTriggerExit(collision);
+    }
+    serverOnTriggerEnter(collision) {
+    }
+    sharedOnTriggerEnter(collision) {
+    }
+    serverOnTriggerStay(collision) {
+    }
+    sharedOnTriggerStay(collision) {
+    }
+    serverOnTriggerExit(collision) {
+    }
+    sharedOnTriggerExit(collision) {
     }
     forceCompleteUpdate() {
         this.forceComplete = true;
@@ -12930,6 +12976,12 @@ class GameObject extends Serializable_1.Serializable {
             this.serverUpdate(delta);
         }
         this.commonUpdate(delta);
+        this.updateColliders();
+    }
+    updateColliders() {
+        for (let collider of this.colliders) {
+            collider.update();
+        }
     }
     commonUpdate(delta) {
     }
@@ -13006,8 +13058,8 @@ class GameObject extends Serializable_1.Serializable {
     get InteractPopUpMessage() {
         return null;
     }
-    get Collider() {
-        return this.collider;
+    get Colliders() {
+        return this.colliders;
     }
 }
 __decorate([
@@ -13029,7 +13081,7 @@ __decorate([
 ], GameObject.prototype, "SpriteId", null);
 exports.GameObject = GameObject;
 
-},{"../../../SharedConfig":88,"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"../../ResourcesMap":91,"../../physics/Transform":109}],101:[function(require,module,exports){
+},{"../../../SharedConfig":88,"../../../serialize/ChangesDict":116,"../../../serialize/Serializable":118,"../../../serialize/SerializeDecorators":119,"../../ResourcesMap":91,"../../physics/Collider":109,"../../physics/Transform":112}],101:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -13038,15 +13090,13 @@ class Item extends GameObject_1.GameObject {
     constructor(transform) {
         super(transform);
     }
-    serverOnCollisionEnter(gameObject, result) {
-        super.serverOnCollisionEnter(gameObject, result);
+    serverOnCollisionEnter(collision) {
+        super.serverOnCollisionEnter(collision);
+        let gameObject = collision.ColliderB.Parent;
         if (gameObject instanceof Actor_1.Actor) {
             gameObject.heal(50);
         }
         this.destroy();
-    }
-    sharedOnCollisionEnter(gameObject, result) {
-        super.sharedOnCollisionEnter(gameObject, result);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13080,22 +13130,68 @@ exports.Obstacle = Obstacle;
 },{"./GameObject":100}],103:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const GameObject_1 = require("./GameObject");
+class PlatformTriggerTest extends GameObject_1.GameObject {
+    constructor(transform) {
+        super(transform);
+        this.isChunkDeactivationPersistent = true;
+        this.SpriteName = "none";
+        let collider = this.addCollider([transform.ScaleX, transform.ScaleY]);
+        collider.IsTriger = true;
+    }
+    serverOnTriggerEnter(collision) {
+        this.SpriteName = "michau";
+    }
+    serverOnTriggerExit(collision) {
+        this.SpriteName = "none";
+    }
+    serverUpdate(delta) {
+        super.serverUpdate(delta);
+    }
+    commonUpdate(delta) {
+        super.commonUpdate(delta);
+    }
+}
+exports.PlatformTriggerTest = PlatformTriggerTest;
+
+},{"./GameObject":100}],104:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../../../input/InputCommands");
 const Actor_1 = require("./Actor");
 const ChangesDict_1 = require("../../../serialize/ChangesDict");
 const SharedConfig_1 = require("../../../SharedConfig");
 const MagicWand_1 = require("../weapons/MagicWand");
 const ObjectsSpawner_1 = require("../weapons/ObjectsSpawner");
+const Doors_1 = require("./Doors");
+const Enemy_1 = require("./Enemy");
 class Player extends Actor_1.Actor {
     constructor(transform) {
         super(transform);
         this.lastInputSnapshot = null;
+        let collider = this.addCollider([transform.ScaleX * 2, transform.ScaleY * 2]);
+        collider.IsTriger = true;
         this.velocity = 0.25;
         // this.weapon = new PortalGun();
         // this.weapon = new MagicWand();
         this.weapon = new ObjectsSpawner_1.ObjectsSpawner();
         this.isChunkActivateTriger = true;
         this.isChunkFullUpdateTriger = true;
+    }
+    serverOnTriggerEnter(collision) {
+        let gameObject = collision.ColliderB.Parent;
+        if (gameObject instanceof Doors_1.Doors) {
+            gameObject.open();
+        }
+        else if (gameObject instanceof Enemy_1.Enemy) {
+            gameObject.destroy();
+        }
+    }
+    serverOnTriggerExit(collision) {
+        let gameObject = collision.ColliderB.Parent;
+        if (gameObject instanceof Doors_1.Doors) {
+            gameObject.open();
+        }
     }
     setInput(inputSnapshot) {
         let inputCommands = inputSnapshot.Commands;
@@ -13170,7 +13266,7 @@ Player.onlyServerActions = new Set([
 ]);
 exports.Player = Player;
 
-},{"../../../SharedConfig":88,"../../../input/InputCommands":110,"../../../serialize/ChangesDict":113,"../weapons/MagicWand":106,"../weapons/ObjectsSpawner":107,"./Actor":96}],104:[function(require,module,exports){
+},{"../../../SharedConfig":88,"../../../input/InputCommands":113,"../../../serialize/ChangesDict":116,"../weapons/MagicWand":107,"../weapons/ObjectsSpawner":108,"./Actor":96,"./Doors":97,"./Enemy":98}],105:[function(require,module,exports){
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -13204,15 +13300,16 @@ class Portal extends GameObject_1.GameObject {
         }
         return this.isAttached && this.couplingPortal.isAttached;
     }
-    serverOnCollisionEnter(gameObject, result) {
+    serverOnCollisionEnter(collision) {
+        let gameObject = collision.ColliderB.Parent;
         if (gameObject instanceof Portal) {
             this.destroy();
             return;
         }
         else if (gameObject.IsSolid) {
             this.isAttached = true;
-            this.Transform.X -= result.overlap * result.overlap_x;
-            this.Transform.Y -= result.overlap * result.overlap_y;
+            this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
+            this.Transform.Y -= collision.Result.overlap * collision.Result.overlap_y;
             this.transform.Rotation = gameObject.Transform.Rotation;
             this.addChange(ChangesDict_1.ChangesDict.IS_ATTACHED);
             this.Transform.addChange(ChangesDict_1.ChangesDict.X);
@@ -13228,10 +13325,7 @@ class Portal extends GameObject_1.GameObject {
                 this.destroy();
             }
         }
-        super.serverOnCollisionEnter(gameObject, result);
-    }
-    sharedOnCollisionEnter(gameObject, result) {
-        super.sharedOnCollisionEnter(gameObject, result);
+        super.serverOnCollisionEnter(collision);
     }
     serverUpdate(delta) {
         super.serverUpdate(delta);
@@ -13255,7 +13349,7 @@ __decorate([
 ], Portal.prototype, "isAttached", void 0);
 exports.Portal = Portal;
 
-},{"../../../serialize/ChangesDict":113,"../../../serialize/Serializable":115,"../../../serialize/SerializeDecorators":116,"./Actor":96,"./GameObject":100}],105:[function(require,module,exports){
+},{"../../../serialize/ChangesDict":116,"../../../serialize/Serializable":118,"../../../serialize/SerializeDecorators":119,"./Actor":96,"./GameObject":100}],106:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObject_1 = require("./GameObject");
@@ -13279,7 +13373,7 @@ class Projectile extends GameObject_1.GameObject {
 }
 exports.Projectile = Projectile;
 
-},{"./GameObject":100}],106:[function(require,module,exports){
+},{"./GameObject":100}],107:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -13299,7 +13393,7 @@ class MagicWand {
 }
 exports.MagicWand = MagicWand;
 
-},{"../../../utils/functions/CalcAngle":122,"../../factory/ObjectsFactory":95}],107:[function(require,module,exports){
+},{"../../../utils/functions/CalcAngle":125,"../../factory/ObjectsFactory":95}],108:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../../factory/ObjectsFactory");
@@ -13315,7 +13409,8 @@ class ObjectsSpawner {
                 ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             }
             else {
-                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("Doors", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                // GameObjectsFactory.InstatiateWithPosition("Doors", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                ObjectsFactory_1.GameObjectsFactory.InstatiateWithPosition("PlatformTriggerTest", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             }
         }
     }
@@ -13327,131 +13422,22 @@ class ObjectsSpawner {
 }
 exports.ObjectsSpawner = ObjectsSpawner;
 
-},{"../../../input/InputCommands":110,"../../factory/ObjectsFactory":95}],108:[function(require,module,exports){
+},{"../../../input/InputCommands":113,"../../factory/ObjectsFactory":95}],109:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const detect_collisions_1 = require("detect-collisions");
-const SharedConfig_1 = require("../../SharedConfig");
-class CollisionsSystem extends detect_collisions_1.Collisions {
-    constructor() {
-        super();
-        this.bodyToObjectMap = new Map();
-        this.resultHolder = new detect_collisions_1.Result();
-        this.collidingBodiesMap = new Map();
-    }
-    insertObject(gameObject) {
-        super.insert(gameObject.Transform.Body);
-        this.bodyToObjectMap.set(gameObject.Transform.Body, gameObject);
-        this.collidingBodiesMap.set(gameObject.Transform.Body, new Set());
-        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsSolid && CollisionsSystem.isObjectColiding(gameObject)) {
-            gameObject.destroy();
-        }
-    }
-    removeObject(gameObject) {
-        if (this.bodyToObjectMap.has(gameObject.Transform.Body)) {
-            super.remove(gameObject.Transform.Body);
-            this.bodyToObjectMap.delete(gameObject.Transform.Body);
-        }
-        if (this.collidingBodiesMap.has(gameObject)) {
-            this.collidingBodiesMap.delete(gameObject);
-        }
-    }
-    update() {
-        super.update();
-    }
-    updateCollisions(gameObjects) {
-        gameObjects.forEach((gameObject) => {
-            this.updateCollisionsForGameObject(gameObject);
-        });
-    }
-    updateCollisionsForGameObject(gameObject) {
-        if (gameObject.IsCollisionStatic) {
-            //no need to calculate collisions for obstacles since they are not moving
-            //that hack gives us huge performance boost when we have thousands of obstacles
-            return;
-        }
-        let objectBody = gameObject.Transform.Body;
-        // let potentials: Body[] = objectBody.potentials();
-        let oldCollidingBodies = this.collidingBodiesMap.get(objectBody);
-        let newCollidingBodies = new Set();
-        for (let body of this.CollisionBodyIterator(gameObject)) {
-            let colidedGameObject = this.bodyToObjectMap.get(body);
-            if (!colidedGameObject) {
-                continue;
-            }
-            if (!oldCollidingBodies.has(body)) {
-                gameObject.onCollisionEnter(colidedGameObject, this.resultHolder);
-            }
-            newCollidingBodies.add(body);
-            gameObject.onCollisionStay(colidedGameObject, this.resultHolder);
-        }
-        // for(let body of potentials) {
-        //     let colidedGameObject: GameObject = this.bodyToObjectMap.get(body);
-        //     if(!colidedGameObject) {
-        //         continue;
-        //     }
-        //
-        //     if(objectBody.collides(body, this.resultHolder)) {
-        //         if(!oldCollidingBodies.has(body)) {
-        //             gameObject.onCollisionEnter(colidedGameObject, this.resultHolder)
-        //         }
-        //         newCollidingBodies.add(body);
-        //         gameObject.onCollisionStay(colidedGameObject, this.resultHolder)
-        //     }
-        // }
-        for (let body of oldCollidingBodies) {
-            if (!newCollidingBodies.has(body)) {
-                let colidedGameObject = this.bodyToObjectMap.get(body);
-                if (!colidedGameObject) {
-                    continue;
-                }
-                gameObject.onCollisionExit(colidedGameObject);
-            }
-        }
-        this.collidingBodiesMap.set(objectBody, newCollidingBodies);
-    }
-    static isObjectColiding(object) {
-        let potentials = object.Transform.Body.potentials();
-        for (let body of potentials) {
-            if (object.Transform.Body.collides(body)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    *CollisionBodyIterator(object) {
-        let objectBody = object.Transform.Body;
-        for (let body of objectBody.potentials()) {
-            if (objectBody.collides(body, this.resultHolder)) {
-                yield body;
-            }
-        }
-    }
-}
-exports.CollisionsSystem = CollisionsSystem;
-
-},{"../../SharedConfig":88,"detect-collisions":36}],109:[function(require,module,exports){
-"use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const SerializeDecorators_1 = require("../../serialize/SerializeDecorators");
-const ChangesDict_1 = require("../../serialize/ChangesDict");
-const Serializable_1 = require("../../serialize/Serializable");
-const detect_collisions_1 = require("detect-collisions");
-class Transform extends Serializable_1.Serializable {
-    constructor(position, size) {
-        super();
-        this.angle = 0;
-        let x = position[0];
-        let y = position[1];
+const Collision_1 = require("./Collision");
+class Collider {
+    constructor(parent, size) {
+        this.rotation = 0;
+        //TODO use isActive!
+        this.isActive = true;
+        this.isTrigger = false;
+        this.parent = parent;
+        let x = parent.Transform.X;
+        let y = parent.Transform.Y;
+        this.offsetX = 0;
+        this.offsetY = 0;
         let isCircle = false;
         if (!size) {
             this.width = 32;
@@ -13475,17 +13461,246 @@ class Transform extends Serializable_1.Serializable {
             this.shape = new detect_collisions_1.Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
         }
     }
+    onCollisionEnter(collider, result) {
+        let collision = new Collision_1.Collision(this, collider, result);
+        if (this.isTrigger) {
+            this.parent.onTriggerEnter(collision);
+        }
+        else {
+            this.parent.onCollisionEnter(collision);
+        }
+    }
+    onCollisionStay(collider, result) {
+        let collision = new Collision_1.Collision(this, collider, result);
+        if (this.isTrigger) {
+            this.parent.onTriggerStay(collision);
+        }
+        else {
+            this.parent.onCollisionStay(collision);
+        }
+    }
+    onCollisionExit(collider, result) {
+        let collision = new Collision_1.Collision(this, collider, result);
+        if (this.isTrigger) {
+            this.parent.onTriggerExit(collision);
+        }
+        else {
+            this.parent.onCollisionExit(collision);
+        }
+    }
+    update() {
+        this.shape.x = this.parent.Transform.X + this.offsetX;
+        this.shape.y = this.parent.Transform.Y + this.offsetY;
+    }
     resize() {
         if (this.shape instanceof detect_collisions_1.Polygon) {
-            let w = this.Width / 2;
-            let h = this.Height / 2;
+            let w = this.width / 2;
+            let h = this.height / 2;
             this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
         }
         else { //circle
             this.shape.radius = this.width;
             this.height = this.shape.radius;
-            this.addChange(ChangesDict_1.ChangesDict.WIDTH);
-            this.addChange(ChangesDict_1.ChangesDict.HEIGHT);
+        }
+    }
+    set Rotation(rotation) {
+        if (this.shape instanceof detect_collisions_1.Polygon) {
+            this.shape.rotation = rotation;
+        }
+        this.rotation = rotation;
+    }
+    get Rotation() {
+        return this.rotation;
+    }
+    get IsActive() {
+        return this.isActive;
+    }
+    get Body() {
+        return this.shape;
+    }
+    get Parent() {
+        return this.parent;
+    }
+    get IsTrigger() {
+        return this.isTrigger;
+    }
+    set IsActive(isActive) {
+        this.isActive = isActive;
+    }
+    set IsTriger(isTrigger) {
+        this.isTrigger = isTrigger;
+    }
+    set OffsetX(offset) {
+        this.offsetX = offset;
+    }
+    set OffsetY(offset) {
+        this.offsetY = offset;
+    }
+    isColliding() {
+        let potentials = this.Body.potentials();
+        for (let body of potentials) {
+            if (this.Body.collides(body)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+exports.Collider = Collider;
+
+},{"./Collision":110,"detect-collisions":36}],110:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Collision {
+    constructor(colliderA, colliderB, result) {
+        this.colliderA = colliderA;
+        this.colliderB = colliderB;
+        this.result = result;
+    }
+    get ColliderA() {
+        return this.colliderA;
+    }
+    get ColliderB() {
+        return this.colliderB;
+    }
+    get Result() {
+        return this.result;
+    }
+}
+exports.Collision = Collision;
+
+},{}],111:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const detect_collisions_1 = require("detect-collisions");
+const SharedConfig_1 = require("../../SharedConfig");
+class CollisionsSystem extends detect_collisions_1.Collisions {
+    constructor() {
+        super();
+        this.bodyToColliderMap = new Map();
+        this.collidingBodiesMap = new Map();
+        this.lastCollisionResult = new detect_collisions_1.Result();
+    }
+    insertObject(gameObject) {
+        for (let collider of gameObject.Colliders) {
+            super.insert(collider.Body);
+            this.bodyToColliderMap.set(collider.Body, collider);
+            this.collidingBodiesMap.set(collider.Body, new Set());
+        }
+        if (SharedConfig_1.SharedConfig.IS_SERVER && gameObject.IsSolid && this.isObjectColliding(gameObject)) {
+            gameObject.destroy();
+        }
+    }
+    removeObject(gameObject) {
+        for (let collider of gameObject.Colliders) {
+            if (this.bodyToColliderMap.has(collider.Body)) {
+                super.remove(collider.Body);
+                this.bodyToColliderMap.delete(collider.Body);
+            }
+            if (this.collidingBodiesMap.has(collider.Body)) {
+                this.collidingBodiesMap.delete(collider.Body);
+            }
+        }
+    }
+    update() {
+        super.update();
+    }
+    updateCollisions(gameObjects) {
+        gameObjects.forEach((gameObject) => {
+            this.updateCollisionsForGameObject(gameObject);
+        });
+    }
+    updateCollisionsForGameObject(gameObject) {
+        for (let collider of gameObject.Colliders) {
+            if (gameObject.IsCollisionStatic) {
+                //no need to calculate collisions for obstacles since they are not moving
+                //that hack gives us huge performance boost when we have thousands of obstacles
+                return;
+            }
+            let colliderBody = collider.Body;
+            let oldCollidingBodies = this.collidingBodiesMap.get(colliderBody);
+            let newCollidingBodies = new Set();
+            for (let body of this.CollisionBodyIterator(colliderBody)) {
+                let colidedCollider = this.bodyToColliderMap.get(body);
+                if (!colidedCollider || colidedCollider == collider) {
+                    continue;
+                }
+                if (!oldCollidingBodies.has(body)) {
+                    collider.onCollisionEnter(colidedCollider, this.lastCollisionResult);
+                }
+                newCollidingBodies.add(body);
+                collider.onCollisionStay(colidedCollider, this.lastCollisionResult);
+            }
+            for (let body of oldCollidingBodies) {
+                if (!newCollidingBodies.has(body)) {
+                    let colidedCollider = this.bodyToColliderMap.get(body);
+                    if (!colidedCollider || colidedCollider == collider) {
+                        continue;
+                    }
+                    body.collides(colidedCollider.Body, this.lastCollisionResult);
+                    collider.onCollisionExit(colidedCollider, this.lastCollisionResult);
+                }
+            }
+            this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
+        }
+    }
+    isObjectColliding(object) {
+        for (let collider of object.Colliders) {
+            let potentials = collider.Body.potentials();
+            for (let body of potentials) {
+                if (collider.Parent.ID == this.bodyToColliderMap.get(body).Parent.ID) {
+                    //skip check colliders with same parent
+                    continue;
+                }
+                if (collider.Body.collides(body)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    *CollisionBodyIterator(objectBody) {
+        for (let body of objectBody.potentials()) {
+            if (objectBody.collides(body, this.lastCollisionResult)) {
+                yield body;
+            }
+        }
+    }
+}
+exports.CollisionsSystem = CollisionsSystem;
+
+},{"../../SharedConfig":88,"detect-collisions":36}],112:[function(require,module,exports){
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const SerializeDecorators_1 = require("../../serialize/SerializeDecorators");
+const ChangesDict_1 = require("../../serialize/ChangesDict");
+const Serializable_1 = require("../../serialize/Serializable");
+class Transform extends Serializable_1.Serializable {
+    constructor(position, size) {
+        super();
+        this.x = position[0];
+        this.y = position[1];
+        this.Rotation = 0;
+        if (!size) {
+            this.scaleX = 32;
+            this.scaleY = 32;
+        }
+        else if (size instanceof Array) {
+            this.scaleX = size[0];
+            this.scaleY = size[1];
+        }
+        else {
+            this.scaleX = size;
+            this.scaleY = size;
         }
     }
     rotate(angle) {
@@ -13494,88 +13709,75 @@ class Transform extends Serializable_1.Serializable {
     distanceTo(transform) {
         return Transform.Distance(this, transform);
     }
-    get Body() {
-        return this.shape;
-    }
     get X() {
-        return this.shape.x;
+        return this.x;
     }
     set X(x) {
         this.addChange(ChangesDict_1.ChangesDict.X);
-        this.shape.x = x;
+        this.x = x;
     }
     get Y() {
-        return this.shape.y;
+        return this.y;
     }
     set Y(y) {
         this.addChange(ChangesDict_1.ChangesDict.Y);
-        this.shape.y = y;
+        this.y = y;
     }
-    set Width(width) {
-        if (this.width == width)
+    set ScaleX(width) {
+        if (this.scaleX == width)
             return;
-        this.width = width;
-        this.resize();
-        this.addChange(ChangesDict_1.ChangesDict.WIDTH);
+        this.scaleX = width;
+        this.addChange(ChangesDict_1.ChangesDict.SCALEX);
     }
-    get Width() {
-        return this.width;
+    get ScaleX() {
+        return this.scaleX;
     }
-    set Height(height) {
-        if (this.height == height)
+    set ScaleY(height) {
+        if (this.scaleY == height)
             return;
-        this.height = height;
-        this.resize();
-        this.addChange(ChangesDict_1.ChangesDict.HEIGHT);
+        this.scaleY = height;
+        this.addChange(ChangesDict_1.ChangesDict.SCALEY);
     }
-    get Height() {
-        return this.height;
+    get ScaleY() {
+        return this.scaleY;
     }
     get Position() {
         return [this.X, this.Y];
     }
-    set Rotation(angle) {
-        if (this.shape instanceof detect_collisions_1.Polygon) {
-            this.shape.angle = angle;
-        }
-        this.angle = angle;
+    set Rotation(rotation) {
+        this.addChange(ChangesDict_1.ChangesDict.ROTATION);
+        this.rotation = rotation;
     }
     get Rotation() {
-        this.addChange(ChangesDict_1.ChangesDict.ROTATION);
-        return this.angle;
+        return this.rotation;
     }
     static Distance(t1, t2) {
         return Math.sqrt(Math.pow(t1.X - t2.X, 2) + Math.pow(t1.Y - t2.Y, 2));
     }
 }
 __decorate([
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.SCALEX, Serializable_1.SerializableTypes.Uint16),
+    __metadata("design:type", Number)
+], Transform.prototype, "scaleX", void 0);
+__decorate([
+    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.SCALEY, Serializable_1.SerializableTypes.Uint16),
+    __metadata("design:type", Number)
+], Transform.prototype, "scaleY", void 0);
+__decorate([
     SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.X, Serializable_1.SerializableTypes.Float32),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], Transform.prototype, "X", null);
+    __metadata("design:type", Object)
+], Transform.prototype, "x", void 0);
 __decorate([
     SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.Y, Serializable_1.SerializableTypes.Float32),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], Transform.prototype, "Y", null);
-__decorate([
-    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.WIDTH, Serializable_1.SerializableTypes.Uint16),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], Transform.prototype, "Width", null);
-__decorate([
-    SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.HEIGHT, Serializable_1.SerializableTypes.Uint16),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], Transform.prototype, "Height", null);
+    __metadata("design:type", Object)
+], Transform.prototype, "y", void 0);
 __decorate([
     SerializeDecorators_1.SerializableProperty(ChangesDict_1.ChangesDict.ROTATION, Serializable_1.SerializableTypes.Float32),
-    __metadata("design:type", Number),
-    __metadata("design:paramtypes", [Number])
-], Transform.prototype, "Rotation", null);
+    __metadata("design:type", Object)
+], Transform.prototype, "rotation", void 0);
 exports.Transform = Transform;
 
-},{"../../serialize/ChangesDict":113,"../../serialize/Serializable":115,"../../serialize/SerializeDecorators":116,"detect-collisions":36}],110:[function(require,module,exports){
+},{"../../serialize/ChangesDict":116,"../../serialize/Serializable":118,"../../serialize/SerializeDecorators":119}],113:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var INPUT_COMMAND;
@@ -13601,7 +13803,7 @@ var MouseKeys;
     MouseKeys[MouseKeys["RIGHT"] = 2] = "RIGHT";
 })(MouseKeys = exports.MouseKeys || (exports.MouseKeys = {}));
 
-},{}],111:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const InputCommands_1 = require("../input/InputCommands");
@@ -13664,7 +13866,7 @@ class InputSnapshot {
 InputSnapshot.NextId = 0;
 exports.InputSnapshot = InputSnapshot;
 
-},{"../input/InputCommands":110,"../utils/DeltaTimer":119}],112:[function(require,module,exports){
+},{"../input/InputCommands":113,"../utils/DeltaTimer":122}],115:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 let messageCode = 0;
@@ -13686,7 +13888,7 @@ SocketMsgs.CHUNK_CHANGED = String.fromCharCode(messageCode++);
 SocketMsgs.ERROR = String.fromCharCode(messageCode++);
 exports.SocketMsgs = SocketMsgs;
 
-},{}],113:[function(require,module,exports){
+},{}],116:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class ChangesDict {
@@ -13708,14 +13910,14 @@ ChangesDict.POWER = "B";
 //Transform
 ChangesDict.X = "X";
 ChangesDict.Y = "Y";
-ChangesDict.HEIGHT = "HEIGHT";
-ChangesDict.WIDTH = "WIDTH";
+ChangesDict.SCALEX = "SCALEX";
+ChangesDict.SCALEY = "SCALEY";
 ChangesDict.ROTATION = "ROTATION";
 //Portal
 ChangesDict.IS_ATTACHED = "IS_ATTACHED";
 exports.ChangesDict = ChangesDict;
 
-},{}],114:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const ObjectsFactory_1 = require("../game_utils/factory/ObjectsFactory");
@@ -13766,7 +13968,7 @@ class ObjectsSerializer {
 ObjectsSerializer.OBJECT_ID_BYTES_LEN = 5;
 exports.ObjectsSerializer = ObjectsSerializer;
 
-},{"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/ObjectsFactory":95}],115:[function(require,module,exports){
+},{"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/ObjectsFactory":95}],118:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const SerializeDecorators_1 = require("./SerializeDecorators");
@@ -13941,7 +14143,7 @@ Serializable.TypesToBytesSize = new Map([
 ]);
 exports.Serializable = Serializable;
 
-},{"../SharedConfig":88,"../utils/TicksCounter":120,"../utils/functions/BitOperations":121,"./SerializeDecorators":116}],116:[function(require,module,exports){
+},{"../SharedConfig":88,"../utils/TicksCounter":123,"../utils/functions/BitOperations":124,"./SerializeDecorators":119}],119:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Serializable_1 = require("./Serializable");
@@ -14111,7 +14313,7 @@ function getPrototypePropertyVal(target, propertyName, defaultVal) {
     return defaultVal;
 }
 
-},{"./Serializable":115}],117:[function(require,module,exports){
+},{"./Serializable":118}],120:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const GameObjectsSubscriber_1 = require("../game_utils/factory/GameObjectsSubscriber");
@@ -14255,7 +14457,7 @@ UpdateCollector.OBJECT_ID_BYTES_LEN = 5;
 UpdateCollector.DESTROY_OBJECTS_ID = 255;
 exports.UpdateCollector = UpdateCollector;
 
-},{"../SharedConfig":88,"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/GameObjectsSubscriber":94,"../game_utils/factory/ObjectsFactory":95}],118:[function(require,module,exports){
+},{"../SharedConfig":88,"../game_utils/factory/GameObjectPrefabs":92,"../game_utils/factory/GameObjectsSubscriber":94,"../game_utils/factory/ObjectsFactory":95}],121:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class AverageCounter {
@@ -14282,7 +14484,7 @@ class AverageCounter {
 }
 exports.AverageCounter = AverageCounter;
 
-},{}],119:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class DeltaTimer {
@@ -14302,7 +14504,7 @@ class DeltaTimer {
 }
 exports.DeltaTimer = DeltaTimer;
 
-},{}],120:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class TicksCounter {
@@ -14325,7 +14527,7 @@ class TicksCounter {
 TicksCounter.instance = null;
 exports.TicksCounter = TicksCounter;
 
-},{}],121:[function(require,module,exports){
+},{}],124:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function calcPropsMaskByteSize(num) {
@@ -14338,7 +14540,7 @@ function setBit(val, bitIndex) {
 }
 exports.setBit = setBit;
 
-},{}],122:[function(require,module,exports){
+},{}],125:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function calcAngle(p1, p2) {

@@ -3,8 +3,7 @@ import {Actor} from "./Actor";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {MagicWand} from "../weapons/MagicWand";
 import {GameObject} from "./GameObject";
-import {Result} from "detect-collisions/collisions";
-
+import {Collision} from "../../physics/Collision";
 
 export class Enemy extends Actor {
     private timeSinceLastShot = 1000;
@@ -20,8 +19,10 @@ export class Enemy extends Actor {
         super.commonUpdate(delta);
     }
 
-    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.serverOnCollisionEnter(gameObject, result);
+    protected serverOnCollisionEnter(collision: Collision) {
+        super.serverOnCollisionEnter(collision);
+
+        let gameObject: GameObject = collision.ColliderB.Parent;
         if(gameObject.IsSolid) {
             this.Horizontal = Math.round(Math.random() * 2) - 1;
             this.Vertical = Math.round(Math.random() * 2) - 1;

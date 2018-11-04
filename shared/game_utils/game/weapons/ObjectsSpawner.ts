@@ -13,7 +13,8 @@ export class ObjectsSpawner implements Weapon {
             } else if (clickButton == MouseKeys.RIGHT) {
                 GameObjectsFactory.InstatiateWithPosition("Wall", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             } else {
-                GameObjectsFactory.InstatiateWithPosition("Doors", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                // GameObjectsFactory.InstatiateWithPosition("Doors", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
+                GameObjectsFactory.InstatiateWithPosition("PlatformTriggerTest", [Math.round(position[0] / 32) * 32, Math.round(position[1] / 32) * 32]);
             }
         }
     };

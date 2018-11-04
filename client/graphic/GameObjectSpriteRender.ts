@@ -16,8 +16,8 @@ export class GameObjectSpriteRender extends GameObjectRender {
         this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectRef.SpriteName]);
         this.addChild(this.sprite);
 
-        this.sprite.width = this.objectRef.Transform.Width;
-        this.sprite.height = this.objectRef.Transform.Height;
+        this.sprite.width = this.objectRef.Transform.ScaleX;
+        this.sprite.height = this.objectRef.Transform.ScaleY;
 
         this.sprite.anchor.set(0.5, 0.5);
     }
@@ -29,8 +29,8 @@ export class GameObjectSpriteRender extends GameObjectRender {
             this.sprite.texture = PIXI.utils.TextureCache[this.objectRef.SpriteName];
         }
 
-        this.sprite.width = this.objectRef.Transform.Width;
-        this.sprite.height = this.objectRef.Transform.Height;
+        this.sprite.width = this.objectRef.Transform.ScaleX;
+        this.sprite.height = this.objectRef.Transform.ScaleY;
     }
 
     public destroy() {

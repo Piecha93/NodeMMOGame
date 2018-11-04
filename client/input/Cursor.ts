@@ -1,7 +1,10 @@
 import {Transform} from "../../shared/game_utils/physics/Transform";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
+import {Collider} from "../../shared/game_utils/physics/Collider";
 import {Result} from "detect-collisions";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import {Collision} from "../../shared/game_utils/physics/Collision";
+
 
 export class Cursor extends GameObject {
 
@@ -22,7 +25,8 @@ export class Cursor extends GameObject {
         super.destroy();
     }
 
-    protected sharedOnCollisionStay(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionStay(collision: Collision) {
+        let gameObject: GameObject = collision.ColliderB.Parent;
         DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID;
 
         this.onObjectId = gameObject.ID;
@@ -35,7 +39,9 @@ export class Cursor extends GameObject {
         }
     }
 
-    protected sharedOnCollisionExit(gameObject: GameObject) {
+    protected sharedOnCollisionExit(collision: Collision) {
+        let gameObject: GameObject = collision.ColliderB.Parent;
+
         this.interactMessage = null;
         DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
     }
@@ -46,6 +52,8 @@ export class Cursor extends GameObject {
 
         this.onObjectId = null;
         this.interactMessage = null;
+
+        this.update(0);
     }
 
     get OnObjectId(): string {

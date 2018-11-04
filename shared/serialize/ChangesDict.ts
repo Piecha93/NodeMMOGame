@@ -20,8 +20,8 @@ export class ChangesDict {
     //Transform
     public static X = "X";
     public static Y = "Y";
-    public static HEIGHT = "HEIGHT";
-    public static WIDTH = "WIDTH";
+    public static SCALEX = "SCALEX";
+    public static SCALEY = "SCALEY";
     public static ROTATION = "ROTATION";
 
     //Portal

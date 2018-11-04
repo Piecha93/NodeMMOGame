@@ -17,7 +17,7 @@ export class SharedConfig {
     public static numOfChunksX: number = 5;
     public static numOfChunksY: number = 5;
 
-    public static chunkDeactivationTime = 10000;
+    public static chunkDeactivationTime = 1000;
 
     public static ORIGIN: Origin = getOrigin();
 

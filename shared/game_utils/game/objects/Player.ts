@@ -7,6 +7,12 @@ import {InputSnapshot} from "../../../input/InputSnapshot";
 import {PortalGun} from "../weapons/PortalGun";
 import {MagicWand} from "../weapons/MagicWand";
 import {ObjectsSpawner} from "../weapons/ObjectsSpawner";
+import {Collider} from "../../physics/Collider";
+import {Result} from "detect-collisions";
+import {GameObject} from "./GameObject";
+import {Doors} from "./Doors";
+import {Enemy} from "./Enemy";
+import {Collision} from "../../physics/Collision";
 
 export class Player extends Actor {
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
@@ -20,6 +26,9 @@ export class Player extends Actor {
     constructor(transform: Transform) {
         super(transform);
 
+        let collider: Collider = this.addCollider([transform.ScaleX * 2, transform.ScaleY * 2]);
+        collider.IsTriger = true;
+
         this.velocity = 0.25;
 
         // this.weapon = new PortalGun();
@@ -27,6 +36,24 @@ export class Player extends Actor {
         this.weapon = new ObjectsSpawner();
         this.isChunkActivateTriger = true;
         this.isChunkFullUpdateTriger = true;
+    }
+
+    serverOnTriggerEnter(collision: Collision) {
+        let gameObject: GameObject = collision.ColliderB.Parent;
+
+        if(gameObject instanceof Doors) {
+            (gameObject as Doors).open()
+        } else if(gameObject instanceof Enemy) {
+            gameObject.destroy();
+        }
+    }
+
+    serverOnTriggerExit(collision: Collision) {
+        let gameObject: GameObject = collision.ColliderB.Parent;
+
+        if(gameObject instanceof Doors) {
+            (gameObject as Doors).open()
+        }
     }
 
     private lastInputSnapshot: InputSnapshot = null;

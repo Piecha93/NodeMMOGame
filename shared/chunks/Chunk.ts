@@ -144,15 +144,15 @@ export class Chunk {
     }
 
     public reload() {
-        if (!this.dumpedBuffer) {
-            let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
-            try {
-                let buffer: Buffer = fs.readFileSync(fileName);
-                this.dumpedBuffer = toArrayBuffer(buffer);
-            } catch (e) {
-                console.log("no data file found");
-            }
-        }
+        // if (!this.dumpedBuffer) {
+        //     let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
+        //     try {
+        //         let buffer: Buffer = fs.readFileSync(fileName);
+        //         this.dumpedBuffer = toArrayBuffer(buffer);
+        //     } catch (e) {
+        //         console.log("no data file found");
+        //     }
+        // }
 
         if (this.dumpedBuffer) {
             ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
@@ -164,13 +164,11 @@ export class Chunk {
     }
 
     public deactivate() {
-        // console.log("deactivate " + this.dumpedBuffer + " " + this.isActive);
         if (this.dumpedBuffer || !this.isActive) {
             return;
         }
 
-        // console.log("dump chunk " + this.Position);
-        this.clearNotStatic();
+        this.clearNotPersistent();
 
         this.dumpedBuffer = ObjectsSerializer.serializeChunk(this);
 
@@ -187,10 +185,10 @@ export class Chunk {
         }
     }
 
-    private clearNotStatic() {
+    private clearNotPersistent() {
         let numOfObjectsToBeSaved: number = 0;
         while (this.objects.length > numOfObjectsToBeSaved) {
-            if (!(this.objects[numOfObjectsToBeSaved].IsCollisionStatic)) {
+            if (!(this.objects[numOfObjectsToBeSaved].IsChunkDeactivationPersistent)) {
                 this.objects[numOfObjectsToBeSaved].destroy();
             } else {
                 numOfObjectsToBeSaved++;

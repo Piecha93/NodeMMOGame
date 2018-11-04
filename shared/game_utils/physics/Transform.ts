@@ -7,54 +7,37 @@ export type Vector2 = [number, number];
 export type Size = number | [number, number];
 
 export class Transform extends Serializable {
-    private shape: Polygon | Circle;
+    @SerializableProperty(ChangesDict.SCALEX, SerializableTypes.Uint16)
+    private scaleX: number;
+    @SerializableProperty(ChangesDict.SCALEY, SerializableTypes.Uint16)
+    private scaleY: number;
 
-    private width: number;
-    private height: number;
-    private angle = 0;
+    @SerializableProperty(ChangesDict.X, SerializableTypes.Float32)
+    private x;
+    @SerializableProperty(ChangesDict.Y, SerializableTypes.Float32)
+    private y;
+
+    @SerializableProperty(ChangesDict.ROTATION, SerializableTypes.Float32)
+    private rotation;
 
     constructor(position: Vector2, size?: Size) {
         super();
 
-        let x: number = position[0];
-        let y: number = position[1];
+        this.x = position[0];
+        this.y = position[1];
 
+        this.Rotation = 0;
 
-        let isCircle: boolean = false;
-
-        if(!size) {
-            this.width = 32;
-            this.height = 32;
+        if (!size) {
+            this.scaleX = 32;
+            this.scaleY = 32;
         }
-        else if(size instanceof Array) {
-            this.width = size[0];
-            this.height = size[1];
+        else if (size instanceof Array) {
+            this.scaleX = size[0];
+            this.scaleY = size[1];
         } else {
-            this.width = size;
-            this.height = size;
-            isCircle = true;
-        }
-
-        if(isCircle) {
-            this.shape = new Circle(x, y, this.width);
-        } else {
-            let w: number = this.width / 2;
-            let h: number = this.height / 2;
-
-            this.shape = new Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
-        }
-    }
-
-    resize() {
-        if(this.shape instanceof Polygon) {
-            let w: number = this.Width / 2;
-            let h: number = this.Height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        } else { //circle
-            this.shape.radius = this.width;
-            this.height = this.shape.radius;
-            this.addChange(ChangesDict.WIDTH);
-            this.addChange(ChangesDict.HEIGHT);
+            this.scaleX = size;
+            this.scaleY = size;
         }
     }
 
@@ -66,71 +49,57 @@ export class Transform extends Serializable {
         return Transform.Distance(this, transform);
     }
 
-    get Body(): Polygon | Circle {
-        return this.shape;
-    }
-
     get X(): number {
-        return this.shape.x;
+        return this.x;
     }
 
-    @SerializableProperty(ChangesDict.X, SerializableTypes.Float32)
     set X(x: number) {
         this.addChange(ChangesDict.X);
-        this.shape.x = x;
+        this.x = x;
     }
 
     get Y(): number {
-        return this.shape.y;
+        return this.y;
     }
 
-    @SerializableProperty(ChangesDict.Y, SerializableTypes.Float32)
     set Y(y: number) {
         this.addChange(ChangesDict.Y);
-        this.shape.y = y;
+        this.y = y;
     }
 
-    @SerializableProperty(ChangesDict.WIDTH, SerializableTypes.Uint16)
-    set Width(width: number) {
-        if(this.width == width) return;
+    set ScaleX(width: number) {
+        if(this.scaleX == width) return;
 
-        this.width = width;
-        this.resize();
-        this.addChange(ChangesDict.WIDTH);
+        this.scaleX = width;
+        this.addChange(ChangesDict.SCALEX);
     }
 
-    get Width(): number {
-        return this.width;
+    get ScaleX(): number {
+        return this.scaleX;
     }
 
-    @SerializableProperty(ChangesDict.HEIGHT, SerializableTypes.Uint16)
-    set Height(height: number) {
-        if(this.height == height) return;
+    set ScaleY(height: number) {
+        if(this.scaleY == height) return;
 
-        this.height = height;
-        this.resize();
-        this.addChange(ChangesDict.HEIGHT);
+        this.scaleY = height;
+        this.addChange(ChangesDict.SCALEY);
     }
 
-    get Height(): number {
-        return this.height;
+    get ScaleY(): number {
+        return this.scaleY;
     }
 
     get Position(): Vector2 {
         return [this.X, this.Y];
     }
 
-    @SerializableProperty(ChangesDict.ROTATION, SerializableTypes.Float32)
-    set Rotation(angle: number) {
-        if(this.shape instanceof Polygon) {
-            this.shape.angle = angle;
-        }
-        this.angle = angle;
+    set Rotation(rotation: number) {
+        this.addChange(ChangesDict.ROTATION);
+        this.rotation = rotation;
     }
 
     get Rotation(): number {
-        this.addChange(ChangesDict.ROTATION);
-        return this.angle;
+        return this.rotation;
     }
 
 

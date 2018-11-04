@@ -27,8 +27,8 @@ export class PlayerRender extends GameObjectAnimationRender {
 
         this.hpBar = new PIXI.Graphics;
         this.hpBar.beginFill(0xFF0000);
-        this.hpBar.drawRect(-this.objectRef.Transform.Width / 2, -this.objectRef.Transform.Height / 2 - 13,
-            this.objectRef.Transform.Width, 7);
+        this.hpBar.drawRect(-this.objectRef.Transform.ScaleX / 2, -this.objectRef.Transform.ScaleY / 2 - 13,
+            this.objectRef.Transform.ScaleX, 7);
 
 
         this.addChild(this.hpBar);

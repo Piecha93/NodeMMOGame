@@ -6,6 +6,7 @@ import {Obstacle} from "./Obstacle";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {Actor} from "./Actor";
 import {SerializableTypes} from "../../../serialize/Serializable";
+import {Collision} from "../../physics/Collision";
 
 export class Portal extends GameObject {
     private couplingPortal: Portal = null;
@@ -32,15 +33,16 @@ export class Portal extends GameObject {
         return this.isAttached && this.couplingPortal.isAttached;
     }
 
-    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+    protected serverOnCollisionEnter(collision: Collision) {
+        let gameObject: GameObject = collision.ColliderB.Parent;
         if(gameObject instanceof Portal) {
             this.destroy();
             return;
         } else if(gameObject.IsSolid) {
             this.isAttached = true;
 
-            this.Transform.X -= result.overlap * result.overlap_x;
-            this.Transform.Y -= result.overlap * result.overlap_y;
+            this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
+            this.Transform.Y -= collision.Result.overlap * collision.Result.overlap_y;
 
             this.transform.Rotation = gameObject.Transform.Rotation;
 
@@ -59,11 +61,7 @@ export class Portal extends GameObject {
                 this.destroy();
             }
         }
-        super.serverOnCollisionEnter(gameObject, result);
-    }
-
-    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.sharedOnCollisionEnter(gameObject, result);
+        super.serverOnCollisionEnter(collision);
     }
 
     protected serverUpdate(delta: number) {

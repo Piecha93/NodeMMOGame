@@ -42,8 +42,6 @@ export class GameObjectsFactory {
             GameObjectsFactory.setOptions(gameObject, prefabOptions);
         }
 
-        gameObject.Transform.resize();
-
         if(id) {
             gameObject.ID = id;
         } else {
@@ -53,6 +51,8 @@ export class GameObjectsFactory {
         if(data) {
             gameObject.deserialize(data[0], data[1]);
         }
+
+        gameObject.updateColliders();
 
         GameObjectsFactory.AddToListeners(gameObject);
 

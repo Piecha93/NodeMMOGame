@@ -24,8 +24,8 @@ export class GameObjectAnimationRender extends GameObjectRender {
         this.animation.animationSpeed = 0.2;
         this.animation.play();
 
-        this.animation.width = this.objectRef.Transform.Width;
-        this.animation.height = this.objectRef.Transform.Height;
+        this.animation.width = this.objectRef.Transform.ScaleX;
+        this.animation.height = this.objectRef.Transform.ScaleY;
 
         this.animation.anchor.set(0.5, 0.5);
     }
@@ -35,8 +35,8 @@ export class GameObjectAnimationRender extends GameObjectRender {
 
         this.updateAnimationTextures();
 
-        this.animation.width = this.objectRef.Transform.Width;
-        this.animation.height = this.objectRef.Transform.Height;
+        this.animation.width = this.objectRef.Transform.ScaleX;
+        this.animation.height = this.objectRef.Transform.ScaleY;
     }
 
     private updateAnimationTextures() {

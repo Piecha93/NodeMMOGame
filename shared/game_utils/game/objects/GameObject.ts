@@ -1,4 +1,4 @@
-import {Transform} from "../../physics/Transform";
+import {Size, Transform} from "../../physics/Transform";
 import {ChangesDict} from "../../../serialize/ChangesDict";
 import {SharedConfig} from "../../../SharedConfig";
 import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
@@ -6,12 +6,7 @@ import {SerializableObject, SerializableProperty} from "../../../serialize/Seria
 import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
 import {Collider} from "../../physics/Collider";
-
-// interface Collidable {
-//     onCollisionEnter(gameObject: GameObject, result: Result);
-//     onCollisionStay(gameObject: GameObject, result: Result);
-//     onCollisionExit(gameObject: GameObject);
-// }
+import {Collision} from "../../physics/Collision";
 
 
 export class GameObject extends Serializable {// implements Collidable {
@@ -25,7 +20,7 @@ export class GameObject extends Serializable {// implements Collidable {
     @SerializableProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
-    private collider: Collider = null;
+    private colliders: Array<Collider> = [];
 
     private destroyListeners: Set<Function>;
 
@@ -44,59 +39,119 @@ export class GameObject extends Serializable {// implements Collidable {
         super();
         this.transform = transform;
 
+        this.addCollider([transform.ScaleX, transform.ScaleY]);
+
         this.SpriteName = "none";
         this.destroyListeners = new Set<Function>();
     }
 
-    onCollisionEnter(gameObject: GameObject, result: Result) {
-        if(this.IsDestroyed || gameObject.IsDestroyed) {
+    public addCollider(size: Size): Collider {
+        let collider: Collider = new Collider(this, size);
+        this.colliders.push(collider);
+
+        return collider;
+    }
+
+    public onCollisionEnter(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
         if(SharedConfig.IS_SERVER) {
-            this.serverOnCollisionEnter(gameObject, result);
+            this.serverOnCollisionEnter(collision);
         }
-        this.sharedOnCollisionEnter(gameObject, result);
+        this.sharedOnCollisionEnter(collision);
     }
 
-    onCollisionStay(gameObject: GameObject, result: Result) {
-        if(this.IsDestroyed || gameObject.IsDestroyed) {
+    public onCollisionStay(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
         if(SharedConfig.IS_SERVER) {
-            this.serverOnCollisionStay(gameObject, result);
+            this.serverOnCollisionStay(collision);
         }
-        this.sharedOnCollisionStay(gameObject, result);
+        this.sharedOnCollisionStay(collision);
     }
 
-    onCollisionExit(gameObject: GameObject) {
-        if(this.IsDestroyed || gameObject.IsDestroyed) {
+    public onCollisionExit(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
         if(SharedConfig.IS_SERVER) {
-            this.serverOnCollisionExit(gameObject);
+            this.serverOnCollisionExit(collision);
         }
-        this.sharedOnCollisionExit(gameObject);
+        this.sharedOnCollisionExit(collision);
     }
 
-    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
+    protected serverOnCollisionEnter(collision: Collision) {
     }
 
-    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionEnter(collision: Collision) {
     }
 
-    protected serverOnCollisionStay(gameObject: GameObject, result: Result) {
+    protected serverOnCollisionStay(collision: Collision) {
     }
 
-    protected sharedOnCollisionStay(gameObject: GameObject, result: Result) {
+    protected sharedOnCollisionStay(collision: Collision) {
     }
 
-    protected serverOnCollisionExit(gameObject: GameObject) {
+    protected serverOnCollisionExit(collision: Collision) {
     }
 
-    protected sharedOnCollisionExit(gameObject: GameObject) {
+    protected sharedOnCollisionExit(collision: Collision) {
+    }
+
+    public onTriggerEnter(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+
+        if(SharedConfig.IS_SERVER) {
+            this.serverOnTriggerEnter(collision);
+        }
+        this.sharedOnTriggerEnter(collision);
+    }
+
+    public onTriggerStay(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+
+        if(SharedConfig.IS_SERVER) {
+            this.serverOnTriggerStay(collision);
+        }
+        this.sharedOnTriggerStay(collision);
+    }
+
+    public onTriggerExit(collision: Collision) {
+        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+            return;
+        }
+
+        if(SharedConfig.IS_SERVER) {
+            this.serverOnTriggerExit(collision);
+        }
+        this.sharedOnTriggerExit(collision);
+    }
+
+    protected serverOnTriggerEnter(collision: Collision) {
+    }
+
+    protected sharedOnTriggerEnter(collision: Collision) {
+    }
+
+    protected serverOnTriggerStay(collision: Collision) {
+    }
+
+    protected sharedOnTriggerStay(collision: Collision) {
+    }
+
+    protected serverOnTriggerExit(collision: Collision) {
+    }
+
+    protected sharedOnTriggerExit(collision: Collision) {
     }
 
     public forceCompleteUpdate() {
@@ -108,6 +163,14 @@ export class GameObject extends Serializable {// implements Collidable {
             this.serverUpdate(delta);
         }
         this.commonUpdate(delta);
+
+        this.updateColliders();
+    }
+
+    public updateColliders() {
+        for(let collider of this.colliders) {
+            collider.update();
+        }
     }
 
     protected commonUpdate(delta: number)  {
@@ -213,7 +276,7 @@ export class GameObject extends Serializable {// implements Collidable {
         return null;
     }
 
-    get Collider(): Collider {
-        return this.collider;
+    get Colliders(): Array<Collider> {
+        return this.colliders;
     }
 }

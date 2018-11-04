@@ -8,6 +8,7 @@ import {Result} from "detect-collisions";
 import {Item} from "./Item";
 import {Weapon} from "../weapons/Weapon";
 import {SerializableTypes} from "../../../serialize/Serializable";
+import {Collision} from "../../physics/Collision";
 
 
 export abstract class Actor extends GameObject {
@@ -53,12 +54,13 @@ export abstract class Actor extends GameObject {
         }
     }
 
-    protected sharedOnCollisionStay(gameObject: GameObject, result: Result) {
-        super.sharedOnCollisionStay(gameObject, result);
+    protected sharedOnCollisionStay(collision: Collision) {
+        super.sharedOnCollisionStay(collision);
 
+        let gameObject: GameObject = collision.ColliderB.Parent;
         if(gameObject.IsSolid) {
-            this.Transform.X -= result.overlap * result.overlap_x;
-            this.Transform.Y -= result.overlap * result.overlap_y;
+            this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
+            this.Transform.Y -= collision.Result.overlap * collision.Result.overlap_y;
         }
     }
 
@@ -144,6 +146,10 @@ export abstract class Actor extends GameObject {
 
     get SpriteName(): string {
         return this.spriteName + "_" + this.animationType;
+    }
+
+    get Weapon(): Weapon {
+        return this.weapon;
     }
 
     set SpriteName(spriteName: string) {

@@ -6,6 +6,7 @@ import {Actor} from "./Actor";
 import {SerializableProperty} from "../../../serialize/SerializeDecorators";
 import {Result} from "detect-collisions";
 import {SerializableTypes} from "../../../serialize/Serializable";
+import {Collision} from "../../physics/Collision";
 
 export class FireBall extends Projectile {
     @SerializableProperty(ChangesDict.POWER, SerializableTypes.Uint16)
@@ -17,12 +18,14 @@ export class FireBall extends Projectile {
         super(transform);
         this.velocity = 1;
 
-        this.lifeSpan = 20000;
+        this.lifeSpan = 2000;
         this.addChange(ChangesDict.VELOCITY);
     }
 
-    protected serverOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.serverOnCollisionEnter(gameObject, result);
+    protected serverOnCollisionEnter(collision: Collision) {
+        super.serverOnCollisionEnter(collision);
+
+        let gameObject: GameObject = collision.ColliderB.Parent;
         if(gameObject instanceof FireBall) {
             if(gameObject.owner != this.owner) {
                 this.destroy();
@@ -35,10 +38,6 @@ export class FireBall extends Projectile {
         } else if(gameObject.IsSolid) {
             this.destroy();
         }
-    }
-
-    protected sharedOnCollisionEnter(gameObject: GameObject, result: Result) {
-        super.sharedOnCollisionEnter(gameObject, result);
     }
 
     get Power(): number {
