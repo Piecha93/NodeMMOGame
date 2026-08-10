@@ -56,10 +56,15 @@ export class ObjectsSerializer {
             id += updateBufferView.getUint32(offset + 1).toString();
             offset += 5;
 
-            let gameObject: GameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), undefined,
-                [updateBufferView, offset]);
+            const objectDataOffset: number = offset;
+            let gameObject: GameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), id,
+                [updateBufferView, objectDataOffset]);
 
-            offset = gameObject.deserialize(updateBufferView, offset);
+            // Chunk snapshots always contain complete objects. The factory has already
+            // deserialized this record before publishing it to world subscribers, so
+            // use its complete encoded size to find the next record instead of
+            // applying the same update a second time.
+            offset = objectDataOffset + gameObject.calcNeededBufferSize(true);
         }
     }
 }
