@@ -1,14 +1,15 @@
 import {SocketMsgs} from "../../shared/net/SocketMsgs";
 import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import {Socket} from "socket.io-client";
 
 export class HeartBeatSender {
-    private socket: SocketIOClient.Socket;
+    private socket: Socket;
     private heartBeats: Map<number, number>;
     private hbId: number = 0;
     private interval: number = 1000;
     private isRunning = false;
 
-    constructor(socket: SocketIOClient.Socket, rate?: number) {
+    constructor(socket: Socket, rate?: number) {
         this.socket = socket;
         this.socket.on(SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
 

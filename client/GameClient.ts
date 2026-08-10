@@ -1,5 +1,4 @@
-/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
-
+import {io, Socket} from "socket.io-client";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
 import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
@@ -22,10 +21,9 @@ import {TicksCounter} from "../shared/utils/TicksCounter";
 
 
 const customParser = require('socket.io-msgpack-parser');
-const io = require('socket.io-client');
 
 export class GameClient {
-    private socket: SocketIOClient.Socket;
+    private socket: Socket;
 
     private core: GameCore;
     private reconciliation: Reconciliation;
@@ -179,7 +177,7 @@ export class GameClient {
 
         let chunk: Chunk;
         let chunksIter = this.core.ChunksManager.ChunksIterator();
-        while(chunk = chunksIter.next().value) {
+        for (chunk of chunksIter) {
             if(coreChunks.indexOf(chunk) == -1) {
                 chunk.clearAll();
             }

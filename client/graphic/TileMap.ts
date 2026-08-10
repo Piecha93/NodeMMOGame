@@ -13,9 +13,6 @@ function compareCoords(c1: Coords, c2: Coords): boolean {
 }
 
 class TileMapChunk extends PIXI.Container {
-    x: number;
-    y: number;
-
     sizeX: number;
     sizeY: number;
 

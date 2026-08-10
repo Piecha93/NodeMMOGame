@@ -1,17 +1,28 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es6",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "rootDir": ".",
+    "outDir": "dist",
     "sourceMap": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitReturns": true
-    //TODO fix code to use this
-//    "strict": true,
-//    "noUnusedLocals": true
+    "noImplicitReturns": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true
   },
+  "include": [
+    "app.ts",
+    "client/**/*.ts",
+    "server/**/*.ts",
+    "shared/**/*.ts"
+  ],
   "exclude": [
-    "node_modules"
+    "dist",
+    "node_modules",
+    "public"
   ]
 }

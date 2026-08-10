@@ -38,8 +38,9 @@ export class CollisionsSystem extends Collisions {
         }
     }
 
-    public update() {
+    public update(): CollisionsSystem {
         super.update();
+        return this;
     }
 
     public updateCollisions(gameObjects: Array<GameObject>) {
@@ -103,7 +104,7 @@ export class CollisionsSystem extends Collisions {
         return false;
     }
 
-    *CollisionBodyIterator(objectBody: Body) {
+    *CollisionBodyIterator(objectBody: Body): Generator<Body, void, undefined> {
         for(let body of objectBody.potentials()) {
             if (objectBody.collides(body, this.lastCollisionResult)) {
                 yield body;

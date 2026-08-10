@@ -21,16 +21,14 @@ export class GameWorld extends GameObjectsSubscriber {
     public update(delta: number) {
         let chunk: Chunk;
 
-        let chunksIter = this.chunksManager.ChunksIterator();
-        while(chunk = chunksIter.next().value) {
+        for (chunk of this.chunksManager.ChunksIterator()) {
             for (let i = 0; i < chunk.Objects.length; i++) {
                 chunk.Objects[i].update(delta);
             }
         }
 
-        chunksIter = this.chunksManager.ChunksIterator();
         this.collistionsSystem.update();
-        while(chunk = chunksIter.next().value) {
+        for (chunk of this.chunksManager.ChunksIterator()) {
             this.collistionsSystem.updateCollisions(chunk.Objects);
         }
 

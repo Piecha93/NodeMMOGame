@@ -1,10 +1,11 @@
 import {SocketMsgs} from "../../shared/net/SocketMsgs";
 import {InputSnapshot} from "../../shared/input/InputSnapshot";
+import {Socket} from "socket.io-client";
 
 export class InputSender {
-    private socket: SocketIOClient.Socket;
+    private socket: Socket;
 
-    constructor(socket: SocketIOClient.Socket) {
+    constructor(socket: Socket) {
         this.socket = socket;
     }
 

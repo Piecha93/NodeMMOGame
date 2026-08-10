@@ -1,4 +1,4 @@
-import * as SocketIO from 'socket.io';
+import {Server, Socket} from "socket.io";
 
 import {ServerClient} from "./ServerClient";
 import {Player} from "../shared/game_utils/game/objects/Player";
@@ -21,10 +21,10 @@ import {ClientsInputSnapshotHandler} from "./ClientsInputSnapshotHandler";
 
 
 export class GameServer {
-    private sockets: SocketIO.Server;
+    private sockets: Server;
 
-    private clients: Map<SocketIO.Server, ServerClient> = new Map<SocketIO.Server, ServerClient>();
-    private userIdToSocketMap: Map<string, SocketIO.Server> = new Map<string, SocketIO.Server>();
+    private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
+    private userIdToSocketMap: Map<string, Socket> = new Map<string, Socket>();
 
     private core: GameCore;
 
@@ -32,7 +32,7 @@ export class GameServer {
     private lastChunkSent: Map<Player, Chunk> = new Map<Player, Chunk>(); //TODO move this somewhere else
     private clientsInputSnapshotHandler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
 
-    constructor(sockets: SocketIO.Server) {
+    constructor(sockets: Server) {
         this.sockets = sockets;
     }
 
@@ -80,7 +80,7 @@ export class GameServer {
         this.sockets.on(SocketMsgs.CONNECTION, this.onConnection.bind(this));
     }
 
-    private onConnection(socket: SocketIO.Server) {
+    private onConnection(socket: Socket) {
         socket.compress(false);
         // use to fake latency
         // (function() {
@@ -109,13 +109,16 @@ export class GameServer {
         if(socketSession.user_id.substring(0, 5) == "Guest") {
             serverClient.Name = socketSession.user_id;
         } else {
-            Database.Instance.findUserById(socketSession.user_id, (user: IUserModel) => {
+            void Database.Instance.findUserById(socketSession.user_id).then((user: IUserModel | null) => {
+                if (!user) {
+                    return;
+                }
                 serverClient.Name = user.username;
                 let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
                 if(player) {
                     player.Name = serverClient.Name;
                 }
-            })
+            }).catch((error) => console.error("Unable to load user:", error));
         }
 
         socket.on(SocketMsgs.CLIENT_READY, () => {

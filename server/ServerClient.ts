@@ -1,14 +1,13 @@
-import * as SocketIO from 'socket.io';
-import {ServerConfig} from "./ServerConfig";
+import {Socket} from "socket.io";
 
 export class ServerClient {
-    private socket: SocketIO.Server;
+    private socket: Socket;
     private name: string = "";
     private isReady: boolean = false;
     private lastHbTime: number = Date.now();
     private playerId: string = "";
 
-    constructor(socket: SocketIO.Server) {
+    constructor(socket: Socket) {
         this.socket = socket;
     }
 
@@ -16,7 +15,7 @@ export class ServerClient {
         return this.name;
     }
 
-    get Socket(): SocketIO.Server {
+    get Socket(): Socket {
         return this.socket;
     }
 

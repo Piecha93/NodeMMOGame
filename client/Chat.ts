@@ -1,11 +1,12 @@
 import {ChatHtmlHandler} from "./graphic/HtmlHandlers/ChatHtmlHandler";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
+import {Socket} from "socket.io-client";
 
 export class Chat {
-    private socket: SocketIOClient.Socket;
+    private socket: Socket;
     private chatHtmlHandler: ChatHtmlHandler;
 
-    constructor(socket: SocketIOClient.Socket) {
+    constructor(socket: Socket) {
         this.socket = socket;
 
         this.socket.on(SocketMsgs.CHAT_MESSAGE, (data) => {

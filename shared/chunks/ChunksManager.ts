@@ -274,7 +274,7 @@ export class ChunksManager extends GameObjectsSubscriber {
         }
     }
 
-    *ChunksIterator() {
+    *ChunksIterator(): Generator<Chunk, void, undefined> {
         for(let i: number = 0; i < this.chunks.length; i++) {
             for (let j: number = 0; j < this.chunks.length; j++) {
                 yield this.chunks[i][j];
