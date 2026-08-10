@@ -28,9 +28,11 @@ The server is authoritative: it owns the world, advances simulation ticks and se
 
 - `app.ts` configures Express, sessions, login and Socket.IO, then starts the game server.
 - `server/` owns connected-client state, input consumption, game loops and optional MongoDB access.
-- `client/` owns rendering, browser input, chat, heartbeat and reconciliation.
+- `client/` owns rendering, browser input, chat, heartbeat and reconciliation. Vite bundles its `Launcher.ts` entry to `dist/public/game.js`.
 - `shared/` owns entities, physics, chunking, serialization and simulation utilities used on both sides.
-- `public/` contains static assets plus a checked-in legacy browser bundle and PixiJS build.
+- `public/` contains source-controlled static assets and the PixiJS 4 compatibility build. Express serves the generated client separately from `dist/public/` at `/build/`.
+
+The browser entry in `views/game.ejs` points at `/build/game.js`. This makes a clean `npm run build` the source of the executable client while deliberately leaving the renderer version unchanged for the next migration.
 
 ## Important coupling
 
@@ -60,7 +62,7 @@ The target `World` receives a clock, ID source and random source, owns its regis
 
 - Keep the server authoritative.
 - Preserve behavior with characterization tests before moving code.
-- Do not change the client bundler, PixiJS, collision engine and wire protocol in one change.
+- Do not combine the remaining PixiJS, collision-engine and wire-protocol migrations in one change.
 - Keep Socket.IO during the protocol refactor; transport replacement is a separate decision.
 - Do not introduce an ECS until profiling demonstrates a concrete need.
 - Every protocol-breaking change requires an explicit protocol version and compatible deployment plan.
@@ -69,8 +71,10 @@ The target `World` receives a clock, ID source and random source, owns its regis
 
 1. Establish reproducible CI, tests and a documented baseline.
 2. Fix payload validation, connection lifecycle leaks and remotely triggerable failures.
-3. Replace the checked-in client bundle with a reproducible build while preserving behavior.
+3. Generate the browser client reproducibly while preserving PixiJS 4 behavior. **Complete.**
 4. Move global world state behind instance-owned interfaces.
 5. Introduce a versioned, bounded and UTF-8-safe protocol.
+
+The next client-specific stage is a separately tested PixiJS migration with browser smoke and visual-regression coverage.
 
 The exit criteria for this stage are documented in [Testing](testing.md), with current blockers in [Known issues](known-issues.md).

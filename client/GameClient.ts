@@ -1,11 +1,11 @@
 import {io, Socket} from "socket.io-client";
+import * as customParser from "socket.io-msgpack-parser";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
-import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
 import {Chat} from "./Chat";
-import {InputSender} from ".//net/InputSender";
+import {InputSender} from "./net/InputSender";
 import {DeltaTimer} from "../shared/utils/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../shared/game_utils/game/objects/Player";
@@ -18,9 +18,7 @@ import {GameCore} from "../shared/GameCore";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {Reconciliation} from "./Reconciliation";
 import {TicksCounter} from "../shared/utils/TicksCounter";
-
-
-const customParser = require('socket.io-msgpack-parser');
+import {normalizeBinaryPayload} from "./net/BinaryPayload";
 
 export class GameClient {
     private socket: Socket;
@@ -98,7 +96,7 @@ export class GameClient {
             this.onUpdateSnapshotData(lastSnapshotData);
         });
 
-        this.socket.on(SocketMsgs.UPDATE_GAME, (data: any) => {
+        this.socket.on(SocketMsgs.UPDATE_GAME, (data: unknown) => {
             this.onServerUpdate(data);
         });
 
@@ -132,18 +130,34 @@ export class GameClient {
         });
     }
 
-    private onFirstUpdate(data: any) {
+    private onFirstUpdate(data: unknown) {
         this.onServerUpdate(data);
 
         this.localPlayer = GameObjectsManager.GetGameObjectById(this.localPlayerId) as Player;
+        if (!this.localPlayer) {
+            console.error("The initial server update did not contain the local player");
+            return;
+        }
+
         this.renderer.FocusedObject = this.localPlayer;
 
         this.startGameLoop();
     }
 
-    private onServerUpdate(update: Array<ArrayBuffer>) {
-        for (let i = 0; i < update.length; i++) {
-            this.core.decodeUpdate(update[i][1]);
+    private onServerUpdate(update: unknown) {
+        if (!Array.isArray(update)) {
+            console.warn("Ignoring a malformed server update");
+            return;
+        }
+
+        for (const payload of update) {
+            const updateBuffer = normalizeBinaryPayload(payload);
+            if (!updateBuffer) {
+                console.warn("Ignoring a malformed binary update payload");
+                continue;
+            }
+
+            this.core.decodeUpdate(updateBuffer);
         }
         if(this.localPlayer) {
             this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);

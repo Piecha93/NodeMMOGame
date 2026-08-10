@@ -1,11 +1,7 @@
-/// <reference path="../../node_modules/@types/keypress.js/index.d.ts" />
-
 import {InputSnapshot} from "../../shared/input/InputSnapshot";
 import {InputKeyMap} from "./InputKeyMap";
 import {INPUT_COMMAND, MouseKeys} from "../../shared/input/InputCommands";
 import {Cursor} from "./Cursor";
-
-const keypress = require("keypress.js").keypress;
 
 export class InputHandler {
 
@@ -18,8 +14,6 @@ export class InputHandler {
 
     private cursor: Cursor;
 
-    private listener;
-
     private inputSnapshot: InputSnapshot;
 
     private isUp: boolean = false;
@@ -28,9 +22,6 @@ export class InputHandler {
     private isRight: boolean = false;
 
     constructor(cursor: Cursor) {
-        console.log(keypress);
-
-        this.listener = new keypress.Listener();
         this.cursor = cursor;
 
         this.mouseButtonsDown = new Map<number, boolean>();
@@ -45,79 +36,9 @@ export class InputHandler {
 
         this.inputSnapshot = new InputSnapshot;
 
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.UP),
-            on_keydown: () => {
-                this.isUp = true;
-                this.invokeSnapshotCallbacks();
-            },
-            on_keyup: () => {
-                this.isUp = false;
-                this.invokeSnapshotCallbacks();
-            }
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.DOWN),
-            on_keydown: () => {
-                this.isDown = true;
-                this.invokeSnapshotCallbacks();
-            },
-            on_keyup: () => {
-                this.isDown = false;
-                this.invokeSnapshotCallbacks();
-            }
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.LEFT),
-            on_keydown: () => {
-                this.isLeft = true;
-                this.invokeSnapshotCallbacks();
-            },
-            on_keyup: () => {
-                this.isLeft = false;
-                this.invokeSnapshotCallbacks();
-            }
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.RIGHT),
-            on_keydown: () => {
-                this.isRight = true;
-                this.invokeSnapshotCallbacks();
-            },
-            on_keyup: () => {
-                this.isRight = false;
-                this.invokeSnapshotCallbacks();
-            }
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.INTERACT),
-            prevent_repeat: false,
-            on_keydown: () => {
-                this.inputSnapshot.append(INPUT_COMMAND.INTERACT, this.cursor.OnObjectId);
-                this.invokeSnapshotCallbacks();
-            },
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.SWITCH_WEAPON),
-            on_keydown: () => {
-                this.inputSnapshot.append(INPUT_COMMAND.SWITCH_WEAPON, null);
-                this.invokeSnapshotCallbacks();
-            },
-        });
-
-        this.listener.register_combo({
-            keys: InputKeyMap.get(INPUT_COMMAND.TEST),
-            on_keydown: () => {
-                this.inputSnapshot.append(INPUT_COMMAND.TEST, this.cursor.Transform.Position);
-                this.invokeSnapshotCallbacks();
-            },
-        });
-
+        window.addEventListener("keydown", this.onKeyDown);
+        window.addEventListener("keyup", this.onKeyUp);
+        window.addEventListener("blur", this.onWindowBlur);
         window.addEventListener("mousedown", this.onMouseDown.bind(this));
         window.addEventListener("mouseup", this.onMouseUp.bind(this));
         window.addEventListener("contextmenu", (e: PointerEvent): boolean => {
@@ -126,11 +47,112 @@ export class InputHandler {
         });
     }
 
+    private onKeyDown = (event: KeyboardEvent) => {
+        if (this.isTextEntryTarget(event.target)) {
+            return;
+        }
+
+        const command = this.getCommandForKey(event.key);
+        if (command === undefined) {
+            return;
+        }
+
+        if (event.repeat && this.isMovementCommand(command)) {
+            return;
+        }
+
+        if (this.setMovementState(command, true)) {
+            this.invokeSnapshotCallbacks();
+            return;
+        }
+
+        if (command === INPUT_COMMAND.INTERACT) {
+            this.inputSnapshot.append(command, this.cursor.OnObjectId);
+        } else if (command === INPUT_COMMAND.SWITCH_WEAPON) {
+            this.inputSnapshot.append(command, null);
+        } else if (command === INPUT_COMMAND.TEST) {
+            this.inputSnapshot.append(command, this.cursor.Transform.Position);
+        } else {
+            return;
+        }
+
+        this.invokeSnapshotCallbacks();
+    };
+
+    private onKeyUp = (event: KeyboardEvent) => {
+        const command = this.getCommandForKey(event.key);
+        if (command !== undefined && this.setMovementState(command, false)) {
+            this.invokeSnapshotCallbacks();
+        }
+    };
+
+    private onWindowBlur = () => {
+        if (!this.isUp && !this.isDown && !this.isLeft && !this.isRight) {
+            return;
+        }
+
+        this.isUp = false;
+        this.isDown = false;
+        this.isLeft = false;
+        this.isRight = false;
+        this.invokeSnapshotCallbacks();
+    };
+
+    private isTextEntryTarget(target: EventTarget | null): boolean {
+        return target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement ||
+            target instanceof HTMLElement && target.isContentEditable;
+    }
+
+    private getCommandForKey(key: string): INPUT_COMMAND | undefined {
+        const normalizedKey = key.toLowerCase();
+        for (const [command, mappedKey] of InputKeyMap) {
+            if (mappedKey === normalizedKey) {
+                return command;
+            }
+        }
+
+        return undefined;
+    }
+
+    private setMovementState(command: INPUT_COMMAND, isPressed: boolean): boolean {
+        let wasPressed: boolean;
+
+        if (command === INPUT_COMMAND.UP) {
+            wasPressed = this.isUp;
+            this.isUp = isPressed;
+        } else if (command === INPUT_COMMAND.DOWN) {
+            wasPressed = this.isDown;
+            this.isDown = isPressed;
+        } else if (command === INPUT_COMMAND.LEFT) {
+            wasPressed = this.isLeft;
+            this.isLeft = isPressed;
+        } else if (command === INPUT_COMMAND.RIGHT) {
+            wasPressed = this.isRight;
+            this.isRight = isPressed;
+        } else {
+            return false;
+        }
+
+        return wasPressed !== isPressed;
+    }
+
+    private isMovementCommand(command: INPUT_COMMAND): boolean {
+        return command === INPUT_COMMAND.UP ||
+            command === INPUT_COMMAND.DOWN ||
+            command === INPUT_COMMAND.LEFT ||
+            command === INPUT_COMMAND.RIGHT;
+    }
+
     public addSnapshotCallback(callback: Function) {
         this.snapshotCallbacks.push(callback);
     }
 
     private onMouseDown(mouseEvent: MouseEvent, isRecursion?: boolean): boolean {
+        if (!isRecursion && this.isTextEntryTarget(mouseEvent.target)) {
+            return true;
+        }
+
         if(!isRecursion) {
             this.mouseButtonsDown.set(mouseEvent.button, true);
         } else if(!this.mouseButtonsDown.get(mouseEvent.button)) {

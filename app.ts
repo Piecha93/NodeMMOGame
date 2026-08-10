@@ -25,7 +25,6 @@ const host = process.env.HOST || "127.0.0.1";
 const app = express();
 const httpServer = http.createServer(app);
 const sockets = new Server(httpServer, {
-    allowEIO3: true,
     maxHttpBufferSize: ServerConfig.MAX_SOCKET_MESSAGE_SIZE,
     parser: customParser,
 });
@@ -61,6 +60,7 @@ sockets.use((socket, next) => {
 
 const projectRoot = path.resolve(__dirname, "..");
 app.set("views", path.join(projectRoot, "views"));
+app.use("/build", express.static(path.join(projectRoot, "dist", "public")));
 app.use(express.static(path.join(projectRoot, "public")));
 app.set("view engine", "ejs");
 

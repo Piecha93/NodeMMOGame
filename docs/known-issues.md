@@ -34,10 +34,10 @@ The current Tailscale guest deployment is a development preview, not a public pr
 
 ## Build and client
 
-- `npm run build` compiles current TypeScript but does not regenerate `public/javascripts/bundle.js`.
-- The browser therefore executes a checked-in legacy client and PixiJS 4 build rather than a reproducible bundle from `client/`.
-- `createbundle.bat` describes the historical Browserify flow and is not a supported modern build.
-- Socket.IO currently keeps compatibility with that legacy client. Remove compatibility only after the client pipeline is replaced.
+- `npm run build` now creates `dist/public/game.js` from the current `client/Launcher.ts` source, and Express exposes that artifact at `/build/game.js`.
+- A build regression checks the artifact, its source map and the browser view, so CI fails if the executable client falls out of sync with current source.
+- Rendering still depends on the checked-in PixiJS 4 compatibility script. Its API migration is the next client stage and needs browser smoke plus visual-regression coverage.
+- The generated client and server now use matching Socket.IO 4 packages, so Engine.IO 3 compatibility is no longer enabled. The manual guest-login smoke path covers local and proxied Socket.IO initialization; automating it remains open.
 
 ## Protocol
 
@@ -45,7 +45,7 @@ The current Tailscale guest deployment is a development preview, not a public pr
 - The wire format has no explicit version, bounds contract or compatibility negotiation.
 - Object IDs, property masks and prefab mappings rely on implicit sizes and registration order.
 
-UTF-8 is deliberately not patched in isolation: the old browser bundle must continue to understand server updates. It belongs in the versioned protocol migration.
+UTF-8 is deliberately not patched in isolation: the generated browser client and server still share the same unversioned legacy wire format. It belongs in a coordinated, versioned protocol migration.
 
 ## Quality and documentation gaps
 
@@ -60,6 +60,6 @@ The foundation stage is complete when:
 - CI installs, checks, builds, tests and audits from a clean checkout;
 - malformed and repeated socket events cannot crash or leak server state;
 - every confirmed P0/P1 bug has a regression test;
-- the browser bundle is generated from the current client source;
+- the browser bundle is generated from the current client source; **complete and enforced in CI**;
 - the documented guest-login smoke path works on a clean machine;
 - known protocol incompatibilities have an explicit migration plan.

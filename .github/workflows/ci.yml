@@ -29,10 +29,10 @@ jobs:
       - name: Check TypeScript
         run: npm run check
 
-      - name: Build
+      - name: Build server and browser client
         run: npm run build
 
-      - name: Run tests
+      - name: Run tests against built artifacts
         run: npm test
 
       - name: Audit dependencies

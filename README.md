@@ -4,7 +4,7 @@ Engineering thesis project: a multiplayer browser game built with TypeScript, No
 
 ## Requirements
 
-- Node.js 22 or newer
+- Node.js 22.12 or newer
 - npm 10 or newer
 - MongoDB only when registered-user login is needed
 
@@ -23,6 +23,8 @@ npm start
 Open <http://127.0.0.1:3000> and select **Play as guest**.
 
 The server listens on `127.0.0.1:3000` by default. Override it with the `HOST` and `PORT` environment variables. Set `SESSION_SECRET` to a persistent random value for a long-running deployment.
+
+`npm run build` compiles the server and creates the browser client from `client/Launcher.ts` in `dist/public/game.js`. The application serves that generated module at `/build/game.js`, so a clean checkout does not depend on a prebuilt client bundle.
 
 Historical `fire`/`spawner` chat commands and debug weapon actions are disabled by default. Set `ENABLE_DEBUG_COMMANDS=true` only in a trusted development environment when those diagnostics are needed.
 
@@ -47,4 +49,4 @@ CI runs the TypeScript check, application build, Node.js test suite and a high-s
 ## Known modernization boundaries
 
 - `detect-collisions` is intentionally pinned to 2.7.0. Current major versions expose a substantially different API, so that upgrade belongs with collision-behaviour tests and the planned physics refactor.
-- The browser client still uses the checked-in PixiJS 4 build and legacy bundle in `public/`. Introduce a reproducible client bundler first while preserving behavior, then migrate PixiJS separately with visual regression coverage.
+- The browser pipeline is reproducible, but rendering still uses the checked-in PixiJS 4 compatibility build. Migrate PixiJS separately, with visual regression coverage, instead of combining renderer changes with the bundler migration.
