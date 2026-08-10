@@ -1,10 +1,8 @@
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-
-import Texture = PIXI.Texture;
-import Sprite = PIXI.Sprite;
+import {Container, Rectangle, Sprite, Texture} from "pixi.js";
 import {SharedConfig} from "../../shared/SharedConfig";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {Chunk} from "../../shared/chunks/Chunk";
+import {ResourcesLoader} from "./ResourcesLoader";
 
 type Coords = [number, number];
 
@@ -12,10 +10,7 @@ function compareCoords(c1: Coords, c2: Coords): boolean {
     return c1[0] == c2[0] && c1[1] == c2[1];
 }
 
-class TileMapChunk extends PIXI.Container {
-    x: number;
-    y: number;
-
+class TileMapChunk extends Container {
     sizeX: number;
     sizeY: number;
 
@@ -31,19 +26,24 @@ class TileMapChunk extends PIXI.Container {
     }
 
     initChunkTextures() {
-        let texture: Texture = new PIXI.Texture(PIXI.utils.TextureCache['terrain'],
-            new PIXI.Rectangle(1 * 32, 5 * 32, 32, 32));
+        const terrainTexture = ResourcesLoader.Instance.getResource("terrain").texture;
+        if (!terrainTexture) {
+            throw new Error("Missing sprite texture: terrain");
+        }
+
+        const texture = new Texture({
+            source: terrainTexture.source,
+            frame: new Rectangle(1 * 32, 5 * 32, 32, 32)
+        });
         for(let i = 0; i < this.sizeX / 32; i++) {
             for(let j = 0; j < this.sizeY / 32; j++) {
-                // let texture: Texture = new PIXI.Texture(PIXI.game_utils.TextureCache['terrain'],
-                //     new PIXI.Rectangle(chunk.mapGrid[i][j], chunk.mapGrid[i][j], 32, 32));
-                let sprite: Sprite = new PIXI.Sprite(texture);
+                const sprite = new Sprite(texture);
                 sprite.x = i * 32;
                 sprite.y = j * 32;
                 this.addChild(sprite);
             }
         }
-        this.cacheAsBitmap = true;
+        this.cacheAsTexture(true);
         this.initialized = true;
     }
 
@@ -52,7 +52,7 @@ class TileMapChunk extends PIXI.Container {
     }
 }
 
-export class TileMap extends PIXI.Container {
+export class TileMap extends Container {
     private mapChunks: TileMapChunk[][];
     private focusedObject: GameObject;
     private currentChunk: Chunk;
@@ -117,7 +117,7 @@ export class TileMap extends PIXI.Container {
             newCoordsArr.push([chunkNeighbor.x, chunkNeighbor.y]);
         });
 
-        this.visibleMapChunks.forEach((mapChunk: TileMapChunk, coords: Coords, ) => {
+        this.visibleMapChunks.forEach((mapChunk: TileMapChunk, coords: Coords) => {
             let idx: number = -1;
             for(let i = 0; i < newCoordsArr.length; i++) {
                 if(compareCoords(newCoordsArr[i], coords)) {
@@ -161,10 +161,10 @@ export class TileMap extends PIXI.Container {
         this.updateVisibleChunks();
     }
 
-    public destroy() {
+    public destroy(): void {
         for (let i = 0; i < this.numOfChunksX; i++) {
             for (let j = 0; j < this.numOfChunksY; j++) {
-                this.mapChunks[i][j].destroy();
+                this.mapChunks[i][j].destroy({children: true});
             }
         }
         super.destroy();

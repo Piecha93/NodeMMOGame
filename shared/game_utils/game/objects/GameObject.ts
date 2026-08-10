@@ -7,6 +7,7 @@ import {Result} from "detect-collisions";
 import {ResourcesMap} from "../../ResourcesMap";
 import {Collider} from "../../physics/Collider";
 import {Collision} from "../../physics/Collision";
+import type {GameObjectsFactory} from "../../factory/ObjectsFactory";
 
 
 export class GameObject extends Serializable {// implements Collidable {
@@ -23,6 +24,8 @@ export class GameObject extends Serializable {// implements Collidable {
     private colliders: Array<Collider> = [];
 
     private destroyListeners: Set<Function>;
+
+    private objectsFactory: GameObjectsFactory | null = null;
 
     private isDestroyed: boolean = false;
 
@@ -188,15 +191,42 @@ export class GameObject extends Serializable {// implements Collidable {
         this.destroyListeners.delete(listener);
     }
 
-    destroy() {
+    public attachObjectsFactory(objectsFactory: GameObjectsFactory): void {
+        if(!objectsFactory) {
+            throw new Error("Cannot attach a game object without a factory");
+        }
+        if(this.objectsFactory && this.objectsFactory !== objectsFactory) {
+            throw new Error(`Game object '${this.ID}' already belongs to another factory`);
+        }
+
+        this.objectsFactory = objectsFactory;
+    }
+
+    public detachObjectsFactory(objectsFactory: GameObjectsFactory): void {
+        if(this.objectsFactory === objectsFactory) {
+            this.objectsFactory = null;
+        }
+    }
+
+    destroy(): void {
         if(this.isDestroyed) {
             return;
         }
 
         this.isDestroyed = true;
 
-        for(let listener of this.destroyListeners) {
-            listener(this);
+        const errors: unknown[] = [];
+        for(const listener of Array.from(this.destroyListeners)) {
+            try {
+                listener(this);
+            } catch(error) {
+                errors.push(error);
+            }
+        }
+        this.destroyListeners.clear();
+
+        if(errors.length > 0) {
+            throw new AggregateError(errors, `Destroy listeners failed for '${this.ID}'`);
         }
     }
 
@@ -206,6 +236,13 @@ export class GameObject extends Serializable {// implements Collidable {
 
     get Transform(): Transform {
         return this.transform;
+    }
+
+    get ObjectsFactory(): GameObjectsFactory {
+        if(!this.objectsFactory) {
+            throw new Error(`Game object '${this.ID}' is not attached to a factory`);
+        }
+        return this.objectsFactory;
     }
 
     get ID(): string {
@@ -221,6 +258,9 @@ export class GameObject extends Serializable {// implements Collidable {
     }
 
     set ID(id: string) {
+        if(this.id && this.id !== id) {
+            throw new Error(`Game object id cannot change from '${this.id}' to '${id}'`);
+        }
         this.id = id;
     }
 

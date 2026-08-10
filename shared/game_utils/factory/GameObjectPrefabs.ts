@@ -1,12 +1,4 @@
-import {Obstacle} from "../game/objects/Obstacle";
-import {Item} from "../game/objects/Item";
-import {Player} from "../game/objects/Player";
-import {GameObject} from "../game/objects/GameObject";
-import {FireBall} from "../game/objects/FireBall";
-import {Enemy} from "../game/objects/Enemy";
-import {Portal} from "../game/objects/Portal";
-import {Doors} from "../game/objects/Doors";
-import {PlatformTriggerTest} from "../game/objects/PlatformTriggerTest";
+import type {GameObject} from "../game/objects/GameObject";
 
 export interface Constructor<T> extends Function {
     new(...params: any[]): T; prototype: T;
@@ -19,6 +11,8 @@ export interface PrefabOptions {
 }
 
 export class Prefabs {
+    private static readonly DESTROY_OBJECTS_ID = 0xFF;
+
     static PrefabsNameToId = new Map<string, string>();
 
     static IdToPrefabNames = new Map<string, string>();
@@ -30,9 +24,27 @@ export class Prefabs {
 
     private static shortIdCounter = 65;
 
-    static Register(name: string, gameObjectType: Constructor<GameObject>, prefabOptions?: PrefabOptions) {
+    static Register(
+        name: string,
+        gameObjectType: Constructor<GameObject>,
+        prefabOptions?: PrefabOptions,
+        explicitShortId?: string,
+    ) {
+        if(Prefabs.PrefabsNameToId.has(name)) {
+            throw new Error(`Prefab name '${name}' is already registered`);
+        }
+
         let shortId: string;
-        shortId = String.fromCharCode(Prefabs.shortIdCounter++);
+        if(explicitShortId === undefined) {
+            shortId = Prefabs.allocateShortId();
+        } else {
+            Prefabs.validateShortId(explicitShortId);
+            shortId = explicitShortId;
+        }
+
+        if(Prefabs.IdToPrefabNames.has(shortId)) {
+            throw new Error(`Prefab id ${Prefabs.describeShortId(shortId)} is already registered`);
+        }
 
         Prefabs.PrefabsNameToTypes.set(name, gameObjectType);
         Prefabs.PrefabsNameToId.set(name, shortId);
@@ -40,13 +52,29 @@ export class Prefabs {
 
         Prefabs.PrefabsOptions.set(name, prefabOptions);
     }
-}
 
-Prefabs.Register("DefaultPlayer", Player, {spriteName: "template"});
-Prefabs.Register("Michau", Enemy, {spriteName: "template", name: "Michau", prefabSize: [32, 32]});
-Prefabs.Register("Wall", Obstacle, {spriteName: "wall"});
-Prefabs.Register("HpPotion", Item, {spriteName: "hp_potion"});
-Prefabs.Register("Doors", Doors, {spriteName: "doors_closed"});
-Prefabs.Register("FireBall", FireBall, {spriteName: "flame", prefabSize: 15});
-Prefabs.Register("Portal", Portal, {spriteName: "portal", prefabSize: 75});
-Prefabs.Register("PlatformTriggerTest", PlatformTriggerTest, {prefabSize: [100, 100]});
+    private static allocateShortId(): string {
+        while(Prefabs.shortIdCounter < Prefabs.DESTROY_OBJECTS_ID) {
+            const shortId = String.fromCharCode(Prefabs.shortIdCounter++);
+            if(!Prefabs.IdToPrefabNames.has(shortId)) {
+                return shortId;
+            }
+        }
+
+        throw new Error("Prefab id space is exhausted");
+    }
+
+    private static validateShortId(shortId: string): void {
+        if(typeof shortId !== "string" || shortId.length !== 1 || shortId.charCodeAt(0) > 0xFF) {
+            throw new Error("Prefab id must be exactly one byte");
+        }
+
+        if(shortId.charCodeAt(0) === Prefabs.DESTROY_OBJECTS_ID) {
+            throw new Error("Prefab id 0xFF is reserved for destroyed-object messages");
+        }
+    }
+
+    private static describeShortId(shortId: string): string {
+        return `0x${shortId.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`;
+    }
+}

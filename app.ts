@@ -1,119 +1,134 @@
-import * as express from 'express';
-import * as express_session from 'express-session'
-import * as http from 'http';
-import * as io from 'socket.io';
-import * as path from 'path'
-import * as connectMongo from 'connect-mongo';
-import * as bodyParser from 'body-parser'
-import * as SocketIO from 'socket.io';
+import {randomUUID} from "node:crypto";
+import * as http from "node:http";
+import * as path from "node:path";
+import express, {NextFunction, Request, Response} from "express";
+import session from "express-session";
+import {Server} from "socket.io";
 
-import {Request, Response} from "express";
-import {MongoStore} from "connect-mongo";
 import {GameServer} from "./server/GameServer";
-import {SharedConfig, Origin} from "./shared/SharedConfig";
-import {Database, IUserModel} from "./server/database/Database";
-import shortid = require("shortid");
-import {MemoryStore, Store} from "express-session";
-const customParser: any = require('socket.io-msgpack-parser');
+import {ServerConfig} from "./server/ServerConfig";
+import {Database} from "./server/database/Database";
+import {Origin, SharedConfig} from "./shared/SharedConfig";
+
+const customParser = require("socket.io-msgpack-parser");
+
+declare module "express-session" {
+    interface SessionData {
+        user_id: string;
+    }
+}
 
 SharedConfig.ORIGIN = Origin.SERVER;
 
-const port: number = Number(process.env.PORT) || 3000;
-const app: express.Application = express();
-const httpServer: http.Server = http.createServer(app);
-// const sockets = (httpServer, {parser: customParser});
-// workaround to lack off parser type in socketio types
-const sockets: SocketIO.Server = require('socket.io')(httpServer, {parser: customParser});
-const database: Database = Database.Instance;
-const MongoStoreExpress = connectMongo(express_session);
-// const sessionStore: MongoStore = new MongoStoreExpress({mongooseConnection: database.DB});
-
-
-class StoreStub extends MemoryStore
-{
-    public user_id = "";
-}
-
-let storeStub: StoreStub = new StoreStub();
-
-const session = express_session({
-    // store: sessionStore,
-    store: storeStub,
-    secret: "mysecret",
-    resave: true,
-    saveUninitialized: true
+const port = Number(process.env.PORT) || 3000;
+const host = process.env.HOST || "127.0.0.1";
+const app = express();
+const httpServer = http.createServer(app);
+const sockets = new Server(httpServer, {
+    maxHttpBufferSize: ServerConfig.MAX_SOCKET_MESSAGE_SIZE,
+    parser: customParser,
 });
 
-sockets.use((socket, next) => {
-    session(socket.request, socket.request.res, next);
+const sessionMiddleware = session({
+    name: "node-mmo.sid",
+    secret: process.env.SESSION_SECRET || randomUUID(),
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.SESSION_COOKIE_SECURE === "true",
+    },
 });
 
+app.use(express.urlencoded({extended: true}));
+app.use(sessionMiddleware);
+sockets.engine.use(sessionMiddleware as never);
+
 sockets.use((socket, next) => {
-    if (socket.request.session.user_id) {
+    const request = socket.request as http.IncomingMessage & {
+        session?: session.Session & Partial<session.SessionData>;
+    };
+
+    if (request.session?.user_id) {
         next();
-    } else {
-        console.log("You are not authorized to play game. Please login first.");
+        return;
     }
+
+    next(new Error("You are not authorized to play the game. Please log in first."));
 });
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session);
+const projectRoot = path.resolve(__dirname, "..");
+app.set("views", path.join(projectRoot, "views"));
+app.use("/build", express.static(path.join(projectRoot, "dist", "public")));
+app.use(express.static(path.join(projectRoot, "public")));
+app.set("view engine", "ejs");
 
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(__dirname + '/public'));
-app.set('view engine', 'ejs');
-
-app.get('/', (req: Request, res: Response) => {
-    if(req.session.user_id) {
-        res.redirect('game');
-    } else {
-        res.render('index');
+app.get("/", (req: Request, res: Response) => {
+    if (req.session.user_id) {
+        res.redirect("/game");
+        return;
     }
+
+    res.render("index");
 });
 
-app.post('/login', (req: Request, res: Response) => {
-    if(req.session.user_id) {
-        return res.redirect('game');
+app.post("/login", async (req: Request, res: Response) => {
+    if (req.session.user_id) {
+        res.redirect("/game");
+        return;
     }
-    let post = req.body;
-    if(post.username && post.password) {
-        if(post.username == "guest" && post.password == "guest") {
-            req.session.user_id = "Guest " + shortid.generate();
-            console.log(req.session.user_id);
-            return res.redirect('/game');
+
+    const {username, password} = req.body;
+    if (!username || !password) {
+        res.status(400).render("index", {error_message: "Username and password are required"});
+        return;
+    }
+
+    if (username === "guest" && password === "guest") {
+        req.session.user_id = `Guest ${randomUUID()}`;
+        res.redirect("/game");
+        return;
+    }
+
+    const user = await Database.Instance.findUserByName(username);
+    if (user && user.password === password) {
+        req.session.user_id = String(user._id);
+        res.redirect("/game");
+        return;
+    }
+
+    res.status(401).render("index", {error_message: "Bad username or password"});
+});
+
+app.get("/logout", (req: Request, res: Response, next: NextFunction) => {
+    req.session.destroy((error) => {
+        if (error) {
+            next(error);
+            return;
         }
-        database.findUserByName(post.username, (user: IUserModel) => {
-            if(user && user.password == post.password ) {
-                req.session.user_id = user._id;
-                return res.redirect('/game');
-            } else {
-                return res.render('index', {
-                    error_message: 'Bad username or password'
-                });
-            }
-        });
-    }
+
+        res.clearCookie("node-mmo.sid");
+        res.redirect("/");
+    });
 });
 
-app.get('/logout', (req: Request, res: Response) => {
-    delete req.session.user_id;
-    return res.redirect('/');
+app.get("/game", checkAuth, (_req: Request, res: Response) => {
+    res.render("game");
 });
 
-app.get('/game', checkAuth, (req: Request, res: Response) => {
-    res.render('game');
-});
-
-let gameServer: GameServer = new GameServer(sockets);
+const gameServer = new GameServer(sockets);
 gameServer.start();
 
-httpServer.listen(port);
-console.log('Node gameServer started at ' + port);
+httpServer.listen(port, host, () => {
+    console.log(`Node game server started at http://${host}:${port}`);
+});
 
-function checkAuth(req: Request, res: Response, next: Function) {
+function checkAuth(req: Request, res: Response, next: NextFunction): void {
     if (!req.session.user_id) {
-        res.redirect('/');
-    } else {
-        next();
+        res.redirect("/");
+        return;
     }
+
+    next();
 }

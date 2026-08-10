@@ -1,8 +1,7 @@
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-
-import Sprite = PIXI.Sprite;
+import {autoDetectRenderer, Container, Point} from "pixi.js";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../../shared/game_utils/factory/GameObjectsSubscriber";
+import {GameObjectsManager} from "../../shared/game_utils/factory/GameObjectsManager";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {Camera} from "./Camera";
@@ -14,71 +13,97 @@ import {HUD} from "./Hud";
 import {ResourcesLoader, ResourceType} from "./ResourcesLoader";
 import {Chunk} from "../../shared/chunks/Chunk";
 import {Resource} from "./ResourcesLoader";
+import {RESOURCE_MANIFEST} from "./ResourceManifest";
 
+type PixiRenderer = Awaited<ReturnType<typeof autoDetectRenderer>>;
+type CameraObject = Pick<Container, "x" | "y" | "width" | "height">;
 
 export class Renderer extends GameObjectsSubscriber {
-    private renderer: PIXI.WebGLRenderer | PIXI.CanvasRenderer;
-    private rootContainer: PIXI.Container;
+    private renderer: PixiRenderer;
+    private stage: Container;
+    private rootContainer: Container;
     private camera: Camera;
     private renderObjects: Map<GameObject, GameObjectRender>;
     private map: TileMap;
     private hud: HUD;
     private resourcesLoader: ResourcesLoader;
-    private focusedObject: GameObject;
+    private disposed: boolean = false;
 
     static WIDTH: number = 1024;
     static HEIGHT: number = 576;
 
-    constructor(afterCreateCallback: Function) {
-        super();
-        this.renderer = PIXI.autoDetectRenderer(Renderer.WIDTH, Renderer.HEIGHT, {
-                  view:  document.getElementById("game-canvas") as HTMLCanvasElement,
-                  antialias: false,
-                  transparent: false,
-                  resolution: 1,
-                  clearBeforeRender: false
-        });
+    private constructor(renderer: PixiRenderer, objectsManager: GameObjectsManager) {
+        super(objectsManager, false);
+        this.renderer = renderer;
+        this.stage = new Container();
+        this.rootContainer = new Container();
 
-        this.rootContainer = new PIXI.Container();
-
-        this.camera = new Camera(new PIXI.Point(333,333));
+        this.camera = new Camera(new Point(333,333));
         this.camera.addChild(this.rootContainer);
-        this.focusedObject = null;
+        this.stage.addChild(this.camera);
 
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
         this.resourcesLoader = ResourcesLoader.Instance;
-
-        this.resourcesLoader.registerResource('none', 'resources/images/none.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('wall', 'resources/images/wall.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('bunny', 'resources/images/bunny.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('dyzma', 'resources/images/dyzma.jpg', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('kamis', 'resources/images/kamis.jpg', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('michau', 'resources/images/michau.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('panda', 'resources/images/panda.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('bullet', 'resources/images/bullet.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('fireball', 'resources/images/fireball.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('bluebolt', 'resources/images/bluebolt.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('hp_potion', 'resources/images/hp_potion.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('portal', 'resources/images/portal.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('white', 'resources/images/white.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('doors_open', 'resources/images/doors_open.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('doors_closed', 'resources/images/doors_closed.png', ResourceType.SPRITE);
-        this.resourcesLoader.registerResource('flame', 'resources/animations/flame/flame.json', ResourceType.ANIMATION);
-        this.resourcesLoader.registerResource('template_idle', 'resources/animations/actor_animations/template/idle.json', ResourceType.OCTAGONAL_ANIMATION);
-        this.resourcesLoader.registerResource('template_run', 'resources/animations/actor_animations/template/run.json', ResourceType.OCTAGONAL_ANIMATION);
-        this.resourcesLoader.registerResource('terrain', 'resources/maps/terrain.png', ResourceType.SPRITE);
-
-        this.resourcesLoader.load(() => {
-            this.map = new TileMap();
-            this.rootContainer.addChild(this.map);
-
-            afterCreateCallback();
-        });
     }
 
-    public createHUD() {
+    public static async create(objectsManager: GameObjectsManager): Promise<Renderer> {
+        const canvas = document.getElementById("game-canvas");
+        if (!(canvas instanceof HTMLCanvasElement)) {
+            throw new Error("Cannot initialize PixiJS: #game-canvas is missing");
+        }
+
+        const pixiRenderer = await autoDetectRenderer({
+            preference: "webgl",
+            width: Renderer.WIDTH,
+            height: Renderer.HEIGHT,
+            canvas,
+            antialias: false,
+            backgroundAlpha: 1,
+            resolution: 1
+        });
+
+        let renderer: Renderer | undefined;
+        try {
+            renderer = new Renderer(pixiRenderer, objectsManager);
+            await renderer.initialize();
+            renderer.subscribeToManager();
+            return renderer;
+        } catch(error) {
+            if(renderer) {
+                renderer.dispose();
+            } else {
+                pixiRenderer.destroy();
+            }
+            throw error;
+        }
+    }
+
+    private async initialize(): Promise<void> {
+        RESOURCE_MANIFEST.forEach(({name, path, type}) => {
+            this.resourcesLoader.registerResource(name, path, type);
+        });
+        await this.resourcesLoader.load();
+
+        this.map = new TileMap();
+        this.rootContainer.addChild(this.map);
+    }
+
+    public dispose(): void {
+        if(this.disposed) {
+            return;
+        }
+        this.disposed = true;
+
+        super.dispose();
+        this.renderObjects.clear();
+        this.stage.destroy({children: true});
+        this.renderer.destroy();
+    }
+
+    public createHUD(): void {
         this.hud = new HUD();
+        this.stage.addChild(this.hud);
     }
 
     private hideNotVisibleObjects() {
@@ -86,12 +111,12 @@ export class Renderer extends GameObjectsSubscriber {
             obj.visible = this.isInCameraView(obj);
         });
 
-        this.map.children.forEach((obj: Sprite) => {
+        this.map.children.forEach((obj) => {
             obj.visible = this.isInCameraView(obj);
         });
     }
 
-    private isInCameraView(object: any): boolean {
+    private isInCameraView(object: CameraObject): boolean {
         let buffor = 100;
 
         let cameraX = this.camera.pivot.x - Renderer.WIDTH / 2 - buffor;
@@ -113,8 +138,7 @@ export class Renderer extends GameObjectsSubscriber {
         this.hideNotVisibleObjects();
         this.camera.update();
 
-        this.renderer.render(this.camera);
-        this.renderer.render(this.hud);
+        this.renderer.render(this.stage);
     }
 
     public onObjectCreate(gameObject: GameObject) {
@@ -125,7 +149,7 @@ export class Renderer extends GameObjectsSubscriber {
 
         let type: string = Prefabs.IdToPrefabNames.get(gameObject.ID[0]);
 
-        let resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
+        const resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
         if(type == "DefaultPlayer" || type == "Michau") {
             gameObjectRender = new PlayerRender();
         } else if(resource.type == ResourceType.ANIMATION || resource.type == ResourceType.OCTAGONAL_ANIMATION) {
@@ -140,16 +164,21 @@ export class Renderer extends GameObjectsSubscriber {
     }
 
     public onObjectDestroy(gameObject: GameObject) {
-        if(this.renderObjects.has(gameObject)) {
-            this.renderObjects.get(gameObject).destroy();
+        const renderObject = this.renderObjects.get(gameObject);
+        if(renderObject) {
+            renderObject.destroy();
             this.renderObjects.delete(gameObject);
         }
     }
 
     set FocusedObject(gameObject: GameObject) {
-        this.camera.Follower = this.renderObjects.get(gameObject).position;
+        const renderObject = this.renderObjects.get(gameObject);
+        if (!renderObject) {
+            throw new Error(`Cannot focus an object without a renderer: ${gameObject.ID}`);
+        }
+
+        this.camera.Follower = renderObject.position;
         this.map.FocusedObject = gameObject;
-        this.focusedObject = gameObject;
     }
 
     setCurrentChunk(chunk: Chunk) {

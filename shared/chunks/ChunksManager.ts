@@ -1,21 +1,24 @@
-import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
 import {GameObject} from "../game_utils/game/objects/GameObject";
 import {SharedConfig} from "../SharedConfig";
 import {Chunk} from "./Chunk";
 import {ChangesDict} from "../serialize/ChangesDict";
+import {GameObjectsManager} from "../game_utils/factory/GameObjectsManager";
+import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 
 
-export class ChunksManager extends GameObjectsSubscriber {
+export class ChunksManager {
     private numOfChunksX: number;
     private numOfChunksY: number;
     private chunks: Chunk[][];
     private chunkSize: number;
 
     private objectsChunks: Map<GameObject, Chunk> = new Map<GameObject, Chunk>();
+    private objectsManager: GameObjectsManager;
+    private objectsFactory: GameObjectsFactory;
 
-    constructor() {
-        super();
-
+    constructor(objectsManager: GameObjectsManager, objectsFactory: GameObjectsFactory) {
+        this.objectsManager = objectsManager;
+        this.objectsFactory = objectsFactory;
         this.numOfChunksX = SharedConfig.numOfChunksX;
         this.numOfChunksY = SharedConfig.numOfChunksY;
         this.chunkSize = SharedConfig.chunkSize;
@@ -30,14 +33,14 @@ export class ChunksManager extends GameObjectsSubscriber {
         for(let i = 0; i < this.numOfChunksX; i++) {
             this.chunks[i] = [];
             for(let j = 0; j < this.numOfChunksY; j++) {
-                this.chunks[i][j] = new Chunk(i, j, this.chunkSize);
+                this.chunks[i][j] = new Chunk(i, j, this.chunkSize, this.objectsFactory);
             }
         }
     }
 
     private setChunksNeighbors() {
         for(let i: number = 0; i < this.chunks.length; i++) {
-            for (let j: number = 0; j < this.chunks.length; j++) {
+            for (let j: number = 0; j < this.chunks[i].length; j++) {
                 let isShifted: boolean = (i % 2) != 0;
 
                 let isFirstInCloumn: boolean = j == 0;
@@ -105,6 +108,10 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     private getChunkByCoords(x: number, y: number): Chunk {
+        if(!Number.isFinite(x) || !Number.isFinite(y)) {
+            return null;
+        }
+
         let idxX: number = Math.floor(x / this.chunkSize);
 
         if(idxX >= this.numOfChunksX || idxX < 0) {
@@ -131,15 +138,10 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     public getObjectChunk(gameObject: GameObject): Chunk {
-        let chunk: Chunk = this.objectsChunks.get(gameObject);
-        if(!chunk) {
-            this.correctObjectPositionIfOutOfBounds(gameObject);
-            return this.getChunkByCoords(gameObject.Transform.X, gameObject.Transform.Y);
-        }
         return this.objectsChunks.get(gameObject);
     }
 
-    public onObjectCreate(gameObject: GameObject) {
+    public addObject(gameObject: GameObject) {
         if(gameObject.IsDestroyed) {
             return;
         }
@@ -167,17 +169,21 @@ export class ChunksManager extends GameObjectsSubscriber {
         }
     }
 
-    public onObjectDestroy(gameObject: GameObject) {
-        this.remove(gameObject);
-    }
-
     public rebuild() {
-        this.GameObjectsMapById.forEach((gameObject: GameObject) => {
+        this.objectsManager.ObjectsById.forEach((gameObject: GameObject) => {
             this.rebuildOne(gameObject);
         });
     }
 
     private correctObjectPositionIfOutOfBounds(gameObject: GameObject) {
+        if(!Number.isFinite(gameObject.Transform.X)) {
+            gameObject.Transform.X = 1;
+        }
+
+        if(!Number.isFinite(gameObject.Transform.Y)) {
+            gameObject.Transform.Y = 1;
+        }
+
         if(gameObject.Transform.X <= 0) {
             gameObject.Transform.X = 1;
         }
@@ -267,16 +273,20 @@ export class ChunksManager extends GameObjectsSubscriber {
         }
     }
 
-    private remove(gameObject: GameObject) {
-        if(this.objectsChunks.has(gameObject)) {
-            this.objectsChunks.get(gameObject).removeObject(gameObject);
-            this.objectsChunks.delete(gameObject);
+    public removeAndReturnOldChunk(gameObject: GameObject): Chunk {
+        const oldChunk: Chunk = this.objectsChunks.get(gameObject);
+        if(!oldChunk) {
+            return null;
         }
+
+        oldChunk.removeObject(gameObject);
+        this.objectsChunks.delete(gameObject);
+        return oldChunk;
     }
 
-    *ChunksIterator() {
+    *ChunksIterator(): Generator<Chunk, void, undefined> {
         for(let i: number = 0; i < this.chunks.length; i++) {
-            for (let j: number = 0; j < this.chunks.length; j++) {
+            for (let j: number = 0; j < this.chunks[i].length; j++) {
                 yield this.chunks[i][j];
             }
         }

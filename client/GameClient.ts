@@ -1,12 +1,11 @@
-/// <reference path="../node_modules/@types/socket.io-client/index.d.ts" />
-
+import {io, Socket} from "socket.io-client";
+import * as customParser from "socket.io-msgpack-parser";
 import {Renderer} from "./graphic/Renderer";
 import {InputHandler} from "./input/InputHandler";
-import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
 import {HeartBeatSender} from "./net/HeartBeatSender";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
 import {Chat} from "./Chat";
-import {InputSender} from ".//net/InputSender";
+import {InputSender} from "./net/InputSender";
 import {DeltaTimer} from "../shared/utils/DeltaTimer";
 import {DebugWindowHtmlHandler} from "./graphic/HtmlHandlers/DebugWindowHtmlHandler";
 import {Player} from "../shared/game_utils/game/objects/Player";
@@ -16,16 +15,17 @@ import {Transform} from "../shared/game_utils/physics/Transform";
 import {AverageCounter} from "../shared/utils/AverageCounter";
 import {Chunk} from "../shared/chunks/Chunk";
 import {GameCore} from "../shared/GameCore";
-import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {Reconciliation} from "./Reconciliation";
 import {TicksCounter} from "../shared/utils/TicksCounter";
-
-
-const customParser = require('socket.io-msgpack-parser');
-const io = require('socket.io-client');
+import {normalizeBinaryPayload} from "./net/BinaryPayload";
+import {
+    Protocol,
+    ProtocolVersion,
+    protocolVersionFromInitializePayload,
+} from "../shared/net/Protocol";
 
 export class GameClient {
-    private socket: SocketIOClient.Socket;
+    private socket: Socket;
 
     private core: GameCore;
     private reconciliation: Reconciliation;
@@ -40,21 +40,33 @@ export class GameClient {
 
     private localPlayer: Player = null;
     private localPlayerId: string = "";
+    private protocolVersion: ProtocolVersion | null = null;
 
     private timer: DeltaTimer = new DeltaTimer;
     private tickCounter: TicksCounter = TicksCounter.Instance;
     private coreChunk: Chunk;
 
     constructor() {
+        this.core = new GameCore();
         this.connect();
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
 
-        this.renderer = new Renderer(() => {
+        void this.initializeRenderer();
+    }
+
+    private async initializeRenderer(): Promise<void> {
+        try {
+            this.renderer = await Renderer.create(this.core.ObjectsManager);
             this.renderer.createHUD();
-            this.socket.emit(SocketMsgs.CLIENT_READY);
-        });
+            this.socket.emit(SocketMsgs.CLIENT_READY, {
+                supportedProtocolVersions: [...Protocol.SUPPORTED],
+            });
+        } catch (error) {
+            console.error("Cannot initialize the renderer", error);
+            this.socket.disconnect();
+        }
     }
 
     private connect() {
@@ -100,7 +112,7 @@ export class GameClient {
             this.onUpdateSnapshotData(lastSnapshotData);
         });
 
-        this.socket.on(SocketMsgs.UPDATE_GAME, (data: any) => {
+        this.socket.on(SocketMsgs.UPDATE_GAME, (data: unknown) => {
             this.onServerUpdate(data);
         });
 
@@ -113,13 +125,24 @@ export class GameClient {
         });
     }
 
-    private onInitializeGame(data: any) {
-        this.localPlayerId = data['id'];
+    private onInitializeGame(data: unknown) {
+        const protocolVersion = protocolVersionFromInitializePayload(data);
+        const playerId = typeof data === "object" && data !== null && !Array.isArray(data)
+            ? (data as Record<string, unknown>).id
+            : undefined;
+
+        if (protocolVersion === null || typeof playerId !== "string" || !playerId) {
+            console.error("Server returned an invalid protocol initialization payload");
+            this.socket.disconnect();
+            return;
+        }
+
+        this.protocolVersion = protocolVersion;
+        this.localPlayerId = playerId;
 
         this.reconciliation = new Reconciliation();
-        this.core = new GameCore();
 
-        this.cursor = new Cursor(new Transform([1,1],1));//GameObjectsFactory.InstatiateManually(new Cursor(new Transform([1,1],1))) as Cursor;
+        this.cursor = new Cursor(new Transform([1,1],1));
         this.core.CollisionsSystem.insertObject(this.cursor);
 
         this.heartBeatSender.sendHeartBeat();
@@ -134,18 +157,34 @@ export class GameClient {
         });
     }
 
-    private onFirstUpdate(data: any) {
+    private onFirstUpdate(data: unknown) {
         this.onServerUpdate(data);
 
-        this.localPlayer = GameObjectsManager.GetGameObjectById(this.localPlayerId) as Player;
+        this.localPlayer = this.core.ObjectsManager.get(this.localPlayerId) as Player;
+        if (!this.localPlayer) {
+            console.error("The initial server update did not contain the local player");
+            return;
+        }
+
         this.renderer.FocusedObject = this.localPlayer;
 
         this.startGameLoop();
     }
 
-    private onServerUpdate(update: Array<ArrayBuffer>) {
-        for (let i = 0; i < update.length; i++) {
-            this.core.decodeUpdate(update[i][1]);
+    private onServerUpdate(update: unknown) {
+        if (!Array.isArray(update)) {
+            console.warn("Ignoring a malformed server update");
+            return;
+        }
+
+        for (const payload of update) {
+            const updateBuffer = normalizeBinaryPayload(payload);
+            if (!updateBuffer) {
+                console.warn("Ignoring a malformed binary update payload");
+                continue;
+            }
+
+            this.core.decodeUpdate(updateBuffer);
         }
         if(this.localPlayer) {
             this.reconciliation.reconciliation(this.localPlayer, this.core.CollisionsSystem);
@@ -168,7 +207,7 @@ export class GameClient {
         let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
 
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager.gameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler.Instance.GameObjectCounter = this.core.ObjectsManager.ObjectsById.size.toString();
         DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }
@@ -179,7 +218,7 @@ export class GameClient {
 
         let chunk: Chunk;
         let chunksIter = this.core.ChunksManager.ChunksIterator();
-        while(chunk = chunksIter.next().value) {
+        for (chunk of chunksIter) {
             if(coreChunks.indexOf(chunk) == -1) {
                 chunk.clearAll();
             }

@@ -1,19 +1,7 @@
-import {Player} from "../game_utils/game/objects/Player";
 import {GameObject} from "../game_utils/game/objects/GameObject";
-import {Obstacle} from "../game_utils/game/objects/Obstacle";
 import {ObjectsSerializer} from "../serialize/ObjectsSerializer";
 import {SharedConfig} from "../SharedConfig";
-
-let fs = require('fs');
-
-function toArrayBuffer(buffer) {
-    let ab = new ArrayBuffer(buffer.length);
-    let view = new Uint8Array(ab);
-    for (let i = 0; i < buffer.length; ++i) {
-        view[i] = buffer[i];
-    }
-    return ab;
-}
+import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 
 export class Chunk {
     x: number;
@@ -32,11 +20,13 @@ export class Chunk {
 
     private dumpedBuffer: ArrayBuffer = null;
     private isNextUpdateComplete: boolean = false;
+    private objectsFactory: GameObjectsFactory;
 
-    constructor(x: number, y: number, size: number) {
+    constructor(x: number, y: number, size: number, objectsFactory: GameObjectsFactory) {
         this.x = x;
         this.y = y;
         this.size = size;
+        this.objectsFactory = objectsFactory;
 
         this.objects = [];
         this.neighbors = [];
@@ -144,18 +134,8 @@ export class Chunk {
     }
 
     public reload() {
-        // if (!this.dumpedBuffer) {
-        //     let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
-        //     try {
-        //         let buffer: Buffer = fs.readFileSync(fileName);
-        //         this.dumpedBuffer = toArrayBuffer(buffer);
-        //     } catch (e) {
-        //         console.log("no data file found");
-        //     }
-        // }
-
         if (this.dumpedBuffer) {
-            ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+            ObjectsSerializer.deserializeChunk(this.dumpedBuffer, this.objectsFactory);
         }
 
         // console.log("load chunk " + this.Position + " buff " + this.dumpedBuffer);
@@ -171,9 +151,6 @@ export class Chunk {
         this.clearNotPersistent();
 
         this.dumpedBuffer = ObjectsSerializer.serializeChunk(this);
-
-        // let fileName: string = "data/" + this.x + "." + this.y + ".chunk";
-        // fs.writeFile(fileName, new Buffer(this.dumpedBuffer), () => {});
 
         this.clearAll();
         this.isActive = false;

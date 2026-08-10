@@ -82,13 +82,17 @@ export class Collider {
     public update() {
         this.shape.x = this.parent.Transform.X + this.offsetX;
         this.shape.y = this.parent.Transform.Y + this.offsetY;
+        if(this.rotation != this.parent.Transform.Rotation) {
+            this.Rotation = this.parent.Transform.Rotation;
+        }
     }
 
     resize() {
         if(this.shape instanceof Polygon) {
             let w: number = this.width / 2;
             let h: number = this.height / 2;
-            this.shape.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
+            const polygon = this.shape as Polygon & {setPoints(points: number[][]): void};
+            polygon.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
         } else { //circle
             this.shape.radius = this.width;
             this.height = this.shape.radius;
@@ -97,7 +101,7 @@ export class Collider {
 
     set Rotation(rotation: number) {
         if(this.shape instanceof Polygon) {
-            this.shape.rotation = rotation;
+            this.shape.angle = rotation;
         }
         this.rotation = rotation;
     }

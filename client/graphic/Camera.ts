@@ -1,37 +1,42 @@
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-
+import {Container} from "pixi.js";
 import {Renderer} from "../graphic/Renderer";
 
-export class Camera extends PIXI.Container {
+type FollowPoint = {
+    x: number;
+    y: number;
+};
 
-    private follower: PIXI.Point | PIXI.ObservablePoint;
+export class Camera extends Container {
+
+    private follower: FollowPoint;
     private dt: number = 0.8;
 
     private mouseDeviationX: number = 0;
     private mouseDeviationY: number = 0;
 
     private deviationRate: number = 6;
+    private readonly mouseMoveHandler = (event: MouseEvent) => this.onMouseMove(event);
 
-    constructor(follower: PIXI.Point) {
+    constructor(follower: FollowPoint) {
         super();
         this.Follower = follower;
 
         this.position.set(Renderer.WIDTH / 2, Renderer.HEIGHT / 2);
 
-        window.addEventListener("mousemove", this.onMouseMove.bind(this));
+        window.addEventListener("mousemove", this.mouseMoveHandler);
     }
 
     private onMouseMove(event: MouseEvent) {
         let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
-        let rect: ClientRect = canvas.getBoundingClientRect();
+        const rect: DOMRect = canvas.getBoundingClientRect();
 
-        this.mouseDeviationX = (event.x - rect.left - Renderer.WIDTH / 2) / this.deviationRate;
-        this.mouseDeviationY = (event.y - rect.top - Renderer.HEIGHT / 2) / this.deviationRate;
+        this.mouseDeviationX = (event.clientX - rect.left - Renderer.WIDTH / 2) / this.deviationRate;
+        this.mouseDeviationY = (event.clientY - rect.top - Renderer.HEIGHT / 2) / this.deviationRate;
     }
 
-    set Follower(follower: PIXI.Point | PIXI.ObservablePoint) {
+    set Follower(follower: FollowPoint) {
         this.follower = follower;
-        this.pivot = new PIXI.Point(follower.x, follower.y);
+        this.pivot.set(follower.x, follower.y);
         this.update();
     }
 
@@ -42,5 +47,10 @@ export class Camera extends PIXI.Container {
 
     get MouseDeviation(): [number, number] {
         return [this.mouseDeviationX * (this.deviationRate + 1), this.mouseDeviationY * (this.deviationRate + 1)];
+    }
+
+    public destroy(): void {
+        window.removeEventListener("mousemove", this.mouseMoveHandler);
+        super.destroy({children: true});
     }
 }
