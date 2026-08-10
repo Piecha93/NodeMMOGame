@@ -44,6 +44,7 @@ The initial suite verifies:
 - moving an object in either chunk-iteration direction preserves its complete record for both the old leaver frame and the new chunk frame, commits serialized changes only after all targets are built and emits nothing again on the next unchanged collection; injected encoding failures additionally prove that full-update intent, leavers and earlier tombstones survive for a successful retry;
 - v1 socket message codes remain frozen at `0` through `11`, protocol constants remain frozen at supported version `[1]`, and selection chooses the highest common version;
 - malformed and unsupported version offers are distinct controlled failures, while missing offer/response fields map to legacy v1 for rolling compatibility;
+- a hand-authored complete v1 Wall fixture remains decodable, while every non-empty truncation, unknown prefab or property-mask bit, malformed tombstone remainder and valid-record-plus-malformed-tail case fails with a controlled code and absolute byte offset before mutating the world;
 - the game server stores and echoes the selected version, resets it during cleanup and rejects bad offers without creating a player or leaking client state;
 - server-client lifecycle state and independent rate-limit windows behave deterministically;
 - the object spawner stays disabled until debug actions are explicitly enabled;

@@ -2,6 +2,8 @@ import {PropNames} from "./SerializeDecorators";
 import {SharedConfig} from "../SharedConfig";
 import {calcPropsMaskByteSize, setBit} from "../utils/functions/BitOperations";
 import {TicksCounter} from "../utils/TicksCounter";
+import {ProtocolLimits} from "../net/ProtocolLimits";
+import {ProtocolDecodeError, ProtocolDecodeErrorCode} from "./ProtocolDecodeError";
 
 export enum SerializableTypes {
     Int8,
@@ -238,6 +240,153 @@ export abstract class Serializable {
         });
 
         return offset;
+    }
+
+    /**
+     * Validates one v1 payload without invoking any deserializer or mutating
+     * object state. The wire format writes scalar fields first and nested
+     * Serializable objects afterwards, irrespective of their mask bit order.
+     */
+    public preflightDeserialize(
+        updateBufferView: DataView,
+        offset: number,
+        requireComplete: boolean = false,
+        depth: number = 0,
+    ): number {
+        if(depth > ProtocolLimits.MAX_SERIALIZABLE_DEPTH) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                offset,
+                "serializable nesting limit exceeded",
+            );
+        }
+
+        const propsSize: number = this.getPropsSize();
+        if(propsSize <= 0 || propsSize > ProtocolLimits.MAX_SERIALIZABLE_PROPERTIES) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                offset,
+                `unsupported property count ${propsSize}`,
+            );
+        }
+
+        const maskOffset: number = offset;
+        const propsMaskByteSize: number = this.getPropsMaskByteSize();
+        this.requirePayloadBytes(updateBufferView, maskOffset, propsMaskByteSize, maskOffset);
+
+        let presentMask: number;
+        if(propsMaskByteSize === 1) {
+            presentMask = updateBufferView.getUint8(maskOffset);
+        } else if(propsMaskByteSize === 2) {
+            presentMask = updateBufferView.getUint16(maskOffset);
+        } else if(propsMaskByteSize === 4) {
+            presentMask = updateBufferView.getUint32(maskOffset);
+        } else {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                maskOffset,
+                `unsupported property mask width ${propsMaskByteSize}`,
+            );
+        }
+
+        const completeMask: number = propsSize === 32
+            ? 0xFFFFFFFF
+            : Math.pow(2, propsSize) - 1;
+        if(presentMask === 0 || presentMask > completeMask) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.UNKNOWN_PROPERTY_MASK,
+                maskOffset,
+            );
+        }
+        if(requireComplete && presentMask !== completeMask) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.INCOMPLETE_NEW_OBJECT,
+                maskOffset,
+            );
+        }
+
+        offset += propsMaskByteSize;
+
+        const serializeFunctions = this[PropNames.SerializeFunctions] as Map<string, Function>;
+        const propertyTypes = this[PropNames.PropertyTypes] as Map<string, SerializableTypes>;
+        const encodeOrder = this[PropNames.SerializeEncodeOrder] as Map<string, number>;
+
+        serializeFunctions.forEach((_serializeFunction: Function, shortKey: string) => {
+            const index: number | undefined = encodeOrder.get(shortKey);
+            if(index === undefined || !this.maskHasBit(presentMask, index)) {
+                return;
+            }
+
+            const fieldOffset: number = offset;
+            const type: SerializableTypes | undefined = propertyTypes.get(shortKey);
+            if(type === SerializableTypes.String) {
+                this.requirePayloadBytes(updateBufferView, fieldOffset, 1, fieldOffset);
+                const stringLength: number = updateBufferView.getUint8(fieldOffset);
+                this.requirePayloadBytes(updateBufferView, fieldOffset, stringLength + 1, fieldOffset);
+                offset += stringLength + 1;
+                return;
+            }
+
+            const fieldSize: number | undefined = Serializable.TypesToBytesSize.get(type);
+            if(fieldSize === undefined) {
+                throw new ProtocolDecodeError(
+                    ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                    fieldOffset,
+                    `unsupported scalar field '${shortKey}'`,
+                );
+            }
+            this.requirePayloadBytes(updateBufferView, fieldOffset, fieldSize, fieldOffset);
+            offset += fieldSize;
+        });
+
+        const nestedObjects = this[PropNames.NestedSerializableObjects] as Map<string, string>;
+        nestedObjects.forEach((key: string, shortKey: string) => {
+            const index: number | undefined = encodeOrder.get(shortKey);
+            if(index === undefined || !this.maskHasBit(presentMask, index)) {
+                return;
+            }
+
+            const nestedObject = this[key] as Serializable;
+            if(!(nestedObject instanceof Serializable)) {
+                throw new ProtocolDecodeError(
+                    ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                    offset,
+                    `missing nested field '${shortKey}'`,
+                );
+            }
+            offset = nestedObject.preflightDeserialize(
+                updateBufferView,
+                offset,
+                requireComplete,
+                depth + 1,
+            );
+        });
+
+        return offset;
+    }
+
+    private maskHasBit(mask: number, index: number): boolean {
+        return Math.floor(mask / Math.pow(2, index)) % 2 === 1;
+    }
+
+    private requirePayloadBytes(
+        updateBufferView: DataView,
+        offset: number,
+        byteLength: number,
+        errorOffset: number,
+    ): void {
+        if(
+            !Number.isSafeInteger(offset) ||
+            !Number.isSafeInteger(byteLength) ||
+            offset < 0 ||
+            byteLength < 0 ||
+            offset + byteLength > updateBufferView.byteLength
+        ) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD,
+                errorOffset,
+            );
+        }
     }
 
     get DeserializedFields():Set<string> {

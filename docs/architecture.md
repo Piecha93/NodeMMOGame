@@ -100,6 +100,8 @@ sequenceDiagram
 
 The selected version is connection context, not a version prefix added to each binary message. Existing v1 object and update frames remain byte-compatible and do not carry an explicit total-frame length, record count or schema hash. Their legacy one-byte string length and JavaScript-code-unit encoding also remain unchanged. Those framing, bounds and UTF-8 changes require a separately negotiated v2 codec and a dual-version rollout.
 
+Incoming v1 chunk frames now use a two-phase decoder. A read-only preflight walks the complete frame with the same scalar-then-nested field order as the legacy codec, enforcing frame, record, mask, payload and tombstone bounds. It produces a decode plan or a `ProtocolDecodeError` with a stable code and byte offset. Only a fully validated plan may deserialize, instantiate or destroy world objects, so a structurally malformed tail cannot partially update the live world. Exceptions raised by runtime lifecycle subscribers during the later apply phase are outside this structural guarantee and still do not have a general rollback mechanism.
+
 ## Remaining coupling
 
 The runtime registry migration removes shared object state, but several process-wide and implicit contracts remain:

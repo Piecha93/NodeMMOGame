@@ -30,6 +30,7 @@ Parser, input-handler, rectangular-grid, collision-exit, factory, rate-limit, he
 - The v1 `SocketMsgs` application codes are explicit and frozen at `0` through `11`; Socket.IO's `connection` and `disconnect` transport names remain unchanged.
 - `CLIENT_READY` advertises supported protocol versions. The server selects the highest common version, stores it per `ServerClient` and echoes it in `INITIALIZE_GAME`, which the browser validates and stores.
 - Missing negotiation fields map to legacy v1 in both directions, preserving rolling compatibility with the previous client and server. Malformed and unsupported offers disconnect cleanly before a player is created.
+- V1 chunk updates are preflighted in full before any object is changed, created or destroyed. Truncated headers and fields, unknown masks or prefabs, invalid tombstone sections, duplicates, conflicts and configured frame/record limits now produce a controlled error with a byte offset instead of raw `DataView` failures or partial application.
 
 ## Critical before public deployment
 
@@ -60,7 +61,7 @@ The current Tailscale guest deployment is a development preview, not a public pr
 
 - The connection explicitly negotiates v1, but the selected version is not embedded in each binary frame.
 - String fields use a one-byte length and one byte per JavaScript code unit. Non-ASCII text is corrupted and strings are effectively limited to 255 code units.
-- V1 object and update frames have no explicit total-frame length, record count, schema hash or complete bounds contract.
+- V1 object and update frames still have no encoded total-frame length, record count or schema hash. The decoder now enforces local structural bounds, but the wire format remains implicit and lifecycle exceptions during application do not have a general rollback.
 - Object IDs and property masks rely on implicit sizes. Default prefab IDs are now explicit, but the global catalog has no versioned compatibility contract for additional mappings.
 
 UTF-8 is deliberately not patched into v1: the generated browser client and server now negotiate that version specifically to preserve its legacy bytes. UTF-8, explicit framing and stronger bounds belong in a coordinated v2 codec with a dual-version deployment window.
