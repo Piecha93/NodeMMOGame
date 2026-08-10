@@ -3,6 +3,7 @@ import {test} from "node:test";
 import {Socket} from "socket.io";
 
 import {ServerClient} from "../../server/ServerClient";
+import {Protocol} from "../../shared/net/Protocol";
 
 test("socket/server-client: rate limits are isolated and reset after their window", () => {
     const client = new ServerClient({} as Socket, "Guest test");
@@ -26,10 +27,13 @@ test("socket/server-client: lifecycle state is explicit", () => {
     assert.equal(client.UserId, "user-1");
     assert.equal(client.IsReady, false);
     assert.equal(client.IsDisconnected, false);
+    assert.equal(client.ProtocolVersion, null);
 
     client.IsReady = true;
     client.IsDisconnected = true;
+    client.ProtocolVersion = Protocol.CURRENT;
 
     assert.equal(client.IsReady, true);
     assert.equal(client.IsDisconnected, true);
+    assert.equal(client.ProtocolVersion, Protocol.CURRENT);
 });

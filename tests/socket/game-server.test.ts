@@ -6,6 +6,7 @@ import {GameServer} from "../../server/GameServer";
 import {ServerClient} from "../../server/ServerClient";
 import {SocketMsgs} from "../../shared/net/SocketMsgs";
 import {GameCore} from "../../shared/GameCore";
+import {Protocol} from "../../shared/net/Protocol";
 
 type SocketHandler = (...args: unknown[]) => void;
 
@@ -83,10 +84,14 @@ function createTestServer(): {server: GameServer; internals: GameServerInternals
     return {server, internals: server as unknown as GameServerInternals};
 }
 
-function playerIdFrom(socket: FakeSocket): string {
+function initializePayloadFrom(socket: FakeSocket): {id: string; protocolVersion?: number} {
     const initializeMessage = socket.emitted.find(({event}) => event === SocketMsgs.INITIALIZE_GAME);
     assert.ok(initializeMessage);
-    return (initializeMessage.args[0] as {id: string}).id;
+    return initializeMessage.args[0] as {id: string; protocolVersion?: number};
+}
+
+function playerIdFrom(socket: FakeSocket): string {
+    return initializePayloadFrom(socket).id;
 }
 
 test("socket/game-server: ready is idempotent and malformed input stays inside the handler", () => {
@@ -100,18 +105,67 @@ test("socket/game-server: ready is idempotent and malformed input stays inside t
     assert.doesNotThrow(() => socket.trigger(SocketMsgs.INPUT_SNAPSHOT, "malformed"));
     assert.doesNotThrow(() => socket.trigger(SocketMsgs.CHAT_MESSAGE, "spawner"));
 
-    socket.trigger(SocketMsgs.CLIENT_READY);
-    socket.trigger(SocketMsgs.CLIENT_READY);
+    const protocolOffer = {supportedProtocolVersions: [...Protocol.SUPPORTED]};
+    socket.trigger(SocketMsgs.CLIENT_READY, protocolOffer);
+    socket.trigger(SocketMsgs.CLIENT_READY, protocolOffer);
 
-    const playerId = playerIdFrom(socket);
+    const initializePayload = initializePayloadFrom(socket);
+    const playerId = initializePayload.id;
+    const client = internals.clients.get(socket as unknown as Socket);
+    assert.ok(client);
     assert.equal(socket.emittedCount(SocketMsgs.INITIALIZE_GAME), 1);
     assert.equal(socket.emittedCount(SocketMsgs.FIRST_UPDATE_GAME), 1);
+    assert.equal(initializePayload.protocolVersion, Protocol.CURRENT);
+    assert.equal(client.ProtocolVersion, Protocol.CURRENT);
     assert.ok(objectsManager.get(playerId));
     assert.doesNotThrow(() => socket.trigger(SocketMsgs.INPUT_SNAPSHOT, "malformed"));
 
     socket.disconnect();
+    assert.equal(client.ProtocolVersion, null);
     assert.equal(objectsManager.get(playerId), undefined);
     assert.deepEqual(new Set(objectsManager.ObjectsById.keys()), initialObjectIds);
+});
+
+test("socket/game-server: a ready event without a payload negotiates legacy v1", () => {
+    const {internals} = createTestServer();
+    const socket = new FakeSocket("Guest legacy-protocol-test");
+
+    internals.onConnection(socket as unknown as Socket);
+    socket.trigger(SocketMsgs.CLIENT_READY);
+
+    const client = internals.clients.get(socket as unknown as Socket);
+    assert.ok(client);
+    assert.equal(client.ProtocolVersion, Protocol.LEGACY);
+    assert.equal(initializePayloadFrom(socket).protocolVersion, Protocol.LEGACY);
+
+    socket.disconnect();
+});
+
+test("socket/game-server: malformed and unsupported protocol offers disconnect without a player", () => {
+    const rejectedOffers: Array<{payload: unknown; error: RegExp}> = [
+        {payload: null, error: /Malformed protocol negotiation/},
+        {payload: {supportedProtocolVersions: [1, "2"]}, error: /Malformed protocol negotiation/},
+        {payload: {supportedProtocolVersions: [2]}, error: /Unsupported protocol version/},
+    ];
+
+    for (const [index, rejectedOffer] of rejectedOffers.entries()) {
+        const {internals} = createTestServer();
+        const socket = new FakeSocket(`Guest rejected-protocol-${index}`);
+        const initialObjectIds = new Set(internals.core.ObjectsManager.ObjectsById.keys());
+
+        internals.onConnection(socket as unknown as Socket);
+        socket.trigger(SocketMsgs.CLIENT_READY, rejectedOffer.payload);
+
+        const errorMessage = socket.emitted.find(({event}) => event === SocketMsgs.ERROR);
+        assert.ok(errorMessage);
+        assert.match(errorMessage.args[0] as string, rejectedOffer.error);
+        assert.equal(socket.connected, false);
+        assert.equal(socket.emittedCount(SocketMsgs.INITIALIZE_GAME), 0);
+        assert.equal(socket.emittedCount(SocketMsgs.FIRST_UPDATE_GAME), 0);
+        assert.equal(internals.clients.size, 0);
+        assert.equal(internals.userIdToSocketMap.size, 0);
+        assert.deepEqual(new Set(internals.core.ObjectsManager.ObjectsById.keys()), initialObjectIds);
+    }
 });
 
 test("socket/game-server: a duplicate session closes and fully removes the old client", () => {

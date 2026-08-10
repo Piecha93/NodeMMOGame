@@ -41,6 +41,9 @@ The initial suite verifies:
 - two `GameCore` instances can both own `C0` in separate maps and chunks; destroying or disposing one core leaves the other core and its next ID untouched;
 - a destroyed object is removed from its recorded old chunk and its tombstone is attached to exactly that chunk, even if its transform changed before destruction;
 - chunk deactivate/reload preserves explicit wire IDs and deserializes each object once through the owning factory;
+- v1 socket message codes remain frozen at `0` through `11`, protocol constants remain frozen at supported version `[1]`, and selection chooses the highest common version;
+- malformed and unsupported version offers are distinct controlled failures, while missing offer/response fields map to legacy v1 for rolling compatibility;
+- the game server stores and echoes the selected version, resets it during cleanup and rejects bad offers without creating a player or leaking client state;
 - server-client lifecycle state and independent rate-limit windows behave deterministically;
 - the object spawner stays disabled until debug actions are explicitly enabled;
 - readiness is idempotent, malformed pre-ready input is contained, and duplicate-session or timeout cleanup removes client state;
@@ -50,7 +53,7 @@ The initial suite verifies:
 - the source map traces PixiJS to the npm package, `game.ejs` has no renderer-global script, and the checked-in PixiJS 4 file is absent;
 - the client asset manifest has unique aliases and valid animation-frame classification without requiring a fake DOM or WebGL implementation in Node.js.
 
-The UTF-8 round-trip test is intentionally skipped. Changing string encoding in isolation would make the current client and server protocol incompatible, so that test becomes an enforced regression test only with protocol v1.
+The UTF-8 round-trip test is intentionally skipped. V1 negotiation now makes the preserved legacy encoding explicit; changing its string bytes in place would still break rolling compatibility. Enable that regression under a separately negotiated v2 codec, while keeping v1 golden fixtures unchanged during the transition.
 
 ## Manual browser smoke
 
@@ -98,11 +101,12 @@ Before moving domain code, add characterization tests for:
 2. registry and core disposal across many reconnecting client sessions;
 3. collision enter and stay behavior in addition to the exit regression;
 4. object movement between chunks and per-client visibility;
-5. complete and delta serialization using golden binary fixtures;
+5. complete and delta v1 serialization using golden binary fixtures, including truncated, overlong and trailing-data cases;
 6. fuzz/property coverage for every accepted transport payload;
 7. two-client state synchronization and automation of the manual browser guest-login smoke test;
 8. a deterministic PixiJS scene fixture with pinned Chromium screenshots and reviewable pixel-diff artifacts;
-9. injected configuration and prefab catalogs so differently configured worlds can be tested without mutating `SharedConfig` or process-wide prefab state.
+9. injected configuration and prefab catalogs so differently configured worlds can be tested without mutating `SharedConfig` or process-wide prefab state;
+10. a dual-version v1/v2 rolling-upgrade matrix once the bounded UTF-8 codec exists.
 
 Each bug fix should begin with a failing reproduction. A refactor is complete only when existing tests remain green and the changed behavior has a focused regression test.
 

@@ -1,20 +1,18 @@
-let messageCode: number = 0;
+export const SocketMsgs = Object.freeze({
+    CHAT_MESSAGE: String.fromCharCode(0),
+    CLIENT_READY: String.fromCharCode(1),
+    HEARTBEAT: String.fromCharCode(2),
+    INPUT_SNAPSHOT: String.fromCharCode(3),
 
-export class SocketMsgs {
-    public static CHAT_MESSAGE = String.fromCharCode(messageCode++);
+    CONNECTION: "connection",
+    DISCONNECT: "disconnect",
 
-    public static CLIENT_READY = String.fromCharCode(messageCode++);
-    public static HEARTBEAT = String.fromCharCode(messageCode++);
-    public static INPUT_SNAPSHOT = String.fromCharCode(messageCode++);
-    public static CONNECTION = 'connection';
-    public static DISCONNECT = 'disconnect';
-
-    public static START_GAME = String.fromCharCode(messageCode++);
-    public static INITIALIZE_GAME = String.fromCharCode(messageCode++);
-    public static FIRST_UPDATE_GAME = String.fromCharCode(messageCode++);
-    public static UPDATE_GAME = String.fromCharCode(messageCode++);
-    public static HEARTBEAT_RESPONSE = String.fromCharCode(messageCode++);
-    public static UPDATE_SNAPSHOT_DATA = String.fromCharCode(messageCode++);
-    public static CHUNK_CHANGED = String.fromCharCode(messageCode++);
-    public static ERROR = String.fromCharCode(messageCode++);
-}
+    START_GAME: String.fromCharCode(4),
+    INITIALIZE_GAME: String.fromCharCode(5),
+    FIRST_UPDATE_GAME: String.fromCharCode(6),
+    UPDATE_GAME: String.fromCharCode(7),
+    HEARTBEAT_RESPONSE: String.fromCharCode(8),
+    UPDATE_SNAPSHOT_DATA: String.fromCharCode(9),
+    CHUNK_CHANGED: String.fromCharCode(10),
+    ERROR: String.fromCharCode(11),
+} as const);

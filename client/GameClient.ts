@@ -18,6 +18,11 @@ import {GameCore} from "../shared/GameCore";
 import {Reconciliation} from "./Reconciliation";
 import {TicksCounter} from "../shared/utils/TicksCounter";
 import {normalizeBinaryPayload} from "./net/BinaryPayload";
+import {
+    Protocol,
+    ProtocolVersion,
+    protocolVersionFromInitializePayload,
+} from "../shared/net/Protocol";
 
 export class GameClient {
     private socket: Socket;
@@ -35,6 +40,7 @@ export class GameClient {
 
     private localPlayer: Player = null;
     private localPlayerId: string = "";
+    private protocolVersion: ProtocolVersion | null = null;
 
     private timer: DeltaTimer = new DeltaTimer;
     private tickCounter: TicksCounter = TicksCounter.Instance;
@@ -54,7 +60,9 @@ export class GameClient {
         try {
             this.renderer = await Renderer.create(this.core.ObjectsManager);
             this.renderer.createHUD();
-            this.socket.emit(SocketMsgs.CLIENT_READY);
+            this.socket.emit(SocketMsgs.CLIENT_READY, {
+                supportedProtocolVersions: [...Protocol.SUPPORTED],
+            });
         } catch (error) {
             console.error("Cannot initialize the renderer", error);
             this.socket.disconnect();
@@ -117,8 +125,20 @@ export class GameClient {
         });
     }
 
-    private onInitializeGame(data: any) {
-        this.localPlayerId = data['id'];
+    private onInitializeGame(data: unknown) {
+        const protocolVersion = protocolVersionFromInitializePayload(data);
+        const playerId = typeof data === "object" && data !== null && !Array.isArray(data)
+            ? (data as Record<string, unknown>).id
+            : undefined;
+
+        if (protocolVersion === null || typeof playerId !== "string" || !playerId) {
+            console.error("Server returned an invalid protocol initialization payload");
+            this.socket.disconnect();
+            return;
+        }
+
+        this.protocolVersion = protocolVersion;
+        this.localPlayerId = playerId;
 
         this.reconciliation = new Reconciliation();
 

@@ -1,4 +1,5 @@
 import {Socket} from "socket.io";
+import {ProtocolVersion} from "../shared/net/Protocol";
 
 interface RateLimitWindow {
     startedAt: number;
@@ -11,6 +12,7 @@ export class ServerClient {
     private name: string = "";
     private isReady: boolean = false;
     private isDisconnected: boolean = false;
+    private protocolVersion: ProtocolVersion | null = null;
     private lastHbTime: number = Date.now();
     private playerId: string = "";
     private rateLimitWindows: Map<string, RateLimitWindow> = new Map<string, RateLimitWindow>();
@@ -46,6 +48,14 @@ export class ServerClient {
 
     set IsDisconnected(isDisconnected: boolean) {
         this.isDisconnected = isDisconnected;
+    }
+
+    get ProtocolVersion(): ProtocolVersion | null {
+        return this.protocolVersion;
+    }
+
+    set ProtocolVersion(protocolVersion: ProtocolVersion | null) {
+        this.protocolVersion = protocolVersion;
     }
 
     get LastHbTime(): number {

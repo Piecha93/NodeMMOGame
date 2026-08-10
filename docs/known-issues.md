@@ -24,10 +24,16 @@ Parser, input-handler, rectangular-grid, collision-exit, factory, rate-limit, he
 - Default prefab wire prefixes are explicitly fixed at `A` through `H`, rather than being assigned implicitly by import order.
 - Chunk reload uses the owning core's factory. Server destroy tombstones use the object's recorded old chunk, are deduplicated, and are cancelled when reload restores the same wire ID.
 
+## Fixed in the protocol-negotiation change
+
+- The v1 `SocketMsgs` application codes are explicit and frozen at `0` through `11`; Socket.IO's `connection` and `disconnect` transport names remain unchanged.
+- `CLIENT_READY` advertises supported protocol versions. The server selects the highest common version, stores it per `ServerClient` and echoes it in `INITIALIZE_GAME`, which the browser validates and stores.
+- Missing negotiation fields map to legacy v1 in both directions, preserving rolling compatibility with the previous client and server. Malformed and unsupported offers disconnect cleanly before a player is created.
+
 ## Critical before public deployment
 
 - Registered-user passwords use the historical plain-text schema. Registered login must remain disabled outside trusted development until hashes and a migration exist.
-- Realtime payload checks are implemented at individual handlers, but there is no complete versioned schema or fuzz/integration suite proving every transport boundary.
+- Realtime payload checks are implemented at individual handlers and the connection negotiates v1, but there is no complete per-message schema or fuzz/integration suite proving every transport boundary.
 - Debug commands are development-gated and rate-limited, but the server still exposes historical debug/gameplay paths that need a deliberate production threat review.
 - The project has not been load-tested and has no production monitoring or persistent session store.
 
@@ -51,17 +57,18 @@ The current Tailscale guest deployment is a development preview, not a public pr
 
 ## Protocol
 
+- The connection explicitly negotiates v1, but the selected version is not embedded in each binary frame.
 - String fields use a one-byte length and one byte per JavaScript code unit. Non-ASCII text is corrupted and strings are effectively limited to 255 code units.
-- The wire format has no explicit version, bounds contract or compatibility negotiation.
+- V1 object and update frames have no explicit total-frame length, record count, schema hash or complete bounds contract.
 - Object IDs and property masks rely on implicit sizes. Default prefab IDs are now explicit, but the global catalog has no versioned compatibility contract for additional mappings.
 
-UTF-8 is deliberately not patched in isolation: the generated browser client and server still share the same unversioned legacy wire format. It belongs in a coordinated, versioned protocol migration.
+UTF-8 is deliberately not patched into v1: the generated browser client and server now negotiate that version specifically to preserve its legacy bytes. UTF-8, explicit framing and stronger bounds belong in a coordinated v2 codec with a dual-version deployment window.
 
 ## Quality and documentation gaps
 
 - The foundation suite covers only a small part of the simulation; real Socket.IO, browser, visual-regression, database and load tests remain to be added.
 - Linting, formatting, coverage thresholds and a strict-TypeScript ratchet are not yet configured.
-- Gameplay controls, protocol details, deployment operations and security procedures still need dedicated documentation.
+- Gameplay controls, a complete v1 frame reference, deployment operations and security procedures still need dedicated documentation.
 
 ## First-stage exit criteria
 

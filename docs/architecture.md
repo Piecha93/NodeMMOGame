@@ -68,6 +68,36 @@ Default prefab wire prefixes are explicit and stable:
 | `G` | `Portal` |
 | `H` | `PlatformTriggerTest` |
 
+## Protocol negotiation
+
+Protocol v1 freezes the application-level Socket.IO event names to their existing one-code-unit values:
+
+| Code | Event | Code | Event |
+| ---: | --- | ---: | --- |
+| `0` | `CHAT_MESSAGE` | `6` | `FIRST_UPDATE_GAME` |
+| `1` | `CLIENT_READY` | `7` | `UPDATE_GAME` |
+| `2` | `HEARTBEAT` | `8` | `HEARTBEAT_RESPONSE` |
+| `3` | `INPUT_SNAPSHOT` | `9` | `UPDATE_SNAPSHOT_DATA` |
+| `4` | `START_GAME` | `10` | `CHUNK_CHANGED` |
+| `5` | `INITIALIZE_GAME` | `11` | `ERROR` |
+
+`SocketMsgs` is frozen so those values cannot be reassigned at runtime. Socket.IO's transport-level `connection` and `disconnect` names remain strings outside the numbered application table.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    Client->>Server: CLIENT_READY {supportedProtocolVersions}
+    Server->>Server: select highest common version
+    Server->>Server: store version on ServerClient
+    Server->>Client: INITIALIZE_GAME {id, protocolVersion}
+    Client->>Client: validate and store selected version
+```
+
+`Protocol.SUPPORTED`, `CURRENT` and `LEGACY` are all v1 today. A new client advertises `[1]`; the server rejects malformed or unsupported offers before creating a player. To permit a rolling deployment, a missing `CLIENT_READY` payload is treated as a legacy v1 offer, while a client receiving `INITIALIZE_GAME` without `protocolVersion` treats it as legacy v1. Thus either old side can interoperate with the new negotiation checkpoint while both still speak identical v1 frames.
+
+The selected version is connection context, not a version prefix added to each binary message. Existing v1 object and update frames remain byte-compatible and do not carry an explicit total-frame length, record count or schema hash. Their legacy one-byte string length and JavaScript-code-unit encoding also remain unchanged. Those framing, bounds and UTF-8 changes require a separately negotiated v2 codec and a dual-version rollout.
+
 ## Remaining coupling
 
 The runtime registry migration removes shared object state, but several process-wide and implicit contracts remain:
@@ -75,7 +105,7 @@ The runtime registry migration removes shared object state, but several process-
 - `SharedConfig` detects one global client/server origin.
 - the prefab catalog is global even though default IDs `A` through `H` are explicit; registering additional prefabs still changes shared process state.
 - serialization metadata and the wire format depend on decorator declaration order.
-- the wire format has no version or compatibility negotiation.
+- protocol negotiation is explicit, but v1 frames lack a total length, record count and schema hash.
 - game loops own their timers, which makes the simulation difficult to run deterministically in tests.
 
 These are constraints for incremental refactoring, not reasons for a rewrite.
@@ -107,7 +137,7 @@ The target `World` receives a clock, ID source and random source, owns its regis
 3. Generate the browser client reproducibly while preserving PixiJS 4 behavior. **Complete.**
 4. Move rendering to the npm PixiJS 8 API and remove the checked-in browser global. **Complete.**
 5. Move global world state behind instance-owned interfaces. **Runtime object registry complete; `SharedConfig` and the prefab catalog remain.**
-6. Introduce a versioned, bounded and UTF-8-safe protocol.
+6. Introduce a versioned, bounded and UTF-8-safe protocol. **v1 negotiation complete; bounded UTF-8 v2 frames remain.**
 
 The next client-quality stage is a deterministic browser fixture with pinned visual snapshots. Until then, renderer changes require the manual WebGL comparison in [Testing](testing.md).
 

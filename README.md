@@ -34,7 +34,15 @@ Each `GameCore` owns one `GameObjectsManager` and one `GameObjectsFactory`. Obje
 
 The factory validates and constructs an object, attaches it to its owning runtime and registers it with the manager. The core then adds it to its chunk and collision world and marks it for a complete update. Destruction removes the same object from the registry, its owned chunk and collision world and, on the server, records the network tombstone against that old chunk. `GameCore.dispose()` destroys remaining objects and removes subscriptions; it is safe to call more than once.
 
-The legacy wire prefixes remain deliberately stable: `A` DefaultPlayer, `B` Michau, `C` Wall, `D` HpPotion, `E` Doors, `F` FireBall, `G` Portal and `H` PlatformTriggerTest. The prefab catalog and `SharedConfig` are still process-wide, and the protocol is still unversioned; those are explicit boundaries for the next refactor stages.
+The legacy wire prefixes remain deliberately stable: `A` DefaultPlayer, `B` Michau, `C` Wall, `D` HpPotion, `E` Doors, `F` FireBall, `G` Portal and `H` PlatformTriggerTest. The prefab catalog and `SharedConfig` are still process-wide; those are explicit boundaries for the next refactor stages.
+
+## Protocol compatibility
+
+The v1 application event codes are frozen at `0` through `11`. After renderer initialization, the browser advertises its supported versions with `CLIENT_READY`; the server selects the highest common version, stores it on the client session and echoes it in `INITIALIZE_GAME`. The only supported version today is v1.
+
+For rolling compatibility, a missing `CLIENT_READY` version list is interpreted as a legacy v1 offer, and a missing `protocolVersion` in `INITIALIZE_GAME` is interpreted as a legacy v1 response. Malformed or unsupported offers are rejected before a player is created.
+
+Negotiation does not redesign the v1 binary frames. They still lack an explicit total-frame length, record count and schema hash, and their historical string encoding is not UTF-8 safe. A bounded UTF-8 format remains a breaking v2 change.
 
 ## Database
 

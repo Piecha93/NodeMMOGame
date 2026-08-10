@@ -17,6 +17,7 @@ import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
 import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
 import {ClientsInputSnapshotHandler} from "./ClientsInputSnapshotHandler";
 import {registerGameObjectPrefabs} from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import {negotiateProtocolVersion} from "../shared/net/Protocol";
 
 registerGameObjectPrefabs();
 
@@ -144,10 +145,21 @@ export class GameServer {
             }).catch((error) => console.error("Unable to load user:", error));
         }
 
-        socket.on(SocketMsgs.CLIENT_READY, () => {
+        socket.on(SocketMsgs.CLIENT_READY, (protocolOffer?: unknown) => {
             if (!this.isConnectedClient(serverClient) || serverClient.IsReady) {
                 return;
             }
+
+            const protocolNegotiation = negotiateProtocolVersion(protocolOffer);
+            if (protocolNegotiation.ok === false) {
+                const reason = protocolNegotiation.reason === "malformed"
+                    ? "Malformed protocol negotiation"
+                    : "Unsupported protocol version";
+                this.clientDisconnected(serverClient, reason);
+                return;
+            }
+
+            serverClient.ProtocolVersion = protocolNegotiation.version;
 
             let player: Player = this.core.ObjectsFactory.instantiateWithPosition("DefaultPlayer",
                 [
@@ -159,7 +171,10 @@ export class GameServer {
             serverClient.PlayerId = player.ID;
             serverClient.IsReady = true;
 
-            socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
+            socket.emit(SocketMsgs.INITIALIZE_GAME, {
+                id: player.ID,
+                protocolVersion: serverClient.ProtocolVersion,
+            });
 
             socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
 
@@ -306,6 +321,7 @@ export class GameServer {
         }
 
         client.IsReady = false;
+        client.ProtocolVersion = null;
         client.PlayerId = "";
 
         if (reason && socket.connected) {
