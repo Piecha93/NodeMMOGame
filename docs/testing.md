@@ -41,6 +41,7 @@ The initial suite verifies:
 - two `GameCore` instances can both own `C0` in separate maps and chunks; destroying or disposing one core leaves the other core and its next ID untouched;
 - a destroyed object is removed from its recorded old chunk and its tombstone is attached to exactly that chunk, even if its transform changed before destruction;
 - chunk deactivate/reload preserves explicit wire IDs and deserializes each object once through the owning factory;
+- moving an object in either chunk-iteration direction preserves its complete record for both the old leaver frame and the new chunk frame, commits serialized changes only after all targets are built and emits nothing again on the next unchanged collection; injected encoding failures additionally prove that full-update intent, leavers and earlier tombstones survive for a successful retry;
 - v1 socket message codes remain frozen at `0` through `11`, protocol constants remain frozen at supported version `[1]`, and selection chooses the highest common version;
 - malformed and unsupported version offers are distinct controlled failures, while missing offer/response fields map to legacy v1 for rolling compatibility;
 - the game server stores and echoes the selected version, resets it during cleanup and rejects bad offers without creating a player or leaking client state;
@@ -100,7 +101,7 @@ Before moving domain code, add characterization tests for:
 1. repeat the lifecycle scenarios through real Socket.IO client/server transports rather than socket doubles;
 2. registry and core disposal across many reconnecting client sessions;
 3. collision enter and stay behavior in addition to the exit regression;
-4. object movement between chunks and per-client visibility;
+4. real two-client visibility and interest transitions across neighboring chunk boundaries, beyond the collector-level movement fan-out regression;
 5. complete and delta v1 serialization using golden binary fixtures, including truncated, overlong and trailing-data cases;
 6. fuzz/property coverage for every accepted transport payload;
 7. two-client state synchronization and automation of the manual browser guest-login smoke test;

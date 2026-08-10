@@ -53,24 +53,25 @@ export class UpdateCollector {
 
     public collectUpdate(): Map<Chunk, ArrayBuffer> {
         let chunksUpdate: Map<Chunk, ArrayBuffer> = new Map<Chunk, ArrayBuffer>();
+        let serializedObjects: Set<GameObject> = new Set<GameObject>();
+        let chunksToFinalize: Array<{chunk: Chunk; resetCompleteUpdate: boolean}> = [];
 
         let chunks: Chunk[][] = this.chunksManager.Chunks;
 
         for(let i = 0; i < chunks.length; i++) {
             for (let j = 0; j < chunks[i].length; j++) {
                 let chunk: Chunk = chunks[i][j];
-                //no need to send update from chunk, that doesnt have players
-                if (!chunk.HasPlayersInNeighborhood) {
+                let hasPlayersInNeighborhood: boolean = chunk.HasPlayersInNeighborhood;
+                chunksToFinalize.push({chunk, resetCompleteUpdate: hasPlayersInNeighborhood});
 
-                    //no need to keep leavers if there is no one to send them
-                    chunk.resetLeavers();
-                    this.destroyedObjects.get(chunk).clear();
+                //no need to send update from chunk, that doesnt have players
+                if (!hasPlayersInNeighborhood) {
                     continue;
                 }
 
                 //if chunk has new players inside we need to send complete update to them
                 let chunkCompleteUpdate: boolean = chunk.IsNextUpdateComplete;
-                chunk.IsNextUpdateComplete = false;
+                let destroyedObjectsForUpdate: Set<string> = new Set<string>(this.destroyedObjects.get(chunk));
 
                 let neededBufferSize: number = 0;
                 let objectsToUpdateMap: Map<GameObject, number> = new Map<GameObject, number>();
@@ -92,7 +93,7 @@ export class UpdateCollector {
                         return;
                     }
                     if(gameObject.IsDestroyed) {
-                        this.destroyedObjects.get(chunk).add(gameObject.ID);
+                        destroyedObjectsForUpdate.add(gameObject.ID);
                         return;
                     }
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
@@ -105,13 +106,11 @@ export class UpdateCollector {
 
                 let destrotObjectsOffset: number = neededBufferSize;
 
-                if (this.destroyedObjects.get(chunk).size > 0) {
-                    neededBufferSize += (this.destroyedObjects.get(chunk).size * 5) + 1;
+                if (destroyedObjectsForUpdate.size > 0) {
+                    neededBufferSize += (destroyedObjectsForUpdate.size * 5) + 1;
                 }
 
                 if (neededBufferSize == 0) {
-                    chunk.resetLeavers();
-                    this.destroyedObjects.get(chunk).clear();
                     continue;
                 }
 
@@ -122,12 +121,13 @@ export class UpdateCollector {
                     updateBufferView.setUint8(offset, gameObject.ID.charCodeAt(0));
                     updateBufferView.setUint32(offset + 1, Number(gameObject.ID.slice(1)));
 
-                    gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
+                    gameObject.serializePreservingChanges(updateBufferView, offset + 5, chunkCompleteUpdate);
+                    serializedObjects.add(gameObject);
                 });
 
-                if (this.destroyedObjects.get(chunk).size > 0) {
+                if (destroyedObjectsForUpdate.size > 0) {
                     updateBufferView.setUint8(destrotObjectsOffset++, UpdateCollector.DESTROY_OBJECTS_ID);
-                    this.destroyedObjects.get(chunk).forEach((id: string) => {
+                    destroyedObjectsForUpdate.forEach((id: string) => {
                         updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
                         updateBufferView.setUint32(destrotObjectsOffset + 1, Number(id.slice(1)));
                         destrotObjectsOffset += 5;
@@ -135,11 +135,23 @@ export class UpdateCollector {
                     });
                 }
 
-                chunk.resetLeavers();
-                this.destroyedObjects.get(chunk).clear();
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }
+
+        serializedObjects.forEach((gameObject: GameObject) => {
+            gameObject.commitSerializedChanges();
+        });
+
+        chunksToFinalize.forEach(({chunk, resetCompleteUpdate}) => {
+            if(resetCompleteUpdate) {
+                chunk.IsNextUpdateComplete = false;
+            }
+
+            //no need to keep leavers or tombstones after a successful collection
+            chunk.resetLeavers();
+            this.destroyedObjects.get(chunk).clear();
+        });
 
         return chunksUpdate;
     }

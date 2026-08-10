@@ -95,8 +95,38 @@ export abstract class Serializable {
 
 
     public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
+        return this.serializeInternal(updateBufferView, offset, complete, true);
+    }
+
+    public serializePreservingChanges(
+        updateBufferView: DataView,
+        offset: number,
+        complete: boolean = false
+    ): number {
+        return this.serializeInternal(updateBufferView, offset, complete, false);
+    }
+
+    public commitSerializedChanges(): void {
+        this.forceComplete = false;
+        this.changes.clear();
+
+        if(this[PropNames.NestedSerializableObjects]) {
+            this[PropNames.NestedSerializableObjects].forEach((key: string) => {
+                (this[key] as Serializable).commitSerializedChanges();
+            });
+        }
+    }
+
+    private serializeInternal(
+        updateBufferView: DataView,
+        offset: number,
+        complete: boolean,
+        commitChanges: boolean
+    ): number {
         if (this.forceComplete) {
-            this.forceComplete = false;
+            if(commitChanges) {
+                this.forceComplete = false;
+            }
             complete = true;
         }
 
@@ -126,7 +156,12 @@ export abstract class Serializable {
                 let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
 
                 let tmpOffset: number = updatedOffset;
-                updatedOffset = this[key].serialize(updateBufferView, updatedOffset, complete);
+                updatedOffset = (this[key] as Serializable).serializeInternal(
+                    updateBufferView,
+                    updatedOffset,
+                    complete,
+                    commitChanges
+                );
 
                 if(tmpOffset < updatedOffset) {
                     presentMask = setBit(presentMask, index);
@@ -146,7 +181,9 @@ export abstract class Serializable {
             updateBufferView.setUint32(offset, presentMask);
         }
 
-        this.changes.clear();
+        if(commitChanges) {
+            this.changes.clear();
+        }
 
         return updatedOffset;
     }

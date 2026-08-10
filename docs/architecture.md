@@ -55,6 +55,8 @@ Creation is transactional at the registry boundary. The factory rejects unknown 
 
 Chunk deactivation serializes persistent objects and destroys the live instances. Reload deserializes through the same core's factory, preserving wire IDs and restoring registry, chunk and collision ownership. On the server, destroy tombstones are keyed by the object's recorded old chunk rather than a potentially changed transform. Re-creating the same ID during reload removes its pending tombstone, so an unload/reload cycle does not also announce that restored object as deleted.
 
+World updates follow preserve-all-targets then commit-once semantics. `UpdateCollector` serializes an object's pending state without consuming it while it builds every relevant chunk frame, then commits those changes once after the complete chunk traversal. An object crossing a chunk boundary therefore carries the same complete wire record in both the old chunk's leaver frame and the new chunk's frame regardless of iteration direction; a later collection with no new changes does not emit it again. Complete-update flags, leavers and tombstones are finalized in the same success phase, so an encoding failure leaves the whole collection retryable.
+
 Default prefab wire prefixes are explicit and stable:
 
 | Prefix | Prefab |

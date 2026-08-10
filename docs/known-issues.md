@@ -23,6 +23,7 @@ Parser, input-handler, rectangular-grid, collision-exit, factory, rate-limit, he
 - Duplicate explicit IDs cannot overwrite a live registry entry. Published IDs are immutable, explicit IDs must match their prefab prefix, generated IDs skip occupied values, failed create subscriptions roll back, and destroy cleanup continues through listener errors.
 - Default prefab wire prefixes are explicitly fixed at `A` through `H`, rather than being assigned implicitly by import order.
 - Chunk reload uses the owning core's factory. Server destroy tombstones use the object's recorded old chunk, are deduplicated, and are cancelled when reload restores the same wire ID.
+- Cross-chunk updates preserve pending object state while every target frame is built and commit it once afterward. Movement in either chunk-iteration direction now sends the same complete record to the old leaver frame and the new chunk frame without repeating it in the next unchanged collection.
 
 ## Fixed in the protocol-negotiation change
 
@@ -44,7 +45,7 @@ The current Tailscale guest deployment is a development preview, not a public pr
 - `SharedConfig`, including client/server origin and chunk dimensions, remains process-wide. World object state is isolated, but two cores in one JavaScript realm are not independently configurable runtimes.
 - The prefab catalog remains global. Default mappings `A` through `H` are stable and duplicate-checked, but dynamically registering a prefab still affects every core in the process.
 - Disconnect/reconnect, duplicate readiness and heartbeat loss have defensive code plus socket-handler tests, but still need end-to-end coverage with real Socket.IO clients.
-- Per-client chunk visibility and movement between neighboring chunks need characterization tests before refactoring.
+- Collector-level movement fan-out is covered in both chunk-iteration directions; per-client visibility and interest transitions still need end-to-end coverage with real Socket.IO clients.
 - Most code compiles without strict null and indexed-access checking; strict diagnostics currently reveal a substantial backlog.
 
 ## Build and client
