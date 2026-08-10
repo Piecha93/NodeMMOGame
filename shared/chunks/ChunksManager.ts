@@ -37,7 +37,7 @@ export class ChunksManager extends GameObjectsSubscriber {
 
     private setChunksNeighbors() {
         for(let i: number = 0; i < this.chunks.length; i++) {
-            for (let j: number = 0; j < this.chunks.length; j++) {
+            for (let j: number = 0; j < this.chunks[i].length; j++) {
                 let isShifted: boolean = (i % 2) != 0;
 
                 let isFirstInCloumn: boolean = j == 0;
@@ -105,6 +105,10 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     private getChunkByCoords(x: number, y: number): Chunk {
+        if(!Number.isFinite(x) || !Number.isFinite(y)) {
+            return null;
+        }
+
         let idxX: number = Math.floor(x / this.chunkSize);
 
         if(idxX >= this.numOfChunksX || idxX < 0) {
@@ -178,6 +182,14 @@ export class ChunksManager extends GameObjectsSubscriber {
     }
 
     private correctObjectPositionIfOutOfBounds(gameObject: GameObject) {
+        if(!Number.isFinite(gameObject.Transform.X)) {
+            gameObject.Transform.X = 1;
+        }
+
+        if(!Number.isFinite(gameObject.Transform.Y)) {
+            gameObject.Transform.Y = 1;
+        }
+
         if(gameObject.Transform.X <= 0) {
             gameObject.Transform.X = 1;
         }
@@ -276,7 +288,7 @@ export class ChunksManager extends GameObjectsSubscriber {
 
     *ChunksIterator(): Generator<Chunk, void, undefined> {
         for(let i: number = 0; i < this.chunks.length; i++) {
-            for (let j: number = 0; j < this.chunks.length; j++) {
+            for (let j: number = 0; j < this.chunks[i].length; j++) {
                 yield this.chunks[i][j];
             }
         }

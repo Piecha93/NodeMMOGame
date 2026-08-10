@@ -2,7 +2,7 @@ import {Server, Socket} from "socket.io";
 
 import {ServerClient} from "./ServerClient";
 import {Player} from "../shared/game_utils/game/objects/Player";
-import {InputSnapshot} from "../shared/input/InputSnapshot";
+import {InputSnapshot, InvalidInputSnapshotError} from "../shared/input/InputSnapshot";
 import {GameObject} from "../shared/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
@@ -18,7 +18,9 @@ import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManage
 import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
 import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
 import {ClientsInputSnapshotHandler} from "./ClientsInputSnapshotHandler";
+import {registerGameObjectPrefabs} from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
 
+registerGameObjectPrefabs();
 
 export class GameServer {
     private sockets: Server;
@@ -29,8 +31,9 @@ export class GameServer {
     private core: GameCore;
 
 
-    private lastChunkSent: Map<Player, Chunk> = new Map<Player, Chunk>(); //TODO move this somewhere else
+    private lastChunkSent: Map<string, Chunk> = new Map<string, Chunk>(); //TODO move this somewhere else
     private clientsInputSnapshotHandler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
+    private lastDisconnectCheck: number = 0;
 
     constructor(sockets: Server) {
         this.sockets = sockets;
@@ -42,6 +45,7 @@ export class GameServer {
     }
 
     private startGame() {
+        Player.EnableDebugActions = ServerConfig.ENABLE_DEBUG_COMMANDS;
         this.core = new GameCore();
 
         this.initTestObjects();
@@ -68,8 +72,13 @@ export class GameServer {
 
     private checkDisconnectInterval() {
         let now: number = Date.now();
+        if (now - this.lastDisconnectCheck < ServerConfig.DISCONNECT_CHECK_INTERVAL) {
+            return;
+        }
+
+        this.lastDisconnectCheck = now;
         let expiredTime: number = now - ServerConfig.CLIENT_TIMEOUT_TIME;
-        this.clients.forEach((client: ServerClient) => {
+        Array.from(this.clients.values()).forEach((client: ServerClient) => {
             if (client.LastHbTime <= expiredTime) {
                 this.clientDisconnected(client, "timeout");
             }
@@ -94,26 +103,41 @@ export class GameServer {
         //     socket.emit = fff;
         // })();
 
-        let socketSession = (socket as any).request.session;
+        const socketSession = (socket.request as typeof socket.request & {
+            session?: {user_id?: string};
+        }).session;
+        const userId = socketSession?.user_id;
 
-        if(this.userIdToSocketMap.has(socketSession.user_id)) {
-            let client: ServerClient = this.clients.get(this.userIdToSocketMap.get(socketSession.user_id));
-            this.clientDisconnected(client, "You have connected from another browser");
-            this.userIdToSocketMap.delete(socketSession.user_id);
+        if (!userId) {
+            socket.emit(SocketMsgs.ERROR, "Missing authenticated session");
+            socket.disconnect(true);
+            return;
         }
 
-        let serverClient: ServerClient = new ServerClient(socket);
-        this.clients.set(socket, serverClient);
-        this.userIdToSocketMap.set(socketSession.user_id, socket);
+        const previousSocket = this.userIdToSocketMap.get(userId);
+        if (previousSocket && previousSocket !== socket) {
+            const previousClient = this.clients.get(previousSocket);
+            if (previousClient) {
+                this.clientDisconnected(previousClient, "You have connected from another browser");
+            } else {
+                this.userIdToSocketMap.delete(userId);
+                previousSocket.disconnect(true);
+            }
+        }
 
-        if(socketSession.user_id.substring(0, 5) == "Guest") {
-            serverClient.Name = socketSession.user_id;
+        let serverClient: ServerClient = new ServerClient(socket, userId);
+        this.clients.set(socket, serverClient);
+        this.userIdToSocketMap.set(userId, socket);
+
+        if(userId.startsWith("Guest")) {
+            serverClient.Name = userId;
         } else {
-            void Database.Instance.findUserById(socketSession.user_id).then((user: IUserModel | null) => {
-                if (!user) {
+            serverClient.Name = "User";
+            void Database.Instance.findUserById(userId).then((user: IUserModel | null) => {
+                if (!user || !this.isConnectedClient(serverClient)) {
                     return;
                 }
-                serverClient.Name = user.username;
+                serverClient.Name = this.sanitizePlayerName(user.username);
                 let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
                 if(player) {
                     player.Name = serverClient.Name;
@@ -122,46 +146,95 @@ export class GameServer {
         }
 
         socket.on(SocketMsgs.CLIENT_READY, () => {
+            if (!this.isConnectedClient(serverClient) || serverClient.IsReady) {
+                return;
+            }
+
             let player: Player = GameObjectsFactory.InstatiateWithPosition("DefaultPlayer",
-                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Player;
+                [
+                    this.getRandomInsideMap(SharedConfig.numOfChunksX),
+                    this.getRandomInsideMap(SharedConfig.numOfChunksY)
+                ]) as Player;
 
             player.Name = serverClient.Name;
             serverClient.PlayerId = player.ID;
+            serverClient.IsReady = true;
 
             socket.emit(SocketMsgs.INITIALIZE_GAME, { id: player.ID});
 
             socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
-            serverClient.IsReady = true;
 
             this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: player.Name + " has joined game"});
         });
 
-        socket.on(SocketMsgs.INPUT_SNAPSHOT, (snapshotData: string) => {
-            let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
-            if(player == null) {
+        socket.on(SocketMsgs.INPUT_SNAPSHOT, (snapshotData: unknown) => {
+            if (!this.isConnectedClient(serverClient) ||
+                !serverClient.allowEvent(
+                    "input",
+                    ServerConfig.MAX_INPUT_SNAPSHOTS_PER_WINDOW,
+                    ServerConfig.RATE_LIMIT_WINDOW
+                ) ||
+                typeof snapshotData !== "string" ||
+                snapshotData.length > InputSnapshot.MAX_SERIALIZED_LENGTH) {
                 return;
             }
 
-            this.clientsInputSnapshotHandler.setSnapshot(player, snapshotData);
+            const player = this.getReadyPlayer(serverClient);
+            if (!player) {
+                return;
+            }
+
+            try {
+                this.clientsInputSnapshotHandler.setSnapshot(player, snapshotData);
+            } catch (error) {
+                if (!(error instanceof InvalidInputSnapshotError)) {
+                    console.error("Unable to process input snapshot:", error);
+                }
+            }
         });
 
-        socket.on(SocketMsgs.HEARTBEAT, (data: number) => {
-            if(this.clients.has(socket)) {
-                this.clients.get(socket).LastHbTime = Date.now();
+        socket.on(SocketMsgs.HEARTBEAT, (data: unknown) => {
+            if (this.isConnectedClient(serverClient) &&
+                serverClient.allowEvent(
+                    "heartbeat",
+                    ServerConfig.MAX_HEARTBEATS_PER_WINDOW,
+                    ServerConfig.RATE_LIMIT_WINDOW
+                ) &&
+                typeof data === "number" &&
+                Number.isSafeInteger(data)) {
+                serverClient.LastHbTime = Date.now();
                 socket.emit(SocketMsgs.HEARTBEAT_RESPONSE, data);
             }
         });
 
-        socket.on(SocketMsgs.CHAT_MESSAGE, (msg: string) => {
-            if(msg == "fire") {
-                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
-                player.Weapon = new MagicWand();
-            } else if(msg == "spawner") {
-                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
-                player.Weapon = new ObjectsSpawner();
-            } else if(this.clients.has(socket)) {
-                this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: msg});
+        socket.on(SocketMsgs.CHAT_MESSAGE, (msg: unknown) => {
+            if (!this.isConnectedClient(serverClient) ||
+                !serverClient.allowEvent(
+                    "chat",
+                    ServerConfig.MAX_CHAT_MESSAGES_PER_WINDOW,
+                    ServerConfig.RATE_LIMIT_WINDOW
+                ) ||
+                typeof msg !== "string" ||
+                msg.length > ServerConfig.MAX_CHAT_MESSAGE_LENGTH) {
+                return;
             }
+
+            const chatMessage = msg.trim();
+            if (!chatMessage) {
+                return;
+            }
+
+            if (chatMessage === "fire" || chatMessage === "spawner") {
+                const player = this.getReadyPlayer(serverClient);
+                if (!ServerConfig.ENABLE_DEBUG_COMMANDS || !player) {
+                    return;
+                }
+
+                player.Weapon = chatMessage === "fire" ? new MagicWand() : new ObjectsSpawner();
+                return;
+            }
+
+            this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: serverClient.Name, m: chatMessage});
         });
 
         socket.on(SocketMsgs.DISCONNECT, () => {
@@ -171,13 +244,16 @@ export class GameServer {
 
     private sendUpdate(chunksUpdate: Map<Chunk, ArrayBuffer>) {
         this.clients.forEach((client: ServerClient) => {
-            if (client.IsReady) {
-                let player: Player = GameObjectsManager.GetGameObjectById(client.PlayerId) as Player;
-                if(player == null) {
+            if (this.isConnectedClient(client) && client.IsReady) {
+                const player = this.getReadyPlayer(client);
+                if (!player) {
                     return;
                 }
 
                 let chunk: Chunk = this.core.ChunksManager.getObjectChunk(player);
+                if (!chunk) {
+                    return;
+                }
 
                 let updateArray: Array<ArrayBuffer> = [];
                 if(chunksUpdate.has(chunk)) {
@@ -195,9 +271,9 @@ export class GameServer {
                     client.Socket.emit(SocketMsgs.UPDATE_SNAPSHOT_DATA, [snapshot.ID, snapshot.SnapshotDelta]);
                 }
 
-                if(this.lastChunkSent.get(player) != chunk) {
+                if(this.lastChunkSent.get(client.PlayerId) != chunk) {
                     client.Socket.emit(SocketMsgs.CHUNK_CHANGED, chunk.Position);
-                    this.lastChunkSent.set(player, chunk);
+                    this.lastChunkSent.set(client.PlayerId, chunk);
                 }
 
                 if(updateArray.length > 0) {
@@ -212,21 +288,70 @@ export class GameServer {
     }
 
     private clientDisconnected(client: ServerClient, reason?: string) {
-        if(!client) return;
+        if (!client || client.IsDisconnected) {
+            return;
+        }
 
-        if(reason) {
-            client.Socket.emit(SocketMsgs.ERROR, reason);
+        client.IsDisconnected = true;
+        const socket = client.Socket;
+        const playerId = client.PlayerId;
+        const wasReady = client.IsReady;
+
+        this.clients.delete(socket);
+        if (this.userIdToSocketMap.get(client.UserId) === socket) {
+            this.userIdToSocketMap.delete(client.UserId);
+        }
+        if (playerId) {
+            this.lastChunkSent.delete(playerId);
+            GameObjectsManager.DestroyGameObjectById(playerId);
+        }
+
+        client.IsReady = false;
+        client.PlayerId = "";
+
+        if (reason && socket.connected) {
+            socket.emit(SocketMsgs.ERROR, reason);
         }
 
         console.log('player disconnected' + client.Name + " due " + reason);
-        this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
+        if (wasReady) {
+            this.sockets.emit(SocketMsgs.CHAT_MESSAGE, {s: "Server", m: client.Name + " has left game"});
+        }
 
-        GameObjectsManager.DestroyGameObjectById(client.PlayerId);
-        this.clients.delete(client.Socket);
+        if (socket.connected) {
+            socket.disconnect(true);
+        }
     }
 
-    private getRandomInsideMap(): number {
-        return Math.round((Math.floor(Math.random() * (SharedConfig.numOfChunksX * SharedConfig.chunkSize - 100)) + 50) / 32) * 32;
+    private isConnectedClient(client: ServerClient): boolean {
+        return !client.IsDisconnected && this.clients.get(client.Socket) === client;
+    }
+
+    private getReadyPlayer(client: ServerClient): Player | null {
+        if (!this.isConnectedClient(client) || !client.IsReady || !client.PlayerId) {
+            return null;
+        }
+
+        return GameObjectsManager.GetGameObjectById(client.PlayerId) as Player || null;
+    }
+
+    private sanitizePlayerName(name: unknown): string {
+        if (typeof name !== "string") {
+            return "User";
+        }
+
+        const safeName = name
+            .normalize("NFKC")
+            .replace(/[^\p{L}\p{N} _-]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 32);
+
+        return safeName || "User";
+    }
+
+    private getRandomInsideMap(numberOfChunks: number): number {
+        return Math.round((Math.floor(Math.random() * (numberOfChunks * SharedConfig.chunkSize - 100)) + 50) / 32) * 32;
     }
 
     private initTestObjects() {
@@ -234,7 +359,10 @@ export class GameServer {
 
         for (let i = 0; i < 1000; i++) {
             o = GameObjectsFactory.InstatiateWithPosition("Wall",
-                [this.getRandomInsideMap(), this.getRandomInsideMap()]);
+                [
+                    this.getRandomInsideMap(SharedConfig.numOfChunksX),
+                    this.getRandomInsideMap(SharedConfig.numOfChunksY)
+                ]);
 
             if (i % 1000 == 0) {
                 console.log(i)
@@ -245,7 +373,10 @@ export class GameServer {
         let spawnEnemy: Function = () => {
             enemyCounter++;
             let e: Enemy = GameObjectsFactory.InstatiateWithPosition("Michau",
-                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Enemy;
+                [
+                    this.getRandomInsideMap(SharedConfig.numOfChunksX),
+                    this.getRandomInsideMap(SharedConfig.numOfChunksY)
+                ]) as Enemy;
 
             e.Name = "Michau " + enemyCounter.toString();
 
@@ -260,7 +391,10 @@ export class GameServer {
 
         let spawnItem: Function = () => {
             let i: Item = GameObjectsFactory.InstatiateWithPosition("HpPotion",
-                [this.getRandomInsideMap(), this.getRandomInsideMap()]) as Item;
+                [
+                    this.getRandomInsideMap(SharedConfig.numOfChunksX),
+                    this.getRandomInsideMap(SharedConfig.numOfChunksY)
+                ]) as Item;
 
             i.addDestroyListener(() => {
                 spawnItem();

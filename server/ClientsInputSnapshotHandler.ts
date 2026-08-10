@@ -6,20 +6,29 @@ import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManage
 
 export class ClientsInputSnapshotHandler {
     private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
+    private trackedPlayers: WeakSet<Player> = new WeakSet<Player>();
 
     constructor() {
     }
 
     public setSnapshot(player: Player, snapshotData: string) {
         let snapshot: InputSnapshot = new InputSnapshot(snapshotData);
+        const lastSnapshot: InputSnapshot = this.playersLastSnapshots.get(player);
+
+        if(lastSnapshot && snapshot.ID <= lastSnapshot.ID) {
+            return;
+        }
 
         player.setInput(snapshot);
 
         this.playersLastSnapshots.set(player, snapshot);
 
-        player.addDestroyListener((destroyedObject: Player) => {
-            this.playersLastSnapshots.delete(destroyedObject);
-        });
+        if(!this.trackedPlayers.has(player)) {
+            this.trackedPlayers.add(player);
+            player.addDestroyListener((destroyedObject: Player) => {
+                this.playersLastSnapshots.delete(destroyedObject);
+            });
+        }
 
         if(snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
             let gameObject: GameObject =
@@ -30,7 +39,6 @@ export class ClientsInputSnapshotHandler {
             }
         }
 
-        this.playersLastSnapshots.set(player, snapshot);
     }
 
     public getPlayerLastSnapshot(player: Player): InputSnapshot {

@@ -18,7 +18,7 @@ export class GameObjectsFactory {
             if(option == "prefabSize") continue;
 
             if(!object.hasOwnProperty(option)) {
-                throw name + " does not have property " + option;
+                throw new Error(object.constructor.name + " does not have property " + option);
             }
 
             object[option] = prefabOptions[option];
@@ -28,6 +28,15 @@ export class GameObjectsFactory {
     static InstatiateWithPosition(prefabName: string, position: Vector2, size?: Size, id?: string, data?: [DataView, number]): GameObject {
         let gameObject: GameObject;
 
+        let gameObjectType = Prefabs.PrefabsNameToTypes.get(prefabName);
+        if(!gameObjectType) {
+            throw new Error("Unknown prefab: " + prefabName);
+        }
+
+        if(!position || position.length != 2 || !Number.isFinite(position[0]) || !Number.isFinite(position[1])) {
+            throw new Error("Invalid position for prefab: " + prefabName);
+        }
+
         let prefabOptions: PrefabOptions = Prefabs.PrefabsOptions.get(prefabName);
 
         if(!size && prefabOptions && prefabOptions.prefabSize) {
@@ -36,7 +45,7 @@ export class GameObjectsFactory {
 
         let transform: Transform =  new Transform(position, size);
 
-        gameObject = new (Prefabs.PrefabsNameToTypes.get(prefabName))(transform);
+        gameObject = new gameObjectType(transform);
 
         if(prefabOptions) {
             GameObjectsFactory.setOptions(gameObject, prefabOptions);

@@ -82,6 +82,9 @@ export class Collider {
     public update() {
         this.shape.x = this.parent.Transform.X + this.offsetX;
         this.shape.y = this.parent.Transform.Y + this.offsetY;
+        if(this.rotation != this.parent.Transform.Rotation) {
+            this.Rotation = this.parent.Transform.Rotation;
+        }
     }
 
     resize() {

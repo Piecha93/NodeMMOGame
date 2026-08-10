@@ -6,6 +6,7 @@ import session from "express-session";
 import {Server} from "socket.io";
 
 import {GameServer} from "./server/GameServer";
+import {ServerConfig} from "./server/ServerConfig";
 import {Database} from "./server/database/Database";
 import {Origin, SharedConfig} from "./shared/SharedConfig";
 
@@ -25,6 +26,7 @@ const app = express();
 const httpServer = http.createServer(app);
 const sockets = new Server(httpServer, {
     allowEIO3: true,
+    maxHttpBufferSize: ServerConfig.MAX_SOCKET_MESSAGE_SIZE,
     parser: customParser,
 });
 

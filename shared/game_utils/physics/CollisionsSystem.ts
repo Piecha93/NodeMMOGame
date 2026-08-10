@@ -27,6 +27,10 @@ export class CollisionsSystem extends Collisions {
 
     public removeObject(gameObject: GameObject) {
         for(let collider of gameObject.Colliders) {
+            for (let collidingBodies of this.collidingBodiesMap.values()) {
+                collidingBodies.delete(collider.Body);
+            }
+
             if (this.bodyToColliderMap.has(collider.Body)) {
                 super.remove(collider.Body);
                 this.bodyToColliderMap.delete(collider.Body);
@@ -58,7 +62,7 @@ export class CollisionsSystem extends Collisions {
             }
             let colliderBody: Body = collider.Body;
 
-            let oldCollidingBodies: Set<Body> = this.collidingBodiesMap.get(colliderBody);
+            let oldCollidingBodies: Set<Body> = this.collidingBodiesMap.get(colliderBody) || new Set<Body>();
             let newCollidingBodies: Set<Body> = new Set<Body>();
 
             for (let body of this.CollisionBodyIterator(colliderBody)) {
@@ -80,8 +84,7 @@ export class CollisionsSystem extends Collisions {
                     if (!colidedCollider || colidedCollider == collider) {
                         continue;
                     }
-                    body.collides(colidedCollider.Body, this.lastCollisionResult);
-                    collider.onCollisionExit(colidedCollider, this.lastCollisionResult);
+                    collider.onCollisionExit(colidedCollider, this.createExitResult(colliderBody, body));
                 }
             }
             this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
@@ -92,7 +95,8 @@ export class CollisionsSystem extends Collisions {
         for(let collider of object.Colliders) {
             let potentials: Body[] = collider.Body.potentials();
             for (let body of potentials) {
-                if(collider.Parent.ID == this.bodyToColliderMap.get(body).Parent.ID) {
+                let otherCollider: Collider = this.bodyToColliderMap.get(body);
+                if(!otherCollider || collider.Parent.ID == otherCollider.Parent.ID) {
                     //skip check colliders with same parent
                     continue;
                 }
@@ -102,6 +106,19 @@ export class CollisionsSystem extends Collisions {
             }
         }
         return false;
+    }
+
+    private createExitResult(source: Body, target: Body): Result {
+        let result: Result = new Result();
+        result.collision = false;
+        result.a = source;
+        result.b = target;
+        result.a_in_b = false;
+        result.b_in_a = false;
+        result.overlap = 0;
+        result.overlap_x = 0;
+        result.overlap_y = 0;
+        return result;
     }
 
     *CollisionBodyIterator(objectBody: Body): Generator<Body, void, undefined> {

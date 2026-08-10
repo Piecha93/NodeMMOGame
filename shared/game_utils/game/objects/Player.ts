@@ -15,6 +15,8 @@ import {Enemy} from "./Enemy";
 import {Collision} from "../../physics/Collision";
 
 export class Player extends Actor {
+    public static EnableDebugActions: boolean = false;
+
     private static onlyServerActions: Set<INPUT_COMMAND> = new Set<INPUT_COMMAND>([
         INPUT_COMMAND.LEFT_MOUSE,
         INPUT_COMMAND.RIGHT_MOUSE,
@@ -32,8 +34,7 @@ export class Player extends Actor {
         this.velocity = 0.25;
 
         // this.weapon = new PortalGun();
-        // this.weapon = new MagicWand();
-        this.weapon = new ObjectsSpawner();
+        this.weapon = new MagicWand();
         this.isChunkActivateTriger = true;
         this.isChunkFullUpdateTriger = true;
     }
@@ -77,9 +78,13 @@ export class Player extends Actor {
             } else if (key == INPUT_COMMAND.MIDDLE_MOUSE) {
                 this.mouseClickAction(value, MouseKeys.MIDDLE);
             } else if (key == INPUT_COMMAND.SWITCH_WEAPON) {
-                this.switchWeaponAction(value);
+                if (Player.EnableDebugActions) {
+                    this.switchWeaponAction(value);
+                }
             } else if (key == INPUT_COMMAND.TEST) {
-                this.testAction(value);
+                if (Player.EnableDebugActions) {
+                    this.testAction(value);
+                }
             }
         });
     }
@@ -124,4 +129,3 @@ export class Player extends Actor {
         super.serverUpdate(delta);
     }
 }
-

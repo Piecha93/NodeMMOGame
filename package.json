@@ -9,9 +9,12 @@
     "npm": ">=10"
   },
   "scripts": {
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "clean": "node -e \"for (const path of ['dist', 'dist-test']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
     "check": "tsc --noEmit",
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
+    "test:compile": "node -e \"require('node:fs').rmSync('dist-test', { recursive: true, force: true })\" && tsc -p tsconfig.test.json",
+    "test:run": "cd dist-test && node --test",
+    "test": "npm run test:compile && npm run test:run",
     "start": "node dist/app.js"
   },
   "dependencies": {

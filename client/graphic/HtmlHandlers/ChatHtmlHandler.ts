@@ -69,7 +69,11 @@ export class ChatHtmlHandler {
     public append(sender: string, message: string) {
         let htmlMessageeSender: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
         htmlMessageeSender.id = "msg-sender";
-        htmlMessageeSender.innerHTML = "<b>" + sender + "</b>: ";
+
+        let htmlSenderName: HTMLElement = document.createElement("b");
+        htmlSenderName.textContent = sender;
+        htmlMessageeSender.appendChild(htmlSenderName);
+        htmlMessageeSender.appendChild(document.createTextNode(": "));
 
         let htmlMessageeContent: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
         htmlMessageeContent.id = "msg-content";
