@@ -16,6 +16,14 @@ This is the refactor baseline. It separates fixes made in the foundation change 
 
 Parser, input-handler, rectangular-grid, collision-exit, factory, rate-limit, heartbeat, debug-action and socket-handler lifecycle failures have automated regression tests. Real Socket.IO transport and browser DOM behavior still need end-to-end coverage.
 
+## Fixed in the instance-owned world change
+
+- Every `GameCore` now owns its object manager, factory, object map, ID sequence and lifecycle subscriptions. Server, client, renderer, input, weapons, chunks and serializers receive or follow that owned runtime instead of using global registry state.
+- Two cores can use the same generated ID without sharing an object or chunk. Destroying or disposing one core does not mutate the other, and this isolation has an automated regression test.
+- Duplicate explicit IDs cannot overwrite a live registry entry. Published IDs are immutable, explicit IDs must match their prefab prefix, generated IDs skip occupied values, failed create subscriptions roll back, and destroy cleanup continues through listener errors.
+- Default prefab wire prefixes are explicitly fixed at `A` through `H`, rather than being assigned implicitly by import order.
+- Chunk reload uses the owning core's factory. Server destroy tombstones use the object's recorded old chunk, are deduplicated, and are cancelled when reload restores the same wire ID.
+
 ## Critical before public deployment
 
 - Registered-user passwords use the historical plain-text schema. Registered login must remain disabled outside trusted development until hashes and a migration exist.
@@ -27,7 +35,8 @@ The current Tailscale guest deployment is a development preview, not a public pr
 
 ## Correctness and lifecycle
 
-- Global factory callbacks and registries make cleanup, isolated tests and multiple world instances unreliable.
+- `SharedConfig`, including client/server origin and chunk dimensions, remains process-wide. World object state is isolated, but two cores in one JavaScript realm are not independently configurable runtimes.
+- The prefab catalog remains global. Default mappings `A` through `H` are stable and duplicate-checked, but dynamically registering a prefab still affects every core in the process.
 - Disconnect/reconnect, duplicate readiness and heartbeat loss have defensive code plus socket-handler tests, but still need end-to-end coverage with real Socket.IO clients.
 - Per-client chunk visibility and movement between neighboring chunks need characterization tests before refactoring.
 - Most code compiles without strict null and indexed-access checking; strict diagnostics currently reveal a substantial backlog.
@@ -44,7 +53,7 @@ The current Tailscale guest deployment is a development preview, not a public pr
 
 - String fields use a one-byte length and one byte per JavaScript code unit. Non-ASCII text is corrupted and strings are effectively limited to 255 code units.
 - The wire format has no explicit version, bounds contract or compatibility negotiation.
-- Object IDs, property masks and prefab mappings rely on implicit sizes and registration order.
+- Object IDs and property masks rely on implicit sizes. Default prefab IDs are now explicit, but the global catalog has no versioned compatibility contract for additional mappings.
 
 UTF-8 is deliberately not patched in isolation: the generated browser client and server still share the same unversioned legacy wire format. It belongs in a coordinated, versioned protocol migration.
 

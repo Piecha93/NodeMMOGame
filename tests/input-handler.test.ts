@@ -3,9 +3,12 @@ import {test} from "node:test";
 
 import {ClientsInputSnapshotHandler} from "../server/ClientsInputSnapshotHandler";
 import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
-import {GameObject} from "../shared/game_utils/game/objects/GameObject";
+import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
+import {registerGameObjectPrefabs} from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
 import {Player} from "../shared/game_utils/game/objects/Player";
 import {InputSnapshot, InvalidInputSnapshotError} from "../shared/input/InputSnapshot";
+
+registerGameObjectPrefabs();
 
 class FakePlayer {
     readonly destroyListeners: Set<(destroyedObject: Player) => void> = new Set();
@@ -30,7 +33,8 @@ class FakePlayer {
 }
 
 test("input handler registers one destroy listener and removes the last snapshot", () => {
-    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
+    const objectsManager = new GameObjectsManager(() => {});
+    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler(objectsManager);
     const fakePlayer: FakePlayer = new FakePlayer();
     const player: Player = fakePlayer as unknown as Player;
 
@@ -48,7 +52,8 @@ test("input handler registers one destroy listener and removes the last snapshot
 });
 
 test("input handler rejects invalid data before mutating player state", () => {
-    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
+    const objectsManager = new GameObjectsManager(() => {});
+    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler(objectsManager);
     const fakePlayer: FakePlayer = new FakePlayer();
     const player: Player = fakePlayer as unknown as Player;
 
@@ -61,25 +66,24 @@ test("input handler rejects invalid data before mutating player state", () => {
 });
 
 test("input handler ignores duplicate and stale snapshot ids", () => {
-    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
+    const objectsManager = new GameObjectsManager(() => {});
+    const objectsFactory = new GameObjectsFactory(objectsManager);
+    const handler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler(objectsManager);
     const fakePlayer: FakePlayer = new FakePlayer();
     const player: Player = fakePlayer as unknown as Player;
     let interactions: number = 0;
-    const target = {
-        Transform: {},
-        interact: () => {
-            interactions++;
-        },
-    } as unknown as GameObject;
-    GameObjectsManager.gameObjectsMapById.set("A1", target);
+    const target = objectsFactory.instantiateWithPosition("Wall", [0, 0], undefined, "C1");
+    target.interact = () => {
+        interactions++;
+    };
 
     try {
         handler.setSnapshot(player, "10=2:1#5:0");
-        handler.setSnapshot(player, "10=2:-1#5:0#9:A1");
-        handler.setSnapshot(player, "9=2:-1#5:0#9:A1");
-        handler.setSnapshot(player, "11=2:0#5:1#9:A1");
+        handler.setSnapshot(player, "10=2:-1#5:0#9:C1");
+        handler.setSnapshot(player, "9=2:-1#5:0#9:C1");
+        handler.setSnapshot(player, "11=2:0#5:1#9:C1");
     } finally {
-        GameObjectsManager.gameObjectsMapById.delete("A1");
+        objectsManager.dispose();
     }
 
     assert.deepEqual(

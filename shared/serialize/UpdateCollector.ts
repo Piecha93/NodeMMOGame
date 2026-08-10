@@ -1,46 +1,53 @@
 import {GameObject} from "../game_utils/game/objects/GameObject";
-import {GameObjectsSubscriber} from "../game_utils/factory/GameObjectsSubscriber";
 import {SharedConfig} from "../SharedConfig";
 import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
+import {GameObjectsManager} from "../game_utils/factory/GameObjectsManager";
 import {Prefabs} from "../game_utils/factory/GameObjectPrefabs";
 import {ChunksManager} from "../chunks/ChunksManager";
 import {Chunk} from "../chunks/Chunk";
 
 
-export class UpdateCollector extends GameObjectsSubscriber {
+export class UpdateCollector {
     private static OBJECT_ID_BYTES_LEN = 5;
     private static DESTROY_OBJECTS_ID = 255;
 
-    private destroyedObjects: Map<Chunk, Array<string> >;
+    private destroyedObjects: Map<Chunk, Set<string>> = new Map<Chunk, Set<string>>();
     private chunksManager: ChunksManager;
+    private objectsManager: GameObjectsManager;
+    private objectsFactory: GameObjectsFactory;
 
-    constructor(chunksManager: ChunksManager) {
-        super();
-
+    constructor(
+        chunksManager: ChunksManager,
+        objectsManager: GameObjectsManager,
+        objectsFactory: GameObjectsFactory
+    ) {
         this.chunksManager = chunksManager;
+        this.objectsManager = objectsManager;
+        this.objectsFactory = objectsFactory;
 
-        if(SharedConfig.IS_SERVER) {
-            this.destroyedObjects = new Map<Chunk, Array<string>>();
-
-            let chunks: Chunk[][] = this.chunksManager.Chunks;
-            for(let i = 0; i < chunks.length; i++) {
-                for(let j = 0; j < chunks[i].length; j++) {
-                    this.destroyedObjects.set(chunks[i][j], []);
-                }
+        let chunks: Chunk[][] = this.chunksManager.Chunks;
+        for(let i = 0; i < chunks.length; i++) {
+            for(let j = 0; j < chunks[i].length; j++) {
+                this.destroyedObjects.set(chunks[i][j], new Set<string>());
             }
         }
     }
 
-    protected onObjectDestroy(gameObject: GameObject) {
-        let chunk: Chunk = this.chunksManager.getObjectChunk(gameObject);
-
+    public recordCreated(gameObject: GameObject) {
+        const chunk: Chunk = this.chunksManager.getObjectChunk(gameObject);
         if(!chunk) {
-            console.log("WARNING! destroyed object that doesn't belong to any chunk");
             return;
         }
 
         if(SharedConfig.IS_SERVER) {
-            this.destroyedObjects.get(chunk).push(gameObject.ID);
+            this.destroyedObjects.get(chunk).delete(gameObject.ID);
+        }
+        gameObject.forceCompleteUpdate();
+    }
+
+    public recordDestroyed(gameObject: GameObject, oldChunk: Chunk) {
+        if(SharedConfig.IS_SERVER && oldChunk) {
+            this.destroyedObjects.get(oldChunk).add(gameObject.ID);
         }
     }
 
@@ -57,7 +64,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
 
                     //no need to keep leavers if there is no one to send them
                     chunk.resetLeavers();
-                    this.destroyedObjects.set(chunk, []);
+                    this.destroyedObjects.get(chunk).clear();
                     continue;
                 }
 
@@ -85,7 +92,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                         return;
                     }
                     if(gameObject.IsDestroyed) {
-                        this.destroyedObjects.get(chunk).push(gameObject.ID);
+                        this.destroyedObjects.get(chunk).add(gameObject.ID);
                         return;
                     }
                     let neededSize = gameObject.calcNeededBufferSize(chunkCompleteUpdate);
@@ -98,13 +105,13 @@ export class UpdateCollector extends GameObjectsSubscriber {
 
                 let destrotObjectsOffset: number = neededBufferSize;
 
-                if (this.destroyedObjects.get(chunk).length > 0) {
-                    neededBufferSize += (this.destroyedObjects.get(chunk).length * 5) + 1;
+                if (this.destroyedObjects.get(chunk).size > 0) {
+                    neededBufferSize += (this.destroyedObjects.get(chunk).size * 5) + 1;
                 }
 
                 if (neededBufferSize == 0) {
                     chunk.resetLeavers();
-                    this.destroyedObjects.set(chunk, []);
+                    this.destroyedObjects.get(chunk).clear();
                     continue;
                 }
 
@@ -118,7 +125,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                     gameObject.serialize(updateBufferView, offset + 5, chunkCompleteUpdate);
                 });
 
-                if (this.destroyedObjects.get(chunk).length > 0) {
+                if (this.destroyedObjects.get(chunk).size > 0) {
                     updateBufferView.setUint8(destrotObjectsOffset++, UpdateCollector.DESTROY_OBJECTS_ID);
                     this.destroyedObjects.get(chunk).forEach((id: string) => {
                         updateBufferView.setUint8(destrotObjectsOffset, id.charCodeAt(0));
@@ -129,7 +136,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
                 }
 
                 chunk.resetLeavers();
-                this.destroyedObjects.set(chunk, []);
+                this.destroyedObjects.get(chunk).clear();
                 chunksUpdate.set(chunk, updateBuffer);
             }
         }
@@ -153,14 +160,20 @@ export class UpdateCollector extends GameObjectsSubscriber {
 
             offset += 5;
 
-            let gameObject: GameObject = this.getGameObject(id);
+            let gameObject: GameObject = this.objectsManager.get(id);
 
             if (gameObject == null) {
                 const prefabId = id[0];
-                gameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(prefabId), id, [updateBufferView, offset]);
+                const objectDataOffset: number = offset;
+                gameObject = this.objectsFactory.instantiate(
+                    Prefabs.IdToPrefabNames.get(prefabId),
+                    id,
+                    [updateBufferView, objectDataOffset]
+                );
+                offset = objectDataOffset + gameObject.calcNeededBufferSize(true);
+            } else {
+                offset = gameObject.deserialize(updateBufferView, offset);
             }
-
-            offset = gameObject.deserialize(updateBufferView, offset);
         }
     }
 
@@ -169,7 +182,7 @@ export class UpdateCollector extends GameObjectsSubscriber {
             let idToRemove: string = String.fromCharCode(updateBufferView.getUint8(offset)) +
                 updateBufferView.getUint32(offset + 1).toString();
 
-            let gameObject: GameObject = this.getGameObject(idToRemove);
+            let gameObject: GameObject = this.objectsManager.get(idToRemove);
             if (gameObject) {
                 gameObject.destroy();
             }

@@ -1,6 +1,5 @@
 import {Actor} from "../objects/Actor";
 import {Weapon} from "./Weapon";
-import {GameObjectsFactory} from "../../factory/ObjectsFactory";
 import {Portal} from "../objects/Portal";
 import {calcAngle} from "../../../utils/functions/CalcAngle";
 
@@ -15,7 +14,7 @@ export class PortalGun implements Weapon {
         if(this.portals[portalNum] != null) {
             this.portals[portalNum].destroy();
         }
-        this.portals[portalNum] = GameObjectsFactory.InstatiateWithPosition("Portal", user.Transform.Position) as Portal;
+        this.portals[portalNum] = user.ObjectsFactory.instantiateWithPosition("Portal", user.Transform.Position) as Portal;
 
         this.portals[portalNum].Transform.Rotation = angle;
 

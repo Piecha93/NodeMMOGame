@@ -4,20 +4,83 @@ import {PrefabOptions, Prefabs} from "./GameObjectPrefabs";
 import {GameObjectsManager} from "./GameObjectsManager";
 
 export class GameObjectsFactory {
-    constructor() {
-        throw new Error("Cannot instatiate this class");
+    private static readonly MAX_OBJECT_SEQUENCE = 0xFFFFFFFF;
+
+    private readonly manager: GameObjectsManager;
+    private nextId: number = 0;
+
+    constructor(manager: GameObjectsManager) {
+        this.manager = manager;
     }
 
-    private static NEXT_ID: number = 0;
+    public get Manager(): GameObjectsManager {
+        return this.manager;
+    }
 
-    static CreateCallbacks: Array<Function> = [];
-    static DestroyCallbacks: Array<Function> = [];
+    public instantiateWithPosition(
+        prefabName: string,
+        position: Vector2,
+        size?: Size,
+        id?: string,
+        data?: [DataView, number],
+    ): GameObject {
+        const gameObjectType = Prefabs.PrefabsNameToTypes.get(prefabName);
+        const prefabId = Prefabs.PrefabsNameToId.get(prefabName);
+        if(!gameObjectType || !prefabId) {
+            throw new Error("Unknown prefab: " + prefabName);
+        }
 
-    static setOptions(object: Object, prefabOptions: PrefabOptions) {
-        for (let option in prefabOptions) {
-            if(option == "prefabSize") continue;
+        if(!position || position.length !== 2 || !Number.isFinite(position[0]) || !Number.isFinite(position[1])) {
+            throw new Error("Invalid position for prefab: " + prefabName);
+        }
 
-            if(!object.hasOwnProperty(option)) {
+        const objectId = id === undefined
+            ? this.allocateId(prefabId)
+            : this.validateExplicitId(prefabName, prefabId, id);
+
+        if(this.manager.get(objectId)) {
+            throw new Error(`Duplicate game object id: ${objectId}`);
+        }
+
+        const prefabOptions: PrefabOptions | undefined = Prefabs.PrefabsOptions.get(prefabName);
+        if(!size && prefabOptions?.prefabSize) {
+            size = prefabOptions.prefabSize;
+        }
+
+        const gameObject = new gameObjectType(new Transform(position, size));
+        if(prefabOptions) {
+            this.setOptions(gameObject, prefabOptions);
+        }
+
+        gameObject.ID = objectId;
+
+        if(data) {
+            gameObject.deserialize(data[0], data[1]);
+        }
+
+        gameObject.updateColliders();
+        return this.registerWithOwner(gameObject);
+    }
+
+    public instantiate(prefabName: string, id?: string, data?: [DataView, number]): GameObject {
+        return this.instantiateWithPosition(prefabName, [0, 0], undefined, id, data);
+    }
+
+    public instantiateManually(gameObject: GameObject): GameObject {
+        if(!gameObject.ID) {
+            throw new Error("Cannot instantiate a game object manually without an id");
+        }
+
+        return this.registerWithOwner(gameObject);
+    }
+
+    private setOptions(object: GameObject, prefabOptions: PrefabOptions): void {
+        for(const option in prefabOptions) {
+            if(option === "prefabSize") {
+                continue;
+            }
+
+            if(!Object.prototype.hasOwnProperty.call(object, option)) {
                 throw new Error(object.constructor.name + " does not have property " + option);
             }
 
@@ -25,76 +88,42 @@ export class GameObjectsFactory {
         }
     }
 
-    static InstatiateWithPosition(prefabName: string, position: Vector2, size?: Size, id?: string, data?: [DataView, number]): GameObject {
-        let gameObject: GameObject;
-
-        let gameObjectType = Prefabs.PrefabsNameToTypes.get(prefabName);
-        if(!gameObjectType) {
-            throw new Error("Unknown prefab: " + prefabName);
+    private registerWithOwner(gameObject: GameObject): GameObject {
+        gameObject.attachObjectsFactory(this);
+        try {
+            return this.manager.register(gameObject);
+        } catch(error) {
+            gameObject.detachObjectsFactory(this);
+            throw error;
         }
-
-        if(!position || position.length != 2 || !Number.isFinite(position[0]) || !Number.isFinite(position[1])) {
-            throw new Error("Invalid position for prefab: " + prefabName);
-        }
-
-        let prefabOptions: PrefabOptions = Prefabs.PrefabsOptions.get(prefabName);
-
-        if(!size && prefabOptions && prefabOptions.prefabSize) {
-            size = prefabOptions.prefabSize;
-        }
-
-        let transform: Transform =  new Transform(position, size);
-
-        gameObject = new gameObjectType(transform);
-
-        if(prefabOptions) {
-            GameObjectsFactory.setOptions(gameObject, prefabOptions);
-        }
-
-        if(id) {
-            gameObject.ID = id;
-        } else {
-            gameObject.ID = Prefabs.PrefabsNameToId.get(prefabName) + (GameObjectsFactory.NEXT_ID++).toString()
-        }
-
-        if(data) {
-            gameObject.deserialize(data[0], data[1]);
-        }
-
-        gameObject.updateColliders();
-
-        GameObjectsFactory.AddToListeners(gameObject);
-
-        return gameObject;
     }
 
-    static Instatiate(prefabName: string, id?: string, data?: [DataView, number]): GameObject {
-        return GameObjectsFactory.InstatiateWithPosition(prefabName, [0, 0], null, id, data);
-    }
-
-    static InstatiateManually(gameObject: GameObject) {
-        GameObjectsFactory.AddToListeners(gameObject);
-
-        return gameObject;
-    }
-
-    private static AddToListeners(gameObject: GameObject) {
-        GameObjectsManager.gameObjectsMapById.set(gameObject.ID, gameObject);
-
-        GameObjectsFactory.DestroyCallbacks.forEach((callback: Function) => {
-            gameObject.addDestroyListener(callback);
-        });
-
-        gameObject.addDestroyListener(() => {
-            GameObjectsManager.gameObjectsMapById.delete(gameObject.ID);
-        });
-
-        GameObjectsFactory.CreateCallbacks.forEach((callback: Function) => {
-            if(gameObject.IsDestroyed) {
-                //do not call create callbacks if game object is destroyed during creation!
-                return;
+    private allocateId(prefabId: string): string {
+        while(this.nextId <= GameObjectsFactory.MAX_OBJECT_SEQUENCE) {
+            const id = prefabId + (this.nextId++).toString();
+            if(!this.manager.get(id)) {
+                return id;
             }
-            callback(gameObject);
-        });
+        }
+
+        throw new Error("Game object id space is exhausted");
+    }
+
+    private validateExplicitId(prefabName: string, prefabId: string, id: string): string {
+        if(id[0] !== prefabId) {
+            throw new Error(`Game object id '${id}' does not match prefab '${prefabName}'`);
+        }
+
+        const sequenceText = id.slice(1);
+        if(!/^(0|[1-9]\d*)$/.test(sequenceText)) {
+            throw new Error(`Invalid game object id: ${id}`);
+        }
+
+        const sequence = Number(sequenceText);
+        if(!Number.isSafeInteger(sequence) || sequence > GameObjectsFactory.MAX_OBJECT_SEQUENCE) {
+            throw new Error(`Invalid game object id: ${id}`);
+        }
+
+        return id;
     }
 }

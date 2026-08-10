@@ -1,6 +1,7 @@
 import {autoDetectRenderer, Container, Point} from "pixi.js";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {GameObjectsSubscriber} from "../../shared/game_utils/factory/GameObjectsSubscriber";
+import {GameObjectsManager} from "../../shared/game_utils/factory/GameObjectsManager";
 import {GameObjectRender} from "./GameObjectRender";
 import {PlayerRender} from "./PlayerRender";
 import {Camera} from "./Camera";
@@ -26,12 +27,13 @@ export class Renderer extends GameObjectsSubscriber {
     private map: TileMap;
     private hud: HUD;
     private resourcesLoader: ResourcesLoader;
+    private disposed: boolean = false;
 
     static WIDTH: number = 1024;
     static HEIGHT: number = 576;
 
-    private constructor(renderer: PixiRenderer) {
-        super();
+    private constructor(renderer: PixiRenderer, objectsManager: GameObjectsManager) {
+        super(objectsManager, false);
         this.renderer = renderer;
         this.stage = new Container();
         this.rootContainer = new Container();
@@ -43,12 +45,9 @@ export class Renderer extends GameObjectsSubscriber {
         this.renderObjects = new Map<GameObject, GameObjectRender>();
 
         this.resourcesLoader = ResourcesLoader.Instance;
-        RESOURCE_MANIFEST.forEach(({name, path, type}) => {
-            this.resourcesLoader.registerResource(name, path, type);
-        });
     }
 
-    public static async create(): Promise<Renderer> {
+    public static async create(objectsManager: GameObjectsManager): Promise<Renderer> {
         const canvas = document.getElementById("game-canvas");
         if (!(canvas instanceof HTMLCanvasElement)) {
             throw new Error("Cannot initialize PixiJS: #game-canvas is missing");
@@ -64,16 +63,42 @@ export class Renderer extends GameObjectsSubscriber {
             resolution: 1
         });
 
-        const renderer = new Renderer(pixiRenderer);
-        await renderer.initialize();
-        return renderer;
+        let renderer: Renderer | undefined;
+        try {
+            renderer = new Renderer(pixiRenderer, objectsManager);
+            await renderer.initialize();
+            renderer.subscribeToManager();
+            return renderer;
+        } catch(error) {
+            if(renderer) {
+                renderer.dispose();
+            } else {
+                pixiRenderer.destroy();
+            }
+            throw error;
+        }
     }
 
     private async initialize(): Promise<void> {
+        RESOURCE_MANIFEST.forEach(({name, path, type}) => {
+            this.resourcesLoader.registerResource(name, path, type);
+        });
         await this.resourcesLoader.load();
 
         this.map = new TileMap();
         this.rootContainer.addChild(this.map);
+    }
+
+    public dispose(): void {
+        if(this.disposed) {
+            return;
+        }
+        this.disposed = true;
+
+        super.dispose();
+        this.renderObjects.clear();
+        this.stage.destroy({children: true});
+        this.renderer.destroy();
     }
 
     public createHUD(): void {

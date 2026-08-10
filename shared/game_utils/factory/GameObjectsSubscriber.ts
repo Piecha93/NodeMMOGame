@@ -1,27 +1,47 @@
 import {GameObject} from "../game/objects/GameObject";
-import {GameObjectsFactory} from "./ObjectsFactory"
 import {GameObjectsManager} from "./GameObjectsManager";
 
 export abstract class GameObjectsSubscriber {
+    private readonly manager: GameObjectsManager;
+    private unsubscribeFromManager: (() => void) | null = null;
 
-    protected constructor() {
-        GameObjectsFactory.CreateCallbacks.push(this.onObjectCreate.bind(this));
-        GameObjectsFactory.DestroyCallbacks.push(this.onObjectDestroy.bind(this));
+    protected constructor(manager: GameObjectsManager, subscribeImmediately: boolean = true) {
+        this.manager = manager;
+        if(subscribeImmediately) {
+            this.subscribeToManager();
+        }
     }
 
-    protected onObjectCreate(gameObject: GameObject) {
-
+    protected subscribeToManager(): void {
+        if(this.unsubscribeFromManager) {
+            return;
+        }
+        this.unsubscribeFromManager = this.manager.subscribe({
+            created: (gameObject: GameObject) => this.onObjectCreate(gameObject),
+            destroyed: (gameObject: GameObject) => this.onObjectDestroy(gameObject),
+        });
     }
 
-    protected onObjectDestroy(gameObject: GameObject) {
-
+    protected onObjectCreate(_gameObject: GameObject): void {
     }
 
-    get GameObjectsMapById() {
-        return GameObjectsManager.gameObjectsMapById;
+    protected onObjectDestroy(_gameObject: GameObject): void {
     }
 
-    public getGameObject(id: string) {
-        return GameObjectsManager.GetGameObjectById(id);
+    public dispose(): void {
+        this.unsubscribeFromManager?.();
+        this.unsubscribeFromManager = null;
+    }
+
+    protected get GameObjectsMapById(): ReadonlyMap<string, GameObject> {
+        return this.manager.ObjectsById;
+    }
+
+    protected get ObjectsManager(): GameObjectsManager {
+        return this.manager;
+    }
+
+    public getGameObject(id: string): GameObject | undefined {
+        return this.manager.get(id);
     }
 }

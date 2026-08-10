@@ -5,7 +5,7 @@ import {Server, Socket} from "socket.io";
 import {GameServer} from "../../server/GameServer";
 import {ServerClient} from "../../server/ServerClient";
 import {SocketMsgs} from "../../shared/net/SocketMsgs";
-import {GameObjectsManager} from "../../shared/game_utils/factory/GameObjectsManager";
+import {GameCore} from "../../shared/GameCore";
 
 type SocketHandler = (...args: unknown[]) => void;
 
@@ -75,6 +75,7 @@ interface GameServerInternals {
     userIdToSocketMap: Map<string, Socket>;
     lastChunkSent: Map<string, unknown>;
     lastDisconnectCheck: number;
+    core: GameCore;
 }
 
 function createTestServer(): {server: GameServer; internals: GameServerInternals} {
@@ -91,7 +92,8 @@ function playerIdFrom(socket: FakeSocket): string {
 test("socket/game-server: ready is idempotent and malformed input stays inside the handler", () => {
     const {internals} = createTestServer();
     const socket = new FakeSocket("Guest ready-test");
-    const initialObjectIds = new Set(GameObjectsManager.gameObjectsMapById.keys());
+    const objectsManager = internals.core.ObjectsManager;
+    const initialObjectIds = new Set(objectsManager.ObjectsById.keys());
 
     internals.onConnection(socket as unknown as Socket);
 
@@ -104,18 +106,19 @@ test("socket/game-server: ready is idempotent and malformed input stays inside t
     const playerId = playerIdFrom(socket);
     assert.equal(socket.emittedCount(SocketMsgs.INITIALIZE_GAME), 1);
     assert.equal(socket.emittedCount(SocketMsgs.FIRST_UPDATE_GAME), 1);
-    assert.ok(GameObjectsManager.GetGameObjectById(playerId));
+    assert.ok(objectsManager.get(playerId));
     assert.doesNotThrow(() => socket.trigger(SocketMsgs.INPUT_SNAPSHOT, "malformed"));
 
     socket.disconnect();
-    assert.equal(GameObjectsManager.GetGameObjectById(playerId), undefined);
-    assert.deepEqual(new Set(GameObjectsManager.gameObjectsMapById.keys()), initialObjectIds);
+    assert.equal(objectsManager.get(playerId), undefined);
+    assert.deepEqual(new Set(objectsManager.ObjectsById.keys()), initialObjectIds);
 });
 
 test("socket/game-server: a duplicate session closes and fully removes the old client", () => {
     const {internals} = createTestServer();
     const firstSocket = new FakeSocket("Guest duplicate-test");
     const secondSocket = new FakeSocket("Guest duplicate-test");
+    const objectsManager = internals.core.ObjectsManager;
 
     internals.onConnection(firstSocket as unknown as Socket);
     firstSocket.trigger(SocketMsgs.CLIENT_READY);
@@ -125,7 +128,7 @@ test("socket/game-server: a duplicate session closes and fully removes the old c
     internals.onConnection(secondSocket as unknown as Socket);
 
     assert.equal(firstSocket.connected, false);
-    assert.equal(GameObjectsManager.GetGameObjectById(oldPlayerId), undefined);
+    assert.equal(objectsManager.get(oldPlayerId), undefined);
     assert.equal(internals.lastChunkSent.has(oldPlayerId), false);
     assert.equal(internals.clients.size, 1);
     assert.equal(internals.userIdToSocketMap.get("Guest duplicate-test"), secondSocket as unknown as Socket);
@@ -138,6 +141,7 @@ test("socket/game-server: a duplicate session closes and fully removes the old c
 test("socket/game-server: timeout removes socket mappings, chunk state and player", () => {
     const {internals} = createTestServer();
     const socket = new FakeSocket("Guest timeout-test");
+    const objectsManager = internals.core.ObjectsManager;
 
     internals.onConnection(socket as unknown as Socket);
     socket.trigger(SocketMsgs.CLIENT_READY);
@@ -154,7 +158,7 @@ test("socket/game-server: timeout removes socket mappings, chunk state and playe
     assert.equal(internals.clients.size, 0);
     assert.equal(internals.userIdToSocketMap.size, 0);
     assert.equal(internals.lastChunkSent.has(playerId), false);
-    assert.equal(GameObjectsManager.GetGameObjectById(playerId), undefined);
+    assert.equal(objectsManager.get(playerId), undefined);
 });
 
 test("socket/game-server: heartbeat and chat floods are capped per client", () => {

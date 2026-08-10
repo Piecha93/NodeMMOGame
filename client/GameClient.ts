@@ -15,7 +15,6 @@ import {Transform} from "../shared/game_utils/physics/Transform";
 import {AverageCounter} from "../shared/utils/AverageCounter";
 import {Chunk} from "../shared/chunks/Chunk";
 import {GameCore} from "../shared/GameCore";
-import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {Reconciliation} from "./Reconciliation";
 import {TicksCounter} from "../shared/utils/TicksCounter";
 import {normalizeBinaryPayload} from "./net/BinaryPayload";
@@ -42,6 +41,7 @@ export class GameClient {
     private coreChunk: Chunk;
 
     constructor() {
+        this.core = new GameCore();
         this.connect();
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
@@ -52,7 +52,7 @@ export class GameClient {
 
     private async initializeRenderer(): Promise<void> {
         try {
-            this.renderer = await Renderer.create();
+            this.renderer = await Renderer.create(this.core.ObjectsManager);
             this.renderer.createHUD();
             this.socket.emit(SocketMsgs.CLIENT_READY);
         } catch (error) {
@@ -121,9 +121,8 @@ export class GameClient {
         this.localPlayerId = data['id'];
 
         this.reconciliation = new Reconciliation();
-        this.core = new GameCore();
 
-        this.cursor = new Cursor(new Transform([1,1],1));//GameObjectsFactory.InstatiateManually(new Cursor(new Transform([1,1],1))) as Cursor;
+        this.cursor = new Cursor(new Transform([1,1],1));
         this.core.CollisionsSystem.insertObject(this.cursor);
 
         this.heartBeatSender.sendHeartBeat();
@@ -141,7 +140,7 @@ export class GameClient {
     private onFirstUpdate(data: unknown) {
         this.onServerUpdate(data);
 
-        this.localPlayer = GameObjectsManager.GetGameObjectById(this.localPlayerId) as Player;
+        this.localPlayer = this.core.ObjectsManager.get(this.localPlayerId) as Player;
         if (!this.localPlayer) {
             console.error("The initial server update did not contain the local player");
             return;
@@ -188,7 +187,7 @@ export class GameClient {
         let deltaAvg: number = this.fpsAvgCounter.calculate(delta);
 
         DebugWindowHtmlHandler.Instance.Fps = (1000 / deltaAvg).toFixed(2).toString();
-        DebugWindowHtmlHandler.Instance.GameObjectCounter = GameObjectsManager.gameObjectsMapById.size.toString();
+        DebugWindowHtmlHandler.Instance.GameObjectCounter = this.core.ObjectsManager.ObjectsById.size.toString();
         DebugWindowHtmlHandler.Instance.Position = "x: " + this.localPlayer.Transform.X.toFixed(2) +
             " y: " + this.localPlayer.Transform.Y.toFixed(2);
     }

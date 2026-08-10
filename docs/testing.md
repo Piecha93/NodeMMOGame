@@ -37,6 +37,10 @@ The initial suite verifies:
 - snapshot handlers ignore stale IDs, register one cleanup listener and remove state when a player is destroyed;
 - collision-exit data identifies the pair that stopped colliding, and polygon colliders follow transform rotation;
 - invalid prefab names and non-finite spawn positions fail with controlled errors;
+- instance registries own separate maps and generated-ID sequences, reject duplicate or prefab-mismatched IDs, roll back failed creates and complete destroy cleanup even when listeners fail;
+- two `GameCore` instances can both own `C0` in separate maps and chunks; destroying or disposing one core leaves the other core and its next ID untouched;
+- a destroyed object is removed from its recorded old chunk and its tombstone is attached to exactly that chunk, even if its transform changed before destruction;
+- chunk deactivate/reload preserves explicit wire IDs and deserializes each object once through the owning factory;
 - server-client lifecycle state and independent rate-limit windows behave deterministically;
 - the object spawner stays disabled until debug actions are explicitly enabled;
 - readiness is idempotent, malformed pre-ready input is contained, and duplicate-session or timeout cleanup removes client state;
@@ -91,13 +95,14 @@ Reference material:
 Before moving domain code, add characterization tests for:
 
 1. repeat the lifecycle scenarios through real Socket.IO client/server transports rather than socket doubles;
-2. registry cleanup across many reconnecting client sessions;
+2. registry and core disposal across many reconnecting client sessions;
 3. collision enter and stay behavior in addition to the exit regression;
 4. object movement between chunks and per-client visibility;
 5. complete and delta serialization using golden binary fixtures;
 6. fuzz/property coverage for every accepted transport payload;
-7. two-client state synchronization and automation of the manual browser guest-login smoke test.
-8. a deterministic PixiJS scene fixture with pinned Chromium screenshots and reviewable pixel-diff artifacts.
+7. two-client state synchronization and automation of the manual browser guest-login smoke test;
+8. a deterministic PixiJS scene fixture with pinned Chromium screenshots and reviewable pixel-diff artifacts;
+9. injected configuration and prefab catalogs so differently configured worlds can be tested without mutating `SharedConfig` or process-wide prefab state.
 
 Each bug fix should begin with a failing reproduction. A refactor is complete only when existing tests remain green and the changed behavior has a focused regression test.
 

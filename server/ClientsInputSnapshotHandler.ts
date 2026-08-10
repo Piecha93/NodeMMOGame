@@ -7,8 +7,10 @@ import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManage
 export class ClientsInputSnapshotHandler {
     private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
     private trackedPlayers: WeakSet<Player> = new WeakSet<Player>();
+    private objectsManager: GameObjectsManager;
 
-    constructor() {
+    constructor(objectsManager: GameObjectsManager) {
+        this.objectsManager = objectsManager;
     }
 
     public setSnapshot(player: Player, snapshotData: string) {
@@ -32,7 +34,7 @@ export class ClientsInputSnapshotHandler {
 
         if(snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
             let gameObject: GameObject =
-                GameObjectsManager.GetGameObjectById(snapshot.Commands.get(INPUT_COMMAND.INTERACT)) as GameObject;
+                this.objectsManager.get(snapshot.Commands.get(INPUT_COMMAND.INTERACT)) as GameObject;
 
             if(gameObject && player.Transform.distanceTo(gameObject.Transform) < 75) {
                 gameObject.interact();

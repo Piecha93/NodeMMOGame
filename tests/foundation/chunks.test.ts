@@ -3,6 +3,7 @@ import {test} from "node:test";
 
 import {ChunksManager} from "../../shared/chunks/ChunksManager";
 import {GameObjectsFactory} from "../../shared/game_utils/factory/ObjectsFactory";
+import {GameObjectsManager} from "../../shared/game_utils/factory/GameObjectsManager";
 import {SharedConfig} from "../../shared/SharedConfig";
 
 test("foundation/chunks: rectangular grids expose every configured chunk", () => {
@@ -11,15 +12,14 @@ test("foundation/chunks: rectangular grids expose every configured chunk", () =>
         numOfChunksY: SharedConfig.numOfChunksY,
         chunkSize: SharedConfig.chunkSize,
     };
-    const originalCreateCallbacks = GameObjectsFactory.CreateCallbacks.length;
-    const originalDestroyCallbacks = GameObjectsFactory.DestroyCallbacks.length;
-
     try {
         SharedConfig.numOfChunksX = 2;
         SharedConfig.numOfChunksY = 3;
         SharedConfig.chunkSize = 100;
 
-        const manager = new ChunksManager();
+        const objectsManager = new GameObjectsManager(() => {});
+        const objectsFactory = new GameObjectsFactory(objectsManager);
+        const manager = new ChunksManager(objectsManager, objectsFactory);
         const chunks = Array.from(manager.ChunksIterator());
 
         assert.equal(manager.Chunks.length, 2);
@@ -43,7 +43,5 @@ test("foundation/chunks: rectangular grids expose every configured chunk", () =>
         SharedConfig.numOfChunksX = originalConfig.numOfChunksX;
         SharedConfig.numOfChunksY = originalConfig.numOfChunksY;
         SharedConfig.chunkSize = originalConfig.chunkSize;
-        GameObjectsFactory.CreateCallbacks.splice(originalCreateCallbacks);
-        GameObjectsFactory.DestroyCallbacks.splice(originalDestroyCallbacks);
     }
 });

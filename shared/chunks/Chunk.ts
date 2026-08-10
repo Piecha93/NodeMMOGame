@@ -1,6 +1,7 @@
 import {GameObject} from "../game_utils/game/objects/GameObject";
 import {ObjectsSerializer} from "../serialize/ObjectsSerializer";
 import {SharedConfig} from "../SharedConfig";
+import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
 
 export class Chunk {
     x: number;
@@ -19,11 +20,13 @@ export class Chunk {
 
     private dumpedBuffer: ArrayBuffer = null;
     private isNextUpdateComplete: boolean = false;
+    private objectsFactory: GameObjectsFactory;
 
-    constructor(x: number, y: number, size: number) {
+    constructor(x: number, y: number, size: number, objectsFactory: GameObjectsFactory) {
         this.x = x;
         this.y = y;
         this.size = size;
+        this.objectsFactory = objectsFactory;
 
         this.objects = [];
         this.neighbors = [];
@@ -132,7 +135,7 @@ export class Chunk {
 
     public reload() {
         if (this.dumpedBuffer) {
-            ObjectsSerializer.deserializeChunk(this.dumpedBuffer);
+            ObjectsSerializer.deserializeChunk(this.dumpedBuffer, this.objectsFactory);
         }
 
         // console.log("load chunk " + this.Position + " buff " + this.dumpedBuffer);

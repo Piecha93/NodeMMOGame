@@ -6,7 +6,6 @@ import {InputSnapshot, InvalidInputSnapshotError} from "../shared/input/InputSna
 import {GameObject} from "../shared/game_utils/game/objects/GameObject";
 import {ServerConfig} from "./ServerConfig";
 import {SocketMsgs} from "../shared/net/SocketMsgs";
-import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
 import {Database, IUserModel} from "./database/Database";
 import {Enemy} from "../shared/game_utils/game/objects/Enemy";
 import {Item} from "../shared/game_utils/game/objects/Item";
@@ -14,7 +13,6 @@ import {Chunk} from "../shared/chunks/Chunk";
 import {SharedConfig} from "../shared/SharedConfig";
 import {ObjectsSerializer} from "../shared/serialize/ObjectsSerializer";
 import {GameCore} from "../shared/GameCore";
-import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
 import {MagicWand} from "../shared/game_utils/game/weapons/MagicWand";
 import {ObjectsSpawner} from "../shared/game_utils/game/weapons/ObjectsSpawner";
 import {ClientsInputSnapshotHandler} from "./ClientsInputSnapshotHandler";
@@ -32,11 +30,13 @@ export class GameServer {
 
 
     private lastChunkSent: Map<string, Chunk> = new Map<string, Chunk>(); //TODO move this somewhere else
-    private clientsInputSnapshotHandler: ClientsInputSnapshotHandler = new ClientsInputSnapshotHandler();
+    private clientsInputSnapshotHandler: ClientsInputSnapshotHandler;
     private lastDisconnectCheck: number = 0;
 
     constructor(sockets: Server) {
         this.sockets = sockets;
+        this.core = new GameCore();
+        this.clientsInputSnapshotHandler = new ClientsInputSnapshotHandler(this.core.ObjectsManager);
     }
 
     public start() {
@@ -46,7 +46,6 @@ export class GameServer {
 
     private startGame() {
         Player.EnableDebugActions = ServerConfig.ENABLE_DEBUG_COMMANDS;
-        this.core = new GameCore();
 
         this.initTestObjects();
 
@@ -138,7 +137,7 @@ export class GameServer {
                     return;
                 }
                 serverClient.Name = this.sanitizePlayerName(user.username);
-                let player: Player = GameObjectsManager.GetGameObjectById(serverClient.PlayerId) as Player;
+                let player: Player = this.core.ObjectsManager.get(serverClient.PlayerId) as Player;
                 if(player) {
                     player.Name = serverClient.Name;
                 }
@@ -150,7 +149,7 @@ export class GameServer {
                 return;
             }
 
-            let player: Player = GameObjectsFactory.InstatiateWithPosition("DefaultPlayer",
+            let player: Player = this.core.ObjectsFactory.instantiateWithPosition("DefaultPlayer",
                 [
                     this.getRandomInsideMap(SharedConfig.numOfChunksX),
                     this.getRandomInsideMap(SharedConfig.numOfChunksY)
@@ -303,7 +302,7 @@ export class GameServer {
         }
         if (playerId) {
             this.lastChunkSent.delete(playerId);
-            GameObjectsManager.DestroyGameObjectById(playerId);
+            this.core.ObjectsManager.destroy(playerId);
         }
 
         client.IsReady = false;
@@ -332,7 +331,7 @@ export class GameServer {
             return null;
         }
 
-        return GameObjectsManager.GetGameObjectById(client.PlayerId) as Player || null;
+        return this.core.ObjectsManager.get(client.PlayerId) as Player || null;
     }
 
     private sanitizePlayerName(name: unknown): string {
@@ -358,7 +357,7 @@ export class GameServer {
         let o: GameObject;
 
         for (let i = 0; i < 1000; i++) {
-            o = GameObjectsFactory.InstatiateWithPosition("Wall",
+            o = this.core.ObjectsFactory.instantiateWithPosition("Wall",
                 [
                     this.getRandomInsideMap(SharedConfig.numOfChunksX),
                     this.getRandomInsideMap(SharedConfig.numOfChunksY)
@@ -372,7 +371,7 @@ export class GameServer {
         let enemyCounter = 0;
         let spawnEnemy: Function = () => {
             enemyCounter++;
-            let e: Enemy = GameObjectsFactory.InstatiateWithPosition("Michau",
+            let e: Enemy = this.core.ObjectsFactory.instantiateWithPosition("Michau",
                 [
                     this.getRandomInsideMap(SharedConfig.numOfChunksX),
                     this.getRandomInsideMap(SharedConfig.numOfChunksY)
@@ -390,7 +389,7 @@ export class GameServer {
         }
 
         let spawnItem: Function = () => {
-            let i: Item = GameObjectsFactory.InstatiateWithPosition("HpPotion",
+            let i: Item = this.core.ObjectsFactory.instantiateWithPosition("HpPotion",
                 [
                     this.getRandomInsideMap(SharedConfig.numOfChunksX),
                     this.getRandomInsideMap(SharedConfig.numOfChunksY)

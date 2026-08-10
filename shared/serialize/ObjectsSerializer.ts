@@ -46,7 +46,7 @@ export class ObjectsSerializer {
         return updateBuffer;
     }
 
-    static deserializeChunk(updateBuffer: ArrayBuffer) {
+    static deserializeChunk(updateBuffer: ArrayBuffer, objectsFactory: GameObjectsFactory) {
         let updateBufferView: DataView = new DataView(updateBuffer);
         let offset: number = 0;
 
@@ -57,7 +57,7 @@ export class ObjectsSerializer {
             offset += 5;
 
             const objectDataOffset: number = offset;
-            let gameObject: GameObject = GameObjectsFactory.Instatiate(Prefabs.IdToPrefabNames.get(id[0]), id,
+            let gameObject: GameObject = objectsFactory.instantiate(Prefabs.IdToPrefabNames.get(id[0]), id,
                 [updateBufferView, objectDataOffset]);
 
             // Chunk snapshots always contain complete objects. The factory has already
