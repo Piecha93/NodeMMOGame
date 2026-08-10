@@ -25,6 +25,7 @@
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "mongoose": "^9.9.1",
+    "pixi.js": "^8.19.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "socket.io-msgpack-parser": "^3.0.2"
@@ -34,7 +35,6 @@
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
     "@types/node": "^24.0.0",
-    "@types/pixi.js": "^4.4.4",
     "typescript": "5.9.3",
     "vite": "^8.2.1"
   }

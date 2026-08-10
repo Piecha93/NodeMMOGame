@@ -35,8 +35,9 @@ The current Tailscale guest deployment is a development preview, not a public pr
 ## Build and client
 
 - `npm run build` now creates `dist/public/game.js` from the current `client/Launcher.ts` source, and Express exposes that artifact at `/build/game.js`.
-- A build regression checks the artifact, its source map and the browser view, so CI fails if the executable client falls out of sync with current source.
-- Rendering still depends on the checked-in PixiJS 4 compatibility script. Its API migration is the next client stage and needs browser smoke plus visual-regression coverage.
+- A build regression checks the artifact, its source map, the npm PixiJS source and the browser view, so CI fails if the executable client falls out of sync with current source or falls back to the removed browser global.
+- Rendering uses PixiJS 8.19.0 and explicitly targets WebGL. The checked-in PixiJS 4 build and separate script tag have been removed.
+- Asset manifest and animation-frame classification are deterministic and can be covered without pretending that Node.js exercises a GPU. Pixel output does not yet have an automated, pinned-browser baseline; follow the manual renderer comparison in [Testing](testing.md) for renderer changes.
 - The generated client and server now use matching Socket.IO 4 packages, so Engine.IO 3 compatibility is no longer enabled. The manual guest-login smoke path covers local and proxied Socket.IO initialization; automating it remains open.
 
 ## Protocol
@@ -49,7 +50,7 @@ UTF-8 is deliberately not patched in isolation: the generated browser client and
 
 ## Quality and documentation gaps
 
-- The foundation suite covers only a small part of the simulation; real Socket.IO, browser, database and load tests remain to be added.
+- The foundation suite covers only a small part of the simulation; real Socket.IO, browser, visual-regression, database and load tests remain to be added.
 - Linting, formatting, coverage thresholds and a strict-TypeScript ratchet are not yet configured.
 - Gameplay controls, protocol details, deployment operations and security procedures still need dedicated documentation.
 

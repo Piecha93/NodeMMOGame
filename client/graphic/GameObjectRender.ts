@@ -1,9 +1,8 @@
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-
+import {Container} from "pixi.js";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {Transform} from "../../shared/game_utils/physics/Transform";
 
-export abstract class GameObjectRender extends PIXI.Container {
+export abstract class GameObjectRender extends Container {
     protected objectRef: GameObject;
 
     private dt: number = 0.25;
@@ -33,7 +32,7 @@ export abstract class GameObjectRender extends PIXI.Container {
         this.rotation = this.objectRef.Transform.Rotation;
     }
 
-    public destroy() {
-        super.destroy();
+    public destroy(): void {
+        super.destroy({children: true});
     }
 }

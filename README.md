@@ -24,7 +24,7 @@ Open <http://127.0.0.1:3000> and select **Play as guest**.
 
 The server listens on `127.0.0.1:3000` by default. Override it with the `HOST` and `PORT` environment variables. Set `SESSION_SECRET` to a persistent random value for a long-running deployment.
 
-`npm run build` compiles the server and creates the browser client from `client/Launcher.ts` in `dist/public/game.js`. The application serves that generated module at `/build/game.js`, so a clean checkout does not depend on a prebuilt client bundle.
+`npm run build` compiles the server and creates the browser client from `client/Launcher.ts` in `dist/public/game.js`. The bundle includes PixiJS 8.19.0 from npm, and the application serves it at `/build/game.js`, so a clean checkout does not depend on checked-in browser libraries or a prebuilt client bundle.
 
 Historical `fire`/`spawner` chat commands and debug weapon actions are disabled by default. Set `ENABLE_DEBUG_COMMANDS=true` only in a trusted development environment when those diagnostics are needed.
 
@@ -49,4 +49,5 @@ CI runs the TypeScript check, application build, Node.js test suite and a high-s
 ## Known modernization boundaries
 
 - `detect-collisions` is intentionally pinned to 2.7.0. Current major versions expose a substantially different API, so that upgrade belongs with collision-behaviour tests and the planned physics refactor.
-- The browser pipeline is reproducible, but rendering still uses the checked-in PixiJS 4 compatibility build. Migrate PixiJS separately, with visual regression coverage, instead of combining renderer changes with the bundler migration.
+- Rendering uses PixiJS 8.19.0 with its WebGL renderer. Current PixiJS 8 does not provide a production Canvas fallback, so the browser smoke gate must include renderer initialization and a real rendered frame rather than only HTTP checks.
+- The PixiJS API migration is covered by build and pure asset-classification regressions. Pixel output still has a manual comparison gate until a deterministic browser fixture and pinned screenshot environment are added.

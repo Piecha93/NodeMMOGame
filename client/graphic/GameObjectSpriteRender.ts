@@ -1,39 +1,43 @@
-/// <reference path="../../node_modules/@types/pixi.js/index.d.ts" />
-
+import {Sprite, Texture} from "pixi.js";
 import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
 import {GameObjectRender} from "../graphic/GameObjectRender";
+import {ResourcesLoader} from "./ResourcesLoader";
 
 export class GameObjectSpriteRender extends GameObjectRender {
-    protected sprite: PIXI.Sprite;
+    protected sprite: Sprite;
 
     constructor() {
         super();
     }
 
     public setObject(gameObjectReference: GameObject) {
-        this.objectRef = gameObjectReference;
+        super.setObject(gameObjectReference);
 
-        this.sprite = new PIXI.Sprite(PIXI.utils.TextureCache[this.objectRef.SpriteName]);
+        this.sprite = new Sprite(this.getTexture());
         this.addChild(this.sprite);
 
-        this.sprite.width = this.objectRef.Transform.ScaleX;
-        this.sprite.height = this.objectRef.Transform.ScaleY;
+        this.sprite.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
 
-        this.sprite.anchor.set(0.5, 0.5);
+        this.sprite.anchor.set(0.5);
     }
 
     public update() {
         super.update();
 
-        if(this.sprite.texture != PIXI.utils.TextureCache[this.objectRef.SpriteName]) {
-            this.sprite.texture = PIXI.utils.TextureCache[this.objectRef.SpriteName];
+        const texture = this.getTexture();
+        if(this.sprite.texture !== texture) {
+            this.sprite.texture = texture;
         }
 
-        this.sprite.width = this.objectRef.Transform.ScaleX;
-        this.sprite.height = this.objectRef.Transform.ScaleY;
+        this.sprite.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
     }
 
-    public destroy() {
-        super.destroy();
+    private getTexture(): Texture {
+        const resource = ResourcesLoader.Instance.getResource(this.objectRef.SpriteName);
+        if (!resource?.texture) {
+            throw new Error(`Missing sprite texture: ${this.objectRef.SpriteName}`);
+        }
+
+        return resource.texture;
     }
 }

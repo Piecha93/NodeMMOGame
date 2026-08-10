@@ -47,10 +47,18 @@ export class GameClient {
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = new Chat(this.socket);
 
-        this.renderer = new Renderer(() => {
+        void this.initializeRenderer();
+    }
+
+    private async initializeRenderer(): Promise<void> {
+        try {
+            this.renderer = await Renderer.create();
             this.renderer.createHUD();
             this.socket.emit(SocketMsgs.CLIENT_READY);
-        });
+        } catch (error) {
+            console.error("Cannot initialize the renderer", error);
+            this.socket.disconnect();
+        }
     }
 
     private connect() {

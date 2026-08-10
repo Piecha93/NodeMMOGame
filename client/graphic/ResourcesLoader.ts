@@ -1,20 +1,20 @@
+import {Assets, Spritesheet, Texture} from "pixi.js";
+import {getAnimationFrameGroup, ResourceType} from "./ResourceManifest";
 
-export enum ResourceType {
-    SPRITE,
-    ANIMATION,
-    OCTAGONAL_ANIMATION
-}
+export {ResourceType} from "./ResourceManifest";
 
 export class Resource {
-    name: string;
-    type: ResourceType;
-    textures: Map<string, Array<PIXI.Texture> >;
+    readonly name: string;
+    readonly type: ResourceType;
+    texture: Texture | null;
+    textures: Map<string, Texture[]>;
 
     constructor(name: string, type: ResourceType) {
         this.name = name;
         this.type = type;
 
-        this.textures = new Map<string, Array<PIXI.Texture> >();
+        this.texture = null;
+        this.textures = new Map<string, Texture[]>();
 
         if(this.type == ResourceType.OCTAGONAL_ANIMATION) {
             this.textures.set("U", []);
@@ -35,6 +35,7 @@ export class ResourcesLoader {
     private static instance: ResourcesLoader;
 
     private resources: Map<string, Resource> = new Map<string, Resource>();
+    private resourcePaths: Map<string, string> = new Map<string, string>();
 
     private constructor() {
 
@@ -49,33 +50,53 @@ export class ResourcesLoader {
         }
     }
 
-    registerResource(name: string, path: string, type: ResourceType) {
-        PIXI.loader.add(name, path);
-
+    registerResource(name: string, path: string, type: ResourceType): void {
+        if (this.resources.has(name)) {
+            throw new Error(`Resource '${name}' is already registered`);
+        }
         this.resources.set(name, new Resource(name, type));
+        this.resourcePaths.set(name, path);
     }
 
-    load(callback: Function) {
-        PIXI.loader.load(() => {
-            this.postprocessResources();
-            callback();
-        })
+    async load(): Promise<void> {
+        await Promise.all(Array.from(this.resources.entries()).map(async ([name, resource]) => {
+            const path = this.resourcePaths.get(name);
+            if (!path) {
+                throw new Error(`Resource '${name}' has no registered path`);
+            }
+
+            if (resource.type === ResourceType.SPRITE) {
+                resource.texture = await Assets.load<Texture>(path);
+                return;
+            }
+
+            const spritesheet = await Assets.load<Spritesheet>(path);
+            this.collectAnimationTextures(resource, spritesheet);
+        }));
     }
 
     getResource(name: string) : Resource {
-        return this.resources.get(name);
+        const resource = this.resources.get(name);
+        if (!resource) {
+            throw new Error(`Unknown resource: ${name}`);
+        }
+
+        return resource;
     }
 
-    private postprocessResources() {
-        this.resources.forEach((resource: Resource, name: string) => {
-            for(let frame in PIXI.loader.resources[name].data.frames) {
-                if (resource.type == ResourceType.OCTAGONAL_ANIMATION) {
-                    let animationDirection: string = frame.split('_')[1];
-                    resource.textures.get(animationDirection).push(PIXI.Texture.fromFrame(frame));
-                } else if (resource.type == ResourceType.ANIMATION) {
-                    resource.textures.get(resource.name).push(PIXI.Texture.fromFrame(frame));
-                }
+    private collectAnimationTextures(resource: Resource, spritesheet: Spritesheet): void {
+        for (const [frameName, texture] of Object.entries(spritesheet.textures)) {
+            const group = getAnimationFrameGroup(resource.type, resource.name, frameName);
+            if (!group) {
+                throw new Error(`Cannot determine animation group for frame '${frameName}' in '${resource.name}'`);
             }
-        });
+
+            const textures = resource.textures.get(group);
+            if (!textures) {
+                throw new Error(`Animation group '${group}' is not registered for '${resource.name}'`);
+            }
+
+            textures.push(texture);
+        }
     }
 }

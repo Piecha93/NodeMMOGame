@@ -30,9 +30,9 @@ The server is authoritative: it owns the world, advances simulation ticks and se
 - `server/` owns connected-client state, input consumption, game loops and optional MongoDB access.
 - `client/` owns rendering, browser input, chat, heartbeat and reconciliation. Vite bundles its `Launcher.ts` entry to `dist/public/game.js`.
 - `shared/` owns entities, physics, chunking, serialization and simulation utilities used on both sides.
-- `public/` contains source-controlled static assets and the PixiJS 4 compatibility build. Express serves the generated client separately from `dist/public/` at `/build/`.
+- `public/` contains source-controlled CSS, images, maps and animation sheets. PixiJS 8.19.0 is an npm dependency bundled with the client; Express serves the generated client separately from `dist/public/` at `/build/`.
 
-The browser entry in `views/game.ejs` points at `/build/game.js`. This makes a clean `npm run build` the source of the executable client while deliberately leaving the renderer version unchanged for the next migration.
+The browser entry in `views/game.ejs` points only at `/build/game.js`. This makes a clean `npm run build` the source of the executable client and avoids a second global renderer script whose version could drift from the TypeScript imports.
 
 ## Important coupling
 
@@ -72,9 +72,10 @@ The target `World` receives a clock, ID source and random source, owns its regis
 1. Establish reproducible CI, tests and a documented baseline.
 2. Fix payload validation, connection lifecycle leaks and remotely triggerable failures.
 3. Generate the browser client reproducibly while preserving PixiJS 4 behavior. **Complete.**
-4. Move global world state behind instance-owned interfaces.
-5. Introduce a versioned, bounded and UTF-8-safe protocol.
+4. Move rendering to the npm PixiJS 8 API and remove the checked-in browser global. **Complete.**
+5. Move global world state behind instance-owned interfaces.
+6. Introduce a versioned, bounded and UTF-8-safe protocol.
 
-The next client-specific stage is a separately tested PixiJS migration with browser smoke and visual-regression coverage.
+The next client-quality stage is a deterministic browser fixture with pinned visual snapshots. Until then, renderer changes require the manual WebGL comparison in [Testing](testing.md).
 
 The exit criteria for this stage are documented in [Testing](testing.md), with current blockers in [Known issues](known-issues.md).
