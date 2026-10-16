@@ -8,11 +8,11 @@ export class AverageCounter {
 
     add(val: number) {
         this.history.push(val);
-        while(this.history.length > this.historyMaxSize) this.history.splice(0, 1);
+        while (this.history.length > this.historyMaxSize) this.history.splice(0, 1);
     }
 
     calculate(val?: number): number {
-        if(val) {
+        if (val) {
             this.add(val);
         }
         let avg: number = 0;

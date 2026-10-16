@@ -4,18 +4,18 @@ export interface ClientProtocolOffer {
     supportedProtocolVersions: readonly ProtocolVersion[];
 }
 
-const supportedProtocolVersions = Object.freeze([1] as const);
+const supportedProtocolVersions = Object.freeze([2, 1] as const);
 const MAX_ADVERTISED_PROTOCOL_VERSIONS = 8;
 
 export const Protocol = Object.freeze({
     LEGACY: 1 as ProtocolVersion,
-    CURRENT: 1 as ProtocolVersion,
+    CURRENT: 2 as ProtocolVersion,
     SUPPORTED: supportedProtocolVersions as readonly ProtocolVersion[],
 });
 
 export type ProtocolNegotiationResult =
-    | {ok: true; version: ProtocolVersion}
-    | {ok: false; reason: "malformed" | "unsupported"};
+    | { ok: true; version: ProtocolVersion }
+    | { ok: false; reason: "malformed" | "unsupported" };
 
 function isProtocolVersion(value: unknown): value is ProtocolVersion {
     return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
@@ -42,12 +42,16 @@ export function negotiateProtocolVersion(
     serverVersions: readonly ProtocolVersion[] = Protocol.SUPPORTED,
 ): ProtocolNegotiationResult {
     let clientVersions: unknown;
-    if(clientOfferPayload === undefined) {
+    if (clientOfferPayload === undefined) {
         clientVersions = [Protocol.LEGACY];
-    } else if(typeof clientOfferPayload === "object" && clientOfferPayload !== null && !Array.isArray(clientOfferPayload)) {
+    } else if (
+        typeof clientOfferPayload === "object" &&
+        clientOfferPayload !== null &&
+        !Array.isArray(clientOfferPayload)
+    ) {
         clientVersions = (clientOfferPayload as Record<string, unknown>).supportedProtocolVersions;
     } else {
-        return {ok: false, reason: "malformed"};
+        return { ok: false, reason: "malformed" };
     }
 
     if (
@@ -55,15 +59,15 @@ export function negotiateProtocolVersion(
         clientVersions.length > MAX_ADVERTISED_PROTOCOL_VERSIONS ||
         !clientVersions.every(isProtocolVersion)
     ) {
-        return {ok: false, reason: "malformed"};
+        return { ok: false, reason: "malformed" };
     }
 
     const selectedVersion = selectHighestCommonProtocolVersion(clientVersions, serverVersions);
     if (selectedVersion === null) {
-        return {ok: false, reason: "unsupported"};
+        return { ok: false, reason: "unsupported" };
     }
 
-    return {ok: true, version: selectedVersion};
+    return { ok: true, version: selectedVersion };
 }
 
 export function protocolVersionFromInitializePayload(payload: unknown): ProtocolVersion | null {

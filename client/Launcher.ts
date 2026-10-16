@@ -1,12 +1,9 @@
-import {SharedConfig, Origin} from "../shared/SharedConfig";
-import {GameClient} from "./GameClient";
-import {registerGameObjectPrefabs} from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import { GameClient } from "./GameClient";
 
-SharedConfig.ORIGIN = Origin.CLIENT;
-registerGameObjectPrefabs();
-
-window.onload = () => {
-    new GameClient();
-};
-
-
+window.addEventListener(
+    "load",
+    () => {
+        new GameClient();
+    },
+    { once: true },
+);

@@ -1,5 +1,6 @@
-
 export interface IUser {
     username: string;
-    password: string;
+    passwordHash?: string;
+    /** Read only during migration; successful authentication removes this field. */
+    password?: string;
 }

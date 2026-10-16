@@ -1,8 +1,8 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {Result} from "detect-collisions";
-import {Collider} from "../..//physics/Collider";
-import {Collision} from "../../physics/Collision";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { Result } from "detect-collisions";
+import { Collider } from "../..//physics/Collider";
+import { Collision } from "../../physics/Collision";
 
 export class PlatformTriggerTest extends GameObject {
     constructor(transform: Transform) {

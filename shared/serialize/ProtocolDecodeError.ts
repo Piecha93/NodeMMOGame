@@ -16,8 +16,7 @@ export const ProtocolDecodeErrorCode = Object.freeze({
     INVALID_SCHEMA: "INVALID_SCHEMA",
 } as const);
 
-export type ProtocolDecodeErrorCode =
-    typeof ProtocolDecodeErrorCode[keyof typeof ProtocolDecodeErrorCode];
+export type ProtocolDecodeErrorCode = (typeof ProtocolDecodeErrorCode)[keyof typeof ProtocolDecodeErrorCode];
 
 export class ProtocolDecodeError extends Error {
     public readonly code: ProtocolDecodeErrorCode;

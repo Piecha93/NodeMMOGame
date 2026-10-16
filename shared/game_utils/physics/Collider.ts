@@ -1,8 +1,7 @@
-import {Polygon, Circle, Body, Result} from "detect-collisions";
-import {Size, Vector2} from "./Transform";
-import {GameObject} from "../game/objects/GameObject";
-import {Collision} from "./Collision";
-
+import { Polygon, Circle, Body, Result } from "detect-collisions";
+import { Size, Vector2 } from "./Transform";
+import { GameObject } from "../game/objects/GameObject";
+import { Collision } from "./Collision";
 
 export class Collider {
     private shape: Polygon | Circle;
@@ -11,6 +10,8 @@ export class Collider {
     private height: number;
     private parent: GameObject;
     private rotation = 0;
+    private readonly widthRatio: number;
+    private readonly heightRatio: number;
 
     private offsetX: number;
     private offsetY: number;
@@ -29,11 +30,10 @@ export class Collider {
 
         let isCircle: boolean = false;
 
-        if(!size) {
+        if (!size) {
             this.width = 32;
             this.height = 32;
-        }
-        else if(size instanceof Array) {
+        } else if (size instanceof Array) {
             this.width = size[0];
             this.height = size[1];
         } else {
@@ -42,14 +42,21 @@ export class Collider {
             isCircle = true;
         }
 
-        if(isCircle) {
+        if (isCircle) {
             this.shape = new Circle(x, y, this.width);
         } else {
             let w: number = this.width / 2;
             let h: number = this.height / 2;
 
-            this.shape = new Polygon(x, y, [[-w, -h], [w, -h], [w, h], [-w, h]]);
+            this.shape = new Polygon(x, y, [
+                [-w, -h],
+                [w, -h],
+                [w, h],
+                [-w, h],
+            ]);
         }
+        this.widthRatio = parent.Transform.ScaleX === 0 ? 1 : this.width / parent.Transform.ScaleX;
+        this.heightRatio = parent.Transform.ScaleY === 0 ? 1 : this.height / parent.Transform.ScaleY;
     }
 
     public onCollisionEnter(collider: Collider, result: Result) {
@@ -80,27 +87,40 @@ export class Collider {
     }
 
     public update() {
+        const width = this.parent.Transform.ScaleX * this.widthRatio;
+        const height = this.shape instanceof Circle ? width : this.parent.Transform.ScaleY * this.heightRatio;
+        if (this.width !== width || this.height !== height) {
+            this.width = width;
+            this.height = height;
+            this.resize();
+        }
         this.shape.x = this.parent.Transform.X + this.offsetX;
         this.shape.y = this.parent.Transform.Y + this.offsetY;
-        if(this.rotation != this.parent.Transform.Rotation) {
+        if (this.rotation != this.parent.Transform.Rotation) {
             this.Rotation = this.parent.Transform.Rotation;
         }
     }
 
     resize() {
-        if(this.shape instanceof Polygon) {
+        if (this.shape instanceof Polygon) {
             let w: number = this.width / 2;
             let h: number = this.height / 2;
-            const polygon = this.shape as Polygon & {setPoints(points: number[][]): void};
-            polygon.setPoints([[-w, -h], [w, -h], [w, h], [-w, h]]);
-        } else { //circle
+            const polygon = this.shape as Polygon & { setPoints(points: number[][]): void };
+            polygon.setPoints([
+                [-w, -h],
+                [w, -h],
+                [w, h],
+                [-w, h],
+            ]);
+        } else {
+            //circle
             this.shape.radius = this.width;
             this.height = this.shape.radius;
         }
     }
 
     set Rotation(rotation: number) {
-        if(this.shape instanceof Polygon) {
+        if (this.shape instanceof Polygon) {
             this.shape.angle = rotation;
         }
         this.rotation = rotation;
@@ -146,7 +166,7 @@ export class Collider {
         let potentials: Body[] = this.Body.potentials();
 
         for (let body of potentials) {
-            if(this.Body.collides(body)) {
+            if (this.Body.collides(body)) {
                 return true;
             }
         }

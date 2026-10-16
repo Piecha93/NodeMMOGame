@@ -1,63 +1,71 @@
 # Architecture
 
-This document describes the code that exists today and the boundaries planned for the refactor. It is not a claim that the current implementation is production-ready.
+This describes the current refactor and its compatibility boundaries. It does not claim production capacity or pixel equivalence without the checks in [Testing](testing.md).
 
-## Runtime overview
+## Runtime and dependency boundaries
 
 ```mermaid
 flowchart LR
-    Browser["Browser: PixiJS client and HTML UI"]
-    HTTP["Express: views, static files and login"]
-    Socket["Socket.IO: realtime transport"]
-    Server["GameServer: clients and update loops"]
-    World["GameCore / GameWorld"]
-    Systems["Objects, input, collision, chunks and serialization"]
-    Mongo["MongoDB (optional registered-user login)"]
+    Browser["Client: input, prediction, presentation, PixiJS"]
+    HTTP["Application: HTTP, authentication, sessions"]
+    Transport["Socket.IO: negotiated v1/v2"]
+    Server["GameServer: sessions, input queues, scheduling"]
+    Protocol["Protocol: DTOs, validation, bounded codecs"]
+    Replication["Per-client replication and domain adapter"]
+    Core["GameCore: world, objects, movement, collisions, chunks"]
+    Mongo["MongoDB: users and persistent sessions"]
 
-    Browser -->|HTTP| HTTP
-    Browser <-->|Socket.IO| Socket
+    Browser <-->|"HTTP"| HTTP
+    Browser <-->|"realtime"| Transport
+    Transport --> Server
+    Server --> Core
+    Server --> Replication
+    Browser --> Protocol
+    Replication --> Protocol
+    Replication --> Core
     HTTP --> Mongo
-    Socket --> Server
-    Server --> World
-    World --> Systems
 ```
 
-The server is authoritative: it owns the world, advances simulation ticks and sends state updates. The browser captures input, renders the world and contains reconciliation code. Code under `shared/` is compiled for both environments.
+`shared/` means portable code used in both processes. Its internal boundaries matter more than the directory name:
 
-## Current source boundaries
+| Area | Responsibility |
+| --- | --- |
+| `shared/core/`, objects, physics and chunks | Runtime context, game state, movement and simulation. |
+| `shared/protocol/` | Validated transport DTOs, sequence arithmetic and v2 encoding/decoding. No live-world mutation. |
+| `shared/replication/` | Domain/state projection, snapshot application and each client's visibility baseline. |
+| `shared/serialize/` | Legacy v1 compatibility metadata, codec, preflight and chunk snapshot bridge. |
+| `server/` | Application composition, authenticated connections, scheduling and persistence. |
+| `client/` | Browser input/UI, prediction, interpolation, renderers and resources. |
 
-- `app.ts` configures Express, sessions, login and Socket.IO, then starts the game server.
-- `server/` owns connected-client state, input consumption, game loops and optional MongoDB access.
-- `client/` owns rendering, browser input, chat, heartbeat and reconciliation. Vite bundles its `Launcher.ts` entry to `dist/public/game.js`.
-- `shared/` owns entities, physics, chunking, serialization and simulation utilities used on both sides.
-- `public/` contains source-controlled CSS, images, maps and animation sheets. PixiJS 8.19.0 is an npm dependency bundled with the client; Express serves the generated client separately from `dist/public/` at `/build/`.
+Separate TypeScript configurations and import-boundary checks prevent browser/server dependencies from leaking into portable modules. A single repository is sufficient; publishing packages, introducing an ECS and changing transport are not prerequisites for these boundaries.
 
-The browser entry in `views/game.ejs` points only at `/build/game.js`. This makes a clean `npm run build` the source of the executable client and avoids a second global renderer script whose version could drift from the TypeScript imports.
+## World ownership and fixed simulation
 
-## World ownership and object lifecycle
+Every `GameCore` owns a `WorldContext`, object manager, factory, prefab catalog, chunks, collision system and update collector. The context captures immutable configuration plus injected clock and random functions. Runtime role, chunk dimensions and timers follow the owning context rather than mutable process-wide client/server flags. The remaining `SharedConfig` API supplies legacy construction defaults; changing it after construction does not reconfigure a live world.
 
-`GameCore` is the runtime composition root for world state. Every core constructs and owns one `GameObjectsManager`, one `GameObjectsFactory`, its chunks, update collector and collision world. There is no longer a static object map, static runtime ID counter or process-wide create/destroy callback array. Two cores may both contain an object named `C0` without sharing the object, chunk membership or lifecycle notifications.
+```ts
+const core = new GameCore({
+    role: Origin.SERVER,
+    fixedDeltaMs: 1000 / 64,
+    maxCatchUpSteps: 8,
+    chunkSize: 1280,
+    numOfChunksX: 5,
+    numOfChunksY: 5,
+    clock,
+    random,
+});
 
-```mermaid
-flowchart LR
-    Core["GameCore"] --> Manager["Instance GameObjectsManager"]
-    Core --> Factory["Instance GameObjectsFactory"]
-    Factory -->|"construct, attach, register"| Manager
-    Manager -->|"created"| Core
-    Core -->|"add"| Chunk["Owned chunk"]
-    Core -->|"insert"| Collision["Collision world"]
-    Core -->|"complete update"| Collector["UpdateCollector"]
-    Manager -->|"destroyed"| Core
-    Core -->|"remove + server tombstone"| Collector
+core.step();            // One simulation step with the configured duration.
+core.advance(elapsed);  // Accumulate elapsed time into bounded fixed steps.
 ```
 
-Creation is transactional at the registry boundary. The factory rejects unknown prefabs, invalid or mismatched IDs, non-finite positions and duplicate IDs before an existing entry can be replaced. If a create subscriber fails, registration destroys the partial object, removes it from owned systems and reports the collected errors. Lifecycle delivery is paired: a subscriber receives `destroyed` only for objects whose creation was delivered to that subscription. Destruction removes the registry entry before notifying subscribers; listener failures are aggregated after later listeners and cleanup have had a chance to run. `GameCore.dispose()` destroys all remaining objects, clears subscriptions and is idempotent.
+The default simulation frequency is 64 Hz. `advance()` limits catch-up to eight steps and records discarded backlog in `droppedTimeMs`. Chunk deactivation follows simulation `timeMs`, so explicit stepping produces the same world lifecycle regardless of wall-clock pace. Connection/session expiry still uses real time. Rendering and network snapshot scheduling are separate from simulation stepping. Tests can drive the same world without sleeping or starting application timers.
 
-Chunk deactivation serializes persistent objects and destroys the live instances. Reload deserializes through the same core's factory, preserving wire IDs and restoring registry, chunk and collision ownership. On the server, destroy tombstones are keyed by the object's recorded old chunk rather than a potentially changed transform. Re-creating the same ID during reload removes its pending tombstone, so an unload/reload cycle does not also announce that restored object as deleted.
+At the beginning of a world update, the runtime captures a stable set of objects. Destroying an object cannot skip the following object; objects destroyed before their turn are ignored, and spawned objects begin their updates on the next tick. Collision batches also tolerate lifecycle mutation. Source/target registration is rechecked after callbacks, current contacts remain reachable by cleanup, and colliders sharing one parent are filtered out. Collider geometry follows position, rotation and scale changes.
 
-World updates follow preserve-all-targets then commit-once semantics. `UpdateCollector` serializes an object's pending state without consuming it while it builds every relevant chunk frame, then commits those changes once after the complete chunk traversal. An object crossing a chunk boundary therefore carries the same complete wire record in both the old chunk's leaver frame and the new chunk's frame regardless of iteration direction; a later collection with no new changes does not emit it again. Complete-update flags, leavers and tombstones are finalized in the same success phase, so an encoding failure leaves the whole collection retryable.
+Object registration is transactional at the registry boundary. Factories reject unknown prefabs, invalid positions and conflicting IDs; failed creation subscribers trigger cleanup. Destruction removes registry entries before subscriber delivery and continues cleanup through listener errors. Subscriptions receive paired lifecycle notifications. Core disposal is idempotent and remains isolated from other worlds, including worlds using the same object ID.
 
-Default prefab wire prefixes are explicit and stable:
+Default prefab mappings stay explicit:
 
 | Prefix | Prefab |
 | --- | --- |
@@ -69,80 +77,55 @@ Default prefab wire prefixes are explicit and stable:
 | `F` | `FireBall` |
 | `G` | `Portal` |
 | `H` | `PlatformTriggerTest` |
+| `I` | `ExpeditionMarker` (new expedition) |
 
-## Protocol negotiation
+## Protocol and serialization
 
-Protocol v1 freezes the application-level Socket.IO event names to their existing one-code-unit values:
+Protocol negotiation is connection context. New clients advertise `[2, 1]`; the server selects the highest common version and echoes it in initialization. Missing fields in either direction map to v1 for a rolling upgrade. Malformed and unsupported offers fail before creating a player. Application event codes remain frozen at `0` through `11`; Socket.IO's own connection/disconnect events remain transport names.
 
-| Code | Event | Code | Event |
-| ---: | --- | ---: | --- |
-| `0` | `CHAT_MESSAGE` | `6` | `FIRST_UPDATE_GAME` |
-| `1` | `CLIENT_READY` | `7` | `UPDATE_GAME` |
-| `2` | `HEARTBEAT` | `8` | `HEARTBEAT_RESPONSE` |
-| `3` | `INPUT_SNAPSHOT` | `9` | `UPDATE_SNAPSHOT_DATA` |
-| `4` | `START_GAME` | `10` | `CHUNK_CHANGED` |
-| `5` | `INITIALIZE_GAME` | `11` | `ERROR` |
+V2 uses plain DTOs and explicit schema definitions. Prefab, field and type IDs do not depend on decorator execution, import order or runtime property enumeration. Text uses bounded UTF-8. Frames carry a version, lengths, record count, server tick, snapshot identity, input acknowledgement and batch metadata. Records identify create/update/destroy semantics; a complete local-player state accompanies reconciliation.
 
-`SocketMsgs` is frozen so those values cannot be reassigned at runtime. Socket.IO's transport-level `connection` and `disconnect` names remain strings outside the numbered application table.
+`encodeSnapshot()` splits a snapshot at record boundaries. Current limits are 64 KiB per frame, 256 records per frame, 256 batches and 8 MiB per complete snapshot. Field schemas impose tighter bounds where needed. Unknown fields/types, invalid numbers and IDs, malformed UTF-8, truncation, inconsistent batches and oversized input fail with controlled protocol errors.
+
+`decodeSnapshot()` validates the complete batch before application. The domain adapter also preflights object existence and prefab compatibility before mutating the world. This prevents a malformed tail or missing batch from partially applying a snapshot. Arbitrary exceptions inside user gameplay/lifecycle callbacks are not a general-purpose rollback transaction and remain a separate operational failure boundary.
+
+V1 remains available with its historical record bytes. Its one-byte/code-unit string encoding, implicit field ordering and mask representation cannot be changed in place. External compatibility metadata and the legacy bridge preserve those contracts while domain objects use `ReplicatedState` for change bookkeeping. The v2 schema is independent of this legacy machinery. V1 golden fixtures, inherited-field tests, mask boundaries and bounded frame splitting protect the fallback.
+
+Chunk deactivation serializes persistent objects through the owning world's bridge and removes live instances; reload uses that world's factory and preserves wire IDs. Server tombstones follow the recorded old chunk and are cancelled when the same ID is restored. Legacy update collection preserves pending changes while every target frame is built, then commits once, so encoding failure remains retryable.
+
+## Authoritative input, prediction and visibility
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant Server
-    Client->>Server: CLIENT_READY {supportedProtocolVersions}
-    Server->>Server: select highest common version
-    Server->>Server: store version on ServerClient
-    Server->>Client: INITIALIZE_GAME {id, protocolVersion}
-    Client->>Client: validate and store selected version
+    participant C as Client
+    participant S as Server
+    C->>S: InputCommand(sequence, movement, actions)
+    S->>S: Validate and queue
+    S->>S: Consume command on simulation tick
+    S->>C: Snapshot(tick, lastProcessedInputSeq, player state, records)
+    C->>C: Restore authoritative player state
+    C->>C: Drop acknowledged commands and replay remaining movement
+    C->>C: Interpolate remote presentation
 ```
 
-`Protocol.SUPPORTED`, `CURRENT` and `LEGACY` are all v1 today. A new client advertises `[1]`; the server rejects malformed or unsupported offers before creating a player. To permit a rolling deployment, a missing `CLIENT_READY` payload is treated as a legacy v1 offer, while a client receiving `INITIALIZE_GAME` without `protocolVersion` treats it as legacy v1. Thus either old side can interoperate with the new negotiation checkpoint while both still speak identical v1 frames.
+The server owns simulation duration; clients cannot submit their own delta or position as authoritative state. Received commands are acknowledged only after the tick that consumes them. Sequence comparison handles uint32 wrap. Server input queues and client prediction history are bounded at 256 commands. Discrete actions execute on the server once and are excluded from local movement replay.
 
-The selected version is connection context, not a version prefix added to each binary message. Existing v1 object and update frames remain byte-compatible and do not carry an explicit total-frame length, record count or schema hash. Their legacy one-byte string length and JavaScript-code-unit encoding also remain unchanged. Those framing, bounds and UTF-8 changes require a separately negotiated v2 codec and a dual-version rollout.
+`ReplicationSession` owns a baseline per connection. The current chunk and its neighbors define interest. Entering objects receive complete create records, changed visible objects receive updates, and leaving/destroyed objects receive removal records. The next baseline commits after successful encoding; another client's interest transition does not consume that state.
 
-Incoming v1 chunk frames now use a two-phase decoder. A read-only preflight walks the complete frame with the same scalar-then-nested field order as the legacy codec, enforcing frame, record, mask, payload and tombstone bounds. It produces a decode plan or a `ProtocolDecodeError` with a stable code and byte offset. Only a fully validated plan may deserialize, instantiate or destroy world objects, so a structurally malformed tail cannot partially update the live world. Exceptions raised by runtime lifecycle subscribers during the later apply phase are outside this structural guarantee and still do not have a general rollback mechanism.
+Local v2 prediction restores authoritative state, retires acknowledged commands and replays pending movement through shared movement/collision code. Remote presentation uses `SnapshotInterpolator`: a 100 ms interpolation delay, at most 32 samples per entity, and a hold on the newest known position when data stops arriving. The renderer's smoothing depends on elapsed time and does not select presentation classes from network ID prefixes.
 
-## Remaining coupling
+Legacy clients retain v1 input/reconciliation semantics, with regressions for STOP retries, idle acknowledgements, collision geometry and leaving/returning interest. V2 is the path for tick/sequence-based synchronization; it does not reinterpret legacy timestamps in place.
 
-The runtime registry migration removes shared object state, but several process-wide and implicit contracts remain:
+Socket.IO remains a reliable ordered transport. UDP packet-loss assumptions from Source networking do not directly describe its application channel. Historical hit rewind/lag compensation is a separate gameplay feature, not a prerequisite for local movement reconciliation.
 
-- `SharedConfig` detects one global client/server origin.
-- the prefab catalog is global even though default IDs `A` through `H` are explicit; registering additional prefabs still changes shared process state.
-- serialization metadata and the wire format depend on decorator declaration order.
-- protocol negotiation is explicit, but v1 frames lack a total length, record count and schema hash.
-- game loops own their timers, which makes the simulation difficult to run deterministically in tests.
+## Application and client lifecycle
 
-These are constraints for incremental refactoring, not reasons for a rewrite.
+`createApplication()` composes Express, session middleware, Socket.IO, the user repository and `GameServer`. Construction/import does not listen or start simulation timers. Start and stop are idempotent; startup failure closes owned resources; restart creates a fresh runtime. SIGINT/SIGTERM use the same shutdown. `GameServer` owns timer handles and its connection subscription, removes client maps even through destroy errors, and disposes its core. Demo world seeding is a scenario option rather than an implicit effect of starting any server instance.
 
-## Target boundaries
+`GameClient.dispose()` cancels RAF/input/network timers, removes callbacks/listeners, closes the socket and releases the renderer/core. Async renderer initialization handles disposal before completion. Resource registration/loading is idempotent for the same resource definition, so recreating the renderer does not duplicate assets or animation frames.
 
-The first large refactor should converge on four explicit modules:
+Authentication uses injected `UserRepository` and session-store contracts. Mongo connections expose explicit connect/close. Login regenerates session identifiers; logout destroys the store record and disconnects that session's sockets. Registered credentials use salted scrypt with atomic legacy migration. See [Authentication and lifecycle](authentication.md).
 
-1. `core`: a deterministic `World` with entities and systems; no DOM, Express, Socket.IO, MongoDB or PixiJS imports.
-2. `protocol`: versioned messages, validation, codecs and compatibility rules.
-3. `server`: transport, sessions, persistence, client lifecycle and scheduling.
-4. `client`: rendering, UI, input, prediction and reconciliation.
+## Deliberate limits
 
-The target `World` receives a clock, ID source and random source, owns its registry, and advances only through an explicit `tick(delta)` call. Networking should translate messages at the edge instead of being embedded in domain objects.
-
-## Refactor constraints
-
-- Keep the server authoritative.
-- Preserve behavior with characterization tests before moving code.
-- Do not combine the remaining PixiJS, collision-engine and wire-protocol migrations in one change.
-- Keep Socket.IO during the protocol refactor; transport replacement is a separate decision.
-- Do not introduce an ECS until profiling demonstrates a concrete need.
-- Every protocol-breaking change requires an explicit protocol version and compatible deployment plan.
-
-## First-stage roadmap
-
-1. Establish reproducible CI, tests and a documented baseline.
-2. Fix payload validation, connection lifecycle leaks and remotely triggerable failures.
-3. Generate the browser client reproducibly while preserving PixiJS 4 behavior. **Complete.**
-4. Move rendering to the npm PixiJS 8 API and remove the checked-in browser global. **Complete.**
-5. Move global world state behind instance-owned interfaces. **Runtime object registry complete; `SharedConfig` and the prefab catalog remain.**
-6. Introduce a versioned, bounded and UTF-8-safe protocol. **v1 negotiation complete; bounded UTF-8 v2 frames remain.**
-
-The next client-quality stage is a deterministic browser fixture with pinned visual snapshots. Until then, renderer changes require the manual WebGL comparison in [Testing](testing.md).
-
-The exit criteria for this stage are documented in [Testing](testing.md), with current blockers in [Known issues](known-issues.md).
+The collision library remains pinned to 2.7.0. Engine replacement, broad gameplay changes, lag compensation, horizontal sharding and an ECS require their own evidence and compatibility decisions. Production capacity, long-running stability and GPU pixel equivalence require the measurements described in [Testing](testing.md) and [Known issues](known-issues.md).

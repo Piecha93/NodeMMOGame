@@ -9,18 +9,32 @@ permissions:
 
 jobs:
   quality:
-    name: Check, build and test
+    name: Check, build and test with MongoDB
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_MONGODB_URI: mongodb://127.0.0.1:27017/nodemmo_ci
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -29,11 +43,32 @@ jobs:
       - name: Check TypeScript
         run: npm run check
 
+      - name: Check import boundaries
+        run: npm run check:boundaries
+
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Build server and browser client
         run: npm run build
 
-      - name: Run tests against built artifacts
+      - name: Run unit, transport and persistence tests against built artifacts
         run: npm test
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
+
+      - name: Install pinned Chromium and browser dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run deterministic real-renderer browser fixture
+        run: npm run test:browser
+
+      - name: Upload browser images, metrics and failure traces
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-renderer-results
+          path: test-results/browser/
+          if-no-files-found: ignore
+          retention-days: 7

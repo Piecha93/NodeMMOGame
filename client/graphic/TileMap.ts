@@ -1,10 +1,15 @@
-import {Container, Rectangle, Sprite, Texture} from "pixi.js";
-import {SharedConfig} from "../../shared/SharedConfig";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Chunk} from "../../shared/chunks/Chunk";
-import {ResourcesLoader} from "./ResourcesLoader";
+import { Container, Rectangle, Sprite, Texture } from "pixi.js";
+import { SharedConfig } from "../../shared/SharedConfig";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { Chunk } from "../../shared/chunks/Chunk";
+import { ResourcesLoader } from "./ResourcesLoader";
 
 type Coords = [number, number];
+export interface TileMapConfig {
+    numOfChunksX: number;
+    numOfChunksY: number;
+    chunkSize: number;
+}
 
 function compareCoords(c1: Coords, c2: Coords): boolean {
     return c1[0] == c2[0] && c1[1] == c2[1];
@@ -15,6 +20,7 @@ class TileMapChunk extends Container {
     sizeY: number;
 
     private initialized: boolean = false;
+    private terrainFrame: Texture | null = null;
 
     constructor(x: number, y: number, sizeX: number, sizeY: number) {
         super();
@@ -33,10 +39,11 @@ class TileMapChunk extends Container {
 
         const texture = new Texture({
             source: terrainTexture.source,
-            frame: new Rectangle(1 * 32, 5 * 32, 32, 32)
+            frame: new Rectangle(1 * 32, 5 * 32, 32, 32),
         });
-        for(let i = 0; i < this.sizeX / 32; i++) {
-            for(let j = 0; j < this.sizeY / 32; j++) {
+        this.terrainFrame = texture;
+        for (let i = 0; i < this.sizeX / 32; i++) {
+            for (let j = 0; j < this.sizeY / 32; j++) {
                 const sprite = new Sprite(texture);
                 sprite.x = i * 32;
                 sprite.y = j * 32;
@@ -50,34 +57,36 @@ class TileMapChunk extends Container {
     get Initialized(): boolean {
         return this.initialized;
     }
+
+    public destroy(options?: Parameters<Container["destroy"]>[0]): void {
+        if (this.destroyed) return;
+        super.destroy(options ?? { children: true });
+        this.terrainFrame?.destroy(false);
+        this.terrainFrame = null;
+    }
 }
 
 export class TileMap extends Container {
     private mapChunks: TileMapChunk[][];
-    private focusedObject: GameObject;
-    private currentChunk: Chunk;
+    private currentChunk: Chunk | null = null;
 
     private currentChunkCoords: Coords;
     private visibleMapChunks: Map<Coords, TileMapChunk>;
 
-    private numOfChunksX = SharedConfig.numOfChunksX;
-    private numOfChunksY = SharedConfig.numOfChunksY;
-
-    constructor() {
+    constructor(config: TileMapConfig = SharedConfig) {
         super();
-
-        this.focusedObject = null;
         this.visibleMapChunks = new Map<Coords, TileMapChunk>();
 
         this.currentChunkCoords = [-1, -1];
 
         this.mapChunks = [];
 
-        for (let i = 0; i < this.numOfChunksX; i++) {
-            this.mapChunks[i] = [];
-            for (let j = 0; j < this.numOfChunksY; j++) {
-                let chunkSizeX = SharedConfig.chunkSize;
-                let chunkSizeY = SharedConfig.chunkSize;
+        for (let i = 0; i < config.numOfChunksX; i++) {
+            const column: TileMapChunk[] = [];
+            this.mapChunks.push(column);
+            for (let j = 0; j < config.numOfChunksY; j++) {
+                let chunkSizeX = config.chunkSize;
+                let chunkSizeY = config.chunkSize;
 
                 let chunkX = i * chunkSizeX;
                 let chunkY = j * chunkSizeY;
@@ -85,26 +94,26 @@ export class TileMap extends Container {
                 if (i % 2) {
                     if (j == 0) {
                         chunkSizeY *= 1.5;
-                    } else if (j == this.numOfChunksY - 1) {
-                        chunkY += (chunkSizeY / 2);
+                    } else if (j == config.numOfChunksY - 1) {
+                        chunkY += chunkSizeY / 2;
                         chunkSizeY *= 0.5;
                     } else {
-                        chunkY += (chunkSizeY / 2);
+                        chunkY += chunkSizeY / 2;
                     }
                 }
-                this.mapChunks[i][j] = new TileMapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
+                column.push(new TileMapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY));
             }
         }
     }
 
     private updateVisibleChunks() {
-        if(!this.currentChunk) {
+        if (!this.currentChunk) {
             return;
         }
 
         let newChunkCoords: Coords = [this.currentChunk.x, this.currentChunk.y];
 
-        if(compareCoords(newChunkCoords, this.currentChunkCoords)) {
+        if (compareCoords(newChunkCoords, this.currentChunkCoords)) {
             return;
         }
 
@@ -119,37 +128,38 @@ export class TileMap extends Container {
 
         this.visibleMapChunks.forEach((mapChunk: TileMapChunk, coords: Coords) => {
             let idx: number = -1;
-            for(let i = 0; i < newCoordsArr.length; i++) {
-                if(compareCoords(newCoordsArr[i], coords)) {
+            for (let i = 0; i < newCoordsArr.length; i++) {
+                const candidate = newCoordsArr[i];
+                if (candidate && compareCoords(candidate, coords)) {
                     idx = i;
                     break;
                 }
             }
-            if(idx == -1) {
+            if (idx == -1) {
                 this.removeChild(mapChunk);
                 this.visibleMapChunks.delete(coords);
             } else {
-                newCoordsArr.splice(idx, 1)
+                newCoordsArr.splice(idx, 1);
             }
         });
 
         newCoordsArr.forEach((coords: Coords) => {
             this.addToVisibleMapChunks(coords);
         });
-        }
+    }
 
     private addToVisibleMapChunks(coords: Coords) {
-        let mapChunk: TileMapChunk = this.mapChunks[coords[0]][coords[1]];
+        const mapChunk = this.mapChunks[coords[0]]?.[coords[1]];
+        if (!mapChunk) throw new Error(`Missing terrain chunk: ${coords.join(",")}`);
         this.visibleMapChunks.set(coords, mapChunk);
 
-        if(!mapChunk.Initialized) {
+        if (!mapChunk.Initialized) {
             mapChunk.initChunkTextures();
         }
         this.addChild(mapChunk);
     }
 
-    set FocusedObject(gameObject: GameObject) {
-        this.focusedObject = gameObject;
+    set FocusedObject(_gameObject: GameObject) {
         this.updateVisibleChunks();
     }
 
@@ -162,11 +172,8 @@ export class TileMap extends Container {
     }
 
     public destroy(): void {
-        for (let i = 0; i < this.numOfChunksX; i++) {
-            for (let j = 0; j < this.numOfChunksY; j++) {
-                this.mapChunks[i][j].destroy({children: true});
-            }
-        }
+        if (this.destroyed) return;
+        for (const column of this.mapChunks) for (const chunk of column) chunk.destroy({ children: true });
         super.destroy();
     }
 }

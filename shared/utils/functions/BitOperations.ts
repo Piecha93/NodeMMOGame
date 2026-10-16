@@ -3,6 +3,6 @@ export function calcPropsMaskByteSize(num: number) {
 }
 
 export function setBit(val: number, bitIndex: number): number {
-    val |= (1 << bitIndex);
+    val |= 1 << bitIndex;
     return val;
 }

@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
-import {test} from "node:test";
+import { test } from "node:test";
 
-import {Chunk} from "../../shared/chunks/Chunk";
-import {GameCore} from "../../shared/GameCore";
-import {registerGameObjectPrefabs} from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Vector2} from "../../shared/game_utils/physics/Transform";
+import { Chunk } from "../../shared/chunks/Chunk";
+import { GameCore } from "../../shared/GameCore";
+import { registerGameObjectPrefabs } from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { Vector2 } from "../../shared/game_utils/physics/Transform";
+import { legacyView } from "../../shared/replication/LegacyView";
 
 registerGameObjectPrefabs();
 
 const WALL_COMPLETE_RECORD_SIZE = 30;
-const GAME_OBJECT_COMPLETE_MASK = 0x0F;
-const TRANSFORM_COMPLETE_MASK = 0x1F;
+const GAME_OBJECT_COMPLETE_MASK = 0x0f;
+const TRANSFORM_COMPLETE_MASK = 0x1f;
 
 function decodeObjectId(view: DataView, offset: number = 0): string {
     return String.fromCharCode(view.getUint8(offset)) + view.getUint32(offset + 1).toString();
@@ -21,7 +22,7 @@ function assertCompleteWallRecord(
     update: ArrayBuffer | undefined,
     expectedId: string,
     expectedPosition: Vector2,
-    chunk: Chunk
+    chunk: Chunk,
 ): void {
     assert.ok(update, `missing update for chunk ${chunk.Position.join(",")}`);
     assert.equal(update.byteLength, WALL_COMPLETE_RECORD_SIZE);
@@ -33,7 +34,7 @@ function assertCompleteWallRecordAt(
     update: ArrayBuffer,
     offset: number,
     expectedId: string,
-    expectedPosition: Vector2
+    expectedPosition: Vector2,
 ): void {
     assert.ok(update.byteLength >= offset + WALL_COMPLETE_RECORD_SIZE);
 
@@ -46,36 +47,29 @@ function assertCompleteWallRecordAt(
 }
 
 function installSerializeFailure(gameObject: GameObject, callToFail: number): () => void {
-    const originalSerialize = gameObject.serializePreservingChanges;
+    const view = legacyView(gameObject);
+    const originalSerialize = view.serializePreservingChanges;
     let calls = 0;
 
-    gameObject.serializePreservingChanges = function(
-        view: DataView,
-        offset: number,
-        complete: boolean = false
-    ): number {
+    view.serializePreservingChanges = function (view: DataView, offset: number, complete: boolean = false): number {
         calls++;
-        if(calls === callToFail) {
+        if (calls === callToFail) {
             throw new Error("injected serialization failure");
         }
         return originalSerialize.call(this, view, offset, complete);
     };
 
     return () => {
-        gameObject.serializePreservingChanges = originalSerialize;
+        view.serializePreservingChanges = originalSerialize;
     };
 }
 
-function assertSingleDestroyRecord(
-    update: ArrayBuffer | undefined,
-    expectedId: string,
-    chunk: Chunk
-): void {
+function assertSingleDestroyRecord(update: ArrayBuffer | undefined, expectedId: string, chunk: Chunk): void {
     assert.ok(update, `missing destroy update for chunk ${chunk.Position.join(",")}`);
     assert.equal(update.byteLength, 6);
 
     const view = new DataView(update);
-    assert.equal(view.getUint8(0), 0xFF);
+    assert.equal(view.getUint8(0), 0xff);
     assert.equal(decodeObjectId(view, 1), expectedId);
 }
 
@@ -89,14 +83,14 @@ function exerciseMovement(start: Vector2, destination: Vector2): void {
 
         core.collectUpdate();
 
-        const oldChunk: Chunk = core.ChunksManager.getObjectChunk(wall);
+        const oldChunk = core.ChunksManager.getObjectChunk(wall);
         assert.ok(oldChunk);
 
         wall.Transform.X = destination[0];
         wall.Transform.Y = destination[1];
         core.ChunksManager.rebuild();
 
-        const newChunk: Chunk = core.ChunksManager.getObjectChunk(wall);
+        const newChunk = core.ChunksManager.getObjectChunk(wall);
         assert.ok(newChunk);
         assert.notEqual(newChunk, oldChunk);
 
@@ -151,8 +145,8 @@ test("foundation/update collector: failed fan-out preserves full updates and lea
         assert.equal(oldChunk.Leavers.includes(wall), true);
 
         const retry = core.collectUpdate();
-        const oldWallOffset = 5 + oldObserver.calcNeededBufferSize(true);
-        const newWallOffset = 5 + newObserver.calcNeededBufferSize(true);
+        const oldWallOffset = 5 + legacyView(oldObserver).calcNeededBufferSize(true);
+        const newWallOffset = 5 + legacyView(newObserver).calcNeededBufferSize(true);
         const oldUpdate = retry.get(oldChunk);
         const newUpdate = retry.get(newChunk);
         assert.ok(oldUpdate);

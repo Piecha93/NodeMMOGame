@@ -1,95 +1,95 @@
 export class ChatHtmlHandler {
-    private static instance: ChatHtmlHandler;
-
-    chatInput: HTMLInputElement;
-    chatForm: HTMLFormElement;
-
-    submitCallback: Function;
+    private static instance: ChatHtmlHandler | undefined;
+    readonly chatInput: HTMLInputElement;
+    readonly chatForm: HTMLFormElement;
+    private readonly messagesDiv: HTMLDivElement;
+    private submitCallback: ((text: string) => void) | null = null;
+    private disposed = false;
+    private readonly submitHandler = (event: Event) => {
+        event.preventDefault();
+        if (this.chatInput.value !== "") {
+            this.submitCallback?.(this.chatInput.value);
+            this.chatInput.value = "";
+        }
+        this.chatInput.blur();
+    };
+    private readonly keyHandler = (event: KeyboardEvent) => {
+        if (event.key === "Enter") {
+            const target = event.target as HTMLElement | null;
+            if (
+                target !== this.chatInput &&
+                typeof target?.closest === "function" &&
+                target.closest("button, a, input, textarea, select, form, [contenteditable]")
+            )
+                return;
+            event.stopPropagation();
+            if (document.activeElement !== this.chatInput) {
+                // The opening Enter must not also submit the newly focused form.
+                event.preventDefault();
+                this.chatInput.focus();
+            }
+        }
+    };
+    private readonly focusHandler = () => {
+        this.chatInput.style.color = "#f1e6d4";
+    };
+    private readonly blurHandler = () => {
+        this.chatInput.style.color = "#b4b8b0";
+    };
 
     private constructor() {
-        this.create();
+        const input = document.getElementById("chat-input");
+        const form = document.getElementById("chat-form");
+        const messages = document.getElementById("chat-msgs");
+        if (
+            !(input instanceof HTMLInputElement) ||
+            !(form instanceof HTMLFormElement) ||
+            !(messages instanceof HTMLDivElement)
+        ) {
+            throw new Error("Cannot initialize chat: required chat elements are missing");
+        }
+        this.chatInput = input;
+        this.chatForm = form;
+        this.messagesDiv = messages;
+        this.chatForm.addEventListener("submit", this.submitHandler);
+        document.addEventListener("keydown", this.keyHandler);
+        this.chatInput.addEventListener("focusin", this.focusHandler);
+        this.chatInput.addEventListener("focusout", this.blurHandler);
     }
 
     static get Instance(): ChatHtmlHandler {
-        if(ChatHtmlHandler.instance) {
-            return ChatHtmlHandler.instance;
-        } else {
-            ChatHtmlHandler.instance = new ChatHtmlHandler;
-            return ChatHtmlHandler.instance;
-        }
+        return (ChatHtmlHandler.instance ??= new ChatHtmlHandler());
     }
 
-    private create() {
-        ChatHtmlHandler.instance = this;
-        this.chatInput = document.getElementById("chat-input") as HTMLInputElement;
-        this.chatForm = document.getElementById("chat-form") as HTMLFormElement;
-
-        this.chatForm.onsubmit = () => {
-            if(this.chatInput.value != "") {
-                this.callSubmitCallback(this.chatInput.value);
-                this.chatInput.value = "";
-            }
-            this.chatInput.blur();
-            return false;
-        };
-
-        document.addEventListener("keypress", (event : KeyboardEvent) => {
-            if(event.keyCode == 13) { //enter
-                event.stopPropagation();
-                this.chatInput.focus();
-            }
-        });
-
-        this.chatInput.addEventListener("focusin", () => {
-            //console.log("focusin" + this.chatForm.style);
-            this.chatInput.style.color = "rgba(85, 85, 85, 1)"
-        });
-
-        this.chatInput.addEventListener("focusout", () => {
-            //console.log("focusout" + this.chatForm.style);
-            this.chatInput.style.color = "rgba(85, 85, 85, 0.1)"
-        });
-
-        let chatZone = document.getElementById("chat-zone") as HTMLDivElement;
-        chatZone.addEventListener("mousedown", (event: MouseEvent) => {
-            return false;
-        });
+    public setSubmitCallback(callback: (text: string) => void): void {
+        this.submitCallback = callback;
     }
 
-    private callSubmitCallback(text: string) {
-        if(this.submitCallback) {
-            this.submitCallback(text);
-        }
+    public dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
+        this.chatForm.removeEventListener("submit", this.submitHandler);
+        document.removeEventListener("keydown", this.keyHandler);
+        this.chatInput.removeEventListener("focusin", this.focusHandler);
+        this.chatInput.removeEventListener("focusout", this.blurHandler);
+        this.submitCallback = null;
+        if (ChatHtmlHandler.instance === this) ChatHtmlHandler.instance = undefined;
     }
 
-    public setSubmitCallback(submitCallback: Function) {
-        this.submitCallback = submitCallback;
-    }
-
-    public append(sender: string, message: string) {
-        let htmlMessageeSender: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
-        htmlMessageeSender.id = "msg-sender";
-
-        let htmlSenderName: HTMLElement = document.createElement("b");
-        htmlSenderName.textContent = sender;
-        htmlMessageeSender.appendChild(htmlSenderName);
-        htmlMessageeSender.appendChild(document.createTextNode(": "));
-
-        let htmlMessageeContent: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
-        htmlMessageeContent.id = "msg-content";
-        htmlMessageeContent.textContent = message;
-
-        let htmlMessagee: HTMLSpanElement = document.createElement("span") as HTMLSpanElement;
-        htmlMessagee.id = "chat-msg";
-        htmlMessagee.appendChild(htmlMessageeSender);
-        htmlMessagee.appendChild(htmlMessageeContent);
-        htmlMessagee.appendChild(document.createElement("br"));
-
-        let messagesDiv: HTMLDivElement = document.getElementById("chat-msgs") as HTMLDivElement;
-        messagesDiv.appendChild(htmlMessagee);
-        if(messagesDiv.childNodes.length > 100) {
-            messagesDiv.removeChild(messagesDiv.firstChild);
-        }
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    public append(sender: string, message: string): void {
+        if (this.disposed) return;
+        const author = document.createElement("b");
+        author.textContent = sender;
+        const content = document.createElement("span");
+        content.textContent = message;
+        const row = document.createElement("span");
+        row.appendChild(author);
+        row.appendChild(document.createTextNode(": "));
+        row.appendChild(content);
+        row.appendChild(document.createElement("br"));
+        this.messagesDiv.appendChild(row);
+        const first = this.messagesDiv.firstChild;
+        if (this.messagesDiv.childNodes.length > 100 && first) this.messagesDiv.removeChild(first);
+        this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight;
     }
 }

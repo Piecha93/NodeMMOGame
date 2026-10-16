@@ -1,8 +1,7 @@
 export class DeltaTimer {
-    private currentTime: number;
-    private delta: number;
+    private currentTime = 0;
+    private delta = 0;
     private lastUpdate: number = DeltaTimer.getTimestamp();
-
 
     public getDelta(): number {
         this.currentTime = DeltaTimer.getTimestamp();
@@ -10,7 +9,7 @@ export class DeltaTimer {
         this.lastUpdate = this.currentTime;
 
         return this.delta;
-    };
+    }
 
     static getTimestamp(): number {
         return Date.now();

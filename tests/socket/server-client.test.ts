@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import {test} from "node:test";
-import {Socket} from "socket.io";
+import { test } from "node:test";
+import { Socket } from "socket.io";
 
-import {ServerClient} from "../../server/ServerClient";
-import {Protocol} from "../../shared/net/Protocol";
+import { ServerClient } from "../../server/ServerClient";
+import { Protocol } from "../../shared/net/Protocol";
 
 test("socket/server-client: rate limits are isolated and reset after their window", () => {
     const client = new ServerClient({} as Socket, "Guest test");

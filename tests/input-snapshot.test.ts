@@ -1,8 +1,8 @@
-import {strict as assert} from "node:assert";
-import {test} from "node:test";
+import { strict as assert } from "node:assert";
+import { test } from "node:test";
 
-import {INPUT_COMMAND} from "../shared/input/InputCommands";
-import {InputSnapshot, InvalidInputSnapshotError} from "../shared/input/InputSnapshot";
+import { INPUT_COMMAND } from "../shared/input/InputCommands";
+import { InputSnapshot, InvalidInputSnapshotError } from "../shared/input/InputSnapshot";
 
 test("input snapshot keeps the existing wire format for valid commands", () => {
     const snapshot: InputSnapshot = new InputSnapshot();
@@ -41,11 +41,7 @@ test("input snapshot rejects malformed, empty and unknown commands", () => {
     ];
 
     malformedSnapshots.forEach((serializedSnapshot: string) => {
-        assert.throws(
-            () => new InputSnapshot(serializedSnapshot),
-            InvalidInputSnapshotError,
-            serializedSnapshot,
-        );
+        assert.throws(() => new InputSnapshot(serializedSnapshot), InvalidInputSnapshotError, serializedSnapshot);
     });
 });
 
@@ -53,10 +49,7 @@ test("input snapshot rejects oversized payloads and values", () => {
     const oversizedSnapshot: string = `0=9:${"A".repeat(InputSnapshot.MAX_SERIALIZED_LENGTH)}`;
 
     assert.throws(() => new InputSnapshot(oversizedSnapshot), InvalidInputSnapshotError);
-    assert.throws(
-        () => new InputSnapshot(`0=9:A${"1".repeat(128)}`),
-        InvalidInputSnapshotError,
-    );
+    assert.throws(() => new InputSnapshot(`0=9:A${"1".repeat(128)}`), InvalidInputSnapshotError);
 });
 
 test("input snapshot rejects non-finite and out-of-range numeric values", () => {
@@ -75,11 +68,7 @@ test("input snapshot rejects non-finite and out-of-range numeric values", () => 
     ];
 
     invalidNumericSnapshots.forEach((serializedSnapshot: string) => {
-        assert.throws(
-            () => new InputSnapshot(serializedSnapshot),
-            InvalidInputSnapshotError,
-            serializedSnapshot,
-        );
+        assert.throws(() => new InputSnapshot(serializedSnapshot), InvalidInputSnapshotError, serializedSnapshot);
     });
 });
 
@@ -89,11 +78,8 @@ test("failed deserialization does not partially replace a valid snapshot", () =>
     assert.throws(() => snapshot.deserialize("8=2:0#999:1"), InvalidInputSnapshotError);
 
     assert.equal(snapshot.ID, 7);
-    assert.deepEqual(
-        Array.from(snapshot.Commands.entries()),
-        [
-            [INPUT_COMMAND.HORIZONTAL, "1"],
-            [INPUT_COMMAND.VERTICAL, "0"],
-        ],
-    );
+    assert.deepEqual(Array.from(snapshot.Commands.entries()), [
+        [INPUT_COMMAND.HORIZONTAL, "1"],
+        [INPUT_COMMAND.VERTICAL, "0"],
+    ]);
 });

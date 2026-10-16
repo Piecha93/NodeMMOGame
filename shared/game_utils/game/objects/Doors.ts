@@ -1,38 +1,33 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {Result} from "detect-collisions";
-import {SerializableProperty} from "../../../serialize/SerializeDecorators";
-import {SerializableTypes} from "../../../serialize/Serializable";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { Result } from "detect-collisions";
+import { ChangesDict } from "../../../core/ChangeKeys";
 
 export class Doors extends GameObject {
-
-    @SerializableProperty(ChangesDict.ISOPEN, SerializableTypes.Uint8)
     private isOpen: boolean = false;
 
     constructor(transform: Transform) {
         super(transform);
 
-        this.isSolid = true;
         this.isChunkDeactivationPersistent = true;
     }
 
     protected serverUpdate(delta: number) {
         super.serverUpdate(delta);
-
     }
 
     protected commonUpdate(delta: number) {
         super.commonUpdate(delta);
 
-        if(this.isOpen) {
+        if (this.isOpen) {
             this.SpriteName = "doors_open";
-            this.isSolid = false;
         } else {
             this.SpriteName = "doors_closed";
-            this.isSolid = true;
         }
+    }
+
+    override get IsSolid(): boolean {
+        return !this.isOpen;
     }
 
     open() {

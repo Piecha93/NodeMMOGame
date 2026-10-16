@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["ES2022", "DOM"], "types": [], "noEmit": true },
+  "include": ["shared/**/*.ts"],
+  "exclude": ["dist", "dist-test", "node_modules", "public", "tests"]
+}

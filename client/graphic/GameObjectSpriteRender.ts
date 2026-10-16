@@ -1,10 +1,10 @@
-import {Sprite, Texture} from "pixi.js";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {GameObjectRender} from "../graphic/GameObjectRender";
-import {ResourcesLoader} from "./ResourcesLoader";
+import { Sprite, Texture } from "pixi.js";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { GameObjectRender } from "../graphic/GameObjectRender";
+import { ResourcesLoader } from "./ResourcesLoader";
 
 export class GameObjectSpriteRender extends GameObjectRender {
-    protected sprite: Sprite;
+    protected sprite: Sprite | null = null;
 
     constructor() {
         super();
@@ -21,11 +21,12 @@ export class GameObjectSpriteRender extends GameObjectRender {
         this.sprite.anchor.set(0.5);
     }
 
-    public update() {
-        super.update();
+    public update(deltaMs: number = 1000 / 60) {
+        super.update(deltaMs);
+        if (!this.sprite) return;
 
         const texture = this.getTexture();
-        if(this.sprite.texture !== texture) {
+        if (this.sprite.texture !== texture) {
             this.sprite.texture = texture;
         }
 

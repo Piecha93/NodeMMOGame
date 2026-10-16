@@ -1,24 +1,16 @@
-import {SerializableProperty} from "../../serialize/SerializeDecorators";
-import {ChangesDict} from "../../serialize/ChangesDict";
-import {Serializable, SerializableTypes} from "../../serialize/Serializable"
-import {Polygon, Circle} from "detect-collisions";
+import { ReplicatedState } from "../../core/ReplicatedState";
+import { ChangesDict } from "../../core/ChangeKeys";
+import { Polygon, Circle } from "detect-collisions";
 
 export type Vector2 = [number, number];
 export type Size = number | [number, number];
 
-export class Transform extends Serializable {
-    @SerializableProperty(ChangesDict.SCALEX, SerializableTypes.Uint16)
+export class Transform extends ReplicatedState {
     private scaleX: number;
-    @SerializableProperty(ChangesDict.SCALEY, SerializableTypes.Uint16)
     private scaleY: number;
-
-    @SerializableProperty(ChangesDict.X, SerializableTypes.Float32)
-    private x;
-    @SerializableProperty(ChangesDict.Y, SerializableTypes.Float32)
-    private y;
-
-    @SerializableProperty(ChangesDict.ROTATION, SerializableTypes.Float32)
-    private rotation;
+    private x: number;
+    private y: number;
+    private rotation: number = 0;
 
     constructor(position: Vector2, size?: Size) {
         super();
@@ -31,8 +23,7 @@ export class Transform extends Serializable {
         if (!size) {
             this.scaleX = 32;
             this.scaleY = 32;
-        }
-        else if (size instanceof Array) {
+        } else if (size instanceof Array) {
             this.scaleX = size[0];
             this.scaleY = size[1];
         } else {
@@ -68,7 +59,7 @@ export class Transform extends Serializable {
     }
 
     set ScaleX(width: number) {
-        if(this.scaleX == width) return;
+        if (this.scaleX == width) return;
 
         this.scaleX = width;
         this.addChange(ChangesDict.SCALEX);
@@ -79,7 +70,7 @@ export class Transform extends Serializable {
     }
 
     set ScaleY(height: number) {
-        if(this.scaleY == height) return;
+        if (this.scaleY == height) return;
 
         this.scaleY = height;
         this.addChange(ChangesDict.SCALEY);
@@ -101,7 +92,6 @@ export class Transform extends Serializable {
     get Rotation(): number {
         return this.rotation;
     }
-
 
     static Distance(t1: Transform, t2: Transform): number {
         return Math.sqrt(Math.pow(t1.X - t2.X, 2) + Math.pow(t1.Y - t2.Y, 2));

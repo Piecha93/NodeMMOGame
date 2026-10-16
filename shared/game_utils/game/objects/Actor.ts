@@ -1,35 +1,19 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-import {FireBall} from "./FireBall";
-import {Obstacle} from "./Obstacle";
-import {SerializableProperty} from "../../../serialize/SerializeDecorators";
-import {Result} from "detect-collisions";
-import {Item} from "./Item";
-import {Weapon} from "../weapons/Weapon";
-import {SerializableTypes} from "../../../serialize/Serializable";
-import {Collision} from "../../physics/Collision";
-
+import { integrateMovement, movementFactors } from "../../../core/Movement";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { ChangesDict } from "../../../core/ChangeKeys";
+import { Weapon } from "../weapons/Weapon";
+import { Collision } from "../../physics/Collision";
 
 export abstract class Actor extends GameObject {
-    @SerializableProperty(ChangesDict.NAME, SerializableTypes.String)
     private name: string;
-
-    @SerializableProperty(ChangesDict.MAX_HP, SerializableTypes.Uint16)
     private maxHp: number;
-
-    @SerializableProperty(ChangesDict.HP, SerializableTypes.Uint16)
     private hp: number;
-
-    @SerializableProperty(ChangesDict.ANIMATION_TYPE, SerializableTypes.String)
     protected animationType: string;
-
-    @SerializableProperty(ChangesDict.HORIZONTAL, SerializableTypes.Int8)
     protected horizontal: number = 0;
-    @SerializableProperty(ChangesDict.VERTICAL, SerializableTypes.Int8)
     protected vertical: number = 0;
 
-    protected weapon: Weapon = null;
+    protected weapon: Weapon | null = null;
 
     protected constructor(transform: Transform) {
         super(transform);
@@ -43,52 +27,61 @@ export abstract class Actor extends GameObject {
     }
 
     public updatePosition(delta: number) {
-        let moveFactors: [number, number] = this.parseMoveDir();
-        if (moveFactors[0] != 0) {
-            this.Transform.X += moveFactors[0] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.X);
-        }
-        if (moveFactors[1] != 0) {
-            this.Transform.Y += moveFactors[1] * this.velocity * delta;
-            this.Transform.addChange(ChangesDict.Y);
-        }
+        if (this.HP <= 0) return;
+        const [x, y] = integrateMovement(
+            {
+                x: this.Transform.X,
+                y: this.Transform.Y,
+                velocity: this.velocity,
+                horizontal: this.horizontal,
+                vertical: this.vertical,
+            },
+            delta,
+        );
+        if (x !== this.Transform.X) this.Transform.X = x;
+        if (y !== this.Transform.Y) this.Transform.Y = y;
     }
 
     protected sharedOnCollisionStay(collision: Collision) {
         super.sharedOnCollisionStay(collision);
 
         let gameObject: GameObject = collision.ColliderB.Parent;
-        if(gameObject.IsSolid) {
+        if (gameObject.IsSolid) {
             this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
             this.Transform.Y -= collision.Result.overlap * collision.Result.overlap_y;
         }
     }
 
     hit(power: number) {
-        this.hp -= power;
-        if(this.hp < 0) {
-            this.hp = 0;
+        if (!Number.isFinite(power) || power <= 0 || this.hp <= 0) return;
+        this.hp = Math.max(0, this.hp - power);
+        if (this.hp === 0) {
+            this.Horizontal = 0;
+            this.Vertical = 0;
         }
         this.addChange(ChangesDict.HP);
     }
 
     heal(power: number) {
-        this.hp += power;
-        if(this.hp > this.maxHp) {
-            this.hp = this.maxHp;
-        }
+        if (!Number.isFinite(power) || power <= 0 || this.hp <= 0 || this.hp === this.maxHp) return;
+        this.hp = Math.min(this.maxHp, this.hp + power);
         this.addChange(ChangesDict.HP);
     }
 
-    public parseMoveDir(): [number, number] {
-        let speed: number = 0;
-        if(this.horizontal != 0 && this.vertical != 0) {
-            speed = 0.7071;
-        } else if(this.horizontal != 0 || this.vertical != 0) {
-            speed = 1;
-        }
+    public configureVitals(maxHp: number): void {
+        if (!Number.isFinite(maxHp) || maxHp <= 0) throw new RangeError("Invalid maximum health");
+        this.maxHp = maxHp;
+        this.hp = maxHp;
+        this.addChange(ChangesDict.MAX_HP);
+        this.addChange(ChangesDict.HP);
+    }
 
-        return [speed * this.vertical, speed * this.horizontal];
+    get CombatTeam(): "players" | "enemies" | null {
+        return null;
+    }
+
+    public parseMoveDir(): [number, number] {
+        return movementFactors(this.horizontal, this.vertical);
     }
 
     get MaxHP(): number {
@@ -109,7 +102,7 @@ export abstract class Actor extends GameObject {
     }
 
     set Horizontal(horizontal: number) {
-        if(this.horizontal == horizontal) return;
+        if (this.horizontal == horizontal) return;
 
         this.horizontal = horizontal;
         this.addChange(ChangesDict.HORIZONTAL);
@@ -118,7 +111,7 @@ export abstract class Actor extends GameObject {
     }
 
     set Vertical(vertical: number) {
-        if(this.vertical == vertical) return;
+        if (this.vertical == vertical) return;
 
         this.vertical = vertical;
         this.addChange(ChangesDict.VERTICAL);
@@ -127,7 +120,7 @@ export abstract class Actor extends GameObject {
     }
 
     private setAnimationType() {
-        if(this.horizontal != 0 || this.vertical != 0) {
+        if (this.horizontal != 0 || this.vertical != 0) {
             this.animationType = "run";
             this.addChange(ChangesDict.ANIMATION_TYPE);
         } else {
@@ -148,7 +141,7 @@ export abstract class Actor extends GameObject {
         return this.spriteName + "_" + this.animationType;
     }
 
-    get Weapon(): Weapon {
+    get Weapon(): Weapon | null {
         return this.weapon;
     }
 
@@ -157,8 +150,7 @@ export abstract class Actor extends GameObject {
         this.addChange(ChangesDict.SPRITE_ID);
     }
 
-    set Weapon(weapon: Weapon) {
+    set Weapon(weapon: Weapon | null) {
         this.weapon = weapon;
     }
 }
-

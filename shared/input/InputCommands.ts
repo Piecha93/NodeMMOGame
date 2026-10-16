@@ -17,5 +17,5 @@ export enum INPUT_COMMAND {
 export enum MouseKeys {
     LEFT = 0,
     MIDDLE = 1,
-    RIGHT = 2
+    RIGHT = 2,
 }

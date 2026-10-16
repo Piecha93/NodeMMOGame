@@ -1,9 +1,10 @@
-import {PropNames} from "./SerializeDecorators";
-import {SharedConfig} from "../SharedConfig";
-import {calcPropsMaskByteSize, setBit} from "../utils/functions/BitOperations";
-import {TicksCounter} from "../utils/TicksCounter";
-import {ProtocolLimits} from "../net/ProtocolLimits";
-import {ProtocolDecodeError, ProtocolDecodeErrorCode} from "./ProtocolDecodeError";
+import { PropNames } from "./SerializeDecorators";
+import { ReplicatedState } from "../core/ReplicatedState";
+import { legacyView } from "../replication/LegacyView";
+import { calcPropsMaskByteSize, setBit } from "../utils/functions/BitOperations";
+
+import { ProtocolLimits } from "../net/ProtocolLimits";
+import { ProtocolDecodeError, ProtocolDecodeErrorCode } from "./ProtocolDecodeError";
 
 export enum SerializableTypes {
     Int8,
@@ -15,46 +16,43 @@ export enum SerializableTypes {
     Float32,
     Float64,
     String,
-    Object
+    Object,
 }
 
-export abstract class Serializable {
-    public static TypesToBytesSize: Map<SerializableTypes, number> = new Map<SerializableTypes, number>(
-        [
-            [SerializableTypes.Int8, 1],
-            [SerializableTypes.Int16, 2],
-            [SerializableTypes.Int32, 4],
-            [SerializableTypes.Uint8, 1],
-            [SerializableTypes.Uint16, 2],
-            [SerializableTypes.Uint32, 4],
-            [SerializableTypes.Float32, 4],
-            [SerializableTypes.Float64, 8],
-        ]
-    );
-
-    protected forceComplete: boolean;
-    protected changes: Set<string>;
-    protected deserializedFields: Set<string>;
-    protected lastUpdateTick: number = 0;
+export abstract class Serializable extends ReplicatedState {
+    declare [PropNames.SerializeFunctions]: Map<
+        string,
+        (object: Serializable, view: DataView, offset: number) => number
+    >;
+    declare [PropNames.DeserializeFunctions]: Map<
+        string,
+        (object: Serializable, view: DataView, offset: number) => number
+    >;
+    declare [PropNames.CalcBytesFunctions]: Map<string, (object: Serializable, complete: boolean) => number>;
+    declare [PropNames.SerializeEncodeOrder]: Map<string, number>;
+    declare [PropNames.SerializeDecodeOrder]: Map<number, string>;
+    declare [PropNames.PropertyTypes]: Map<string, SerializableTypes>;
+    declare [PropNames.NestedSerializableObjects]: Map<string, string>;
+    declare [PropNames.DecodeCounter]: number;
+    public static TypesToBytesSize: Map<SerializableTypes, number> = new Map<SerializableTypes, number>([
+        [SerializableTypes.Int8, 1],
+        [SerializableTypes.Int16, 2],
+        [SerializableTypes.Int32, 4],
+        [SerializableTypes.Uint8, 1],
+        [SerializableTypes.Uint16, 2],
+        [SerializableTypes.Uint32, 4],
+        [SerializableTypes.Float32, 4],
+        [SerializableTypes.Float64, 8],
+    ]);
 
     protected constructor() {
-        this.changes = new Set<string>();
-        this.deserializedFields = new Set<string>();
-        this.forceComplete = true;
+        super();
     }
 
-    public addChange(change: string) {
-        if(SharedConfig.IS_SERVER) {
-            this.changes.add(change);
-        }
-    }
-
-    public hasChange(change: string): boolean {
-        if(SharedConfig.IS_SERVER) {
-            return this.changes.has(change);
-        } else {
-            return this.deserializedFields.has(change);
-        }
+    protected override replicatedChildren(): readonly ReplicatedState[] {
+        return Array.from(this[PropNames.NestedSerializableObjects]?.values() ?? [], (key) =>
+            this.nestedSerializable(key),
+        );
     }
 
     public calcNeededBufferSize(complete: boolean): number {
@@ -64,10 +62,8 @@ export abstract class Serializable {
 
         let neededSize: number = 0;
 
-        let propsSize: number = (this[PropNames.SerializeEncodeOrder] as Map<string, number>).size;
-
-        this[PropNames.CalcBytesFunctions].forEach((func: Function, shortKey: string) => {
-            if(!complete && !this.changes.has(shortKey)) {
+        this[PropNames.CalcBytesFunctions].forEach((func, shortKey) => {
+            if (!complete && !this.changes.has(shortKey)) {
                 return;
             }
 
@@ -75,11 +71,11 @@ export abstract class Serializable {
         });
 
         this[PropNames.NestedSerializableObjects].forEach((key: string, short_key: string) => {
-            neededSize += (this[key] as Serializable).calcNeededBufferSize(complete);
+            neededSize += this.nestedSerializable(key).calcNeededBufferSize(complete);
         });
 
-        if(neededSize != 0) {
-            neededSize += calcPropsMaskByteSize(propsSize);
+        if (neededSize != 0) {
+            neededSize += this.getPropsMaskByteSize();
         }
 
         return neededSize;
@@ -91,44 +87,37 @@ export abstract class Serializable {
 
     private getPropsMaskByteSize(): number {
         let propsSize: number = this.getPropsSize();
+        if (propsSize <= 0 || propsSize > ProtocolLimits.MAX_SERIALIZABLE_PROPERTIES) {
+            throw new ProtocolDecodeError(
+                ProtocolDecodeErrorCode.INVALID_SCHEMA,
+                0,
+                `unsupported property count ${propsSize}`,
+            );
+        }
         let propsByteSize: number = calcPropsMaskByteSize(propsSize);
-        return propsByteSize == 3 ? 4 : propsByteSize
+        return propsByteSize == 3 ? 4 : propsByteSize;
     }
-
 
     public serialize(updateBufferView: DataView, offset: number, complete: boolean = false): number {
-        return this.serializeInternal(updateBufferView, offset, complete, true);
+        // Validate all selected fields, including nested strings, before writing.
+        this.calcNeededBufferSize(complete);
+        const updatedOffset = this.serializeInternal(updateBufferView, offset, complete);
+        // Children must retain their changes until the entire root write succeeds.
+        this.commitSerializedChanges();
+        return updatedOffset;
     }
 
-    public serializePreservingChanges(
-        updateBufferView: DataView,
-        offset: number,
-        complete: boolean = false
-    ): number {
-        return this.serializeInternal(updateBufferView, offset, complete, false);
+    public serializePreservingChanges(updateBufferView: DataView, offset: number, complete: boolean = false): number {
+        this.calcNeededBufferSize(complete);
+        return this.serializeInternal(updateBufferView, offset, complete);
     }
 
     public commitSerializedChanges(): void {
-        this.forceComplete = false;
-        this.changes.clear();
-
-        if(this[PropNames.NestedSerializableObjects]) {
-            this[PropNames.NestedSerializableObjects].forEach((key: string) => {
-                (this[key] as Serializable).commitSerializedChanges();
-            });
-        }
+        this.commitReplicationChanges();
     }
 
-    private serializeInternal(
-        updateBufferView: DataView,
-        offset: number,
-        complete: boolean,
-        commitChanges: boolean
-    ): number {
+    private serializeInternal(updateBufferView: DataView, offset: number, complete: boolean): number {
         if (this.forceComplete) {
-            if(commitChanges) {
-                this.forceComplete = false;
-            }
             complete = true;
         }
 
@@ -139,52 +128,47 @@ export abstract class Serializable {
 
         let presentMask: number = 0;
 
-        if(complete) {
+        if (complete) {
             presentMask = Math.pow(2, propsSize) - 1;
         }
 
-        if(this[PropNames.SerializeFunctions]) {
-            this[PropNames.SerializeFunctions].forEach((serializeFunc: Function, shortKey: string) => {
-                if(this.changes.has(shortKey) || complete) {
-                    let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
+        if (this[PropNames.SerializeFunctions]) {
+            this[PropNames.SerializeFunctions].forEach((serializeFunc, shortKey) => {
+                if (this.changes.has(shortKey) || complete) {
+                    const index = requiredMapValue(this[PropNames.SerializeEncodeOrder], shortKey, offset);
                     updatedOffset += serializeFunc(this, updateBufferView, updatedOffset);
                     presentMask = setBit(presentMask, index);
                 }
             });
         }
 
-        if(this[PropNames.NestedSerializableObjects]) {
+        if (this[PropNames.NestedSerializableObjects]) {
             this[PropNames.NestedSerializableObjects].forEach((key: string, shortKey: string) => {
-                let index: number = this[PropNames.SerializeEncodeOrder].get(shortKey);
+                const index = requiredMapValue(this[PropNames.SerializeEncodeOrder], shortKey, offset);
 
                 let tmpOffset: number = updatedOffset;
-                updatedOffset = (this[key] as Serializable).serializeInternal(
+                updatedOffset = this.nestedSerializable(key).serializeInternal(
                     updateBufferView,
                     updatedOffset,
                     complete,
-                    commitChanges
                 );
 
-                if(tmpOffset < updatedOffset) {
+                if (tmpOffset < updatedOffset) {
                     presentMask = setBit(presentMask, index);
                 }
             });
         }
 
-        if(updatedOffset == (offset + propsMaskByteSize)) {
+        if (updatedOffset == offset + propsMaskByteSize) {
             return offset;
         }
 
-        if(propsMaskByteSize == 1) {
+        if (propsMaskByteSize == 1) {
             updateBufferView.setUint8(offset, presentMask);
-        } else if(propsMaskByteSize == 2) {
+        } else if (propsMaskByteSize == 2) {
             updateBufferView.setUint16(offset, presentMask);
-        } else if(propsMaskByteSize == 4) {
+        } else if (propsMaskByteSize == 4) {
             updateBufferView.setUint32(offset, presentMask);
-        }
-
-        if(commitChanges) {
-            this.changes.clear();
         }
 
         return updatedOffset;
@@ -193,16 +177,16 @@ export abstract class Serializable {
     public deserialize(updateBufferView: DataView, offset: number): number {
         this.deserializedFields.clear();
 
-        this.lastUpdateTick = TicksCounter.Instance.LastTickNumber;
+        this.lastUpdateTick = this.runtime.tick;
 
         let propsMaskByteSize: number = this.getPropsMaskByteSize();
 
-        let presentMask: number;
-        if(propsMaskByteSize == 1) {
+        let presentMask: number = 0;
+        if (propsMaskByteSize == 1) {
             presentMask = updateBufferView.getUint8(offset);
-        } else if(propsMaskByteSize == 2) {
+        } else if (propsMaskByteSize == 2) {
             presentMask = updateBufferView.getUint16(offset);
-        } else if(propsMaskByteSize == 4) {
+        } else if (propsMaskByteSize == 4) {
             presentMask = updateBufferView.getUint32(offset);
         }
 
@@ -212,20 +196,24 @@ export abstract class Serializable {
 
         let index: number = 0;
         while (presentMask) {
-            let bitMask: number = (1 << index);
+            let bitMask: number = 1 << index;
             if ((presentMask & bitMask) == 0) {
                 index++;
                 continue;
             }
             presentMask &= ~bitMask;
 
-            let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
-            let type: SerializableTypes = this[PropNames.PropertyTypes].get(shortKey);
+            const shortKey = requiredMapValue(this[PropNames.SerializeDecodeOrder], index, offset);
+            const type = requiredMapValue(this[PropNames.PropertyTypes], shortKey, offset);
 
-            if(type == SerializableTypes.Object) {
+            if (type == SerializableTypes.Object) {
                 objectsToDecode.push(index);
             } else {
-                offset += this[PropNames.DeserializeFunctions].get(shortKey)(this, updateBufferView, offset);
+                offset += requiredMapValue(this[PropNames.DeserializeFunctions], shortKey, offset)(
+                    this,
+                    updateBufferView,
+                    offset,
+                );
                 this.deserializedFields.add(shortKey);
             }
 
@@ -233,10 +221,9 @@ export abstract class Serializable {
         }
 
         objectsToDecode.forEach((index: number) => {
-            let shortKey = this[PropNames.SerializeDecodeOrder].get(index);
-
-            let key: string = this[PropNames.NestedSerializableObjects].get(shortKey);
-            offset = this[key].deserialize(updateBufferView, offset);
+            const shortKey = requiredMapValue(this[PropNames.SerializeDecodeOrder], index, offset);
+            const key = requiredMapValue(this[PropNames.NestedSerializableObjects], shortKey, offset);
+            offset = this.nestedSerializable(key).deserialize(updateBufferView, offset);
         });
 
         return offset;
@@ -253,7 +240,7 @@ export abstract class Serializable {
         requireComplete: boolean = false,
         depth: number = 0,
     ): number {
-        if(depth > ProtocolLimits.MAX_SERIALIZABLE_DEPTH) {
+        if (depth > ProtocolLimits.MAX_SERIALIZABLE_DEPTH) {
             throw new ProtocolDecodeError(
                 ProtocolDecodeErrorCode.INVALID_SCHEMA,
                 offset,
@@ -262,7 +249,7 @@ export abstract class Serializable {
         }
 
         const propsSize: number = this.getPropsSize();
-        if(propsSize <= 0 || propsSize > ProtocolLimits.MAX_SERIALIZABLE_PROPERTIES) {
+        if (propsSize <= 0 || propsSize > ProtocolLimits.MAX_SERIALIZABLE_PROPERTIES) {
             throw new ProtocolDecodeError(
                 ProtocolDecodeErrorCode.INVALID_SCHEMA,
                 offset,
@@ -275,11 +262,11 @@ export abstract class Serializable {
         this.requirePayloadBytes(updateBufferView, maskOffset, propsMaskByteSize, maskOffset);
 
         let presentMask: number;
-        if(propsMaskByteSize === 1) {
+        if (propsMaskByteSize === 1) {
             presentMask = updateBufferView.getUint8(maskOffset);
-        } else if(propsMaskByteSize === 2) {
+        } else if (propsMaskByteSize === 2) {
             presentMask = updateBufferView.getUint16(maskOffset);
-        } else if(propsMaskByteSize === 4) {
+        } else if (propsMaskByteSize === 4) {
             presentMask = updateBufferView.getUint32(maskOffset);
         } else {
             throw new ProtocolDecodeError(
@@ -289,37 +276,29 @@ export abstract class Serializable {
             );
         }
 
-        const completeMask: number = propsSize === 32
-            ? 0xFFFFFFFF
-            : Math.pow(2, propsSize) - 1;
-        if(presentMask === 0 || presentMask > completeMask) {
-            throw new ProtocolDecodeError(
-                ProtocolDecodeErrorCode.UNKNOWN_PROPERTY_MASK,
-                maskOffset,
-            );
+        const completeMask: number = propsSize === 32 ? 0xffffffff : Math.pow(2, propsSize) - 1;
+        if (presentMask === 0 || presentMask > completeMask) {
+            throw new ProtocolDecodeError(ProtocolDecodeErrorCode.UNKNOWN_PROPERTY_MASK, maskOffset);
         }
-        if(requireComplete && presentMask !== completeMask) {
-            throw new ProtocolDecodeError(
-                ProtocolDecodeErrorCode.INCOMPLETE_NEW_OBJECT,
-                maskOffset,
-            );
+        if (requireComplete && presentMask !== completeMask) {
+            throw new ProtocolDecodeError(ProtocolDecodeErrorCode.INCOMPLETE_NEW_OBJECT, maskOffset);
         }
 
         offset += propsMaskByteSize;
 
-        const serializeFunctions = this[PropNames.SerializeFunctions] as Map<string, Function>;
+        const serializeFunctions = this[PropNames.SerializeFunctions];
         const propertyTypes = this[PropNames.PropertyTypes] as Map<string, SerializableTypes>;
         const encodeOrder = this[PropNames.SerializeEncodeOrder] as Map<string, number>;
 
-        serializeFunctions.forEach((_serializeFunction: Function, shortKey: string) => {
+        serializeFunctions.forEach((_serializeFunction, shortKey: string) => {
             const index: number | undefined = encodeOrder.get(shortKey);
-            if(index === undefined || !this.maskHasBit(presentMask, index)) {
+            if (index === undefined || !this.maskHasBit(presentMask, index)) {
                 return;
             }
 
             const fieldOffset: number = offset;
             const type: SerializableTypes | undefined = propertyTypes.get(shortKey);
-            if(type === SerializableTypes.String) {
+            if (type === SerializableTypes.String) {
                 this.requirePayloadBytes(updateBufferView, fieldOffset, 1, fieldOffset);
                 const stringLength: number = updateBufferView.getUint8(fieldOffset);
                 this.requirePayloadBytes(updateBufferView, fieldOffset, stringLength + 1, fieldOffset);
@@ -327,8 +306,8 @@ export abstract class Serializable {
                 return;
             }
 
-            const fieldSize: number | undefined = Serializable.TypesToBytesSize.get(type);
-            if(fieldSize === undefined) {
+            const fieldSize = type === undefined ? undefined : Serializable.TypesToBytesSize.get(type);
+            if (fieldSize === undefined) {
                 throw new ProtocolDecodeError(
                     ProtocolDecodeErrorCode.INVALID_SCHEMA,
                     fieldOffset,
@@ -342,27 +321,30 @@ export abstract class Serializable {
         const nestedObjects = this[PropNames.NestedSerializableObjects] as Map<string, string>;
         nestedObjects.forEach((key: string, shortKey: string) => {
             const index: number | undefined = encodeOrder.get(shortKey);
-            if(index === undefined || !this.maskHasBit(presentMask, index)) {
+            if (index === undefined || !this.maskHasBit(presentMask, index)) {
                 return;
             }
 
-            const nestedObject = this[key] as Serializable;
-            if(!(nestedObject instanceof Serializable)) {
+            const nestedObject = this.nestedSerializable(key);
+            if (!(nestedObject instanceof ReplicatedState)) {
                 throw new ProtocolDecodeError(
                     ProtocolDecodeErrorCode.INVALID_SCHEMA,
                     offset,
                     `missing nested field '${shortKey}'`,
                 );
             }
-            offset = nestedObject.preflightDeserialize(
-                updateBufferView,
-                offset,
-                requireComplete,
-                depth + 1,
-            );
+            offset = nestedObject.preflightDeserialize(updateBufferView, offset, requireComplete, depth + 1);
         });
 
         return offset;
+    }
+
+    private nestedSerializable(key: string): Serializable {
+        const nested = Reflect.get(this, key) as unknown;
+        if (!(nested instanceof ReplicatedState)) {
+            throw new ProtocolDecodeError(ProtocolDecodeErrorCode.INVALID_SCHEMA, 0, `missing nested field '${key}'`);
+        }
+        return legacyView(nested);
     }
 
     private maskHasBit(mask: number, index: number): boolean {
@@ -375,25 +357,20 @@ export abstract class Serializable {
         byteLength: number,
         errorOffset: number,
     ): void {
-        if(
+        if (
             !Number.isSafeInteger(offset) ||
             !Number.isSafeInteger(byteLength) ||
             offset < 0 ||
             byteLength < 0 ||
             offset + byteLength > updateBufferView.byteLength
         ) {
-            throw new ProtocolDecodeError(
-                ProtocolDecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD,
-                errorOffset,
-            );
+            throw new ProtocolDecodeError(ProtocolDecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD, errorOffset);
         }
     }
+}
 
-    get DeserializedFields():Set<string> {
-        return this.deserializedFields;
-    }
-
-    get LastUpdateTick(): number {
-        return this.lastUpdateTick;
-    }
+function requiredMapValue<K, V>(map: ReadonlyMap<K, V>, key: K, offset: number): V {
+    const value = map.get(key);
+    if (value === undefined) throw new ProtocolDecodeError(ProtocolDecodeErrorCode.INVALID_SCHEMA, offset, String(key));
+    return value;
 }

@@ -1,35 +1,82 @@
-<html>
+<!doctype html>
+<html lang="pl">
 <head>
-    <title>Game</title>
-
-    <link rel='stylesheet' href='/css/style.css' />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#151a19" />
+    <title>Ruiny — wspólna wyprawa</title>
+    <link rel="stylesheet" href="/css/style.css" />
 </head>
-
-<body>
-<form id="login-form" action="/login" method="post">
-    <h1>Login Form</h1>
-
-    <% if (locals.error_message) { %>
-        <h2> <%= error_message %> </h2>
-    <% } %>
-
-    <div>
-        <input type="text" placeholder="Username" required="" name="username" />
+<body class="landing-page">
+    <div class="landing-shell">
+        <header class="site-header">
+            <a class="wordmark" href="/" aria-label="Ruiny — strona główna"><span class="rune" aria-hidden="true">◇</span> RUINY</a>
+            <span class="build-label">MAŁA GRA. WSPÓLNA WYPRAWA.</span>
+        </header>
+        <main class="landing-main">
+            <div class="landing-copy">
+                <p class="eyebrow"><span class="status-dot"></span> KOOPERACJA · 1–4 GRACZY</p>
+                <h1>Co zostało<br />w ruinach?</h1>
+                <p class="landing-lead">Trzy rdzenie. Dziesięć minut.<br />I droga powrotna, którą warto pamiętać.</p>
+                <p class="landing-description">Wyruszcie poza obóz, odnajdźcie zapomniane miejsca i pokonajcie ich strażników. Odzyskajcie wszystkie rdzenie i wróćcie razem.</p>
+                <% if (locals.error_message) { %>
+                    <p class="login-error" role="alert"><%= error_message %></p>
+                <% } %>
+                <form id="guest-form" action="/login" method="post">
+                    <input type="hidden" name="username" value="guest" />
+                    <input type="hidden" name="password" value="guest" />
+                    <button class="button button-primary" type="submit">Wyrusz jako gość <span aria-hidden="true">↗</span></button>
+                    <span class="cta-note">Bez konta i bez instalacji. Po prostu wejdź.</span>
+                </form>
+                <details class="account-login" <%= locals.error_message ? 'open' : '' %>>
+                    <summary>Masz już konto? Zaloguj się <span aria-hidden="true">+</span></summary>
+                    <form id="login-form" action="/login" method="post">
+                        <label for="username">Nazwa gracza</label>
+                        <input id="username" type="text" autocomplete="username" required name="username" placeholder="Twoja nazwa" />
+                        <label for="password">Hasło</label>
+                        <input id="password" type="password" autocomplete="current-password" required name="password" placeholder="Twoje hasło" />
+                        <button class="button button-secondary" type="submit">Zaloguj się</button>
+                    </form>
+                </details>
+            </div>
+            <div class="expedition-map" aria-label="Mapa wyprawy: obóz i trzy ruiny">
+                <div class="map-heading"><span>TEREN WYPRAWY</span><span>01 / RUINY</span></div>
+                <svg viewBox="0 0 440 440" role="img" aria-label="Schemat trasy przez Strażnicę, Kamienny krąg i Zapomniany gaj">
+                    <defs>
+                        <pattern id="map-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#a6aa8f" stroke-opacity=".065" /></pattern>
+                        <radialGradient id="map-glow"><stop stop-color="#c7a466" stop-opacity=".13" /><stop offset="1" stop-color="#c7a466" stop-opacity="0" /></radialGradient>
+                    </defs>
+                    <rect width="440" height="440" fill="url(#map-grid)" />
+                    <circle cx="225" cy="218" r="190" fill="url(#map-glow)" />
+                    <g fill="none" stroke="#6f7b66" stroke-width="1" opacity=".25">
+                        <path d="M8 236Q74 171 45 108T186 13M6 259Q99 199 73 119T211 7M18 288Q132 246 103 142T244 9M146 430Q230 347 344 399T438 277M113 432Q225 317 350 367T433 244M76 436Q218 293 359 333T435 202" />
+                        <path d="M350 20Q303 89 369 143T423 224M383 11Q335 89 398 130T437 194" />
+                    </g>
+                    <path d="M95 164L148 140L242 111L313 210L279 304L163 321L95 164" fill="none" stroke="#b7a57c" stroke-width="1.4" stroke-dasharray="3 7" opacity=".6" />
+                    <g stroke="#c5a36b" fill="#1b211e">
+                        <circle cx="95" cy="164" r="24" stroke-opacity=".25" /><circle cx="95" cy="164" r="15" />
+                        <path d="M87 166L95 154L103 166M91 162V173H99V162" fill="none" />
+                        <path d="M242 94L254 111L242 128L230 111Z" /><path d="M242 103V119M237 111H247" />
+                        <path d="M313 193L325 210L313 227L301 210Z" /><path d="M313 202V218M308 210H318" />
+                        <path d="M163 304L175 321L163 338L151 321Z" /><path d="M163 313V329M158 321H168" />
+                    </g>
+                    <g fill="#c4c6af" font-family="Georgia, serif" font-size="12">
+                        <text x="95" y="207" text-anchor="middle">Obóz</text><text x="242" y="82" text-anchor="middle">Stara strażnica</text>
+                        <text x="313" y="253" text-anchor="middle">Kamienny krąg</text><text x="163" y="364" text-anchor="middle">Zapomniany gaj</text>
+                    </g>
+                    <g stroke="#79836e" fill="none" opacity=".65"><path d="M383 326V374M359 350H407M383 331L379 343H387Z" /></g>
+                    <text x="383" y="319" text-anchor="middle" fill="#9da78f" font-family="monospace" font-size="10">N</text>
+                </svg>
+                <div class="map-footer"><span><i></i> TRZY MIEJSCA DO ODNALEZIENIA</span><span>↗</span></div>
+            </div>
+        </main>
+        <footer class="landing-footer">
+            <span class="controls-label">ZANIM WYRUSZYSZ</span>
+            <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ruch</span>
+            <span><kbd>LPM</kbd> strzał w kierunku kursora</span>
+            <span><kbd>Enter</kbd> czat drużyny</span>
+            <span class="friendly-note">Wspólne rdzenie. Bez obrażeń od sojuszników.</span>
+        </footer>
     </div>
-    <div>
-        <input type="password" placeholder="Password" required="" name="password"/>
-    </div>
-    <div>
-        <input type="submit" value="Log in" />
-    </div>
-</form><!-- form -->
-
-<form id="login-form" action="/login" method="post">
-    <input type="hidden" name="username" value="guest" />
-    <input type="hidden" name="password" value="guest" />
-    <input type="submit" value="Play as guest" />
-</form>
-
 </body>
-
 </html>

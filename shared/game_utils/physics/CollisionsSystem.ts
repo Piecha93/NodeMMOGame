@@ -1,7 +1,7 @@
-import {Collisions, Polygon, Circle, Result, Body} from "detect-collisions";
-import {GameObject} from "../game/objects/GameObject";
-import {SharedConfig} from "../../SharedConfig";
-import {Collider} from "../physics/Collider";
+import { Collisions, Polygon, Circle, Result, Body } from "detect-collisions";
+import { GameObject } from "../game/objects/GameObject";
+
+import { Collider } from "../physics/Collider";
 
 export class CollisionsSystem extends Collisions {
     private bodyToColliderMap: Map<Body, Collider> = new Map<Body, Collider>();
@@ -13,20 +13,20 @@ export class CollisionsSystem extends Collisions {
     }
 
     public insertObject(gameObject: GameObject) {
-        for(let collider of gameObject.Colliders) {
+        for (let collider of gameObject.Colliders) {
             super.insert(collider.Body);
 
             this.bodyToColliderMap.set(collider.Body, collider);
             this.collidingBodiesMap.set(collider.Body, new Set<Body>());
         }
 
-        if(SharedConfig.IS_SERVER && gameObject.IsSolid && this.isObjectColliding(gameObject)) {
+        if (gameObject.Runtime.isServer && gameObject.IsSolid && this.isObjectColliding(gameObject)) {
             gameObject.destroy();
         }
     }
 
     public removeObject(gameObject: GameObject) {
-        for(let collider of gameObject.Colliders) {
+        for (let collider of gameObject.Colliders) {
             for (let collidingBodies of this.collidingBodiesMap.values()) {
                 collidingBodies.delete(collider.Body);
             }
@@ -48,59 +48,94 @@ export class CollisionsSystem extends Collisions {
     }
 
     public updateCollisions(gameObjects: Array<GameObject>) {
-        gameObjects.forEach((gameObject: GameObject) => {
+        for (const gameObject of Array.from(gameObjects)) {
             this.updateCollisionsForGameObject(gameObject);
-        });
+        }
     }
 
     public updateCollisionsForGameObject(gameObject: GameObject) {
-        for(let collider of gameObject.Colliders) {
-            if (gameObject.IsCollisionStatic) {
-                //no need to calculate collisions for obstacles since they are not moving
-                //that hack gives us huge performance boost when we have thousands of obstacles
-                return;
+        if (
+            gameObject.IsDestroyed ||
+            gameObject.IsCollisionStatic ||
+            (gameObject.Runtime.isClient && !gameObject.predictionEnabled)
+        ) {
+            return;
+        }
+
+        for (let collider of gameObject.Colliders) {
+            if (!this.isRegisteredCollider(collider)) {
+                continue;
             }
             let colliderBody: Body = collider.Body;
 
             let oldCollidingBodies: Set<Body> = this.collidingBodiesMap.get(colliderBody) || new Set<Body>();
             let newCollidingBodies: Set<Body> = new Set<Body>();
+            // Publish the current contacts before callbacks, so removeObject can
+            // clean them even when a callback destroys an earlier contact.
+            this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
 
             for (let body of this.CollisionBodyIterator(colliderBody)) {
-                let colidedCollider: Collider = this.bodyToColliderMap.get(body);
-                if (!colidedCollider || colidedCollider == collider) {
+                const colidedCollider = this.bodyToColliderMap.get(body);
+                if (
+                    !colidedCollider ||
+                    colidedCollider.Parent === gameObject ||
+                    !this.isRegisteredCollider(colidedCollider)
+                ) {
                     continue;
                 }
 
                 if (!oldCollidingBodies.has(body)) {
-                    collider.onCollisionEnter(colidedCollider, this.lastCollisionResult)
+                    collider.onCollisionEnter(colidedCollider, this.lastCollisionResult);
+                    if (!this.isRegisteredCollider(collider)) {
+                        return;
+                    }
+                    if (!this.isRegisteredCollider(colidedCollider)) {
+                        continue;
+                    }
                 }
                 newCollidingBodies.add(body);
-                collider.onCollisionStay(colidedCollider, this.lastCollisionResult)
+                collider.onCollisionStay(colidedCollider, this.lastCollisionResult);
+                if (!this.isRegisteredCollider(collider)) {
+                    return;
+                }
+                if (!this.isRegisteredCollider(colidedCollider)) {
+                    newCollidingBodies.delete(body);
+                }
             }
 
             for (let body of oldCollidingBodies) {
                 if (!newCollidingBodies.has(body)) {
-                    let colidedCollider: Collider = this.bodyToColliderMap.get(body);
-                    if (!colidedCollider || colidedCollider == collider) {
+                    const colidedCollider = this.bodyToColliderMap.get(body);
+                    if (
+                        !colidedCollider ||
+                        colidedCollider.Parent === gameObject ||
+                        !this.isRegisteredCollider(colidedCollider)
+                    ) {
                         continue;
                     }
                     collider.onCollisionExit(colidedCollider, this.createExitResult(colliderBody, body));
+                    if (!this.isRegisteredCollider(collider)) {
+                        return;
+                    }
                 }
             }
-            this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
         }
     }
 
+    private isRegisteredCollider(collider: Collider): boolean {
+        return !collider.Parent.IsDestroyed && this.bodyToColliderMap.get(collider.Body) === collider;
+    }
+
     isObjectColliding(object: GameObject): boolean {
-        for(let collider of object.Colliders) {
+        for (let collider of object.Colliders) {
             let potentials: Body[] = collider.Body.potentials();
             for (let body of potentials) {
-                let otherCollider: Collider = this.bodyToColliderMap.get(body);
-                if(!otherCollider || collider.Parent.ID == otherCollider.Parent.ID) {
+                const otherCollider = this.bodyToColliderMap.get(body);
+                if (!otherCollider || collider.Parent === otherCollider.Parent) {
                     //skip check colliders with same parent
                     continue;
                 }
-                if(collider.Body.collides(body)) {
+                if (collider.Body.collides(body)) {
                     return true;
                 }
             }
@@ -122,7 +157,7 @@ export class CollisionsSystem extends Collisions {
     }
 
     *CollisionBodyIterator(objectBody: Body): Generator<Body, void, undefined> {
-        for(let body of objectBody.potentials()) {
+        for (let body of objectBody.potentials()) {
             if (objectBody.collides(body, this.lastCollisionResult)) {
                 yield body;
             }

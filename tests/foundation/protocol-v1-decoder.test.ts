@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import {test} from "node:test";
+import { test } from "node:test";
 
-import {GameCore} from "../../shared/GameCore";
-import {registerGameObjectPrefabs} from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
-import {ProtocolDecodeError} from "../../shared/serialize/ProtocolDecodeError";
+import { GameCore } from "../../shared/GameCore";
+import { registerGameObjectPrefabs } from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import { ProtocolDecodeError } from "../../shared/serialize/ProtocolDecodeError";
 
 registerGameObjectPrefabs();
 
@@ -16,21 +16,44 @@ const DecodeErrorCode = Object.freeze({
 } as const);
 
 const GOLDEN_COMPLETE_WALL = bufferFromBytes([
-    0x43, 0x00, 0x00, 0x00, 0x2A, // C42
-    0x0F,                         // complete GameObject mask
-    0x00, 0x00, 0x00, 0x00,       // velocity = 0
-    0x00,                         // invisible = false
-    0x00, 0x01,                   // sprite = wall
-    0x1F,                         // complete Transform mask
-    0x00, 0x20,                   // scaleX = 32
-    0x00, 0x20,                   // scaleY = 32
-    0x42, 0xC8, 0x00, 0x00,       // x = 100
-    0x43, 0x48, 0x00, 0x00,       // y = 200
-    0x00, 0x00, 0x00, 0x00,       // rotation = 0
+    0x43,
+    0x00,
+    0x00,
+    0x00,
+    0x2a, // C42
+    0x0f, // complete GameObject mask
+    0x00,
+    0x00,
+    0x00,
+    0x00, // velocity = 0
+    0x00, // invisible = false
+    0x00,
+    0x01, // sprite = wall
+    0x1f, // complete Transform mask
+    0x00,
+    0x20, // scaleX = 32
+    0x00,
+    0x20, // scaleY = 32
+    0x42,
+    0xc8,
+    0x00,
+    0x00, // x = 100
+    0x43,
+    0x48,
+    0x00,
+    0x00, // y = 200
+    0x00,
+    0x00,
+    0x00,
+    0x00, // rotation = 0
 ]);
 
 const UNKNOWN_PREFAB_HEADER = bufferFromBytes([
-    0x5A, 0x00, 0x00, 0x00, 0x01, // Z1
+    0x5a,
+    0x00,
+    0x00,
+    0x00,
+    0x01, // Z1
 ]);
 
 interface ExpectedDecodeError {
@@ -45,10 +68,7 @@ function bufferFromBytes(bytes: readonly number[]): ArrayBuffer {
 }
 
 function concatBuffers(...buffers: readonly ArrayBuffer[]): ArrayBuffer {
-    const result = new Uint8Array(buffers.reduce(
-        (total: number, buffer: ArrayBuffer) => total + buffer.byteLength,
-        0,
-    ));
+    const result = new Uint8Array(buffers.reduce((total: number, buffer: ArrayBuffer) => total + buffer.byteLength, 0));
     let offset: number = 0;
 
     buffers.forEach((buffer: ArrayBuffer) => {
@@ -84,26 +104,26 @@ function expectDecodeError(
 }
 
 function expectedWallTruncation(byteLength: number): ExpectedDecodeError {
-    if(byteLength < 5) {
-        return {code: DecodeErrorCode.TRUNCATED_OBJECT_HEADER, offset: 0};
+    if (byteLength < 5) {
+        return { code: DecodeErrorCode.TRUNCATED_OBJECT_HEADER, offset: 0 };
     }
 
-    const payloadFields: ReadonlyArray<{offset: number; size: number}> = [
-        {offset: 5, size: 1},  // GameObject mask
-        {offset: 6, size: 4},  // velocity
-        {offset: 10, size: 1}, // invisible
-        {offset: 11, size: 2}, // sprite
-        {offset: 13, size: 1}, // Transform mask
-        {offset: 14, size: 2}, // scaleX
-        {offset: 16, size: 2}, // scaleY
-        {offset: 18, size: 4}, // x
-        {offset: 22, size: 4}, // y
-        {offset: 26, size: 4}, // rotation
+    const payloadFields: ReadonlyArray<{ offset: number; size: number }> = [
+        { offset: 5, size: 1 }, // GameObject mask
+        { offset: 6, size: 4 }, // velocity
+        { offset: 10, size: 1 }, // invisible
+        { offset: 11, size: 2 }, // sprite
+        { offset: 13, size: 1 }, // Transform mask
+        { offset: 14, size: 2 }, // scaleX
+        { offset: 16, size: 2 }, // scaleY
+        { offset: 18, size: 4 }, // x
+        { offset: 22, size: 4 }, // y
+        { offset: 26, size: 4 }, // rotation
     ];
-    const truncatedField = payloadFields.find(({offset, size}) => byteLength < offset + size);
+    const truncatedField = payloadFields.find(({ offset, size }) => byteLength < offset + size);
 
     assert.ok(truncatedField);
-    return {code: DecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD, offset: truncatedField.offset};
+    return { code: DecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD, offset: truncatedField.offset };
 }
 
 test("foundation/protocol v1 decoder: the hand-authored complete Wall record remains valid", () => {
@@ -132,31 +152,31 @@ test("foundation/protocol v1 decoder: malformed structures expose controlled cod
         {
             name: "truncated object header",
             payload: bufferFromBytes([0x43, 0x00, 0x00]),
-            expected: {code: DecodeErrorCode.TRUNCATED_OBJECT_HEADER, offset: 0},
+            expected: { code: DecodeErrorCode.TRUNCATED_OBJECT_HEADER, offset: 0 },
         },
         {
             name: "truncated tombstone id",
-            payload: bufferFromBytes([0xFF, 0x43, 0x00, 0x00]),
-            expected: {code: DecodeErrorCode.TRUNCATED_TOMBSTONE_ID, offset: 1},
+            payload: bufferFromBytes([0xff, 0x43, 0x00, 0x00]),
+            expected: { code: DecodeErrorCode.TRUNCATED_TOMBSTONE_ID, offset: 1 },
         },
         {
             name: "unknown property-mask bit",
-            payload: bufferFromBytes([0x43, 0x00, 0x00, 0x00, 0x2A, 0x80]),
-            expected: {code: DecodeErrorCode.UNKNOWN_PROPERTY_MASK, offset: 5},
+            payload: bufferFromBytes([0x43, 0x00, 0x00, 0x00, 0x2a, 0x80]),
+            expected: { code: DecodeErrorCode.UNKNOWN_PROPERTY_MASK, offset: 5 },
         },
         {
             name: "unknown prefab",
             payload: UNKNOWN_PREFAB_HEADER,
-            expected: {code: DecodeErrorCode.UNKNOWN_PREFAB, offset: 0},
+            expected: { code: DecodeErrorCode.UNKNOWN_PREFAB, offset: 0 },
         },
         {
             name: "known prefab without payload",
-            payload: bufferFromBytes([0x43, 0x00, 0x00, 0x00, 0x2A]),
-            expected: {code: DecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD, offset: 5},
+            payload: bufferFromBytes([0x43, 0x00, 0x00, 0x00, 0x2a]),
+            expected: { code: DecodeErrorCode.TRUNCATED_OBJECT_PAYLOAD, offset: 5 },
         },
     ];
 
-    for(const malformedCase of cases) {
+    for (const malformedCase of cases) {
         await t.test(malformedCase.name, () => {
             const core = new GameCore();
             try {
@@ -170,7 +190,7 @@ test("foundation/protocol v1 decoder: malformed structures expose controlled cod
 });
 
 test("foundation/protocol v1 decoder: every non-empty truncation of a complete Wall is controlled", () => {
-    for(let byteLength = 1; byteLength < GOLDEN_COMPLETE_WALL.byteLength; byteLength++) {
+    for (let byteLength = 1; byteLength < GOLDEN_COMPLETE_WALL.byteLength; byteLength++) {
         const core = new GameCore();
         try {
             expectDecodeError(
@@ -192,16 +212,12 @@ test("foundation/protocol v1 decoder: a malformed tail applies neither valid upd
     try {
         const existingWall = core.ObjectsFactory.instantiateWithPosition("Wall", [300, 300], undefined, "C7");
         const objectIdsBefore = Array.from(core.ObjectsManager.ObjectsById.keys());
-        const payload = concatBuffers(
-            wallRecordWithSequence(7),
-            GOLDEN_COMPLETE_WALL,
-            UNKNOWN_PREFAB_HEADER,
-        );
+        const payload = concatBuffers(wallRecordWithSequence(7), GOLDEN_COMPLETE_WALL, UNKNOWN_PREFAB_HEADER);
 
         expectDecodeError(
             core,
             payload,
-            {code: DecodeErrorCode.UNKNOWN_PREFAB, offset: 60},
+            { code: DecodeErrorCode.UNKNOWN_PREFAB, offset: 60 },
             "valid records followed by an unknown prefab",
         );
 
@@ -220,15 +236,20 @@ test("foundation/protocol v1 decoder: a tombstone remainder not divisible by fiv
     try {
         const existingWall = core.ObjectsFactory.instantiateWithPosition("Wall", [300, 300], undefined, "C42");
         const malformedTombstones = bufferFromBytes([
-            0xFF,
-            0x43, 0x00, 0x00, 0x00, 0x2A, // complete C42 tombstone
-            0x43, 0x00,                   // incomplete next tombstone
+            0xff,
+            0x43,
+            0x00,
+            0x00,
+            0x00,
+            0x2a, // complete C42 tombstone
+            0x43,
+            0x00, // incomplete next tombstone
         ]);
 
         expectDecodeError(
             core,
             malformedTombstones,
-            {code: DecodeErrorCode.TRUNCATED_TOMBSTONE_ID, offset: 6},
+            { code: DecodeErrorCode.TRUNCATED_TOMBSTONE_ID, offset: 6 },
             "non-divisible tombstone remainder",
         );
 

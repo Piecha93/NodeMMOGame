@@ -1,5 +1,5 @@
-import {GameObject} from "../game/objects/GameObject";
-import {GameObjectsManager} from "./GameObjectsManager";
+import { GameObject } from "../game/objects/GameObject";
+import { GameObjectsManager } from "./GameObjectsManager";
 
 export abstract class GameObjectsSubscriber {
     private readonly manager: GameObjectsManager;
@@ -7,13 +7,13 @@ export abstract class GameObjectsSubscriber {
 
     protected constructor(manager: GameObjectsManager, subscribeImmediately: boolean = true) {
         this.manager = manager;
-        if(subscribeImmediately) {
+        if (subscribeImmediately) {
             this.subscribeToManager();
         }
     }
 
     protected subscribeToManager(): void {
-        if(this.unsubscribeFromManager) {
+        if (this.unsubscribeFromManager) {
             return;
         }
         this.unsubscribeFromManager = this.manager.subscribe({
@@ -22,11 +22,9 @@ export abstract class GameObjectsSubscriber {
         });
     }
 
-    protected onObjectCreate(_gameObject: GameObject): void {
-    }
+    protected onObjectCreate(_gameObject: GameObject): void {}
 
-    protected onObjectDestroy(_gameObject: GameObject): void {
-    }
+    protected onObjectDestroy(_gameObject: GameObject): void {}
 
     public dispose(): void {
         this.unsubscribeFromManager?.();

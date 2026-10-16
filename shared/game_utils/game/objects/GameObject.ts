@@ -1,24 +1,18 @@
-import {Size, Transform} from "../../physics/Transform";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-import {SharedConfig} from "../../../SharedConfig";
-import {Serializable, SerializableTypes} from "../../../serialize/Serializable";
-import {SerializableObject, SerializableProperty} from "../../../serialize/SerializeDecorators";
-import {Result} from "detect-collisions";
-import {ResourcesMap} from "../../ResourcesMap";
-import {Collider} from "../../physics/Collider";
-import {Collision} from "../../physics/Collision";
-import type {GameObjectsFactory} from "../../factory/ObjectsFactory";
+import { ReplicatedState } from "../../../core/ReplicatedState";
+import { Size, Transform } from "../../physics/Transform";
+import { ChangesDict } from "../../../core/ChangeKeys";
 
+import { Result } from "detect-collisions";
+import { Collider } from "../../physics/Collider";
+import { Collision } from "../../physics/Collision";
+import type { GameObjectsFactory } from "../../factory/ObjectsFactory";
 
-export class GameObject extends Serializable {// implements Collidable {
+export class GameObject extends ReplicatedState {
+    // implements Collidable {
     protected id: string = "";
-    protected spriteName: string;
-
-    @SerializableObject("pos")
+    protected spriteName: string = "none";
     protected transform: Transform;
-    @SerializableProperty(ChangesDict.VELOCITY, SerializableTypes.Float32)
     protected velocity: number = 0;
-    @SerializableProperty("INV", SerializableTypes.Uint8)
     protected invisible: boolean = false;
 
     private colliders: Array<Collider> = [];
@@ -48,6 +42,10 @@ export class GameObject extends Serializable {// implements Collidable {
         this.destroyListeners = new Set<Function>();
     }
 
+    protected override replicatedChildren(): readonly ReplicatedState[] {
+        return [this.transform];
+    }
+
     public addCollider(size: Size): Collider {
         let collider: Collider = new Collider(this, size);
         this.colliders.push(collider);
@@ -56,135 +54,124 @@ export class GameObject extends Serializable {// implements Collidable {
     }
 
     public onCollisionEnter(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnCollisionEnter(collision);
         }
         this.sharedOnCollisionEnter(collision);
     }
 
     public onCollisionStay(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnCollisionStay(collision);
         }
         this.sharedOnCollisionStay(collision);
     }
 
     public onCollisionExit(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnCollisionExit(collision);
         }
         this.sharedOnCollisionExit(collision);
     }
 
-    protected serverOnCollisionEnter(collision: Collision) {
-    }
+    protected serverOnCollisionEnter(collision: Collision) {}
 
-    protected sharedOnCollisionEnter(collision: Collision) {
-    }
+    protected sharedOnCollisionEnter(collision: Collision) {}
 
-    protected serverOnCollisionStay(collision: Collision) {
-    }
+    protected serverOnCollisionStay(collision: Collision) {}
 
-    protected sharedOnCollisionStay(collision: Collision) {
-    }
+    protected sharedOnCollisionStay(collision: Collision) {}
 
-    protected serverOnCollisionExit(collision: Collision) {
-    }
+    protected serverOnCollisionExit(collision: Collision) {}
 
-    protected sharedOnCollisionExit(collision: Collision) {
-    }
+    protected sharedOnCollisionExit(collision: Collision) {}
 
     public onTriggerEnter(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnTriggerEnter(collision);
         }
         this.sharedOnTriggerEnter(collision);
     }
 
     public onTriggerStay(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnTriggerStay(collision);
         }
         this.sharedOnTriggerStay(collision);
     }
 
     public onTriggerExit(collision: Collision) {
-        if(this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
+        if (this.IsDestroyed || collision.ColliderB.Parent.IsDestroyed) {
             return;
         }
 
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isServer) {
             this.serverOnTriggerExit(collision);
         }
         this.sharedOnTriggerExit(collision);
     }
 
-    protected serverOnTriggerEnter(collision: Collision) {
-    }
+    protected serverOnTriggerEnter(collision: Collision) {}
 
-    protected sharedOnTriggerEnter(collision: Collision) {
-    }
+    protected sharedOnTriggerEnter(collision: Collision) {}
 
-    protected serverOnTriggerStay(collision: Collision) {
-    }
+    protected serverOnTriggerStay(collision: Collision) {}
 
-    protected sharedOnTriggerStay(collision: Collision) {
-    }
+    protected sharedOnTriggerStay(collision: Collision) {}
 
-    protected serverOnTriggerExit(collision: Collision) {
-    }
+    protected serverOnTriggerExit(collision: Collision) {}
 
-    protected sharedOnTriggerExit(collision: Collision) {
-    }
+    protected sharedOnTriggerExit(collision: Collision) {}
 
     public forceCompleteUpdate() {
         this.forceComplete = true;
     }
 
+    public predictionEnabled = true;
+
     public update(delta: number) {
-        if(SharedConfig.IS_SERVER) {
+        if (this.Runtime.isClient && !this.predictionEnabled) return;
+        if (this.Runtime.isServer) {
             this.serverUpdate(delta);
         }
+        if (this.IsDestroyed) return;
         this.commonUpdate(delta);
 
         this.updateColliders();
     }
 
     public updateColliders() {
-        for(let collider of this.colliders) {
+        for (let collider of this.colliders) {
             collider.update();
         }
     }
 
-    protected commonUpdate(delta: number)  {
-    }
+    protected commonUpdate(delta: number) {}
 
-    protected serverUpdate(delta: number)  {
-
-    }
+    protected serverUpdate(delta: number) {}
 
     addDestroyListener(listener: Function) {
-        this.destroyListeners.add(listener)
+        this.destroyListeners.add(listener);
     }
 
     removeDestroyListener(listener: Function) {
@@ -192,54 +179,53 @@ export class GameObject extends Serializable {// implements Collidable {
     }
 
     public attachObjectsFactory(objectsFactory: GameObjectsFactory): void {
-        if(!objectsFactory) {
+        if (!objectsFactory) {
             throw new Error("Cannot attach a game object without a factory");
         }
-        if(this.objectsFactory && this.objectsFactory !== objectsFactory) {
+        if (this.objectsFactory && this.objectsFactory !== objectsFactory) {
             throw new Error(`Game object '${this.ID}' already belongs to another factory`);
         }
 
+        this.setRuntime(objectsFactory.Runtime);
         this.objectsFactory = objectsFactory;
     }
 
     public detachObjectsFactory(objectsFactory: GameObjectsFactory): void {
-        if(this.objectsFactory === objectsFactory) {
+        if (this.objectsFactory === objectsFactory) {
             this.objectsFactory = null;
         }
     }
 
     destroy(): void {
-        if(this.isDestroyed) {
+        if (this.isDestroyed) {
             return;
         }
 
         this.isDestroyed = true;
 
         const errors: unknown[] = [];
-        for(const listener of Array.from(this.destroyListeners)) {
+        for (const listener of Array.from(this.destroyListeners)) {
             try {
                 listener(this);
-            } catch(error) {
+            } catch (error) {
                 errors.push(error);
             }
         }
         this.destroyListeners.clear();
 
-        if(errors.length > 0) {
+        if (errors.length > 0) {
             throw new AggregateError(errors, `Destroy listeners failed for '${this.ID}'`);
         }
     }
 
-    interact() {
-
-    }
+    interact() {}
 
     get Transform(): Transform {
         return this.transform;
     }
 
     get ObjectsFactory(): GameObjectsFactory {
-        if(!this.objectsFactory) {
+        if (!this.objectsFactory) {
             throw new Error(`Game object '${this.ID}' is not attached to a factory`);
         }
         return this.objectsFactory;
@@ -254,11 +240,14 @@ export class GameObject extends Serializable {// implements Collidable {
     }
 
     set Velocity(val: number) {
-        this.velocity = val;
+        if (this.velocity !== val) {
+            this.velocity = val;
+            this.addChange(ChangesDict.VELOCITY);
+        }
     }
 
     set ID(id: string) {
-        if(this.id && this.id !== id) {
+        if (this.id && this.id !== id) {
             throw new Error(`Game object id cannot change from '${this.id}' to '${id}'`);
         }
         this.id = id;
@@ -269,21 +258,11 @@ export class GameObject extends Serializable {// implements Collidable {
     }
 
     set SpriteName(spriteName: string) {
-        if(this.spriteName != spriteName) {
+        if (this.spriteName != spriteName) {
             this.spriteName = spriteName;
             this.addChange(ChangesDict.SPRITE_ID);
         }
     }
-
-    @SerializableProperty(ChangesDict.SPRITE_ID, SerializableTypes.Uint16)
-    set SpriteId(id: number) {
-        this.spriteName = ResourcesMap.IdToName.get(id);
-    }
-
-    get SpriteId(): number {
-        return ResourcesMap.NameToId.get(this.spriteName);
-    }
-
     get Invisible(): boolean {
         return this.invisible;
     }
@@ -312,7 +291,7 @@ export class GameObject extends Serializable {// implements Collidable {
         return this.isSolid;
     }
 
-    get InteractPopUpMessage(): string {
+    get InteractPopUpMessage(): string | null {
         return null;
     }
 

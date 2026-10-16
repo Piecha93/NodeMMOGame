@@ -1,119 +1,102 @@
 # Testing
 
-The project uses the test runner built into Node.js and compiles tests with the same TypeScript version as the application. There is no additional test framework dependency.
+The application and tests use the locked TypeScript compiler and Node.js's built-in test runner. CI selects Node.js 24 LTS through `.nvmrc`.
 
 ## Local quality gate
-
-Run the same checks as CI:
 
 ```sh
 npm ci
 npm run check
+npm run check:boundaries
+npm run format:check
 npm run build
 npm test
+npx playwright install chromium
+npm run test:browser
 npm audit --audit-level=high
 ```
 
-`npm test` removes `dist-test/`, compiles test files with `tsconfig.test.json`, and runs every compiled `*.test.js` file discovered by `node --test`. Test artifacts never share `dist/` with the runnable application.
+Strict TypeScript and checked indexed access apply to the source boundaries. Import rules prevent portable core/protocol code from depending on browser or server infrastructure. The formatting gate uses the repository's committed formatter configuration; `npm run format` applies it.
 
-The build precedes tests intentionally: the build-level regression reads `dist/public/game.js` and its source map. Run `npm run build` before `npm test` when invoking individual commands; the complete command sequence above and CI already enforce that order.
+Test fixtures retain strict checking but relax indexed-access checking in `tsconfig.test.json`; the separate source checks continue to enforce it. Browser fixture code has its own strict compiler configuration.
 
-## Test layout and naming
+Build before running the full suite: build tests inspect the fresh browser bundle, its source map and `game.ejs`. Test compilation uses `dist-test/`, separate from runnable `dist/`. The normal build/test scripts clean only their own generated directories; coordinate those cleaning commands when multiple processes share a checkout.
 
-- `tests/foundation/`: low-level characterization and regression tests introduced with the refactor foundation.
-- `tests/build/`: assertions about generated application artifacts and the browser entry used by the server-rendered view.
-- `tests/*.test.ts`: focused simulation, input and server-client unit regressions.
-- `tests/socket/`: handler-level Socket.IO lifecycle, rate-limit, heartbeat and debug-action regressions using controlled socket doubles.
-- Future `tests/browser/`: login, rendering and gameplay smoke tests.
-- Test names begin with an area prefix such as `foundation/chunks:` so CI output remains searchable.
+For a focused run after changes:
 
-## Current coverage
+```sh
+npm run test:compile
+node --test dist-test/tests/collisions.test.js dist-test/tests/foundation/world-update.test.js
+```
 
-The initial suite verifies:
+Tests should prove behavior at the changed boundary. Add a failing reproduction before fixing a confirmed bug; keep compatibility fixtures when moving code. Do not replace assertions with broad casts or unchecked non-null assumptions just to satisfy the compiler.
 
-- a non-square 2 by 3 chunk grid exposes all six chunks and a symmetric neighbor graph;
-- the legacy serializer round-trips supported ASCII strings;
-- valid input keeps its existing wire format, while malformed, oversized, duplicate, non-finite and out-of-range fields are rejected atomically;
-- snapshot handlers ignore stale IDs, register one cleanup listener and remove state when a player is destroyed;
-- collision-exit data identifies the pair that stopped colliding, and polygon colliders follow transform rotation;
-- invalid prefab names and non-finite spawn positions fail with controlled errors;
-- instance registries own separate maps and generated-ID sequences, reject duplicate or prefab-mismatched IDs, roll back failed creates and complete destroy cleanup even when listeners fail;
-- two `GameCore` instances can both own `C0` in separate maps and chunks; destroying or disposing one core leaves the other core and its next ID untouched;
-- a destroyed object is removed from its recorded old chunk and its tombstone is attached to exactly that chunk, even if its transform changed before destruction;
-- chunk deactivate/reload preserves explicit wire IDs and deserializes each object once through the owning factory;
-- moving an object in either chunk-iteration direction preserves its complete record for both the old leaver frame and the new chunk frame, commits serialized changes only after all targets are built and emits nothing again on the next unchanged collection; injected encoding failures additionally prove that full-update intent, leavers and earlier tombstones survive for a successful retry;
-- v1 socket message codes remain frozen at `0` through `11`, protocol constants remain frozen at supported version `[1]`, and selection chooses the highest common version;
-- malformed and unsupported version offers are distinct controlled failures, while missing offer/response fields map to legacy v1 for rolling compatibility;
-- a hand-authored complete v1 Wall fixture remains decodable, while every non-empty truncation, unknown prefab or property-mask bit, malformed tombstone remainder and valid-record-plus-malformed-tail case fails with a controlled code and absolute byte offset before mutating the world;
-- the game server stores and echoes the selected version, resets it during cleanup and rejects bad offers without creating a player or leaking client state;
-- server-client lifecycle state and independent rate-limit windows behave deterministically;
-- the object spawner stays disabled until debug actions are explicitly enabled;
-- readiness is idempotent, malformed pre-ready input is contained, and duplicate-session or timeout cleanup removes client state;
-- heartbeat and chat floods are capped, while a missing heartbeat response does not stop later requests;
-- database-backed player names are sanitized before they reach the browser chat view;
-- a nontrivial `dist/public/game.js` and source map are generated from `client/Launcher.ts`, and `game.ejs` loads that module instead of the historical bundle;
-- the source map traces PixiJS to the npm package, `game.ejs` has no renderer-global script, and the checked-in PixiJS 4 file is absent;
-- the client asset manifest has unique aliases and valid animation-frame classification without requiring a fake DOM or WebGL implementation in Node.js.
+## Coverage by boundary
 
-The UTF-8 round-trip test is intentionally skipped. V1 negotiation now makes the preserved legacy encoding explicit; changing its string bytes in place would still break rolling compatibility. Enable that regression under a separately negotiated v2 codec, while keeping v1 golden fixtures unchanged during the transition.
+| Location | What it exercises |
+| --- | --- |
+| `tests/foundation/` | Isolated worlds/configuration/catalogs, fixed-step accumulation, object lifecycle, chunks, collisions and legacy binary compatibility. |
+| `tests/protocol/` | Explicit schemas, UTF-8, bounds, all-frame truncation, malformed data, batching, deterministic decoder fuzzing, sequence wrap and the legacy adapter boundary. |
+| `tests/socket/` | Handler validation/rate limits, connection lifecycle, real polling/WebSocket v1 and mixed v2/v1 state/ACK/STOP transport, plus v2 authoritative queue/interest behavior. |
+| `tests/client/` | Input delivery/disposal, prediction/replay, interpolation, interest transitions, presentation, resource lifecycle and binary normalization. |
+| `tests/application/`, `tests/auth/` | Real HTTP/session/socket integration, application start/stop/rollback, credentials, password migration and optional real Mongo persistence. |
+| `tests/build/` | Current-source browser artifact, npm PixiJS provenance and view entrypoint. |
+| `tests/browser/` | Real PixiJS WebGL rendering, nonblank pixel metrics and equal PNG output after disposal/remount in one pinned Chromium run. |
 
-## Manual browser smoke
+The world tests drive identical command ticks under different render schedules and compare the resulting state. Catch-up tests bound work and account for discarded time. Lifecycle tests cover destruction during update/collision, spawn timing, cleanup after listener errors, duplicate IDs and independent worlds using the same IDs.
 
-After a production build, run `npm start`, open <http://127.0.0.1:3000>, and choose **Play as guest**. Verify that:
+V1 tests preserve complete/delta bytes, inherited field ordering, mask-width boundaries, legacy string limits, nested encoding failure/retry and complete cross-chunk fan-out. Decoder preflight must reject a malformed tail without constructing or publishing objects. Legacy Unicode behavior remains deliberately frozen; v2 carries UTF-8 correctness coverage.
 
-- `/game` loads `/build/game.js` without a separate PixiJS script, and all image and sprite-sheet requests return successfully;
-- the WebGL renderer initializes without console or page errors and the canvas has a 1024 by 576 drawing buffer;
-- the canvas renders terrain, the player sprite, player name and red health bar rather than a blank or single-color frame;
-- ping, FPS and object counters keep updating without browser-console errors;
-- WASD controls the player, diagonal input selects the matching directional animation, and an idle player keeps animating instead of remaining on its first frame;
-- moving the mouse changes the camera deviation smoothly, while the player remains centered as the world moves;
-- typing WASD in the chat field does not move the player;
-- a chat message is displayed as text, and logout returns to the login form.
+V2 tests cover each prefab, stable IDs, bounded UTF-8 and numeric values, unknown fields/types, every truncation, malformed/duplicate batches, total snapshot limits and controlled errors under deterministic malformed-frame fuzzing. A whole batch is decoded before application. Sequence tests exercise uint32 rollover. Server tests distinguish received inputs from inputs actually consumed by a simulation tick, including STOP and discrete actions.
 
-When the server is exposed through a development proxy such as Tailscale Serve, repeat guest login and initialization through that URL. A successful HTTP response alone is insufficient: the canvas and live ping confirm that the Socket.IO connection also traverses the proxy.
+Client tests verify wall/corner replay, bounded prediction history, delayed interpolation through jitter/outage and release of departed entities. Frame-rate comparisons cover elapsed-time smoothing at 30, 60 and 144 FPS. DOM/socket/renderer doubles exercise ownership and callback disposal; they do not prove that a GPU draws the expected pixels.
 
-## PixiJS renderer comparison
+## Real HTTP and Socket.IO
 
-PixiJS 8.19.0 uses asynchronous renderer and asset initialization, and this application selects its WebGL renderer. For every renderer or asset-loader change, compare the same local scene before and after the change in the same browser, operating system, viewport and zoom level. Capture the canvas only after resource requests have completed and the player is visible.
+The transport fixture opens real polling and WebSocket connections using the production MessagePack parser. It supplies authentication at the socket boundary, explicitly chooses v1, steps simulation without background game loops and closes the client, game server, socket server and HTTP connections.
 
-At minimum compare:
+Application tests run on loopback ephemeral ports and use actual session middleware. They check session-ID regeneration, guest login without MongoDB, authenticated socket admission, logout disconnection, rejected reconnect with a revoked cookie, malformed forms and Origin rejection. Repeated/concurrent start/stop and startup failure must leave no listening server or owned game timers.
 
-1. terrain tile crop, seams and camera edges;
-2. a centered static sprite at its expected width, height, anchor and rotation;
-3. the player name and health bar at full and partial health;
-4. the first frame of all eight movement directions plus a later frame from one looping animation;
-5. visibility transitions near every viewport edge.
+Mixed-version transport fixtures also connect a v2 client with a v1 observer through each transport. They check tick-consumed acknowledgements, STOP and state delivery without changing v1 negotiation. Controlled fixtures exercise the wider v2 queue/interest cases. Large deployment matrices and long reconnect/soak scenarios remain separate operating evidence.
 
-Keep expected, actual and diff images when a visual mismatch is found. Do not accept a new image merely because the renderer version changed: classify changes as intentional, platform rasterization noise or a regression first. This follows the PixiJS project's own visual-test shape—deterministic scenes, a real renderer, PNG snapshots, a bounded pixel diff and combined expected/actual/diff failure output—without adding a heavyweight browser harness before this project has a deterministic scene fixture.
+## Mongo persistence
 
-The Node.js suite deliberately does not instantiate a mocked renderer. It is appropriate for asset aliases, sprite-sheet frame grouping, direction selection, culling math and build integration. Successful WebGL context creation, texture upload, text rasterization, compositing, animation timing and the final pixels require the browser gate above.
+Local tests skip the real persistence contract unless `TEST_MONGODB_URI` points at a test database. In PowerShell:
 
-Reference material:
+```powershell
+$env:TEST_MONGODB_URI = "mongodb://127.0.0.1:27017/nodemmo_test"
+npm run build
+npm test
+```
 
-- [PixiJS v8 migration guide](https://pixijs.com/8.x/guides/migrations/v8)
-- [PixiJS renderer guide](https://pixijs.com/8.x/guides/components/renderers)
-- [PixiJS asset guide](https://pixijs.com/8.x/guides/components/assets)
-- [PixiJS project's visual snapshot harness](https://github.com/pixijs/pixijs/blob/dev/tests/visual/tester.ts)
+The test creates unique user/session identifiers and cleans up only those records. It verifies that legacy authentication persists a hash and removes plaintext, the hash still works after reconnect, sessions survive store reconnect, expired sessions are rejected immediately and a late touch cannot resurrect a destroyed session. It does not drop the database. Use a dedicated test database because creating the user/session indexes is part of adapter initialization.
 
-## Next tests
+CI provides a health-checked MongoDB 8.0 service and always sets `TEST_MONGODB_URI`, so this contract runs there rather than being skipped. Mongo is not required for the ordinary guest development path.
 
-Before moving domain code, add characterization tests for:
+## Browser and renderer verification
 
-1. repeat the lifecycle scenarios through real Socket.IO client/server transports rather than socket doubles;
-2. registry and core disposal across many reconnecting client sessions;
-3. collision enter and stay behavior in addition to the exit regression;
-4. real two-client visibility and interest transitions across neighboring chunk boundaries, beyond the collector-level movement fan-out regression;
-5. complete and delta v1 serialization using golden binary fixtures, including truncated, overlong and trailing-data cases;
-6. fuzz/property coverage for every accepted transport payload;
-7. two-client state synchronization and automation of the manual browser guest-login smoke test;
-8. a deterministic PixiJS scene fixture with pinned Chromium screenshots and reviewable pixel-diff artifacts;
-9. injected configuration and prefab catalogs so differently configured worlds can be tested without mutating `SharedConfig` or process-wide prefab state;
-10. a dual-version v1/v2 rolling-upgrade matrix once the bounded UTF-8 codec exists.
+After building, run `npm start`, open <http://127.0.0.1:3000> and select **Play as guest**. Check that:
 
-Each bug fix should begin with a failing reproduction. A refactor is complete only when existing tests remain green and the changed behavior has a focused regression test.
+1. `/game` loads the generated `/build/game.js`; assets load and the console has no initialization errors.
+2. The WebGL canvas has a 1024 by 576 drawing buffer and shows terrain, player sprite, name and health bar.
+3. Ping, FPS and object counts update; WASD, diagonal direction changes and idle animation work.
+4. Moving the mouse changes the camera smoothly; typing in chat does not move the player.
+5. Two tabs/guest sessions show each other moving; leaving and returning to interest removes and recreates the remote entity correctly.
+6. Chat displays sender/content as text; **Log out** returns to login and ends realtime traffic for that session.
+7. A lost connection stops input/RAF/heartbeat work and the page can be reloaded into a fresh session without duplicate listeners or resource errors.
 
-## CI
+Repeat the smoke through the intended development proxy. HTTP success alone is insufficient; a rendered player and live ping also check the proxied socket connection. Secure production cookies require HTTPS and the intended trust-proxy setting.
 
-`.github/workflows/ci.yml` runs on pushes and pull requests with Node.js 22. It installs exactly `package-lock.json`, checks TypeScript, builds both server and browser artifacts, runs tests against those fresh artifacts and rejects high-severity dependency advisories.
+For renderer changes, compare a deterministic scene in the same browser version, OS, viewport and zoom. Include terrain edges/seams, a centered sprite, rotation/scale, name/health overlays, all movement directions, later animation frames and viewport-edge visibility. Keep expected, actual and diff images when output changes. Classify intentional changes separately from platform rasterization noise and regressions.
 
-CI does not yet enforce coverage, formatting, linting, load tests or strict TypeScript. Add those incrementally after their initial baselines are measured; do not hide existing failures with blanket ignores.
+`npm run test:browser` runs the real-renderer fixture through Playwright with the lockfile-selected Chromium, SwiftShader, a fixed viewport and stopped animation timing. Its fixed world contains terrain, walls and a named player with partial health. It checks pixel color/opacity metrics, captures the canvas, disposes/remounts the renderer and compares PNG bytes within that browser run. The fixture also rejects page errors and keeps both images, metrics and failure traces under `test-results/browser/`.
+
+The refactor's manual browser check verified guest login, terrain/player/name/health rendering, live ping/FPS, movement/collision, idle animation, chat input isolation and logout. Its deterministic fixture also rendered matching canvas captures before and after remount. This manual run is separate from the Playwright CLI gate configured in CI.
+
+This is a deterministic rendering/lifecycle regression, not a persisted golden image comparison across commits or platforms. A versioned expected-image baseline and automated full-game/proxy gameplay smoke remain future extensions. Reference: [PixiJS renderer documentation](https://pixijs.com/8.x/guides/components/renderers) and [its visual test harness](https://github.com/pixijs/pixijs/blob/dev/tests/visual/tester.ts).
+
+## CI and operating evidence
+
+`.github/workflows/ci.yml` installs exactly the lockfile, runs strict source checks, import-boundary and formatting gates, builds both artifacts, runs the full test suite with MongoDB and checks high-severity dependency advisories. It installs the pinned Chromium plus Linux browser dependencies, runs the renderer fixture and always attempts to upload its images, metrics and failure traces. Dependency audit results are time-sensitive and are rechecked on each run.
+
+Coverage percentages, production load/soak behavior and GPU visual equivalence are separate measurements. Before claiming capacity, capture tick duration/backlog, event-loop lag, serialization bytes/time, per-client interest size, memory after repeated sessions and client frame time at representative concurrency. Use these measurements to justify future collision-engine, replication or rendering optimizations.

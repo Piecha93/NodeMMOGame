@@ -5,19 +5,28 @@
   "private": true,
   "author": "Tomasz Piecha",
   "engines": {
-    "node": ">=22.12.0",
+    "node": ">=24.0.0",
     "npm": ">=10"
   },
   "scripts": {
     "clean": "node -e \"for (const path of ['dist', 'dist-test']) require('node:fs').rmSync(path, { recursive: true, force: true })\"",
-    "check": "tsc --noEmit",
+    "check": "npm run check:server && npm run check:client && npm run check:shared && npm run check:browser && npm run check:boundaries",
     "build": "npm run clean && npm run build:server && npm run build:client",
-    "build:server": "tsc",
+    "build:server": "tsc -p tsconfig.server.json",
     "build:client": "vite build",
     "test:compile": "node -e \"require('node:fs').rmSync('dist-test', { recursive: true, force: true })\" && tsc -p tsconfig.test.json",
     "test:run": "cd dist-test && node --test",
     "test": "npm run test:compile && npm run test:run",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "check:server": "tsc --noEmit -p tsconfig.server.json",
+    "check:client": "tsc --noEmit -p tsconfig.client.json",
+    "check:shared": "tsc --noEmit -p tsconfig.shared.json",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "test:browser": "playwright test",
+    "test:browser:serve": "vite --config vite.fixture.config.mts",
+    "check:browser": "tsc --noEmit -p tsconfig.browser.json"
   },
   "dependencies": {
     "detect-collisions": "2.7.0",
@@ -31,11 +40,13 @@
     "socket.io-msgpack-parser": "^3.0.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@playwright/test": "^1.64.1",
     "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
     "@types/node": "^24.0.0",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vite": "^8.2.1"
   }
 }

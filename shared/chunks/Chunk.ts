@@ -1,7 +1,7 @@
-import {GameObject} from "../game_utils/game/objects/GameObject";
-import {ObjectsSerializer} from "../serialize/ObjectsSerializer";
-import {SharedConfig} from "../SharedConfig";
-import {GameObjectsFactory} from "../game_utils/factory/ObjectsFactory";
+import { GameObject } from "../game_utils/game/objects/GameObject";
+import { ObjectsSerializer } from "../serialize/ObjectsSerializer";
+
+import { GameObjectsFactory } from "../game_utils/factory/ObjectsFactory";
 
 export class Chunk {
     x: number;
@@ -15,10 +15,10 @@ export class Chunk {
 
     private activateTriggers: number;
 
-    private deactivatedTime: number;
+    private deactivatedTime = -1;
     private isActive: boolean = false;
 
-    private dumpedBuffer: ArrayBuffer = null;
+    private dumpedBuffer: ArrayBuffer[] | null = null;
     private isNextUpdateComplete: boolean = false;
     private objectsFactory: GameObjectsFactory;
 
@@ -33,7 +33,7 @@ export class Chunk {
         this.leavers = [];
         this.activateTriggers = 0;
 
-        if (SharedConfig.IS_SERVER) {
+        if (this.objectsFactory.Runtime.isServer) {
             this.activate();
             this.startDeactivationTimer();
         } else {
@@ -48,7 +48,7 @@ export class Chunk {
     public addObject(gameObject: GameObject) {
         this.objects.push(gameObject);
 
-        if (SharedConfig.IS_SERVER && gameObject.IsChunkActivateTriger) {
+        if (this.objectsFactory.Runtime.isServer && gameObject.IsChunkActivateTriger) {
             this.activateTriggers++;
             // console.log("chunk " + this.Position + "activate trigers++ " + this.activateTriggers);
             this.activate();
@@ -69,23 +69,18 @@ export class Chunk {
                 if (!this.HasPlayersInNeighborhood) {
                     this.startDeactivationTimer();
                 }
-                this.deactivateNeighborsIfNoPlayers()
+                this.deactivateNeighborsIfNoPlayers();
             }
         }
     }
 
     private activateNeighbors() {
-        for (let i: number = 0; i < this.neighbors.length; i++) {
-            this.neighbors[i].activate();
-        }
+        for (const neighbor of this.neighbors) neighbor.activate();
     }
 
     private deactivateNeighborsIfNoPlayers() {
-        for (let i: number = 0; i < this.neighbors.length; i++) {
-            if (!this.neighbors[i].HasPlayersInNeighborhood) {
-                this.neighbors[i].startDeactivationTimer();
-            }
-        }
+        for (const neighbor of this.neighbors)
+            if (!neighbor.HasPlayersInNeighborhood) neighbor.startDeactivationTimer();
     }
 
     public addLeaver(gameObject: GameObject) {
@@ -105,11 +100,7 @@ export class Chunk {
             return true;
         }
 
-        for (let i: number = 0; i < this.neighbors.length; i++) {
-            if (this.neighbors[i].hasObject(gameObject)) {
-                return true;
-            }
-        }
+        for (const neighbor of this.neighbors) if (neighbor.hasObject(gameObject)) return true;
 
         return false;
     }
@@ -127,15 +118,15 @@ export class Chunk {
     }
 
     public startDeactivationTimer() {
-        if (SharedConfig.IS_SERVER) {
+        if (this.objectsFactory.Runtime.isServer) {
             // console.log("start deactivation timer for chunk " + this.Position);
-            this.deactivatedTime = Date.now();
+            this.deactivatedTime = this.objectsFactory.Runtime.timeMs;
         }
     }
 
     public reload() {
         if (this.dumpedBuffer) {
-            ObjectsSerializer.deserializeChunk(this.dumpedBuffer, this.objectsFactory);
+            ObjectsSerializer.deserializeChunkFrames(this.dumpedBuffer, this.objectsFactory);
         }
 
         // console.log("load chunk " + this.Position + " buff " + this.dumpedBuffer);
@@ -150,26 +141,19 @@ export class Chunk {
 
         this.clearNotPersistent();
 
-        this.dumpedBuffer = ObjectsSerializer.serializeChunk(this);
+        this.dumpedBuffer = ObjectsSerializer.serializeChunkFrames(this);
 
         this.clearAll();
         this.isActive = false;
     }
 
     public clearAll() {
-        while (this.objects.length > 0) {
-            this.objects[0].destroy();
-        }
+        for (const object of Array.from(this.objects)) object.destroy();
     }
 
     private clearNotPersistent() {
-        let numOfObjectsToBeSaved: number = 0;
-        while (this.objects.length > numOfObjectsToBeSaved) {
-            if (!(this.objects[numOfObjectsToBeSaved].IsChunkDeactivationPersistent)) {
-                this.objects[numOfObjectsToBeSaved].destroy();
-            } else {
-                numOfObjectsToBeSaved++;
-            }
+        for (const object of Array.from(this.objects)) {
+            if (!object.IsChunkDeactivationPersistent) object.destroy();
         }
     }
 
@@ -194,11 +178,7 @@ export class Chunk {
             return true;
         }
 
-        for (let i: number = 0; i < this.neighbors.length; i++) {
-            if (this.neighbors[i].HasPlayers) {
-                return true;
-            }
-        }
+        for (const neighbor of this.neighbors) if (neighbor.HasPlayers) return true;
 
         return false;
     }
@@ -216,14 +196,14 @@ export class Chunk {
     }
 
     get IsDeactivateTimePassed(): boolean {
-        if(this.deactivatedTime == -1) {
+        if (this.deactivatedTime == -1) {
             return false;
         }
-        return this.TimeSinceDeactivation > SharedConfig.chunkDeactivationTime;
+        return this.TimeSinceDeactivation > this.objectsFactory.Runtime.config.chunkDeactivationTime;
     }
 
     get TimeSinceDeactivation(): number {
-        return Date.now() - this.deactivatedTime;
+        return this.objectsFactory.Runtime.timeMs - this.deactivatedTime;
     }
 
     get Position(): [number, number] {

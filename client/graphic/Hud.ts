@@ -1,4 +1,4 @@
-import {Container, Sprite} from "pixi.js";
+import { Container, Sprite } from "pixi.js";
 
 export class HUD extends Container {
     protected sprites: Array<Sprite>;
@@ -8,7 +8,5 @@ export class HUD extends Container {
         this.sprites = [];
     }
 
-    public update() {
-    }
-
+    public update() {}
 }

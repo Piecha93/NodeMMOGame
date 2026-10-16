@@ -1,17 +1,13 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {Result} from "detect-collisions";
-import {SerializableProperty} from "../../../serialize/SerializeDecorators";
-import {Obstacle} from "./Obstacle";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-import {Actor} from "./Actor";
-import {SerializableTypes} from "../../../serialize/Serializable";
-import {Collision} from "../../physics/Collision";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { Result } from "detect-collisions";
+import { Obstacle } from "./Obstacle";
+import { ChangesDict } from "../../../core/ChangeKeys";
+import { Actor } from "./Actor";
+import { Collision } from "../../physics/Collision";
 
 export class Portal extends GameObject {
-    private couplingPortal: Portal = null;
-
-    @SerializableProperty(ChangesDict.IS_ATTACHED, SerializableTypes.Int8)
+    private couplingPortal: Portal | null = null;
     private isAttached: boolean = false;
 
     constructor(transform: Transform) {
@@ -21,11 +17,11 @@ export class Portal extends GameObject {
     }
 
     get IsActive(): boolean {
-        if(this.couplingPortal == null) {
+        if (this.couplingPortal == null) {
             return false;
         }
 
-        if(this.couplingPortal.IsDestroyed != false) {
+        if (this.couplingPortal.IsDestroyed != false) {
             this.couplingPortal = null;
             return false;
         }
@@ -35,10 +31,10 @@ export class Portal extends GameObject {
 
     protected serverOnCollisionEnter(collision: Collision) {
         let gameObject: GameObject = collision.ColliderB.Parent;
-        if(gameObject instanceof Portal) {
+        if (gameObject instanceof Portal) {
             this.destroy();
             return;
-        } else if(gameObject.IsSolid) {
+        } else if (gameObject.IsSolid) {
             this.isAttached = true;
 
             this.Transform.X -= collision.Result.overlap * collision.Result.overlap_x;
@@ -50,8 +46,8 @@ export class Portal extends GameObject {
             this.Transform.addChange(ChangesDict.X);
             this.Transform.addChange(ChangesDict.Y);
         }
-        if(this.IsActive) {
-            if(gameObject instanceof Actor) {
+        if (this.IsActive && this.couplingPortal) {
+            if (gameObject instanceof Actor) {
                 gameObject.Transform.X = this.couplingPortal.Transform.X;
                 gameObject.Transform.Y = this.couplingPortal.Transform.Y;
                 gameObject.Transform.addChange(ChangesDict.X);
@@ -66,11 +62,10 @@ export class Portal extends GameObject {
 
     protected serverUpdate(delta: number) {
         super.serverUpdate(delta);
-
     }
 
     protected commonUpdate(delta: number) {
-        if(!this.isAttached) {
+        if (!this.isAttached) {
             let sinAngle: number = Math.sin(this.transform.Rotation);
             let cosAngle: number = Math.cos(this.transform.Rotation);
 

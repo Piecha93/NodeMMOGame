@@ -13,10 +13,10 @@ export class TicksCounter {
         return this.ticks;
     }
 
-    private static instance: TicksCounter = null;
+    private static instance: TicksCounter | null = null;
 
     static get Instance(): TicksCounter {
-        if(!TicksCounter.instance) {
+        if (!TicksCounter.instance) {
             TicksCounter.instance = new TicksCounter();
         }
 

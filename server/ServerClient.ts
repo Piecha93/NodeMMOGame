@@ -1,5 +1,5 @@
-import {Socket} from "socket.io";
-import {ProtocolVersion} from "../shared/net/Protocol";
+import { Socket } from "socket.io";
+import { ProtocolVersion } from "../shared/net/Protocol";
 
 interface RateLimitWindow {
     startedAt: number;
@@ -82,7 +82,7 @@ export class ServerClient {
         let rateLimitWindow = this.rateLimitWindows.get(eventName);
 
         if (!rateLimitWindow || now < rateLimitWindow.startedAt || now - rateLimitWindow.startedAt >= windowDuration) {
-            rateLimitWindow = {startedAt: now, eventCount: 1};
+            rateLimitWindow = { startedAt: now, eventCount: 1 };
             this.rateLimitWindows.set(eventName, rateLimitWindow);
             return true;
         }

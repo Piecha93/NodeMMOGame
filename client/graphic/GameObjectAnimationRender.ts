@@ -1,8 +1,8 @@
-import {AnimatedSprite, Texture} from "pixi.js";
-import {GameObjectRender} from "./GameObjectRender";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {ResourcesLoader, Resource, ResourceType} from "../graphic/ResourcesLoader";
-import {Actor} from "../../shared/game_utils/game/objects/Actor";
+import { AnimatedSprite, Texture } from "pixi.js";
+import { GameObjectRender } from "./GameObjectRender";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { ResourcesLoader, Resource, ResourceType } from "../graphic/ResourcesLoader";
+import { Actor } from "../../shared/game_utils/game/objects/Actor";
 
 type AnimationState = {
     key: string;
@@ -10,8 +10,8 @@ type AnimationState = {
 };
 
 export class GameObjectAnimationRender extends GameObjectRender {
-    private animation: AnimatedSprite;
-    private animationKey: string;
+    private animation: AnimatedSprite | null = null;
+    private animationKey: string = "";
 
     private lastDirectionKey: string = "D";
 
@@ -36,8 +36,9 @@ export class GameObjectAnimationRender extends GameObjectRender {
         this.animation.anchor.set(0.5);
     }
 
-    public update() {
-        super.update();
+    public update(deltaMs: number = 1000 / 60) {
+        super.update(deltaMs);
+        if (!this.animation) return;
 
         this.updateAnimationTextures();
 
@@ -45,14 +46,14 @@ export class GameObjectAnimationRender extends GameObjectRender {
     }
 
     private updateAnimationTextures() {
+        if (!this.animation) return;
         const animationState = this.getAnimationState();
         if (animationState.key === this.animationKey) {
             return;
         }
 
-        const animationProgress = this.animation.totalFrames <= 1
-            ? 0
-            : this.animation.currentFrame / (this.animation.totalFrames - 1);
+        const animationProgress =
+            this.animation.totalFrames <= 1 ? 0 : this.animation.currentFrame / (this.animation.totalFrames - 1);
         const currentFrame = Math.round(animationProgress * (animationState.textures.length - 1));
         const wasPlaying = this.animation.playing;
 
@@ -72,8 +73,9 @@ export class GameObjectAnimationRender extends GameObjectRender {
             throw new Error(`Missing animation resource: ${this.objectRef.SpriteName}`);
         }
 
-        if(resource.type == ResourceType.OCTAGONAL_ANIMATION) {
-            const actor: Actor = this.objectRef as Actor;
+        if (resource.type == ResourceType.OCTAGONAL_ANIMATION) {
+            const actor = this.objectRef;
+            if (!(actor instanceof Actor)) throw new Error("Directional animation requires an actor");
 
             this.lastDirectionKey = this.directionsToDirectionKey(actor.Horizontal, actor.Vertical);
 
@@ -91,29 +93,28 @@ export class GameObjectAnimationRender extends GameObjectRender {
 
         return {
             key: `${resource.name}:${frameSet}`,
-            textures
+            textures,
         };
     }
 
     private directionsToDirectionKey(horizontal: number, vertical: number): string {
         let dir: string = "";
-        if(horizontal == -1) {
+        if (horizontal == -1) {
             dir += "U";
-        } else if(horizontal == 1) {
+        } else if (horizontal == 1) {
             dir += "D";
         }
 
-        if(vertical == -1) {
+        if (vertical == -1) {
             dir += "L";
-        } else if(vertical == 1) {
+        } else if (vertical == 1) {
             dir += "R";
         }
 
-        if(dir == "") {
+        if (dir == "") {
             dir = this.lastDirectionKey;
         }
 
         return dir;
     }
-
 }

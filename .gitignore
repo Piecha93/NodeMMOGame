@@ -10,3 +10,7 @@ azure.err
 client/libs/
 npm-debug.log
 *.log
+
+dist-test/
+playwright-report/
+test-results/

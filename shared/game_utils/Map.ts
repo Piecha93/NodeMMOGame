@@ -1,4 +1,4 @@
-import {SharedConfig} from "../SharedConfig";
+import { WorldContext } from "../core/WorldContext";
 
 export class MapChunk {
     // x: number;
@@ -7,7 +7,7 @@ export class MapChunk {
     private sizeX: number;
     private sizeY: number;
 
-    mapGrid: number[][];
+    mapGrid: number[][] = [];
 
     constructor(x: number, y: number, sizeX: number, sizeY: number) {
         // this.x = x;
@@ -16,32 +16,30 @@ export class MapChunk {
         this.sizeY = sizeY;
     }
 
-    fillRandom() {
-        let tileNum: number = Math.floor(Math.random() * 12 * 32);
+    fillRandom(random: () => number = Math.random) {
+        let tileNum: number = Math.floor(random() * 12 * 32);
 
-        this.mapGrid = [];
-        for (let i = 0; i < this.sizeX; i++) {
-            this.mapGrid[i] = [];
-            for (let j = 0; j < this.sizeY; j++) {
-                this.mapGrid[i][j] = tileNum;
-            }
-        }
+        this.mapGrid = Array.from({ length: this.sizeX }, () => Array<number>(this.sizeY).fill(tileNum));
     }
 }
 
 export class Map {
     private mapChunks: MapChunk[][];
 
-    private numOfChunksX: number = SharedConfig.numOfChunksX;
-    private numOfChunksY: number = SharedConfig.numOfChunksY;
-    private chunkSize: number = SharedConfig.numOfChunksY;
+    private numOfChunksX: number;
+    private numOfChunksY: number;
+    private chunkSize: number;
 
-    constructor() {
+    constructor(runtime: WorldContext = new WorldContext()) {
+        this.numOfChunksX = runtime.config.numOfChunksX;
+        this.numOfChunksY = runtime.config.numOfChunksY;
+        this.chunkSize = runtime.config.chunkSize;
 
         this.mapChunks = [];
 
         for (let i = 0; i < this.numOfChunksX; i++) {
-            this.mapChunks[i] = [];
+            const column: MapChunk[] = [];
+            this.mapChunks.push(column);
             for (let j = 0; j < this.numOfChunksY; j++) {
                 let chunkSizeX = this.chunkSize;
                 let chunkSizeY = this.chunkSize;
@@ -53,15 +51,16 @@ export class Map {
                     if (j == 0) {
                         chunkSizeY *= 1.5;
                     } else if (j == this.numOfChunksY - 1) {
-                        chunkY += (chunkSizeY / 2);
+                        chunkY += chunkSizeY / 2;
                         chunkSizeY *= 0.5;
                     } else {
-                        chunkY += (chunkSizeY / 2);
+                        chunkY += chunkSizeY / 2;
                     }
                 }
 
-                this.mapChunks[i][j] = new MapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
-                this.mapChunks[i][j].fillRandom();
+                const chunk = new MapChunk(chunkX, chunkY, chunkSizeX, chunkSizeY);
+                chunk.fillRandom(runtime.random);
+                column.push(chunk);
             }
         }
     }

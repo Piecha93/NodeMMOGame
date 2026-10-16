@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import {readFile, stat} from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import {test} from "node:test";
+import { test } from "node:test";
 
 import {
     getAnimationFrameGroup,
@@ -12,15 +12,13 @@ import {
 
 function repositoryRoot(): string {
     const currentDirectory = process.cwd();
-    return path.basename(currentDirectory) === "dist-test"
-        ? path.dirname(currentDirectory)
-        : currentDirectory;
+    return path.basename(currentDirectory) === "dist-test" ? path.dirname(currentDirectory) : currentDirectory;
 }
 
 test("client/assets: manifest aliases are valid and every source file exists", async () => {
     assert.doesNotThrow(() => validateResourceManifest(RESOURCE_MANIFEST));
     assert.deepEqual(
-        RESOURCE_MANIFEST.map(({name}) => name).sort(),
+        RESOURCE_MANIFEST.map(({ name }) => name).sort(),
         [
             "bluebolt",
             "bullet",
@@ -46,25 +44,28 @@ test("client/assets: manifest aliases are valid and every source file exists", a
     );
 
     const publicRoot = path.join(repositoryRoot(), "public");
-    await Promise.all(RESOURCE_MANIFEST.map(async (definition) => {
-        const relativePath = definition.path.replace(/^\/+/, "");
-        const resourceStats = await stat(path.join(publicRoot, relativePath));
+    await Promise.all(
+        RESOURCE_MANIFEST.map(async (definition) => {
+            const relativePath = definition.path.replace(/^\/+/, "");
+            const resourceStats = await stat(path.join(publicRoot, relativePath));
 
-        assert.ok(resourceStats.isFile(), `${definition.name} must resolve to a regular file`);
-    }));
+            assert.ok(resourceStats.isFile(), `${definition.name} must resolve to a regular file`);
+        }),
+    );
 });
 
 test("client/assets: manifest validation rejects aliases that would overwrite a resource", () => {
     const first = RESOURCE_MANIFEST[0];
 
     assert.throws(
-        () => validateResourceManifest([...RESOURCE_MANIFEST, {...first}]),
+        () => validateResourceManifest([...RESOURCE_MANIFEST, { ...first }]),
         /Duplicate resource name: none/,
     );
     assert.throws(
-        () => validateResourceManifest([
-            {name: "relative", path: "resources/images/none.png", type: ResourceType.SPRITE},
-        ]),
+        () =>
+            validateResourceManifest([
+                { name: "relative", path: "resources/images/none.png", type: ResourceType.SPRITE },
+            ]),
         /absolute \/resources\//,
     );
 });
@@ -80,16 +81,10 @@ test("client/assets: checked-in animation sheets classify every frame determinis
         ["L", 8],
         ["UL", 8],
     ]);
-    const animationDefinitions = RESOURCE_MANIFEST.filter(
-        (definition) => definition.type !== ResourceType.SPRITE,
-    );
+    const animationDefinitions = RESOURCE_MANIFEST.filter((definition) => definition.type !== ResourceType.SPRITE);
 
     for (const definition of animationDefinitions) {
-        const resourcePath = path.join(
-            repositoryRoot(),
-            "public",
-            definition.path.replace(/^\/+/, ""),
-        );
+        const resourcePath = path.join(repositoryRoot(), "public", definition.path.replace(/^\/+/, ""));
         const sheet = JSON.parse(await readFile(resourcePath, "utf8")) as {
             frames?: Record<string, unknown>;
         };
@@ -100,7 +95,7 @@ test("client/assets: checked-in animation sheets classify every frame determinis
         for (const frameName of Object.keys(sheet.frames)) {
             const group = getAnimationFrameGroup(definition.type, definition.name, frameName);
 
-            assert.notEqual(group, null, `${definition.name}/${frameName} must have a known group`);
+            assert.ok(group, `${definition.name}/${frameName} must have a known group`);
             groupCounts.set(group, (groupCounts.get(group) ?? 0) + 1);
         }
 
@@ -113,14 +108,8 @@ test("client/assets: checked-in animation sheets classify every frame determinis
 });
 
 test("client/assets: frame grouping does not invent directions for malformed names", () => {
-    assert.equal(
-        getAnimationFrameGroup(ResourceType.OCTAGONAL_ANIMATION, "template_idle", "Idle_U_0"),
-        "U",
-    );
-    assert.equal(
-        getAnimationFrameGroup(ResourceType.OCTAGONAL_ANIMATION, "template_idle", "Idle_SIDE_0"),
-        null,
-    );
+    assert.equal(getAnimationFrameGroup(ResourceType.OCTAGONAL_ANIMATION, "template_idle", "Idle_U_0"), "U");
+    assert.equal(getAnimationFrameGroup(ResourceType.OCTAGONAL_ANIMATION, "template_idle", "Idle_SIDE_0"), null);
     assert.equal(getAnimationFrameGroup(ResourceType.SPRITE, "wall", "wall"), null);
     assert.equal(getAnimationFrameGroup(ResourceType.ANIMATION, "flame", "flame_0.png"), "flame");
 });

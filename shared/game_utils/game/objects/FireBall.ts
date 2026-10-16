@@ -1,18 +1,14 @@
-import {Projectile} from "./Projectile";
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-import {Actor} from "./Actor";
-import {SerializableProperty} from "../../../serialize/SerializeDecorators";
-import {Result} from "detect-collisions";
-import {SerializableTypes} from "../../../serialize/Serializable";
-import {Collision} from "../../physics/Collision";
+import { Projectile } from "./Projectile";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { ChangesDict } from "../../../core/ChangeKeys";
+import { Actor } from "./Actor";
+import { Collision } from "../../physics/Collision";
 
 export class FireBall extends Projectile {
-    @SerializableProperty(ChangesDict.POWER, SerializableTypes.Uint16)
     private power: number = 25;
-    @SerializableProperty(ChangesDict.OWNER, SerializableTypes.String)
-    private owner: string;
+    private owner: string = "";
+    private ownerTeam: Actor["CombatTeam"] = null;
 
     constructor(transform: Transform) {
         super(transform);
@@ -26,16 +22,22 @@ export class FireBall extends Projectile {
         super.serverOnCollisionEnter(collision);
 
         let gameObject: GameObject = collision.ColliderB.Parent;
-        if(gameObject instanceof FireBall) {
-            if(gameObject.owner != this.owner) {
+        if (gameObject instanceof FireBall) {
+            if (this.Runtime.config.cooperative && this.ownerTeam !== null && this.ownerTeam === gameObject.ownerTeam) {
+                return;
+            }
+            if (gameObject.owner != this.owner) {
                 this.destroy();
             }
-        } else if(gameObject instanceof Actor) {
-            if(gameObject.ID != this.owner) {
+        } else if (gameObject instanceof Actor) {
+            if (gameObject.ID != this.owner) {
+                const owner = this.ObjectsFactory.Manager.get(this.owner);
+                const team = this.ownerTeam ?? (owner instanceof Actor ? owner.CombatTeam : null);
+                if (this.Runtime.config.cooperative && team !== null && team === gameObject.CombatTeam) return;
                 gameObject.hit(this.power);
-                this.destroy()
+                this.destroy();
             }
-        } else if(gameObject.IsSolid) {
+        } else if (gameObject.IsSolid) {
             this.destroy();
         }
     }
@@ -50,6 +52,13 @@ export class FireBall extends Projectile {
 
     set Owner(value: string) {
         this.owner = value;
+        this.ownerTeam = null;
+        this.addChange(ChangesDict.OWNER);
+    }
+
+    public setOwner(owner: Actor): void {
+        this.Owner = owner.ID;
+        this.ownerTeam = owner.CombatTeam;
     }
 
     protected commonUpdate(delta: number) {

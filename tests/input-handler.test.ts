@@ -1,12 +1,12 @@
-import {strict as assert} from "node:assert";
-import {test} from "node:test";
+import { strict as assert } from "node:assert";
+import { test } from "node:test";
 
-import {ClientsInputSnapshotHandler} from "../server/ClientsInputSnapshotHandler";
-import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
-import {GameObjectsFactory} from "../shared/game_utils/factory/ObjectsFactory";
-import {registerGameObjectPrefabs} from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
-import {Player} from "../shared/game_utils/game/objects/Player";
-import {InputSnapshot, InvalidInputSnapshotError} from "../shared/input/InputSnapshot";
+import { ClientsInputSnapshotHandler } from "../server/ClientsInputSnapshotHandler";
+import { GameObjectsManager } from "../shared/game_utils/factory/GameObjectsManager";
+import { GameObjectsFactory } from "../shared/game_utils/factory/ObjectsFactory";
+import { registerGameObjectPrefabs } from "../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import { Player } from "../shared/game_utils/game/objects/Player";
+import { InputSnapshot, InvalidInputSnapshotError } from "../shared/input/InputSnapshot";
 
 registerGameObjectPrefabs();
 
@@ -38,13 +38,15 @@ test("input handler registers one destroy listener and removes the last snapshot
     const fakePlayer: FakePlayer = new FakePlayer();
     const player: Player = fakePlayer as unknown as Player;
 
-    for(let snapshotId = 0; snapshotId < 20; snapshotId++) {
+    for (let snapshotId = 0; snapshotId < 20; snapshotId++) {
         handler.setSnapshot(player, `${snapshotId}=2:0#5:0`);
     }
 
     assert.equal(fakePlayer.receivedSnapshots.length, 20);
     assert.equal(fakePlayer.destroyListeners.size, 1);
-    assert.equal(handler.getPlayerLastSnapshot(player).ID, 19);
+    const lastSnapshot = handler.getPlayerLastSnapshot(player);
+    assert.ok(lastSnapshot);
+    assert.equal(lastSnapshot.ID, 19);
 
     fakePlayer.destroy();
 
@@ -61,7 +63,9 @@ test("input handler rejects invalid data before mutating player state", () => {
 
     assert.throws(() => handler.setSnapshot(player, "malformed"), InvalidInputSnapshotError);
     assert.equal(fakePlayer.receivedSnapshots.length, 1);
-    assert.equal(handler.getPlayerLastSnapshot(player).ID, 1);
+    const lastSnapshot = handler.getPlayerLastSnapshot(player);
+    assert.ok(lastSnapshot);
+    assert.equal(lastSnapshot.ID, 1);
     assert.equal(fakePlayer.destroyListeners.size, 1);
 });
 
@@ -91,6 +95,8 @@ test("input handler ignores duplicate and stale snapshot ids", () => {
         [10, 11],
     );
     assert.equal(interactions, 1);
-    assert.equal(handler.getPlayerLastSnapshot(player).ID, 11);
+    const lastSnapshot = handler.getPlayerLastSnapshot(player);
+    assert.ok(lastSnapshot);
+    assert.equal(lastSnapshot.ID, 11);
     assert.equal(fakePlayer.destroyListeners.size, 1);
 });

@@ -1,7 +1,7 @@
 export enum ResourceType {
     SPRITE,
     ANIMATION,
-    OCTAGONAL_ANIMATION
+    OCTAGONAL_ANIMATION,
 }
 
 export interface ResourceDefinition {
@@ -11,45 +11,36 @@ export interface ResourceDefinition {
 }
 
 export const RESOURCE_MANIFEST = [
-    {name: "none", path: "/resources/images/none.png", type: ResourceType.SPRITE},
-    {name: "wall", path: "/resources/images/wall.png", type: ResourceType.SPRITE},
-    {name: "bunny", path: "/resources/images/bunny.png", type: ResourceType.SPRITE},
-    {name: "dyzma", path: "/resources/images/dyzma.jpg", type: ResourceType.SPRITE},
-    {name: "kamis", path: "/resources/images/kamis.jpg", type: ResourceType.SPRITE},
-    {name: "michau", path: "/resources/images/michau.png", type: ResourceType.SPRITE},
-    {name: "panda", path: "/resources/images/panda.png", type: ResourceType.SPRITE},
-    {name: "bullet", path: "/resources/images/bullet.png", type: ResourceType.SPRITE},
-    {name: "fireball", path: "/resources/images/fireball.png", type: ResourceType.SPRITE},
-    {name: "bluebolt", path: "/resources/images/bluebolt.png", type: ResourceType.SPRITE},
-    {name: "hp_potion", path: "/resources/images/hp_potion.png", type: ResourceType.SPRITE},
-    {name: "portal", path: "/resources/images/portal.png", type: ResourceType.SPRITE},
-    {name: "white", path: "/resources/images/white.png", type: ResourceType.SPRITE},
-    {name: "doors_open", path: "/resources/images/doors_open.png", type: ResourceType.SPRITE},
-    {name: "doors_closed", path: "/resources/images/doors_closed.png", type: ResourceType.SPRITE},
-    {name: "flame", path: "/resources/animations/flame/flame.json", type: ResourceType.ANIMATION},
+    { name: "none", path: "/resources/images/none.png", type: ResourceType.SPRITE },
+    { name: "wall", path: "/resources/images/wall.png", type: ResourceType.SPRITE },
+    { name: "bunny", path: "/resources/images/bunny.png", type: ResourceType.SPRITE },
+    { name: "dyzma", path: "/resources/images/dyzma.jpg", type: ResourceType.SPRITE },
+    { name: "kamis", path: "/resources/images/kamis.jpg", type: ResourceType.SPRITE },
+    { name: "michau", path: "/resources/images/michau.png", type: ResourceType.SPRITE },
+    { name: "panda", path: "/resources/images/panda.png", type: ResourceType.SPRITE },
+    { name: "bullet", path: "/resources/images/bullet.png", type: ResourceType.SPRITE },
+    { name: "fireball", path: "/resources/images/fireball.png", type: ResourceType.SPRITE },
+    { name: "bluebolt", path: "/resources/images/bluebolt.png", type: ResourceType.SPRITE },
+    { name: "hp_potion", path: "/resources/images/hp_potion.png", type: ResourceType.SPRITE },
+    { name: "portal", path: "/resources/images/portal.png", type: ResourceType.SPRITE },
+    { name: "white", path: "/resources/images/white.png", type: ResourceType.SPRITE },
+    { name: "doors_open", path: "/resources/images/doors_open.png", type: ResourceType.SPRITE },
+    { name: "doors_closed", path: "/resources/images/doors_closed.png", type: ResourceType.SPRITE },
+    { name: "flame", path: "/resources/animations/flame/flame.json", type: ResourceType.ANIMATION },
     {
         name: "template_idle",
         path: "/resources/animations/actor_animations/template/idle.json",
-        type: ResourceType.OCTAGONAL_ANIMATION
+        type: ResourceType.OCTAGONAL_ANIMATION,
     },
     {
         name: "template_run",
         path: "/resources/animations/actor_animations/template/run.json",
-        type: ResourceType.OCTAGONAL_ANIMATION
+        type: ResourceType.OCTAGONAL_ANIMATION,
     },
-    {name: "terrain", path: "/resources/maps/terrain.png", type: ResourceType.SPRITE}
+    { name: "terrain", path: "/resources/maps/terrain.png", type: ResourceType.SPRITE },
 ] as const satisfies readonly ResourceDefinition[];
 
-const OCTAGONAL_DIRECTIONS: ReadonlySet<string> = new Set([
-    "U",
-    "UR",
-    "R",
-    "DR",
-    "D",
-    "DL",
-    "L",
-    "UL"
-]);
+const OCTAGONAL_DIRECTIONS: ReadonlySet<string> = new Set(["U", "UR", "R", "DR", "D", "DL", "L", "UL"]);
 
 export function validateResourceManifest(definitions: readonly ResourceDefinition[]): void {
     const names = new Set<string>();
@@ -69,11 +60,7 @@ export function validateResourceManifest(definitions: readonly ResourceDefinitio
     }
 }
 
-export function getAnimationFrameGroup(
-    type: ResourceType,
-    resourceName: string,
-    frameName: string
-): string | null {
+export function getAnimationFrameGroup(type: ResourceType, resourceName: string, frameName: string): string | null {
     if (type === ResourceType.ANIMATION) {
         return resourceName;
     }
@@ -82,7 +69,7 @@ export function getAnimationFrameGroup(
     }
 
     const direction = frameName.split("_")[1];
-    return OCTAGONAL_DIRECTIONS.has(direction) ? direction : null;
+    return direction !== undefined && OCTAGONAL_DIRECTIONS.has(direction) ? direction : null;
 }
 
 validateResourceManifest(RESOURCE_MANIFEST);

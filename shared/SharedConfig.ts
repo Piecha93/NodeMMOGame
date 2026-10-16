@@ -1,11 +1,8 @@
-export enum Origin {
-    CLIENT,
-    SERVER,
-    UNKNOWN
-}
+import { Origin } from "./core/Origin";
+export { Origin } from "./core/Origin";
 
 function getOrigin(): Origin {
-    if(typeof window !== 'undefined') {
+    if ("window" in globalThis) {
         return Origin.CLIENT;
     } else {
         return Origin.SERVER;

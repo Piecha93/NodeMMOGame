@@ -1,6 +1,6 @@
-import {SocketMsgs} from "../../shared/net/SocketMsgs";
-import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
-import {Socket} from "socket.io-client";
+import { SocketMsgs } from "../../shared/net/SocketMsgs";
+import { DebugWindowHtmlHandler } from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import { Socket } from "socket.io-client";
 
 export class HeartBeatSender {
     private socket: Socket;
@@ -9,14 +9,16 @@ export class HeartBeatSender {
     private interval: number = 1000;
     private isRunning = false;
     private heartbeatIntervalTimer: ReturnType<typeof setInterval> | null = null;
+    private disposed = false;
+    private readonly responseHandler = (id: number) => this.heartBeatResponse(id);
 
     constructor(socket: Socket, rate?: number) {
         this.socket = socket;
-        this.socket.on(SocketMsgs.HEARTBEAT_RESPONSE, this.heartBeatResponse.bind(this));
+        this.socket.on(SocketMsgs.HEARTBEAT_RESPONSE, this.responseHandler);
 
         this.heartBeats = new Map<number, number>();
 
-        if(rate != null) {
+        if (rate != null) {
             this.interval = rate;
         }
     }
@@ -32,7 +34,7 @@ export class HeartBeatSender {
     }
 
     public sendHeartBeat() {
-        if (this.isRunning) {
+        if (this.isRunning || this.disposed) {
             return;
         }
 
@@ -50,6 +52,13 @@ export class HeartBeatSender {
         }
 
         this.heartBeats.clear();
+    }
+
+    public dispose(): void {
+        if (this.disposed) return;
+        this.disposed = true;
+        this.stopSendingHeartbeats();
+        this.socket.off(SocketMsgs.HEARTBEAT_RESPONSE, this.responseHandler);
     }
 
     private sendHeartbeatPacket() {

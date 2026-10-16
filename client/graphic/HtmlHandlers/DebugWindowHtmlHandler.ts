@@ -30,7 +30,7 @@ export class DebugWindowHtmlHandler {
     }
 
     static get Instance(): DebugWindowHtmlHandler {
-        if(!DebugWindowHtmlHandler.instance) {
+        if (!DebugWindowHtmlHandler.instance) {
             DebugWindowHtmlHandler.instance = new DebugWindowHtmlHandler();
         }
         return DebugWindowHtmlHandler.instance;

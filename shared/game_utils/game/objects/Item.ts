@@ -1,29 +1,27 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {Result} from "detect-collisions";
-import {Actor} from "./Actor";
-import {Collision} from "../../physics/Collision";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { Player } from "./Player";
+import { Collision } from "../../physics/Collision";
 
 export class Item extends GameObject {
+    private consumed = false;
     constructor(transform: Transform) {
         super(transform);
     }
 
     protected serverOnCollisionEnter(collision: Collision) {
-        super.serverOnCollisionEnter(collision);
-
-        let gameObject: GameObject = collision.ColliderB.Parent;
-        if(gameObject instanceof Actor) {
-            gameObject.heal(50)
-        }
+        const player = collision.ColliderB.Parent;
+        if (!(player instanceof Player) || player.HP <= 0 || player.HP >= player.MaxHP) return;
+        player.heal(50);
+        this.consumed = true;
         this.destroy();
     }
 
-    protected serverUpdate(delta: number) {
-        super.serverUpdate(delta);
+    protected serverOnCollisionStay(collision: Collision) {
+        this.serverOnCollisionEnter(collision);
     }
 
-    protected commonUpdate(delta: number) {
-        super.commonUpdate(delta);
+    get Consumed(): boolean {
+        return this.consumed;
     }
 }

@@ -1,70 +1,69 @@
-# Node MMO Game
+# Ruiny — Node MMO Game
 
-Engineering thesis project: a multiplayer browser game built with TypeScript, Node.js, Socket.IO, HTML5 and PixiJS.
+Multiplayer browser game built with TypeScript, Node.js, Socket.IO and PixiJS. The server owns game state; the client predicts local movement and renders remote snapshots.
+
+The default game is now a small cooperative expedition for 1–4 players: recover three cores from guarded ruins and bring the whole party back to camp before ten minutes expire. Play solo or join the same local server with another browser profile. WASD moves, the mouse aims and holding the left button fires. Death returns you to camp after three seconds; teammates cannot damage one another. [Gameplay and scope](docs/gameplay.md).
 
 ## Requirements
 
-- Node.js 22.12 or newer
-- npm 10 or newer
-- MongoDB only when registered-user login is needed
+- Node.js 24 LTS, selected by `.nvmrc`.
+- npm 10 or newer; install the committed lockfile with `npm ci`.
+- MongoDB for registered accounts or persistent sessions. Guest development works without a database.
 
-Guest login works without a database.
+The project uses TypeScript 7.0.2, strict checking and checked indexed access. The server, browser and shared modules have separate compiler boundaries.
 
 ## Install and run
 
 ```sh
 npm ci
 npm run check
+npm run check:boundaries
+npm run format:check
 npm run build
 npm test
 npm start
 ```
 
-Open <http://127.0.0.1:3000> and select **Play as guest**.
+Open <http://127.0.0.1:3000> and select **Wyrusz jako gość**. WASD moves the player; Enter focuses chat. Use **Opuść wyprawę** to end the HTTP session and disconnect its realtime connections.
 
-The server listens on `127.0.0.1:3000` by default. Override it with the `HOST` and `PORT` environment variables. Set `SESSION_SECRET` to a persistent random value for a long-running deployment.
+`HOST` and `PORT` select the listen address; defaults are `127.0.0.1:3000`. `DEMO_SCENARIO=expedition` is the default playable scenario; `walls` selects the historical wall scene, and `none` starts an empty world. Debug gameplay commands remain disabled unless `ENABLE_DEBUG_COMMANDS=true` is set for trusted development.
 
-`npm run build` compiles the server and creates the browser client from `client/Launcher.ts` in `dist/public/game.js`. The bundle includes PixiJS 8.19.0 from npm, and the application serves it at `/build/game.js`, so a clean checkout does not depend on checked-in browser libraries or a prebuilt client bundle.
+`npm run build` creates the server under `dist/` and the browser bundle at `dist/public/game.js`. The game page loads that generated module at `/build/game.js`. PixiJS comes from npm; no checked-in renderer global or stale browser bundle is required.
 
-Historical `fire`/`spawner` chat commands and debug weapon actions are disabled by default. Set `ENABLE_DEBUG_COMMANDS=true` only in a trusted development environment when those diagnostics are needed.
+## Architecture
 
-## Runtime ownership
+- `shared/core/` supplies world context, movement and replication bookkeeping. Each world owns its configuration, clock, random source, registry and prefab catalog. `GameCore.step()` advances one fixed simulation tick; `advance()` and the application scheduler handle elapsed real time.
+- `shared/protocol/` owns validated DTOs and the v2 binary codec. Stable field IDs, explicit framing, UTF-8 and bounded batches are independent of class/decorator order.
+- `shared/replication/` translates domain state and maintains each client's visibility baseline. Create, update and destroy records describe entering, changing and leaving interest.
+- `shared/serialize/` is the compatibility boundary for legacy v1 and chunk snapshots. Its metadata and byte fixtures remain separate from domain replication state.
+- `server/` owns HTTP, authentication, persistence, transport, client sessions and scheduling. `createApplication()` exposes explicit start/stop instead of starting on import.
+- `client/` owns input capture, prediction/replay, remote interpolation, rendering, UI and resource lifecycle.
 
-Each `GameCore` owns one `GameObjectsManager` and one `GameObjectsFactory`. Object maps, generated-ID sequences and create/destroy subscriptions therefore belong to a world instance rather than to process-wide static state. Server, browser renderer, input handling, chunking and serialization use the manager or factory supplied by their owning core.
+The code remains a single repository with explicit import rules. It does not require an ECS or a transport rewrite.
 
-The factory validates and constructs an object, attaches it to its owning runtime and registers it with the manager. The core then adds it to its chunk and collision world and marks it for a complete update. Destruction removes the same object from the registry, its owned chunk and collision world and, on the server, records the network tombstone against that old chunk. `GameCore.dispose()` destroys remaining objects and removes subscriptions; it is safe to call more than once.
+## Network compatibility
 
-The legacy wire prefixes remain deliberately stable: `A` DefaultPlayer, `B` Michau, `C` Wall, `D` HpPotion, `E` Doors, `F` FireBall, `G` Portal and `H` PlatformTriggerTest. The prefab catalog and `SharedConfig` are still process-wide; those are explicit boundaries for the next refactor stages.
+New clients offer `[2, 1]`; the server chooses the highest common version. Missing negotiation fields still mean legacy v1. Application event codes remain frozen at their original values.
 
-## Protocol compatibility
+The new expedition uses the appended marker prefab `I` and requires v2. Sandbox modes retain v1 admission and the historical A–H prefab mappings.
 
-The v1 application event codes are frozen at `0` through `11`. After renderer initialization, the browser advertises its supported versions with `CLIENT_READY`; the server selects the highest common version, stores it on the client session and echoes it in `INITIALIZE_GAME`. The only supported version today is v1.
+V2 snapshots identify the server tick, snapshot and last processed input sequence. Local prediction replays only unacknowledged commands through shared movement/collision code. Remote presentation uses a bounded interpolation history with a 100 ms delay and holds the latest state during an outage.
 
-For rolling compatibility, a missing `CLIENT_READY` version list is interpreted as a legacy v1 offer, and a missing `protocolVersion` in `INITIALIZE_GAME` is interpreted as a legacy v1 response. Malformed or unsupported offers are rejected before a player is created.
+V1 remains a rolling-upgrade fallback with its original record bytes and legacy string encoding. UTF-8 is a v2 feature. Existing v1 byte fixtures continue to guard compatibility.
 
-Negotiation does not redesign the v1 binary frames. They still lack an explicit total-frame length, record count and schema hash, and their historical string encoding is not UTF-8 safe. A bounded UTF-8 format remains a breaking v2 change.
+## Accounts and sessions
 
-## Database
+Set `MONGODB_URI` to enable registered accounts. Passwords use salted scrypt hashes; a correct legacy login atomically stores a hash and removes the old plaintext field. Dormant legacy accounts still need migration or reset.
 
-Set `MONGODB_URI` to enable registered-user login:
+Development sessions default to MemoryStore. Production requires a stable `SESSION_SECRET`, secure cookies and a persistent session store; built-in Mongo storage is selected with `SESSION_STORE=mongo`. Only set `TRUST_PROXY=true` behind the intended trusted reverse proxy. See [Authentication and lifecycle](docs/authentication.md) for configuration, migration and logout behavior.
 
-```sh
-MONGODB_URI=mongodb://127.0.0.1:27017/node-mmo-game npm start
-```
+## Verification and remaining work
 
-The historical user schema stores passwords as plain text. Do not enable registered accounts in a public or production deployment until password hashing and a migration have been implemented.
+CI checks strict TypeScript, import boundaries, formatting, generated artifacts, unit/real Socket.IO tests, Mongo persistence, a deterministic Chromium renderer fixture and dependency advisories. The Mongo integration test is optional locally through `TEST_MONGODB_URI` and runs against MongoDB 8.0 in CI. Browser checks compare a nonblank scene before and after renderer remount in the same pinned browser run and retain images/metrics.
 
-## Project documentation
+The project still needs production load measurements, operational monitoring and a versioned golden-image visual baseline across changes. `detect-collisions` stays pinned to 2.7.0 until a separate engine upgrade is characterized. See [Testing](docs/testing.md) and [Known issues](docs/known-issues.md) for the limits of the current checks.
 
-- [Architecture and refactor boundaries](docs/architecture.md)
+- [Architecture](docs/architecture.md)
 - [Testing and CI](docs/testing.md)
-- [Known issues and first-stage exit criteria](docs/known-issues.md)
-
-CI runs the TypeScript check, application build, Node.js test suite and a high-severity dependency audit. Run the commands from the install section before submitting a change.
-
-## Known modernization boundaries
-
-- `detect-collisions` is intentionally pinned to 2.7.0. Current major versions expose a substantially different API, so that upgrade belongs with collision-behaviour tests and the planned physics refactor.
-- Rendering uses PixiJS 8.19.0 with its WebGL renderer. Current PixiJS 8 does not provide a production Canvas fallback, so the browser smoke gate must include renderer initialization and a real rendered frame rather than only HTTP checks.
-- The PixiJS API migration is covered by build and pure asset-classification regressions. Pixel output still has a manual comparison gate until a deterministic browser fixture and pinned screenshot environment are added.
-- Runtime object state is instance-owned, but `SharedConfig` and the prefab catalog remain global. Do not treat separate cores in one process as independently configurable client/server runtimes until those dependencies are injected.
+- [Authentication and lifecycle](docs/authentication.md)
+- [Known issues](docs/known-issues.md)

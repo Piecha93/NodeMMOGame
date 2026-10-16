@@ -1,26 +1,43 @@
-<html>
+<!doctype html>
+<html lang="pl">
 <head>
-    <title>Game</title>
-
-    <link rel='stylesheet' href='/css/style.css' />
-
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#151a19" />
+    <title>Ruiny — wyprawa</title>
+    <link rel="stylesheet" href="/css/style.css" />
     <script type="module" src="/build/game.js"></script>
-
 </head>
-
-<body>
-<div id="content">
-    <canvas id="game-canvas"></canvas>
-    <div id="debug-window"></div>
-    <div id="chat-zone">
-        <div id="chat-msgs">
+<body class="game-page">
+<main id="content" class="game-shell">
+    <div id="expedition-hud">
+        <header class="game-header" data-game-ui>
+            <a class="wordmark" href="/" aria-label="Ruiny — strona główna"><span class="rune" aria-hidden="true">◇</span> RUINY</a>
+            <span class="expedition-round" data-expedition="round">Przygotowujemy wyprawę…</span>
+            <div class="expedition-stats"><span class="core-icon" aria-hidden="true">◇</span><strong data-expedition="progress">0 / 3</strong><span class="stat-divider"></span><span class="time-label">CZAS</span><strong class="expedition-timer" data-expedition="timer">10:00</strong></div>
+            <form action="/logout" method="post"><button class="text-button" type="submit">Opuść wyprawę ↗</button></form>
+        </header>
+        <div class="objective-bar" data-game-ui>
+            <div class="objective-copy"><p class="eyebrow">WSPÓLNY CEL</p><h1 data-expedition="objective">Odzyskajcie 3 rdzenie</h1><p data-expedition="guidance">Łączymy z obozem…</p></div>
+            <div class="expedition-compass" aria-label="Kierunek do najbliższego celu"><span data-expedition="bearing">◇</span><span data-expedition="distance">—</span></div>
         </div>
-
-        <form id="chat-form">
-            <input id="chat-input" type="text" autocomplete="off" placeholder="Press Enter to talk in global chat"></input>
-        </form>
+        <div class="world-frame">
+            <canvas id="game-canvas" aria-label="Świat gry Ruiny"></canvas>
+            <div class="world-caption" aria-hidden="true"><span class="status-dot"></span> WYPRAWA NA ŻYWO</div>
+            <div id="debug-window" hidden></div>
+            <div id="chat-zone" data-game-ui>
+                <div id="chat-msgs" role="log" aria-label="Czat drużyny"></div>
+                <form id="chat-form"><label class="sr-only" for="chat-input">Wiadomość do drużyny</label><input id="chat-input" type="text" maxlength="300" autocomplete="off" placeholder="Enter — porozmawiaj z drużyną" /></form>
+            </div>
+            <div class="respawn-notice" data-expedition="respawn" hidden data-game-ui><span class="eyebrow">CHWILA ODDECHU</span><strong>Wracasz do obozu za <span data-expedition="respawn-time">3</span>…</strong><span>Drużyna wciąż może walczyć. Rdzenie są wspólne.</span></div>
+            <section class="result-panel" data-expedition="result" role="status" hidden data-game-ui><span class="eyebrow" data-expedition="result-label">KONIEC WYPRAWY</span><h2 data-expedition="result-title"></h2><p data-expedition="result-copy"></p><button class="button button-primary" data-expedition="restart" type="button">Jeszcze jedna wyprawa</button><form action="/logout" method="post" data-expedition="leave" hidden><button class="button button-primary" type="submit">Wróć do wejścia ↗</button></form></section>
+        </div>
+        <div class="expedition-bottom" data-game-ui>
+            <section class="party-section"><h2 class="eyebrow">TWOJA DRUŻYNA <span>1–4 GRACZY</span></h2><ul class="party-list" data-expedition="party"><li class="party-placeholder">Czekamy na zwiadowców…</li></ul></section>
+            <section class="camps-section"><h2 class="eyebrow">RDZENIE <span>STRAŻNICY POKONANI: <b data-expedition="kills">0</b></span></h2><ol class="camp-list" data-expedition="camps"></ol></section>
+        </div>
+        <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po odsłonięty rdzeń. Wróć do obozu ze wszystkimi trzema.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
     </div>
-</div>
+</main>
 </body>
-
 </html>

@@ -1,22 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {GameObjectsFactory} from "../../shared/game_utils/factory/ObjectsFactory";
-import {
-    GameObjectsErrorContext,
-    GameObjectsManager,
-} from "../../shared/game_utils/factory/GameObjectsManager";
-import {registerGameObjectPrefabs} from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Transform} from "../../shared/game_utils/physics/Transform";
+import { GameObjectsFactory } from "../../shared/game_utils/factory/ObjectsFactory";
+import { GameObjectsErrorContext, GameObjectsManager } from "../../shared/game_utils/factory/GameObjectsManager";
+import { registerGameObjectPrefabs } from "../../shared/game_utils/factory/RegisterGameObjectPrefabs";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { Transform } from "../../shared/game_utils/physics/Transform";
 
 registerGameObjectPrefabs();
 
-function createRuntime(
-    errorSink: (error: unknown, context: GameObjectsErrorContext) => void = () => {},
-): {manager: GameObjectsManager; factory: GameObjectsFactory} {
+function createRuntime(errorSink: (error: unknown, context: GameObjectsErrorContext) => void = () => {}): {
+    manager: GameObjectsManager;
+    factory: GameObjectsFactory;
+} {
     const manager = new GameObjectsManager(errorSink);
-    return {manager, factory: new GameObjectsFactory(manager)};
+    return { manager, factory: new GameObjectsFactory(manager) };
 }
 
 test("foundation/object-registry: managers and id sequences are isolated", () => {
@@ -39,13 +37,10 @@ test("foundation/object-registry: managers and id sequences are isolated", () =>
 });
 
 test("foundation/object-registry: duplicate explicit ids never overwrite the registered object", () => {
-    const {manager, factory} = createRuntime();
+    const { manager, factory } = createRuntime();
     const original = factory.instantiateWithPosition("Wall", [10, 10], undefined, "C7");
 
-    assert.throws(
-        () => factory.instantiateWithPosition("Wall", [20, 20], undefined, "C7"),
-        /Duplicate game object id/,
-    );
+    assert.throws(() => factory.instantiateWithPosition("Wall", [20, 20], undefined, "C7"), /Duplicate game object id/);
     assert.equal(manager.get("C7"), original);
     assert.equal(manager.ObjectsById.size, 1);
 
@@ -60,10 +55,7 @@ test("foundation/object-registry: failed manual registration does not retain the
 
     const candidate = new GameObject(new Transform([20, 20], 32));
     candidate.ID = "C7";
-    assert.throws(
-        () => first.factory.instantiateManually(candidate),
-        /Duplicate game object id/,
-    );
+    assert.throws(() => first.factory.instantiateManually(candidate), /Duplicate game object id/);
     assert.throws(() => candidate.ObjectsFactory, /not attached to a factory/);
 
     assert.equal(second.factory.instantiateManually(candidate), candidate);
@@ -75,15 +67,12 @@ test("foundation/object-registry: failed manual registration does not retain the
 });
 
 test("foundation/object-registry: published object ids are immutable", () => {
-    const {manager, factory} = createRuntime();
+    const { manager, factory } = createRuntime();
     const gameObject = factory.instantiateWithPosition("Wall", [10, 10], undefined, "C42");
 
-    assert.throws(
-        () => {
-            gameObject.ID = "C43";
-        },
-        /id cannot change/,
-    );
+    assert.throws(() => {
+        gameObject.ID = "C43";
+    }, /id cannot change/);
     assert.equal(gameObject.ID, "C42");
     assert.equal(manager.get("C42"), gameObject);
 
@@ -92,12 +81,9 @@ test("foundation/object-registry: published object ids are immutable", () => {
 });
 
 test("foundation/object-registry: explicit ids must match the prefab and generated ids skip collisions", () => {
-    const {manager, factory} = createRuntime();
+    const { manager, factory } = createRuntime();
 
-    assert.throws(
-        () => factory.instantiateWithPosition("Wall", [0, 0], undefined, "A0"),
-        /does not match prefab/,
-    );
+    assert.throws(() => factory.instantiateWithPosition("Wall", [0, 0], undefined, "A0"), /does not match prefab/);
     assert.equal(manager.ObjectsById.size, 0);
 
     const restored = factory.instantiateWithPosition("Wall", [10, 10], undefined, "C0");
@@ -110,8 +96,8 @@ test("foundation/object-registry: explicit ids must match the prefab and generat
 });
 
 test("foundation/object-registry: destroy cleanup and later listeners survive listener errors", () => {
-    const reportedErrors: Array<{error: unknown; context: GameObjectsErrorContext}> = [];
-    const {manager, factory} = createRuntime((error, context) => reportedErrors.push({error, context}));
+    const reportedErrors: Array<{ error: unknown; context: GameObjectsErrorContext }> = [];
+    const { manager, factory } = createRuntime((error, context) => reportedErrors.push({ error, context }));
     const calls: string[] = [];
     const gameObject = new GameObject(new Transform([10, 10], 32));
     gameObject.ID = "C42";
@@ -126,7 +112,7 @@ test("foundation/object-registry: destroy cleanup and later listeners survive li
             throw new Error("subscriber failed");
         },
     });
-    manager.subscribe({destroyed: () => calls.push("later subscriber")});
+    manager.subscribe({ destroyed: () => calls.push("later subscriber") });
     factory.instantiateManually(gameObject);
 
     assert.throws(() => gameObject.destroy(), AggregateError);
@@ -138,12 +124,14 @@ test("foundation/object-registry: destroy cleanup and later listeners survive li
     ]);
     assert.equal(manager.get("C42"), undefined);
     assert.equal(reportedErrors.length, 1);
-    assert.equal(reportedErrors[0].context.event, "destroyed");
+    const reportedError = reportedErrors[0];
+    assert.ok(reportedError);
+    assert.equal(reportedError.context.event, "destroyed");
 });
 
 test("foundation/object-registry: create listener errors roll registration back", () => {
     const reportedEvents: string[] = [];
-    const {manager, factory} = createRuntime((_error, context) => reportedEvents.push(context.event));
+    const { manager, factory } = createRuntime((_error, context) => reportedEvents.push(context.event));
     let destroyedCalls = 0;
     manager.subscribe({
         created: () => {
@@ -154,17 +142,14 @@ test("foundation/object-registry: create listener errors roll registration back"
         },
     });
 
-    assert.throws(
-        () => factory.instantiateWithPosition("Wall", [10, 10]),
-        AggregateError,
-    );
+    assert.throws(() => factory.instantiateWithPosition("Wall", [10, 10]), AggregateError);
     assert.equal(manager.ObjectsById.size, 0);
     assert.equal(destroyedCalls, 1);
     assert.deepEqual(reportedEvents, ["created"]);
 });
 
 test("foundation/object-registry: destroy notifications are paired with create delivery", () => {
-    const {manager, factory} = createRuntime();
+    const { manager, factory } = createRuntime();
     const events: string[] = [];
 
     manager.subscribe({
@@ -187,7 +172,7 @@ test("foundation/object-registry: destroy notifications are paired with create d
 });
 
 test("foundation/object-registry: unsubscribe is idempotent", () => {
-    const {manager, factory} = createRuntime();
+    const { manager, factory } = createRuntime();
     let createdCalls = 0;
     let destroyedCalls = 0;
     const unsubscribe = manager.subscribe({

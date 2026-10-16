@@ -1,15 +1,13 @@
-import {Transform} from "../../shared/game_utils/physics/Transform";
-import {GameObject} from "../../shared/game_utils/game/objects/GameObject";
-import {Collider} from "../../shared/game_utils/physics/Collider";
-import {Result} from "detect-collisions";
-import {DebugWindowHtmlHandler} from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
-import {Collision} from "../../shared/game_utils/physics/Collision";
-
+import { Transform } from "../../shared/game_utils/physics/Transform";
+import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
+import { Collider } from "../../shared/game_utils/physics/Collider";
+import { Result } from "detect-collisions";
+import { DebugWindowHtmlHandler } from "../graphic/HtmlHandlers/DebugWindowHtmlHandler";
+import { Collision } from "../../shared/game_utils/physics/Collision";
 
 export class Cursor extends GameObject {
-
-    private onObjectId: string = null;
-    private interactMessage: string = "";
+    private onObjectId: string | null = null;
+    private interactMessage: string | null = null;
 
     constructor(transform: Transform) {
         super(transform);
@@ -31,7 +29,7 @@ export class Cursor extends GameObject {
 
         this.onObjectId = gameObject.ID;
 
-        if(gameObject.InteractPopUpMessage != null) {
+        if (gameObject.InteractPopUpMessage != null) {
             this.interactMessage = gameObject.InteractPopUpMessage;
             DebugWindowHtmlHandler.Instance.CursorObjectSpan = gameObject.ID + " " + gameObject.InteractPopUpMessage;
         } else {
@@ -56,12 +54,11 @@ export class Cursor extends GameObject {
         this.update(0);
     }
 
-    get OnObjectId(): string {
+    get OnObjectId(): string | null {
         return this.onObjectId;
     }
 
-    get InteractMessage(): string {
+    get InteractMessage(): string | null {
         return this.interactMessage;
     }
 }
-

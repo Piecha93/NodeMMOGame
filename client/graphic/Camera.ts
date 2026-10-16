@@ -1,5 +1,6 @@
-import {Container} from "pixi.js";
-import {Renderer} from "../graphic/Renderer";
+import { Container } from "pixi.js";
+import { Renderer } from "../graphic/Renderer";
+import { smoothingFactor } from "./Presentation";
 
 type FollowPoint = {
     x: number;
@@ -7,9 +8,7 @@ type FollowPoint = {
 };
 
 export class Camera extends Container {
-
     private follower: FollowPoint;
-    private dt: number = 0.8;
 
     private mouseDeviationX: number = 0;
     private mouseDeviationY: number = 0;
@@ -19,6 +18,7 @@ export class Camera extends Container {
 
     constructor(follower: FollowPoint) {
         super();
+        this.follower = follower;
         this.Follower = follower;
 
         this.position.set(Renderer.WIDTH / 2, Renderer.HEIGHT / 2);
@@ -27,11 +27,13 @@ export class Camera extends Container {
     }
 
     private onMouseMove(event: MouseEvent) {
-        let canvas: HTMLCanvasElement = document.getElementById("game-canvas") as HTMLCanvasElement;
+        const canvas = document.getElementById("game-canvas");
+        if (!(canvas instanceof HTMLCanvasElement)) return;
         const rect: DOMRect = canvas.getBoundingClientRect();
 
-        this.mouseDeviationX = (event.clientX - rect.left - Renderer.WIDTH / 2) / this.deviationRate;
-        this.mouseDeviationY = (event.clientY - rect.top - Renderer.HEIGHT / 2) / this.deviationRate;
+        const position = canvasPointerPosition(event.clientX, event.clientY, rect, Renderer.WIDTH, Renderer.HEIGHT);
+        this.mouseDeviationX = (position[0] - Renderer.WIDTH / 2) / this.deviationRate;
+        this.mouseDeviationY = (position[1] - Renderer.HEIGHT / 2) / this.deviationRate;
     }
 
     set Follower(follower: FollowPoint) {
@@ -40,9 +42,10 @@ export class Camera extends Container {
         this.update();
     }
 
-    update() {
-        this.pivot.x += (this.follower.x + this.mouseDeviationX - this.pivot.x) * this.dt;
-        this.pivot.y += (this.follower.y + this.mouseDeviationY - this.pivot.y) * this.dt;
+    update(deltaMs: number = 1000 / 60) {
+        const alpha = smoothingFactor(0.8, deltaMs);
+        this.pivot.x += (this.follower.x + this.mouseDeviationX - this.pivot.x) * alpha;
+        this.pivot.y += (this.follower.y + this.mouseDeviationY - this.pivot.y) * alpha;
     }
 
     get MouseDeviation(): [number, number] {
@@ -51,6 +54,21 @@ export class Camera extends Container {
 
     public destroy(): void {
         window.removeEventListener("mousemove", this.mouseMoveHandler);
-        super.destroy({children: true});
+        super.destroy({ children: true });
     }
+}
+
+/** CSS can shrink the canvas; aim coordinates still belong to its internal viewport. */
+export function canvasPointerPosition(
+    clientX: number,
+    clientY: number,
+    rect: Pick<DOMRect, "left" | "top" | "width" | "height">,
+    width: number,
+    height: number,
+): [number, number] {
+    if (rect.width <= 0 || rect.height <= 0) return [width / 2, height / 2];
+    return [
+        Math.max(0, Math.min(width, ((clientX - rect.left) / rect.width) * width)),
+        Math.max(0, Math.min(height, ((clientY - rect.top) / rect.height) * height)),
+    ];
 }

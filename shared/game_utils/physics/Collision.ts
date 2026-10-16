@@ -1,6 +1,5 @@
-import {Collider} from "./Collider";
-import {Result} from "detect-collisions";
-
+import { Collider } from "./Collider";
+import { Result } from "detect-collisions";
 
 export class Collision {
     private colliderA: Collider;

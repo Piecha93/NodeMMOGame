@@ -1,28 +1,22 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "node",
     "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
     "rootDir": ".",
     "outDir": "dist",
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noEmitOnError": true,
     "skipLibCheck": true
   },
-  "include": [
-    "app.ts",
-    "client/**/*.ts",
-    "server/**/*.ts",
-    "shared/**/*.ts"
-  ],
-  "exclude": [
-    "dist",
-    "node_modules",
-    "public"
-  ]
+  "include": ["app.ts", "client/**/*.ts", "server/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["dist", "dist-test", "node_modules", "public", "tests/browser"]
 }

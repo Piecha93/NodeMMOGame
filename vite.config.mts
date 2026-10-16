@@ -1,5 +1,5 @@
-import {fileURLToPath} from "node:url";
-import {defineConfig} from "vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
 
 const fromProjectRoot = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 

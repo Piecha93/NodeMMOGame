@@ -1,58 +1,79 @@
-import {Transform} from "../../physics/Transform";
-import {Actor} from "./Actor";
-import {ChangesDict} from "../../../serialize/ChangesDict";
-import {MagicWand} from "../weapons/MagicWand";
-import {GameObject} from "./GameObject";
-import {Collision} from "../../physics/Collision";
+import { Transform } from "../../physics/Transform";
+import { Actor } from "./Actor";
+import { MagicWand } from "../weapons/MagicWand";
+import { Player } from "./Player";
 
 export class Enemy extends Actor {
-    private timeSinceLastShot = 1000;
+    private homePosition: readonly [number, number];
+    private returningHome = false;
+    private static readonly AGGRO_RANGE = 480;
+    private static readonly ATTACK_DISTANCE = 200;
+    private static readonly LEASH_RANGE = 600;
 
     constructor(transform: Transform) {
         super(transform);
-        this.velocity = 0.2;
-
-        this.weapon = new MagicWand();
+        this.homePosition = [...transform.Position];
+        this.velocity = 0.11;
+        this.configureVitals(100);
+        this.weapon = new MagicWand(1200);
     }
 
-    protected commonUpdate(delta: number) {
-        super.commonUpdate(delta);
-    }
-
-    protected serverOnCollisionEnter(collision: Collision) {
-        super.serverOnCollisionEnter(collision);
-
-        let gameObject: GameObject = collision.ColliderB.Parent;
-        if(gameObject.IsSolid) {
-            this.Horizontal = Math.round(Math.random() * 2) - 1;
-            this.Vertical = Math.round(Math.random() * 2) - 1;
-        }
+    public setHomePosition(position: readonly [number, number]): void {
+        if (!position.every(Number.isFinite)) throw new RangeError("Invalid enemy home position");
+        this.homePosition = [...position];
+        this.returningHome = false;
     }
 
     protected serverUpdate(delta: number) {
-        if(this.HP <= 0) {
+        if (this.HP <= 0) {
             this.destroy();
             return;
         }
 
-        this.timeSinceLastShot -= delta;
-        if(this.timeSinceLastShot <= 0) {
-            this.timeSinceLastShot = Math.random() * 2000;
-            for(let i = 0; i < 1; i++) {
-                let pos: [number, number] = [(Math.random() * 2) - 1, (Math.random() * 2) - 1];
-                pos[0] += this.Transform.X;
-                pos[1] += this.Transform.Y;
-                this.weapon.use(this, pos, 0);
+        const homeDistance = Math.hypot(
+            this.Transform.X - this.homePosition[0],
+            this.Transform.Y - this.homePosition[1],
+        );
+        if (homeDistance > Enemy.LEASH_RANGE) this.returningHome = true;
+        if (this.returningHome) {
+            if (homeDistance <= 8) {
+                this.returningHome = false;
+                this.Horizontal = 0;
+                this.Vertical = 0;
+            } else {
+                this.moveToward(this.homePosition, delta);
+            }
+            return;
+        }
 
-                this.Horizontal = Math.round(Math.random() * 2) - 1;
-                this.Vertical = Math.round(Math.random() * 2) - 1;
+        let target: Player | null = null;
+        let targetDistance = Enemy.AGGRO_RANGE;
+        for (const object of this.ObjectsFactory.Manager.ObjectsById.values()) {
+            if (!(object instanceof Player) || object.HP <= 0 || object.IsDestroyed) continue;
+            const distance = Math.hypot(object.Transform.X - this.Transform.X, object.Transform.Y - this.Transform.Y);
+            if (distance < targetDistance) {
+                target = object;
+                targetDistance = distance;
             }
         }
 
-        this.updatePosition(delta);
+        this.Horizontal = 0;
+        this.Vertical = 0;
+        if (!target) return;
+        if (targetDistance > Enemy.ATTACK_DISTANCE) this.moveToward(target.Transform.Position, delta);
+        this.weapon?.use(this, target.Transform.Position, 0);
+    }
 
-        this.transform.addChange(ChangesDict.X);
-        this.transform.addChange(ChangesDict.Y);
+    private moveToward(position: readonly [number, number], delta: number): void {
+        const dx = position[0] - this.Transform.X;
+        const dy = position[1] - this.Transform.Y;
+        // Legacy inputs name the screen Y axis "horizontal" and X axis "vertical".
+        this.Vertical = Math.abs(dx) > 4 ? Math.sign(dx) : 0;
+        this.Horizontal = Math.abs(dy) > 4 ? Math.sign(dy) : 0;
+        this.updatePosition(delta);
+    }
+
+    override get CombatTeam(): "enemies" {
+        return "enemies";
     }
 }
-

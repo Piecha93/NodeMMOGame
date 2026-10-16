@@ -1,8 +1,8 @@
-import {Player} from "../shared/game_utils/game/objects/Player";
-import {InputSnapshot} from "../shared/input/InputSnapshot";
-import {INPUT_COMMAND} from "../shared/input/InputCommands";
-import {GameObject} from "../shared/game_utils/game/objects/GameObject";
-import {GameObjectsManager} from "../shared/game_utils/factory/GameObjectsManager";
+import { Player } from "../shared/game_utils/game/objects/Player";
+import { InputSnapshot } from "../shared/input/InputSnapshot";
+import { INPUT_COMMAND } from "../shared/input/InputCommands";
+import { GameObject } from "../shared/game_utils/game/objects/GameObject";
+import { GameObjectsManager } from "../shared/game_utils/factory/GameObjectsManager";
 
 export class ClientsInputSnapshotHandler {
     private playersLastSnapshots: Map<Player, InputSnapshot> = new Map<Player, InputSnapshot>();
@@ -15,9 +15,9 @@ export class ClientsInputSnapshotHandler {
 
     public setSnapshot(player: Player, snapshotData: string) {
         let snapshot: InputSnapshot = new InputSnapshot(snapshotData);
-        const lastSnapshot: InputSnapshot = this.playersLastSnapshots.get(player);
+        const lastSnapshot = this.playersLastSnapshots.get(player);
 
-        if(lastSnapshot && snapshot.ID <= lastSnapshot.ID) {
+        if (lastSnapshot && snapshot.ID <= lastSnapshot.ID) {
             return;
         }
 
@@ -25,25 +25,25 @@ export class ClientsInputSnapshotHandler {
 
         this.playersLastSnapshots.set(player, snapshot);
 
-        if(!this.trackedPlayers.has(player)) {
+        if (!this.trackedPlayers.has(player)) {
             this.trackedPlayers.add(player);
             player.addDestroyListener((destroyedObject: Player) => {
                 this.playersLastSnapshots.delete(destroyedObject);
             });
         }
 
-        if(snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
-            let gameObject: GameObject =
-                this.objectsManager.get(snapshot.Commands.get(INPUT_COMMAND.INTERACT)) as GameObject;
+        if (snapshot.Commands.has(INPUT_COMMAND.INTERACT)) {
+            let gameObject: GameObject = this.objectsManager.get(
+                snapshot.Commands.get(INPUT_COMMAND.INTERACT),
+            ) as GameObject;
 
-            if(gameObject && player.Transform.distanceTo(gameObject.Transform) < 75) {
+            if (gameObject && player.Transform.distanceTo(gameObject.Transform) < 75) {
                 gameObject.interact();
             }
         }
-
     }
 
-    public getPlayerLastSnapshot(player: Player): InputSnapshot {
+    public getPlayerLastSnapshot(player: Player): InputSnapshot | undefined {
         return this.playersLastSnapshots.get(player);
     }
 }

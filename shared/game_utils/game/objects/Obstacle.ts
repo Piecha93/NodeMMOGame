@@ -1,9 +1,8 @@
-import {GameObject} from "./GameObject";
-import {Transform} from "../../physics/Transform";
-import {Result} from "detect-collisions";
+import { GameObject } from "./GameObject";
+import { Transform } from "../../physics/Transform";
+import { Result } from "detect-collisions";
 
 export class Obstacle extends GameObject {
-
     constructor(transform: Transform) {
         super(transform);
 

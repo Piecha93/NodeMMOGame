@@ -1,27 +1,18 @@
+import { WorldContext } from "../../shared/core/WorldContext";
 import assert from "node:assert/strict";
-import {test} from "node:test";
+import { test } from "node:test";
 
-import {MagicWand} from "../../shared/game_utils/game/weapons/MagicWand";
-import {ObjectsSpawner} from "../../shared/game_utils/game/weapons/ObjectsSpawner";
-import {Player} from "../../shared/game_utils/game/objects/Player";
-import {Transform} from "../../shared/game_utils/physics/Transform";
-import {InputSnapshot} from "../../shared/input/InputSnapshot";
+import { MagicWand } from "../../shared/game_utils/game/weapons/MagicWand";
+import { ObjectsSpawner } from "../../shared/game_utils/game/weapons/ObjectsSpawner";
+import { Player } from "../../shared/game_utils/game/objects/Player";
+import { Transform } from "../../shared/game_utils/physics/Transform";
+import { InputSnapshot } from "../../shared/input/InputSnapshot";
 
-test("socket/debug-actions: production player cannot switch to the object spawner", () => {
-    const previousDebugSetting = Player.EnableDebugActions;
-
-    try {
-        Player.EnableDebugActions = false;
-        const player = new Player(new Transform([0, 0]));
-
-        assert.ok(player.Weapon instanceof MagicWand);
-        player.setInput(new InputSnapshot("1=10:null"));
-        assert.ok(player.Weapon instanceof MagicWand);
-
-        Player.EnableDebugActions = true;
-        player.setInput(new InputSnapshot("2=10:null"));
-        assert.ok(player.Weapon instanceof ObjectsSpawner);
-    } finally {
-        Player.EnableDebugActions = previousDebugSetting;
-    }
+test("socket/debug-actions: debug actions belong to a world, not the process", () => {
+    const production = new Player(new Transform([0, 0]));
+    const development = new Player(new Transform([100, 100]));
+    development.setRuntime(new WorldContext({ enableDebugActions: true }));
+    for (const player of [production, development]) player.setInput(new InputSnapshot("1=10:null"));
+    assert.ok(production.Weapon instanceof MagicWand);
+    assert.ok(development.Weapon instanceof ObjectsSpawner);
 });

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.client.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["tests/browser/**/*.ts", "playwright.config.mts", "vite.fixture.config.mts"],
+  "exclude": ["dist", "dist-test", "node_modules", "public"]
+}
