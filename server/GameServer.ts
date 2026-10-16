@@ -34,6 +34,7 @@ import { PerformanceEvents } from "../shared/gameplay/Performance";
 import { PerformanceController } from "./runtime/PerformanceController";
 import { InputMovementBudget } from "./runtime/InputMovementBudget";
 import { PerformanceMetrics } from "./runtime/PerformanceMetrics";
+import { LoopSchedule } from "./runtime/LoopSchedule";
 
 export interface GameServerOptions {
     readonly userRepository?: Pick<UserRepository, "findUserById">;
@@ -78,6 +79,8 @@ export class GameServer {
     private socketsConfigured = false;
     private gameTimer: ReturnType<typeof setTimeout> | null = null;
     private updateTimer: ReturnType<typeof setTimeout> | null = null;
+    private readonly gameSchedule = new LoopSchedule(ServerConfig.TICKRATE);
+    private readonly updateSchedule = new LoopSchedule(ServerConfig.UPDATE_INTERVAL);
     private readonly connectionHandler = (socket: Socket) => this.onConnection(socket);
     private readonly userRepository: Pick<UserRepository, "findUserById">;
 
@@ -272,6 +275,9 @@ export class GameServer {
         this.expedition?.start();
         this.options.seedWorld?.(this.core);
 
+        const now = performance.now();
+        this.gameSchedule.reset(now);
+        this.updateSchedule.reset(now);
         this.startGameLoop();
         this.startUpdateLoop();
     }
@@ -282,10 +288,11 @@ export class GameServer {
         }
         this.core.gameLoop();
         this.checkDisconnectInterval();
+        if (!this.running) return;
 
         this.gameTimer = setTimeout(() => {
             this.startGameLoop();
-        }, ServerConfig.TICKRATE);
+        }, this.gameSchedule.nextDelay(performance.now()));
     }
 
     private startUpdateLoop() {
@@ -295,7 +302,7 @@ export class GameServer {
         this.updateTimer = setTimeout(() => {
             this.collectAndSendUpdate();
             this.startUpdateLoop();
-        }, ServerConfig.UPDATE_INTERVAL);
+        }, this.updateSchedule.nextDelay(performance.now()));
     }
 
     private checkDisconnectInterval() {

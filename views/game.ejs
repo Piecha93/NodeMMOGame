@@ -20,7 +20,7 @@
     <section id="performance-panel" class="performance-panel" aria-label="Test wydajności">
         <div class="objective-copy" data-game-ui><h1>Test obciążenia</h1><p>Swobodny ruch i strzelanie. Bez celów i obrażeń gracza. Ustawienia wspólne dla poligonu.</p></div>
         <form data-performance-form class="performance-controls" data-game-ui>
-            <label>Przeciwnicy<select name="count"><option>100</option><option>500</option><option>1000</option><option>2000</option></select></label>
+            <label><span>Przeciwnicy <span class="performance-field-hint">0–<%= performanceMaxEnemies.toLocaleString('pl-PL') %></span></span><input name="count" type="number" min="0" max="<%= performanceMaxEnemies %>" step="1" value="500" inputmode="numeric" required /></label>
             <label>Rozmieszczenie<select name="distribution"><option value="nearby">Wokół mnie</option><option value="world">Cała mapa</option></select></label>
             <label>Zachowanie<select name="scenario"><option value="moving">Ruch</option><option value="static">Bezruch</option><option value="combat">Walka i pociski</option></select></label>
             <button class="button button-primary" type="submit">Załaduj</button><button class="button button-secondary" type="button" data-performance-clear>Wyczyść</button>

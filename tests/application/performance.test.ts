@@ -77,7 +77,9 @@ test("application/performance: authenticated namespace is isolated, logout revok
     const cookie = login.headers.get("set-cookie")?.split(";")[0];
     assert.ok(cookie);
     const page = await fetch(`${base}/game?mode=performance`, { headers: { cookie } });
-    assert.match(await page.text(), /id="performance-panel"/);
+    const html = await page.text();
+    assert.match(html, /id="performance-panel"/);
+    assert.match(html, /name="count" type="number" min="0" max="20000" step="1"/);
     const ordinary = makeSocket("/", cookie);
     const performance = makeSocket("/performance", cookie);
     await Promise.all([connect(ordinary), connect(performance)]);
@@ -87,9 +89,9 @@ test("application/performance: authenticated namespace is isolated, logout revok
     performance.emit(PerformanceEvents.CONFIGURE, { count: 2000, distribution: "world", scenario: "combat" });
     await ready(performance);
     assert.equal((await initial).count, 0);
-    const populated = nextState(performance, (state) => state.count === 100 && state.pending === 0);
-    performance.emit(PerformanceEvents.CONFIGURE, { count: 100, distribution: "world", scenario: "static" });
-    assert.equal((await populated).enemies, 100);
+    const populated = nextState(performance, (state) => state.count === 137 && state.pending === 0);
+    performance.emit(PerformanceEvents.CONFIGURE, { count: 137, distribution: "world", scenario: "static" });
+    assert.equal((await populated).enemies, 137);
     const normalCore = (application.gameServer as unknown as { core: GameCore }).core;
     const performanceServer = application.performanceServer;
     assert.ok(performanceServer);
@@ -100,7 +102,7 @@ test("application/performance: authenticated namespace is isolated, logout revok
     );
     assert.equal(
         [...performanceCore.ObjectsManager.ObjectsById.values()].filter((object) => object instanceof Enemy).length,
-        100,
+        137,
     );
     const normalDisconnected = new Promise<void>((resolve) => ordinary.once("disconnect", () => resolve()));
     const performanceDisconnected = new Promise<void>((resolve) => performance.once("disconnect", () => resolve()));

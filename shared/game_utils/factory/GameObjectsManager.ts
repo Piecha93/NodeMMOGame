@@ -11,9 +11,11 @@ export interface GameObjectsErrorContext {
 }
 
 export type GameObjectsErrorSink = (error: unknown, context: GameObjectsErrorContext) => void;
+type GameObjectType<T extends GameObject = GameObject> = Function & { readonly prototype: T };
 
 export class GameObjectsManager {
     private readonly objectsById: Map<string, GameObject> = new Map<string, GameObject>();
+    private readonly typeIndexes = new Map<GameObjectType, Set<GameObject>>();
     private readonly subscriptions: Set<GameObjectsSubscription> = new Set<GameObjectsSubscription>();
     private readonly objectSubscriptions: WeakMap<GameObject, Set<GameObjectsSubscription>> = new WeakMap<
         GameObject,
@@ -32,6 +34,17 @@ export class GameObjectsManager {
 
     public get(id: string): GameObject | undefined {
         return this.objectsById.get(id);
+    }
+
+    /** Live type index; finding AI targets never scans unrelated world objects. */
+    public objectsOfType<T extends GameObject>(type: GameObjectType<T>): Iterable<T> {
+        let objects = this.typeIndexes.get(type);
+        if (!objects) {
+            objects = new Set<GameObject>();
+            for (const object of this.objectsById.values()) if (object instanceof type) objects.add(object);
+            this.typeIndexes.set(type, objects);
+        }
+        return objects as Set<T>;
     }
 
     public destroy(id: string): boolean {
@@ -72,6 +85,7 @@ export class GameObjectsManager {
             }
         });
         this.objectsById.set(registeredId, gameObject);
+        for (const [type, objects] of this.typeIndexes) if (gameObject instanceof type) objects.add(gameObject);
 
         const createErrors = this.notifyCreated(gameObject);
         if (createErrors.length > 0) {
@@ -130,6 +144,8 @@ export class GameObjectsManager {
         }
 
         this.objectsById.clear();
+        for (const objects of this.typeIndexes.values()) objects.clear();
+        this.typeIndexes.clear();
         this.subscriptions.clear();
 
         if (errors.length > 0) {
@@ -184,6 +200,7 @@ export class GameObjectsManager {
     private removeIfSame(registeredId: string, gameObject: GameObject): void {
         if (this.objectsById.get(registeredId) === gameObject) {
             this.objectsById.delete(registeredId);
+            for (const objects of this.typeIndexes.values()) objects.delete(gameObject);
         }
     }
 

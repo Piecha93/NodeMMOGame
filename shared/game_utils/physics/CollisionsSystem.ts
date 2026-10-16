@@ -2,17 +2,22 @@ import { Collisions, Polygon, Circle, Result, Body } from "detect-collisions";
 import { GameObject } from "../game/objects/GameObject";
 
 import { Collider } from "../physics/Collider";
+import { mayBecomeSolid } from "../game/CollisionPolicy";
+
+const noCollisionBodies: readonly Body[] = [];
 
 export class CollisionsSystem extends Collisions {
     private bodyToColliderMap: Map<Body, Collider> = new Map<Body, Collider>();
     private collidingBodiesMap: Map<Body, Set<Body>> = new Map<Body, Set<Body>>();
     private lastCollisionResult: Result = new Result();
+    private readonly solidCandidates = new Set<GameObject>();
 
     constructor() {
         super();
     }
 
     public insertObject(gameObject: GameObject) {
+        if (mayBecomeSolid(gameObject)) this.solidCandidates.add(gameObject);
         for (let collider of gameObject.Colliders) {
             super.insert(collider.Body);
 
@@ -26,6 +31,7 @@ export class CollisionsSystem extends Collisions {
     }
 
     public removeObject(gameObject: GameObject) {
+        this.solidCandidates.delete(gameObject);
         for (let collider of gameObject.Colliders) {
             for (let collidingBodies of this.collidingBodiesMap.values()) {
                 collidingBodies.delete(collider.Body);
@@ -43,6 +49,9 @@ export class CollisionsSystem extends Collisions {
     }
 
     public update(): CollisionsSystem {
+        this.solidCandidates.clear();
+        for (const collider of this.bodyToColliderMap.values())
+            if (mayBecomeSolid(collider.Parent)) this.solidCandidates.add(collider.Parent);
         super.update();
         return this;
     }
@@ -67,6 +76,8 @@ export class CollisionsSystem extends Collisions {
                 continue;
             }
             let colliderBody: Body = collider.Body;
+            const onlySolidTargets = gameObject.canSkipNonSolidContacts(collider);
+            const contactFilter = gameObject.contactFilter(collider);
 
             let oldCollidingBodies: Set<Body> = this.collidingBodiesMap.get(colliderBody) || new Set<Body>();
             let newCollidingBodies: Set<Body> = new Set<Body>();
@@ -74,11 +85,15 @@ export class CollisionsSystem extends Collisions {
             // clean them even when a callback destroys an earlier contact.
             this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
 
-            for (const body of colliderBody.potentials()) {
+            const potentials =
+                onlySolidTargets && this.solidCandidates.size === 0 ? noCollisionBodies : colliderBody.potentials();
+            for (const body of potentials) {
                 const colidedCollider = this.bodyToColliderMap.get(body);
                 if (
                     !colidedCollider ||
                     colidedCollider.Parent === gameObject ||
+                    (onlySolidTargets && !colidedCollider.Parent.IsSolid) ||
+                    (contactFilter !== null && !contactFilter(colidedCollider)) ||
                     !this.isRegisteredCollider(colidedCollider) ||
                     !collider.collides(colidedCollider, this.lastCollisionResult)
                 ) {

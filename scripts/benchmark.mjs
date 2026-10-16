@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import { GameCore } from "../dist/shared/GameCore.js";
 import { Origin } from "../dist/shared/core/Origin.js";
 import { PerformanceController } from "../dist/server/runtime/PerformanceController.js";
+import { PERFORMANCE_MAX_ENEMIES } from "../dist/shared/gameplay/Performance.js";
 import { ReplicationSession, VIEWPORT_INTEREST } from "../dist/shared/replication/ReplicationSession.js";
 import { applySnapshot } from "../dist/shared/replication/EntityAdapter.js";
 import { encodeSnapshot, encodeSnapshotV3, decodeSnapshotV3 } from "../dist/shared/protocol/index.js";
@@ -11,16 +12,18 @@ const count = Number(argumentsByName.get("count") ?? 2000);
 const samples = Number(argumentsByName.get("samples") ?? 120);
 const scenario = argumentsByName.get("scenario") ?? "moving";
 if (
-    ![100, 500, 1000, 2000].includes(count) ||
+    !Number.isInteger(count) ||
+    count < 0 ||
+    count > PERFORMANCE_MAX_ENEMIES ||
     !Number.isInteger(samples) ||
     samples < 30 ||
     samples > 500 ||
     !["static", "moving", "combat"].includes(scenario)
 ) {
-    throw new Error("Use --count=100|500|1000|2000 --samples=30..500 --scenario=static|moving|combat");
+    throw new Error(`Use --count=0..${PERFORMANCE_MAX_ENEMIES} --samples=30..500 --scenario=static|moving|combat`);
 }
 
-const core = new GameCore({ role: Origin.SERVER, performanceMode: true, random: () => 0.5 });
+const core = new GameCore({ role: Origin.SERVER, performanceMode: true, cooperative: true, random: () => 0.5 });
 const replica = new GameCore({ role: Origin.CLIENT, performanceMode: true, random: () => 0.5 });
 const controller = new PerformanceController(core);
 const all = new ReplicationSession();

@@ -4,6 +4,23 @@ import { Transform } from "../../physics/Transform";
 import { ChangesDict } from "../../../core/ChangeKeys";
 import { Weapon } from "../weapons/Weapon";
 import { Collision } from "../../physics/Collision";
+import { Collider } from "../../physics/Collider";
+
+const baseCollisionHooks = GameObject.prototype as unknown as Record<string, unknown>;
+const emptyCollisionHooks = [
+    "onCollisionEnter",
+    "onCollisionStay",
+    "onCollisionExit",
+    "serverOnCollisionEnter",
+    "serverOnCollisionStay",
+    "serverOnCollisionExit",
+    "sharedOnCollisionEnter",
+    "sharedOnCollisionExit",
+].map((name) => [name, baseCollisionHooks[name]] as const);
+const emptySharedStay = baseCollisionHooks.sharedOnCollisionStay;
+const colliderEnter = Collider.prototype.onCollisionEnter;
+const colliderStay = Collider.prototype.onCollisionStay;
+const colliderExit = Collider.prototype.onCollisionExit;
 
 export abstract class Actor extends GameObject {
     private name: string;
@@ -42,6 +59,23 @@ export abstract class Actor extends GameObject {
         if (y !== this.Transform.Y) this.Transform.Y = y;
     }
 
+    override canSkipNonSolidContacts(collider: Collider): boolean {
+        if (
+            collider.IsTrigger ||
+            collider.onCollisionEnter !== colliderEnter ||
+            collider.onCollisionStay !== colliderStay ||
+            collider.onCollisionExit !== colliderExit ||
+            baseCollisionHooks.sharedOnCollisionStay !== emptySharedStay
+        )
+            return false;
+        const hooks = this as unknown as Record<string, unknown>;
+        if (hooks.sharedOnCollisionStay !== actorSharedStay) return false;
+        // A stock actor only resolves solid obstacles. Pickups, shots and portals
+        // process their own directional contacts. Custom hooks keep every pair.
+        for (const [name, implementation] of emptyCollisionHooks) if (hooks[name] !== implementation) return false;
+        return true;
+    }
+
     protected sharedOnCollisionStay(collision: Collision) {
         super.sharedOnCollisionStay(collision);
 
@@ -78,6 +112,10 @@ export abstract class Actor extends GameObject {
 
     get CombatTeam(): "players" | "enemies" | null {
         return null;
+    }
+
+    public hasStableCombatTeam(): boolean {
+        return false;
     }
 
     public parseMoveDir(): [number, number] {
@@ -120,13 +158,10 @@ export abstract class Actor extends GameObject {
     }
 
     private setAnimationType() {
-        if (this.horizontal != 0 || this.vertical != 0) {
-            this.animationType = "run";
-            this.addChange(ChangesDict.ANIMATION_TYPE);
-        } else {
-            this.animationType = "idle";
-            this.addChange(ChangesDict.ANIMATION_TYPE);
-        }
+        const animationType = this.horizontal !== 0 || this.vertical !== 0 ? "run" : "idle";
+        if (this.animationType === animationType) return;
+        this.animationType = animationType;
+        this.addChange(ChangesDict.ANIMATION_TYPE);
     }
 
     get Horizontal(): number {
@@ -154,3 +189,5 @@ export abstract class Actor extends GameObject {
         this.weapon = weapon;
     }
 }
+
+const actorSharedStay = (Actor.prototype as unknown as Record<string, unknown>).sharedOnCollisionStay;

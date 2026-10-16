@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PerformancePanel } from "../../client/graphic/PerformancePanel";
-import { PerformanceEvents, PerformanceState } from "../../shared/gameplay/Performance";
+import { PERFORMANCE_MAX_ENEMIES, PerformanceEvents, PerformanceState } from "../../shared/gameplay/Performance";
 
 class ElementProbe extends EventTarget {
     textContent = "";
@@ -31,6 +31,7 @@ function fixture() {
     const distribution = root.add("[name=distribution]", "world");
     const scenario = root.add("[name=scenario]", "moving");
     root.controls.push(clear, count, distribution, scenario, new ElementProbe());
+    form.controls.push(...root.controls);
     const fields = new Map(
         [
             "status",
@@ -73,7 +74,7 @@ function fixture() {
     const advance = (milliseconds: number) => {
         now += milliseconds;
     };
-    return { root, form, clear, handlers, requests, field, panel, advance };
+    return { root, form, clear, count, handlers, requests, field, panel, advance };
 }
 
 const state: PerformanceState = {
@@ -98,7 +99,7 @@ const state: PerformanceState = {
 };
 
 test("performance panel: submit/clear are throttled and disposal removes command listeners", () => {
-    const { form, clear, handlers, requests, panel, advance } = fixture();
+    const { root, form, clear, handlers, requests, panel, advance } = fixture();
     const submit = () => form.dispatchEvent(new Event("submit", { cancelable: true }));
     assert.equal(submit(), false, "the form must not navigate away from the game");
     clear.dispatchEvent(new Event("click"));
@@ -106,7 +107,13 @@ test("performance panel: submit/clear are throttled and disposal removes command
     assert.deepEqual(requests, [
         { event: PerformanceEvents.CONFIGURE, value: { count: 500, distribution: "world", scenario: "moving" } },
     ]);
+    assert.ok(
+        root.controls.every((control) => control.disabled),
+        "all setup controls wait for the throttle",
+    );
     advance(1000);
+    panel.updateFrame(250, 0, 0);
+    assert.ok(root.controls.every((control) => !control.disabled));
     clear.dispatchEvent(new Event("click"));
     assert.deepEqual(requests.at(-1)?.value, { count: 0, distribution: "world", scenario: "moving" });
     panel.dispose();
@@ -116,6 +123,35 @@ test("performance panel: submit/clear are throttled and disposal removes command
     clear.dispatchEvent(new Event("click"));
     assert.equal(requests.length, 2);
     assert.equal(handlers.size, 0);
+    assert.ok(
+        root.controls.every((control) => control.disabled),
+        "disposed controls cannot create commands",
+    );
+});
+
+test("performance panel: arbitrary integer counts and the maximum are sent without rounding", () => {
+    const { form, count, requests, panel, advance } = fixture();
+    for (const value of [0, 1, 137, 12_345, PERFORMANCE_MAX_ENEMIES]) {
+        count.value = String(value);
+        form.dispatchEvent(new Event("submit", { cancelable: true }));
+        assert.deepEqual(requests.at(-1)?.value, { count: value, distribution: "world", scenario: "moving" });
+        advance(1000);
+    }
+    panel.dispose();
+});
+
+test("performance panel: invalid typed counts do not throw, emit or throttle a corrected request", () => {
+    const { form, clear, count, requests, field, panel } = fixture();
+    for (const value of ["", " ", "-1", "1.5", "NaN", "Infinity", String(PERFORMANCE_MAX_ENEMIES + 1)]) {
+        count.value = value;
+        assert.doesNotThrow(() => form.dispatchEvent(new Event("submit", { cancelable: true })));
+        assert.equal(requests.length, 0);
+        assert.match(field("status").textContent, /całkowitą liczbę/);
+    }
+    // Clearing remains available even when the number field is invalid.
+    clear.dispatchEvent(new Event("click"));
+    assert.deepEqual(requests[0]?.value, { count: 0, distribution: "world", scenario: "moving" });
+    panel.dispose();
 });
 
 test("performance panel: server/client counts stay distinct and a connection failure survives late state/frame updates", () => {

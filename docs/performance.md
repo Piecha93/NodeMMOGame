@@ -4,7 +4,7 @@ Wybierz **Poligon / test wydajności** na stronie wejścia lub w nagłówku gry.
 
 ## Ustawienia
 
-- **100 / 500 / 1000 / 2000 przeciwników** — populacja tworzona partiami, po maksymalnie 80 obiektów na tick. Licznik pokazuje postęp.
+- **Przeciwnicy: 0–20 000** — wpisz dowolną liczbę całkowitą. Populacja powstaje partiami po maksymalnie 80 obiektów na tick, a licznik pokazuje postęp. Limit i walidacja są wspólne dla klienta oraz serwera.
 - **Wokół mnie** — siatka wokół bieżącej pozycji gracza; duże populacje wykraczają poza ekran i obszar zainteresowania klienta.
 - **Cała mapa** — populacja rozłożona między chunkami. Odległe chunki pozostają aktywne, więc cały świat nadal wykonuje symulację, a klient otrzymuje własną okolicę.
 - **Bezruch / Ruch / Walka i pociski** — porównanie kosztu nieruchomych obiektów, ruchu i kolizji oraz AI ze strzelaniem do graczy w zasięgu.
@@ -32,7 +32,7 @@ Przeciążony poligon nadrabia najwyżej dwa ticki świata w jednej turze, aby c
 
 Panel pokazuje też wynegocjowaną wersję protokołu. Nowy klient wybiera v3: zwarty identyfikator rekordu, maska stabilnych ID pól, liczby całkowite o zmiennej długości i float32 dla zdalnych obiektów. Stan własnego gracza pozostaje float64. Replikacja obejmuje prostokąt 1536×1024 wokół gracza, konserwatywne granice obiektów oraz 96 px histerezy przy wychodzeniu; zapas pokrywa kamerę 1024×576, jej wyprzedzenie i wczytywanie okolicy. Zmniejsza to transfer i liczbę obiektów klienta, a cały świat nadal wykonuje tę samą symulację. Starsi klienci zachowują format i obszar replikacji v1/v2.
 
-Porównuj ten sam scenariusz, pozycję kamery, rozmiar okna i przeglądarkę. Poczekaj na zakończenie tworzenia populacji, żeby odróżnić koszt startu od stałego kosztu symulacji. Statyczna populacja generuje mniej delt niż ruchoma. Liczba 2000 to limit narzędzia, a nie deklaracja wydajności czy liczby obsługiwanych graczy.
+Porównuj ten sam scenariusz, pozycję kamery, rozmiar okna i przeglądarkę. Poczekaj na zakończenie tworzenia populacji, żeby odróżnić koszt startu od stałego kosztu symulacji. Statyczna populacja generuje mniej delt niż ruchoma. Liczba 20 000 to limit narzędzia, a nie deklaracja wydajności czy liczby obsługiwanych graczy. Duże populacje na całej mapie mają poprawne, unikalne pozycje wewnątrz granic świata; wczytywanie nadal przeplata odległe chunki.
 
 500 KiB/s oznacza 512 000 bajtów/s, czyli 4,096 Mb/s binarnego stanu świata na jednego klienta. To oddzielna miara od czasu CPU. Szybszy serwer może nawet pokazać większy transfer, ponieważ wysyła więcej aktualizacji w ciągu sekundy. Przy porównaniu gier trzeba podać liczbę aktywnych i replikowanych obiektów, faktyczne Hz, zachowanie AI/kolizji, sprzęt oraz narzut transportu.
 
@@ -44,7 +44,7 @@ W lokalnym profilu z 16 października 2026, dla 2000 pobliskich poruszających s
 npm run bench -- --count=2000 --samples=120 --scenario=moving
 ```
 
-Warianty: `--count=100|500|1000|2000`, `--samples=30..500`, `--scenario=static|moving|combat`. Skrypt buduje serwer i wykonuje deterministyczną próbę z poruszającym się graczem, 20 publikacjami rozgrzewki oraz 3 tickami na publikację. Zestawia v2, v3 dla identycznych rekordów i v3 z obszarem kamery. Raportuje bajty pierwszego stanu i kolejnych delt oraz percentyle CPU symulacji, przygotowania, kodowania i dekodowania z zastosowaniem stanu do prawdziwej repliki klienta.
+Warianty: `--count=0..20000`, `--samples=30..500`, `--scenario=static|moving|combat`. Skrypt buduje serwer i wykonuje deterministyczną próbę z poruszającym się graczem, 20 publikacjami rozgrzewki oraz 3 tickami na publikację. Używa kooperacji tak samo jak prawdziwy poligon, żeby sojusznicze pociski nie zmniejszały testowanej populacji. Zestawia v2, v3 dla identycznych rekordów i v3 z obszarem kamery. Raportuje bajty pierwszego stanu i kolejnych delt oraz percentyle CPU symulacji, przygotowania, kodowania i dekodowania z zastosowaniem stanu do prawdziwej repliki klienta.
 
 Próba lokalna z 16 października 2026 (Node 24.19, Windows x64, 2000 pobliskich przeciwników, `moving`, 120 próbek) dała:
 
@@ -59,6 +59,33 @@ Samo kodowanie zmniejszyło delty o 66,2%, a wraz z filtrowaniem okolicy o 79,2%
 Osobna próba CPU na identycznej symulacji walki (2000 przeciwników, ruch gracza, 160 ticków rozgrzewki + 400 mierzonych) wykazała spadek ticka p50 z 44,15 do 29,68 ms, p95 z 142,09 do 70,20 ms. Prostokąty bez obrotu unikają wielokrotnego rzutowania wierzchołków; różnicowe testy porównują wynik, normalną i penetrację z biblioteką, a koła, obroty i zmienione wielokąty zachowują pełny SAT. Liczba obiektów i końcowa pozycja gracza w porównaniu pozostały identyczne.
 
 Po stronie repliki częściowa aktualizacja zmienia tylko przesłane pola, a indeks chunków i geometrię odświeżają tylko obiekty ze zmienionym transformem. Próbka 2000 obiektów na Node 24 zmniejszyła medianę nakładania pozycji z 9,11 do 3,57 ms, pól skalarnych z 6,28 do 0,42 ms, a zbierania i interpolacji pozycji z 2,86 do 0,66 ms. To izolowane koszty CPU, bez renderowania GPU; rzeczywisty FPS trzeba odczytać w przeglądarce.
+
+## Rzeczywiste tempo serwera
+
+```sh
+npm run bench:server -- --count=2000 --seconds=20 --warmup=5
+```
+
+Ten benchmark uruchamia prawdziwą aplikację na losowym lokalnym porcie oraz klienta Socket.IO w osobnym procesie. Gość loguje się przez HTTP, negocjuje v3 i WebSocket, ładuje żądaną populację, następnie chodzi po kwadracie, zmieniając kierunek co 800 ms. Wysyła input z docelowym tempem 64 Hz, ale nie strzela, żeby liczba testowanych przeciwników pozostawała stała. Przeciwnicy wykonują zwykłą walkę i strzelają; reguły kooperacji i kolizji pozostają włączone.
+
+Pomiar zaczyna się po zakończeniu ładowania oraz rozgrzewce. Raport zawiera faktyczny przyrost ticków względem czasu monotonicznego, wszystkie zmierzone czasy ticków, snapshoty i bajty odebrane przez klienta, RTT heartbeatów, przyrost porzuconego czasu i minimum/maksimum żywych NPC. Inna niż zadana liczba NPC przerywa próbę. Skrypt zamyka własne procesy, sockety i timery także po błędzie. Zakresy parametrów: `--count=0..20000`, `--seconds=1..120`, `--warmup=0..30`.
+
+Na Node 24.19 / Windows x64 próba 2000 NPC, 5 s rozgrzewki + 20 s ciągłego ruchu pokazała:
+
+| Pomiar | Przed | Po |
+| --- | ---: | ---: |
+| Rzeczywiste ticki/s | 21,49 | 62,77 |
+| CPU ticka p50 | 38,70 ms | 9,26 ms |
+| CPU ticka p95 | 67,40 ms | 15,77 ms |
+| Odebrane snapshoty/s | 10,74 | 24,99 |
+| RTT heartbeatów p95 | 92,49 ms | 16,85 ms |
+| Żywi przeciwnicy min / max | 2000 / 2000 | 2000 / 2000 |
+
+Osobna próba ustabilizowanej pracy (10 s rozgrzewki + 30 s pomiaru, te same 2000 NPC i ciągły ruch) osiągnęła 1921 ticków w 30,012 s: **64,01 Hz**, snapshoty **24,99 Hz**, tick p50 / p95 **7,40 / 10,90 ms**. Liczba NPC przez cały pomiar wynosiła 2000, a przyrost porzuconego czasu 2,38 ms. Krótszy pomiar porównawczy powyżej celowo pozostaje oddzielny; wyniki zależą też od rozgrzewki i chwilowego obciążenia systemu.
+
+Oszczędności pochodzą z pomijania pustych kierunkowych kontaktów niesolidnych aktorów, konserwatywnej szybkiej ścieżki bez kandydatów na solidną geometrię oraz filtrowania stabilnych sojuszniczych interakcji pocisków. Własne callbacki, drzwi, nieznane drużyny i dynamiczna geometria zachowują ścieżkę ogólną. Pętle czasowe odejmują też czas pracy od następnego oczekiwania, zamiast dodawać go do okresu. Osobny deterministyczny test 560 ticków zachował identyczny stan świata i 4915 utworzonych pocisków.
+
+W zwykłym świecie AI korzysta z żywego indeksu graczy; nie przegląda wszystkich obiektów dla każdego NPC. Poligon miał już własny zbiór graczy, więc ten zysk dotyczy przede wszystkim normalnej rozgrywki. Pomiar serwera nie zawiera renderowania, prediction klienta ani GPU i nie jest testem wielu graczy. Wynik 20 000 NPC sprawdza limit i poprawność generowania; nie oznacza 64 Hz przy takiej populacji.
 
 ## Konfiguracja
 

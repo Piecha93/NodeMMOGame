@@ -3,13 +3,12 @@ export const PerformanceEvents = Object.freeze({
     STATE: "performance:state",
 });
 
-export const PERFORMANCE_COUNTS = [0, 100, 500, 1000, 2000] as const;
-export type PerformanceCount = (typeof PERFORMANCE_COUNTS)[number];
+export const PERFORMANCE_MAX_ENEMIES = 20_000;
 export type PerformanceDistribution = "nearby" | "world";
 export type PerformanceScenario = "static" | "moving" | "combat";
 
 export interface PerformanceConfiguration {
-    readonly count: PerformanceCount;
+    readonly count: number;
     readonly distribution: PerformanceDistribution;
     readonly scenario: PerformanceScenario;
 }
@@ -39,14 +38,17 @@ export function validatePerformanceConfiguration(value: unknown): PerformanceCon
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid performance setup");
     const setup = value as Record<string, unknown>;
     if (
-        !PERFORMANCE_COUNTS.includes(setup.count as PerformanceCount) ||
+        typeof setup.count !== "number" ||
+        !Number.isInteger(setup.count) ||
+        setup.count < 0 ||
+        setup.count > PERFORMANCE_MAX_ENEMIES ||
         (setup.distribution !== "nearby" && setup.distribution !== "world") ||
         !["static", "moving", "combat"].includes(setup.scenario as string) ||
         Object.keys(setup).some((key) => !["count", "distribution", "scenario"].includes(key))
     )
         throw new Error("Invalid performance setup");
     return {
-        count: setup.count as PerformanceCount,
+        count: setup.count,
         distribution: setup.distribution,
         scenario: setup.scenario as PerformanceScenario,
     };
@@ -85,8 +87,10 @@ export function isPerformanceState(value: unknown): value is PerformanceState {
             state.snapshotHz,
             state.snapshotP95Ms,
         ].every((number) => Number.isFinite(number) && number >= 0) &&
-        state.enemies <= 2000 &&
-        state.pending <= 2000 &&
+        Number.isInteger(state.enemies) &&
+        Number.isInteger(state.pending) &&
+        state.enemies <= PERFORMANCE_MAX_ENEMIES &&
+        state.pending <= PERFORMANCE_MAX_ENEMIES &&
         state.activeChunks <= state.totalChunks
     );
 }

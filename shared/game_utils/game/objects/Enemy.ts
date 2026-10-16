@@ -54,13 +54,12 @@ export class Enemy extends Actor {
             return;
         }
 
-        const homeDistance = Math.hypot(
-            this.Transform.X - this.homePosition[0],
-            this.Transform.Y - this.homePosition[1],
-        );
-        if (homeDistance > Enemy.LEASH_RANGE) this.returningHome = true;
+        const homeDx = this.Transform.X - this.homePosition[0];
+        const homeDy = this.Transform.Y - this.homePosition[1];
+        const homeDistanceSquared = homeDx * homeDx + homeDy * homeDy;
+        if (homeDistanceSquared > Enemy.LEASH_RANGE * Enemy.LEASH_RANGE) this.returningHome = true;
         if (this.returningHome) {
-            if (homeDistance <= 8) {
+            if (homeDistanceSquared <= 8 * 8) {
                 this.returningHome = false;
                 this.Horizontal = 0;
                 this.Vertical = 0;
@@ -71,20 +70,25 @@ export class Enemy extends Actor {
         }
 
         let target: Player | null = null;
-        let targetDistance = Enemy.AGGRO_RANGE;
-        for (const object of this.performanceSetup?.players() ?? this.ObjectsFactory.Manager.ObjectsById.values()) {
-            if (!(object instanceof Player) || object.HP <= 0 || object.IsDestroyed) continue;
-            const distance = Math.hypot(object.Transform.X - this.Transform.X, object.Transform.Y - this.Transform.Y);
-            if (distance < targetDistance) {
+        let targetDistanceSquared = Enemy.AGGRO_RANGE * Enemy.AGGRO_RANGE;
+        for (const object of this.performanceSetup?.players() ?? this.ObjectsFactory.Manager.objectsOfType(Player)) {
+            if (object.HP <= 0 || object.IsDestroyed) continue;
+            const dx = object.Transform.X - this.Transform.X;
+            const dy = object.Transform.Y - this.Transform.Y;
+            const distanceSquared = dx * dx + dy * dy;
+            if (distanceSquared < targetDistanceSquared) {
                 target = object;
-                targetDistance = distance;
+                targetDistanceSquared = distanceSquared;
             }
         }
 
-        this.Horizontal = 0;
-        this.Vertical = 0;
-        if (!target) return;
-        if (targetDistance > Enemy.ATTACK_DISTANCE) this.moveToward(target.Transform.Position, delta);
+        if (!target || targetDistanceSquared <= Enemy.ATTACK_DISTANCE * Enemy.ATTACK_DISTANCE) {
+            this.Horizontal = 0;
+            this.Vertical = 0;
+            if (!target) return;
+        } else {
+            this.moveToward(target.Transform.Position, delta);
+        }
         if (!this.performanceSetup || this.Runtime.timeMs >= this.performanceShotsAtMs) {
             this.weapon?.use(this, target.Transform.Position, 0);
         }
@@ -102,4 +106,15 @@ export class Enemy extends Actor {
     override get CombatTeam(): "enemies" {
         return "enemies";
     }
+
+    override hasStableCombatTeam(): boolean {
+        return (
+            this.constructor === Enemy &&
+            Object.getPrototypeOf(this) === Enemy.prototype &&
+            !Object.getOwnPropertyDescriptor(this, "CombatTeam") &&
+            Object.getOwnPropertyDescriptor(Enemy.prototype, "CombatTeam")?.get === enemyCombatTeamGetter
+        );
+    }
 }
+
+const enemyCombatTeamGetter = Object.getOwnPropertyDescriptor(Enemy.prototype, "CombatTeam")?.get;

@@ -14,6 +14,7 @@ import { Database } from "./database/Database";
 import { ManagedSessionStore, MongoSessionStore } from "./database/MongoSessionStore";
 import { disabledUserRepository, UserRepository } from "./database/UserRepository";
 import { seedDemoWorld } from "./runtime/DemoScenario";
+import { PERFORMANCE_MAX_ENEMIES } from "../shared/gameplay/Performance";
 
 const customParser = require("socket.io-msgpack-parser");
 const COOKIE_NAME = "node-mmo.sid";
@@ -230,7 +231,11 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
         if (!request.session.user_id) response.redirect("/");
         else if (request.query.mode === "performance" && !config.enablePerformanceTests)
             response.status(404).send("Performance tests are disabled");
-        else response.render("game", { performanceMode: request.query.mode === "performance" });
+        else
+            response.render("game", {
+                performanceMode: request.query.mode === "performance",
+                performanceMaxEnemies: PERFORMANCE_MAX_ENEMIES,
+            });
     });
     app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
         const status =

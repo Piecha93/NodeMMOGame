@@ -166,6 +166,15 @@ export class GameObject extends ReplicatedState {
         }
     }
 
+    /** Custom objects observe all contacts unless their domain behaviour opts out. */
+    public canSkipNonSolidContacts(collider: Collider): boolean {
+        return false;
+    }
+
+    public contactFilter(collider: Collider): ((other: Collider) => boolean) | null {
+        return null;
+    }
+
     protected commonUpdate(delta: number) {}
 
     protected serverUpdate(delta: number) {}

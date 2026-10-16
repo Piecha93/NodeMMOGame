@@ -57,10 +57,11 @@ export class PerformanceController {
 
     configure(value: unknown, center: readonly [number, number] = this.spawnPosition()): void {
         const configuration = validatePerformanceConfiguration(value);
+        const positions = this.createPositions(configuration, center);
         this.clearPopulation();
         this.configuration = configuration;
         this.tickSamples.length = 0;
-        this.positions = this.createPositions(configuration, center);
+        this.positions = positions;
     }
 
     private clearPopulation(): void {
@@ -78,36 +79,65 @@ export class PerformanceController {
         center: readonly [number, number],
     ): Array<[number, number]> {
         const result: Array<[number, number]> = [];
+        if (configuration.count === 0) return result;
+        if (!center.every(Number.isFinite)) throw new RangeError("Invalid performance population center");
         const { chunkSize, numOfChunksX, numOfChunksY } = this.core.Runtime.config;
+        const worldWidth = numOfChunksX * chunkSize;
+        const worldHeight = numOfChunksY * chunkSize;
+        const margin = 64;
+        const availableWidth = worldWidth - margin * 2;
+        const availableHeight = worldHeight - margin * 2;
         const columns = Math.ceil(Math.sqrt(configuration.count));
         const nearbyWidth = Math.max(0, columns - 1) * 40;
-        const originX = Math.min(
-            Math.max(center[0] - nearbyWidth / 2, 64),
-            numOfChunksX * chunkSize - nearbyWidth - 64,
-        );
-        const originY = Math.min(
-            Math.max(center[1] - nearbyWidth / 2, 64),
-            numOfChunksY * chunkSize - nearbyWidth - 64,
-        );
-        const chunks = Array.from(this.core.ChunksManager.ChunksIterator());
-        const perChunk = Math.ceil(configuration.count / Math.max(chunks.length, 1));
-        const perChunkColumns = Math.ceil(Math.sqrt(perChunk));
-        for (let index = 0; index < configuration.count; index++) {
-            if (configuration.distribution === "nearby") {
+        const rows = Math.ceil(configuration.count / columns);
+        const nearbyHeight = Math.max(0, rows - 1) * 40;
+        if (
+            availableWidth < 0 ||
+            availableHeight < 0 ||
+            (configuration.distribution === "nearby" &&
+                (nearbyWidth > availableWidth || nearbyHeight > availableHeight))
+        )
+            throw new RangeError("Performance population does not fit inside this world");
+        const originX = Math.min(Math.max(center[0] - nearbyWidth / 2, margin), worldWidth - nearbyWidth - margin);
+        const originY = Math.min(Math.max(center[1] - nearbyWidth / 2, margin), worldHeight - nearbyHeight - margin);
+        if (configuration.distribution === "nearby") {
+            for (let index = 0; index < configuration.count; index++)
                 result.push([originX + (index % columns) * 40, originY + Math.floor(index / columns) * 40]);
-            } else {
-                const chunk = chunks[index % chunks.length];
-                if (!chunk) break;
-                const slot = Math.floor(index / chunks.length);
-                const [x, y] = chunk.Position;
-                // Odd columns use a half-height offset in the existing hex grid.
-                const offsetY = x % 2 && y > 0 ? chunkSize / 2 : 0;
-                result.push([
-                    x * chunkSize + 80 + (slot % perChunkColumns) * 48,
-                    y * chunkSize + offsetY + 80 + Math.floor(slot / perChunkColumns) * 48,
-                ]);
-            }
+            return result;
         }
+
+        // Distribute a regular grid over the actual world rectangle. Odd chunk
+        // columns have taller first and shorter last cells, so an equal fixed
+        // number of 48 px slots per chunk cannot safely fit large populations.
+        const worldColumns = Math.min(
+            configuration.count,
+            Math.ceil(Math.sqrt((configuration.count * availableWidth) / availableHeight)),
+        );
+        const worldRows = Math.ceil(configuration.count / worldColumns);
+        const spacingX = worldColumns > 1 ? availableWidth / (worldColumns - 1) : availableWidth;
+        const spacingY = worldRows > 1 ? availableHeight / (worldRows - 1) : availableHeight;
+        if ((worldColumns > 1 && spacingX < 32) || (worldRows > 1 && spacingY < 32))
+            throw new RangeError("Performance population does not fit inside this world");
+        const buckets = new Map(
+            Array.from(this.core.ChunksManager.ChunksIterator(), (chunk) => [chunk, [] as Array<[number, number]>]),
+        );
+        for (let index = 0; index < configuration.count; index++) {
+            const position: [number, number] = [
+                worldColumns > 1 ? margin + (index % worldColumns) * spacingX : worldWidth / 2,
+                worldRows > 1 ? margin + Math.floor(index / worldColumns) * spacingY : worldHeight / 2,
+            ];
+            const chunk = this.core.ChunksManager.getChunkAtPosition(...position);
+            const bucket = chunk && buckets.get(chunk);
+            if (!bucket) throw new RangeError("Performance position lies outside the world");
+            bucket.push(position);
+        }
+        // Preserve the loading behavior: each batch reaches distant chunks,
+        // instead of filling one edge of the map before the others.
+        for (let slot = 0; result.length < configuration.count; slot++)
+            for (const bucket of buckets.values()) {
+                const position = bucket[slot];
+                if (position) result.push(position);
+            }
         return result;
     }
 

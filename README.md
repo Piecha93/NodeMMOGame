@@ -4,7 +4,7 @@ Multiplayer browser game built with TypeScript, Node.js, Socket.IO and PixiJS. T
 
 The current expedition is a gameplay prototype for 1–4 players: recover three cores from guarded ruins and return to camp. The next direction is still open; current work focuses on responsive movement, shooting and a small, readable game loop. WASD moves, the mouse aims and holding the left button fires. [Prototype rules](docs/gameplay.md).
 
-For engine experiments, choose **Poligon / test wydajności** at the entrance or in the game header. Its separate world supports up to 2000 enemies, different workloads and live client/server measurements. [Performance test controls and metric definitions](docs/performance.md).
+For engine experiments, choose **Poligon / test wydajności** at the entrance or in the game header. Its separate world accepts a custom population from 0 through 20,000 enemies, different workloads and live client/server measurements. [Performance test controls and metric definitions](docs/performance.md).
 
 ## Requirements
 

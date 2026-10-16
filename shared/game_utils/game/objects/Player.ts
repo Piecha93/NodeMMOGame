@@ -173,4 +173,15 @@ export class Player extends Actor {
     override get CombatTeam(): "players" {
         return "players";
     }
+
+    override hasStableCombatTeam(): boolean {
+        return (
+            this.constructor === Player &&
+            Object.getPrototypeOf(this) === Player.prototype &&
+            !Object.getOwnPropertyDescriptor(this, "CombatTeam") &&
+            Object.getOwnPropertyDescriptor(Player.prototype, "CombatTeam")?.get === playerCombatTeamGetter
+        );
+    }
 }
+
+const playerCombatTeamGetter = Object.getOwnPropertyDescriptor(Player.prototype, "CombatTeam")?.get;

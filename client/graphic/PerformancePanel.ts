@@ -2,6 +2,7 @@ import {
     isPerformanceState,
     PerformanceEvents,
     PerformanceState,
+    PERFORMANCE_MAX_ENEMIES,
     validatePerformanceConfiguration,
 } from "../../shared/gameplay/Performance";
 
@@ -48,15 +49,26 @@ export class PerformancePanel {
 
     private configure(clear: boolean): void {
         if (this.disposed || this.connectionFailed || this.clock() < this.nextRequestAt) return;
-        const count = this.root.querySelector<HTMLSelectElement>("[name=count]");
+        const count = this.root.querySelector<HTMLInputElement>("[name=count]");
         const distribution = this.root.querySelector<HTMLSelectElement>("[name=distribution]");
         const scenario = this.root.querySelector<HTMLSelectElement>("[name=scenario]");
-        const setup = validatePerformanceConfiguration({
-            count: clear ? 0 : Number(count?.value),
-            distribution: distribution?.value,
-            scenario: scenario?.value,
-        });
+        let setup;
+        try {
+            const rawCount = count?.value.trim() ?? "";
+            setup = validatePerformanceConfiguration({
+                count: clear ? 0 : rawCount.length ? Number(rawCount) : Number.NaN,
+                distribution: distribution?.value,
+                scenario: scenario?.value,
+            });
+        } catch {
+            this.text(
+                "status",
+                `Podaj całkowitą liczbę przeciwników od 0 do ${PERFORMANCE_MAX_ENEMIES.toLocaleString("pl-PL")}.`,
+            );
+            return;
+        }
         this.nextRequestAt = this.clock() + 1000;
+        this.disableControls(true);
         this.socket.emit(PerformanceEvents.CONFIGURE, setup);
         this.text("status", clear ? "Czyszczenie poligonu…" : "Ładowanie populacji…");
     }
@@ -73,7 +85,7 @@ export class PerformancePanel {
         this.elapsed = 0;
         this.frames = 0;
         const disabled = this.connectionFailed || this.clock() < this.nextRequestAt;
-        for (const button of this.root.querySelectorAll<HTMLButtonElement>("button")) button.disabled = disabled;
+        this.disableControls(disabled);
     }
 
     setProtocol(version: number): void {
@@ -104,8 +116,14 @@ export class PerformancePanel {
         if (this.disposed || this.connectionFailed) return;
         this.connectionFailed = true;
         this.text("status", message);
-        for (const control of this.root.querySelectorAll<HTMLButtonElement | HTMLSelectElement>("button, select"))
-            control.disabled = true;
+        this.disableControls(true);
+    }
+
+    private disableControls(disabled: boolean): void {
+        for (const control of this.form?.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>(
+            "button, select, input",
+        ) ?? [])
+            control.disabled = disabled;
     }
 
     private render(): void {
@@ -144,6 +162,7 @@ export class PerformancePanel {
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
+        this.disableControls(true);
         this.socket.off(PerformanceEvents.STATE, this.stateHandler);
         this.form?.removeEventListener("submit", this.submitHandler);
         this.clearButton?.removeEventListener("click", this.clearHandler);

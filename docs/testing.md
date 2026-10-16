@@ -61,6 +61,8 @@ Application tests run on loopback ephemeral ports and use actual session middlew
 
 Mixed-version transport fixtures connect v2/v1 and v3/v2/v1 clients through each transport. They check tick-consumed acknowledgements, STOP and state delivery without changing the older wire formats. Controlled fixtures exercise the wider queue/interest cases. Differential rectangle tests compare more than 12,000 directed collision results with the pinned SAT implementation, including containment, touching edges, normal tie breaking, rotation, circles and public polygon edits. Client delta tests cover preflight, lifecycle, partial fields and final collider/chunk publication. Large deployment matrices and long reconnect/soak scenarios remain separate operating evidence.
 
+Performance regressions accept arbitrary bounded populations and reject malformed configurations without replacing the current world. The maximum-population case actually creates all 20,000 NPC, checks unique unmodified positions and collider coordinates, and releases them. Collision-interest regressions cover directional effects, custom and runtime hooks, triggers, doors, solidity getters along the prototype chain, stable friendly projectiles and restored owner strings. Deadline tests include callback work, stalls and restart; actual cadence is measured by the [two-process server benchmark](performance.md), not by a fragile CI timing assertion.
+
 ## Mongo persistence
 
 Local tests skip the real persistence contract unless `TEST_MONGODB_URI` points at a test database. In PowerShell:

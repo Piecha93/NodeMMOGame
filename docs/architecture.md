@@ -63,7 +63,13 @@ The default simulation frequency is 64 Hz. `advance()` limits catch-up to eight 
 
 At the beginning of a world update, the runtime captures a stable set of objects. Destroying an object cannot skip the following object; objects destroyed before their turn are ignored, and spawned objects begin their updates on the next tick. Collision batches also tolerate lifecycle mutation. Source/target registration is rechecked after callbacks, current contacts remain reachable by cleanup, and colliders sharing one parent are filtered out. Collider geometry follows position, rotation and scale changes.
 
+Server timers follow monotonic deadlines. Callback duration is deducted from the next wait; expired scheduling deadlines are skipped rather than queued. `GameCore` still owns bounded fixed-step catch-up, while every scheduled callback yields through a timer so transport and other worlds can run.
+
+Collision interest is directional. Stock actors can omit nonsolid contacts when their normal collision hooks only resolve solid geometry; triggers and custom hooks retain general processing. A conservative solid-candidate index also avoids querying the broadphase when no object can supply solid geometry. Doors, custom objects, subclasses and altered solidity getters keep the general path and its candidate order. Stock projectiles can reject stable owner/team contacts before narrowphase; unknown ownership and custom behavior use the full path. The other endpoint continues processing its own contacts, so pickups, portals and hostile projectiles retain their effects.
+
 Object registration is transactional at the registry boundary. Factories reject unknown prefabs, invalid positions and conflicting IDs; failed creation subscribers trigger cleanup. Destruction removes registry entries before subscriber delivery and continues cleanup through listener errors. Subscriptions receive paired lifecycle notifications. Core disposal is idempotent and remains isolated from other worlds, including worlds using the same object ID.
+
+The object manager also maintains lazy live type indexes. An index preserves registry insertion order, includes subclasses and follows creation, rollback, destruction and disposal. Enemy targeting reads the player index instead of scanning every world object for each enemy; equal-distance targets retain their original tie order.
 
 Default prefab mappings stay explicit:
 
