@@ -1,8 +1,10 @@
-# Ruiny — Node MMO Game
+# Node MMO Game
 
 Multiplayer browser game built with TypeScript, Node.js, Socket.IO and PixiJS. The server owns game state; the client predicts local movement and renders remote snapshots.
 
-The default game is now a small cooperative expedition for 1–4 players: recover three cores from guarded ruins and bring the whole party back to camp before ten minutes expire. Play solo or join the same local server with another browser profile. WASD moves, the mouse aims and holding the left button fires. Death returns you to camp after three seconds; teammates cannot damage one another. [Gameplay and scope](docs/gameplay.md).
+The current expedition is a gameplay prototype for 1–4 players: recover three cores from guarded ruins and return to camp. The next direction is still open; current work focuses on responsive movement, shooting and a small, readable game loop. WASD moves, the mouse aims and holding the left button fires. [Prototype rules](docs/gameplay.md).
+
+For engine experiments, choose **Poligon / test wydajności** at the entrance or in the game header. Its separate world supports up to 2000 enemies, different workloads and live client/server measurements. [Performance test controls and metric definitions](docs/performance.md).
 
 ## Requirements
 
@@ -47,7 +49,7 @@ New clients offer `[2, 1]`; the server chooses the highest common version. Missi
 
 The new expedition uses the appended marker prefab `I` and requires v2. Sandbox modes retain v1 admission and the historical A–H prefab mappings.
 
-V2 snapshots identify the server tick, snapshot and last processed input sequence. Local prediction replays only unacknowledged commands through shared movement/collision code. Remote presentation uses a bounded interpolation history with a 100 ms delay and holds the latest state during an outage.
+V2 snapshots identify the server tick, snapshot and last processed input sequence. Local prediction replays only unacknowledged commands through shared movement/collision code. Remote actors use a bounded interpolation history with a 100 ms delay. Straight projectiles start moving from their first sample and extrapolate at most 80 ms past the latest authoritative sample before holding; server collision/destruction remains authoritative.
 
 V1 remains a rolling-upgrade fallback with its original record bytes and legacy string encoding. UTF-8 is a v2 feature. Existing v1 byte fixtures continue to guard compatibility.
 

@@ -2,10 +2,14 @@ import { Transform } from "../../physics/Transform";
 import { Actor } from "./Actor";
 import { MagicWand } from "../weapons/MagicWand";
 import { Player } from "./Player";
+import type { PerformanceScenario } from "../../../gameplay/Performance";
 
 export class Enemy extends Actor {
     private homePosition: readonly [number, number];
     private returningHome = false;
+    private performanceSetup: { scenario: PerformanceScenario; phase: number; players: () => Iterable<Player> } | null =
+        null;
+    private performanceShotsAtMs = 0;
     private static readonly AGGRO_RANGE = 480;
     private static readonly ATTACK_DISTANCE = 200;
     private static readonly LEASH_RANGE = 600;
@@ -24,9 +28,29 @@ export class Enemy extends Actor {
         this.returningHome = false;
     }
 
+    public configurePerformance(scenario: PerformanceScenario, phase: number, players: () => Iterable<Player>): void {
+        if (!this.Runtime.config.performanceMode) throw new Error("Performance enemies require a performance world");
+        this.performanceSetup = { scenario, phase, players };
+        this.performanceShotsAtMs = this.Runtime.timeMs + phase * 1200;
+    }
+
     protected serverUpdate(delta: number) {
         if (this.HP <= 0) {
             this.destroy();
+            return;
+        }
+
+        if (this.performanceSetup?.scenario === "static") {
+            this.Horizontal = 0;
+            this.Vertical = 0;
+            return;
+        }
+        if (this.performanceSetup?.scenario === "moving") {
+            const angle = this.Runtime.timeMs / 900 + this.performanceSetup.phase * Math.PI * 2;
+            this.moveToward(
+                [this.homePosition[0] + Math.cos(angle) * 24, this.homePosition[1] + Math.sin(angle) * 24],
+                delta,
+            );
             return;
         }
 
@@ -48,7 +72,7 @@ export class Enemy extends Actor {
 
         let target: Player | null = null;
         let targetDistance = Enemy.AGGRO_RANGE;
-        for (const object of this.ObjectsFactory.Manager.ObjectsById.values()) {
+        for (const object of this.performanceSetup?.players() ?? this.ObjectsFactory.Manager.ObjectsById.values()) {
             if (!(object instanceof Player) || object.HP <= 0 || object.IsDestroyed) continue;
             const distance = Math.hypot(object.Transform.X - this.Transform.X, object.Transform.Y - this.Transform.Y);
             if (distance < targetDistance) {
@@ -61,7 +85,9 @@ export class Enemy extends Actor {
         this.Vertical = 0;
         if (!target) return;
         if (targetDistance > Enemy.ATTACK_DISTANCE) this.moveToward(target.Transform.Position, delta);
-        this.weapon?.use(this, target.Transform.Position, 0);
+        if (!this.performanceSetup || this.Runtime.timeMs >= this.performanceShotsAtMs) {
+            this.weapon?.use(this, target.Transform.Position, 0);
+        }
     }
 
     private moveToward(position: readonly [number, number], delta: number): void {

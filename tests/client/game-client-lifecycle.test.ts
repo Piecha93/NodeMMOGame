@@ -38,6 +38,39 @@ class SocketProbe {
     }
 }
 
+test("game client lifecycle: renderer failure leaves a visible reason before releasing the socket", async (t) => {
+    const messages: string[] = [];
+    const socket = new SocketProbe();
+    t.mock.method(console, "error", () => {});
+    t.mock.method(
+        ExpeditionHud,
+        "create",
+        () =>
+            ({
+                showConnectionError: (message: string) => messages.push(message),
+                dispose() {},
+            }) as unknown as ExpeditionHud,
+    );
+    const client = new GameClient({
+        socket: socket as unknown as Socket,
+        createRenderer: async () => {
+            throw new Error("Asset unavailable");
+        },
+        createChat: () => ({ dispose() {} }) as unknown as Chat,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(socket.connected, false);
+    assert.equal(
+        socket.emitted.some(({ event }) => event === SocketMsgs.CLIENT_READY),
+        false,
+    );
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /wczytać grafiki/);
+    client.dispose();
+    assert.equal(messages.length, 1);
+});
+
 test("game client lifecycle: renderer completion after disconnect is disposed without CLIENT_READY", async () => {
     const socket = new SocketProbe();
     let resolveRenderer: ((renderer: Renderer) => void) | undefined;

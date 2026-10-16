@@ -1,6 +1,6 @@
 # Ruiny — pierwsza grywalna wyprawa
 
-Roboczy kierunek projektu to krótka kooperacyjna wyprawa dla 1–4 graczy. Duży świat i chunki służą eksploracji trzech miejsc, do których trzeba dotrzeć. Rozgrywka ma zamknięty cel i da się ją powtórzyć bez tworzenia konta.
+Ten scenariusz to prototyp kooperacyjnej wyprawy dla 1–4 graczy. Duży świat i chunki służą eksploracji trzech miejsc, do których trzeba dotrzeć. Rozgrywka ma zamknięty cel i da się ją powtórzyć bez tworzenia konta. Docelowy kierunek pozostaje otwarty po pierwszym ograniu; na razie poprawiamy podstawowy ruch, strzelanie i czytelność, zanim dołożymy kolejne mechaniki.
 
 ## Pętla rozgrywki
 
@@ -28,6 +28,8 @@ To pierwsze wartości do ogrania i strojenia, a nie gotowy balans.
 Jedna zaprojektowana mapa, jedna broń, jeden rodzaj przeciwnika, mikstury i trzy cele. Grafika wykorzystuje istniejące assety oraz nowe znaczniki wektorowe. Nie ma jeszcze trwałego ekwipunku, klas, craftingu, rozwoju konta ani proceduralnego świata.
 
 Najbliższa decyzja po ograniu: czy przyjemność daje samo celowanie i ruch, oraz czy odległości między ruinami zachęcają do wspólnej wyprawy. Dopiero na podstawie tej próby warto wybierać kolejne mechaniki.
+
+Do swobodnego sprawdzania ruchu, strzelania i obciążenia służy osobny [Poligon](performance.md). Nie ma tam celów, zegara ani śmierci gracza.
 
 ## Uruchamianie i architektura
 

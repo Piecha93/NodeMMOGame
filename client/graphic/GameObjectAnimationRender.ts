@@ -3,6 +3,7 @@ import { GameObjectRender } from "./GameObjectRender";
 import { GameObject } from "../../shared/game_utils/game/objects/GameObject";
 import { ResourcesLoader, Resource, ResourceType } from "../graphic/ResourcesLoader";
 import { Actor } from "../../shared/game_utils/game/objects/Actor";
+import { AnimationClock } from "./AnimationClock";
 
 type AnimationState = {
     key: string;
@@ -10,8 +11,10 @@ type AnimationState = {
 };
 
 export class GameObjectAnimationRender extends GameObjectRender {
-    private animation: AnimatedSprite | null = null;
+    protected animation: AnimatedSprite | null = null;
     private animationKey: string = "";
+    private animationResource = "";
+    private readonly animationClock = new AnimationClock();
 
     private lastDirectionKey: string = "D";
 
@@ -24,12 +27,11 @@ export class GameObjectAnimationRender extends GameObjectRender {
 
         const animationState = this.getAnimationState();
         this.animationKey = animationState.key;
-        this.animation = new AnimatedSprite(animationState.textures);
+        this.animationResource = this.objectRef.SpriteName;
+        this.animationClock.reset();
+        this.animation = new AnimatedSprite({ textures: animationState.textures, autoUpdate: false, autoPlay: false });
 
         this.addChild(this.animation);
-
-        this.animation.animationSpeed = 0.2;
-        this.animation.play();
 
         this.animation.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
 
@@ -41,7 +43,10 @@ export class GameObjectAnimationRender extends GameObjectRender {
         if (!this.animation) return;
 
         this.updateAnimationTextures();
-
+        this.animationClock.advance(deltaMs);
+        const actor = this.objectRef;
+        const fps = actor instanceof Actor && actor.Horizontal === 0 && actor.Vertical === 0 ? 6 : 12;
+        this.animation.gotoAndStop(this.animationClock.frame(this.animation.totalFrames, fps));
         this.animation.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
     }
 
@@ -52,18 +57,11 @@ export class GameObjectAnimationRender extends GameObjectRender {
             return;
         }
 
-        const animationProgress =
-            this.animation.totalFrames <= 1 ? 0 : this.animation.currentFrame / (this.animation.totalFrames - 1);
-        const currentFrame = Math.round(animationProgress * (animationState.textures.length - 1));
-        const wasPlaying = this.animation.playing;
-
         this.animation.textures = animationState.textures;
         this.animationKey = animationState.key;
-
-        if (wasPlaying) {
-            this.animation.gotoAndPlay(currentFrame);
-        } else {
-            this.animation.gotoAndStop(currentFrame);
+        if (this.animationResource !== this.objectRef.SpriteName) {
+            this.animationResource = this.objectRef.SpriteName;
+            this.animationClock.reset();
         }
     }
 

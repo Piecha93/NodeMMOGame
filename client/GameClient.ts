@@ -35,8 +35,11 @@ import { normalizeBinaryPayload } from "./net/BinaryPayload";
 import { Protocol, ProtocolVersion, protocolVersionFromInitializePayload } from "../shared/net/Protocol";
 import { ExpeditionEvents, ExpeditionState, isExpeditionState } from "../shared/gameplay/Expedition";
 import { ExpeditionHud } from "./graphic/ExpeditionHud";
+import { PerformancePanel } from "./graphic/PerformancePanel";
+import { FixedStepPresentation } from "./graphic/FixedStepPresentation";
 
 export interface GameClientOptions {
+    performanceMode?: boolean;
     socket?: Socket;
     createRenderer?: (objects: GameObjectsManager) => Promise<Renderer>;
     createChat?: (socket: Socket) => Chat;
@@ -52,12 +55,14 @@ export class GameClient {
     private lastSnapshotId: number | null = null;
     private prediction: V2Prediction | null = null;
     private interpolator: SnapshotInterpolator | null = null;
+    private readonly localPresentation = new FixedStepPresentation();
     private readonly socket: Socket;
     private readonly core: GameCore;
     private reconciliation: Reconciliation | null = null;
     private renderer: Renderer | null = null;
     private readonly chat: Chat;
     private readonly expeditionHud: ExpeditionHud | null;
+    private readonly performancePanel: PerformancePanel | null;
     private expeditionState: ExpeditionState | null = null;
     private connectionError: string | null = null;
     private inputHandler: InputHandler | null = null;
@@ -92,15 +97,24 @@ export class GameClient {
     ];
 
     constructor(options: GameClientOptions = {}) {
-        this.core = new GameCore({ role: Origin.CLIENT });
+        this.core = new GameCore({ role: Origin.CLIENT, performanceMode: options.performanceMode ?? false });
         this.core.subscribeBeforeStep(() => this.predictTick());
-        this.socket = options.socket ?? io({ reconnection: false, parser: customParser });
+        this.core.subscribeAfterStep(() => {
+            if (this.protocolVersion === 2 && this.localPlayer)
+                this.localPresentation.capture(this.localPlayer.Transform.Position);
+        });
+        this.socket =
+            options.socket ??
+            io(options.performanceMode ? "/performance" : "/", { reconnection: false, parser: customParser });
         this.requestFrame = options.requestFrame ?? ((callback) => requestAnimationFrame(callback));
         this.cancelFrame = options.cancelFrame ?? ((id) => cancelAnimationFrame(id));
         this.inputSender = new InputSender(this.socket);
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = options.createChat ? options.createChat(this.socket) : new Chat(this.socket);
         this.expeditionHud = ExpeditionHud.create(() => this.socket.emit(ExpeditionEvents.RESTART));
+        const performanceRoot = typeof document === "undefined" ? null : document.getElementById("performance-panel");
+        this.performancePanel =
+            options.performanceMode && performanceRoot ? new PerformancePanel(this.socket, performanceRoot) : null;
         for (const [event, handler] of this.socketHandlers) this.socket.on(event, handler);
         if (typeof window !== "undefined") window.addEventListener("pagehide", this.pageHideHandler);
         void this.initializeRenderer(
@@ -126,6 +140,7 @@ export class GameClient {
             }
         } catch (error) {
             if (!this.disposed) console.error("Cannot initialize the renderer", error);
+            this.onConnectionError("Nie udało się wczytać grafiki gry. Odśwież stronę, aby spróbować ponownie.");
             this.dispose();
         }
     }
@@ -143,6 +158,7 @@ export class GameClient {
             () => this.heartBeatSender.dispose(),
             () => this.chat.dispose(),
             () => this.expeditionHud?.dispose(),
+            () => this.performancePanel?.dispose(),
             () => {
                 if (this.cursor) {
                     this.core.CollisionsSystem.removeObject(this.cursor);
@@ -179,6 +195,7 @@ export class GameClient {
             this.core.advance(deltaMs);
         } catch (error) {
             console.error("Prediction stopped", error);
+            this.onConnectionError("Symulacja klienta została zatrzymana. Odśwież stronę, aby dołączyć ponownie.");
             this.dispose();
             return;
         }
@@ -186,13 +203,22 @@ export class GameClient {
             for (const [id, position] of this.interpolator.positions()) {
                 this.renderer.setPresentationPosition(id, position);
             }
+        if (this.protocolVersion === 2)
+            this.renderer.setPresentationPosition(
+                this.localPlayerId,
+                this.localPresentation.position(this.core.SimulationAlpha),
+            );
         const chunk = this.core.ChunksManager.getObjectChunk(this.localPlayer);
         if (chunk) this.renderer.setCurrentChunk(chunk);
         this.renderer.update(deltaMs);
         this.expeditionHud?.update(this.localPlayer.Transform.Position);
+        this.performancePanel?.updateFrame(
+            deltaMs,
+            this.renderer.VisibleObjectCount,
+            this.core.ObjectsManager.ObjectsById.size,
+        );
         this.updateDebugWindow(deltaMs);
-        const deviation = this.renderer.CameraDeviation;
-        this.cursor.move(this.localPlayer.Transform.X + deviation[0], this.localPlayer.Transform.Y + deviation[1]);
+        this.updateCursor();
         this.core.CollisionsSystem.update();
         this.core.CollisionsSystem.updateCollisionsForGameObject(this.cursor);
         this.tickCounter.update();
@@ -208,6 +234,7 @@ export class GameClient {
                 : undefined;
         if (protocolVersion === null || typeof playerId !== "string" || !playerId) {
             console.error("Server returned an invalid protocol initialization payload");
+            this.onConnectionError("Nie udało się rozpocząć gry. Odśwież stronę, aby dołączyć ponownie.");
             this.dispose();
             return;
         }
@@ -219,6 +246,7 @@ export class GameClient {
         if (protocolVersion === 2) {
             const fixedDelta = (data as Record<string, unknown>).fixedDeltaMs;
             if (fixedDelta !== this.core.Runtime.config.fixedDeltaMs) {
+                this.onConnectionError("Klient i serwer używają różnych ustawień gry. Odśwież stronę.");
                 this.dispose();
                 return;
             }
@@ -229,7 +257,7 @@ export class GameClient {
         this.cursor.setRuntime(this.core.Runtime);
         this.core.CollisionsSystem.insertObject(this.cursor);
         this.heartBeatSender.sendHeartBeat();
-        this.inputHandler = new InputHandler(this.cursor);
+        this.inputHandler = new InputHandler(this.cursor, (event) => this.updateCursor(event));
         this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
             if (!this.disposed && this.localPlayer && this.reconciliation) {
                 if (this.protocolVersion === 2) {
@@ -248,6 +276,13 @@ export class GameClient {
         });
     }
 
+    private updateCursor(event?: MouseEvent): void {
+        if (!this.renderer || !this.cursor) return;
+        if (event) this.renderer.updatePointer(event);
+        const [x, y] = this.renderer.PointerWorldPosition;
+        this.cursor.move(x, y);
+    }
+
     private onFirstUpdate(data: unknown): void {
         if (this.disposed || !this.initialized || this.loopStarted || !this.renderer) return;
         this.onServerUpdate(data);
@@ -255,10 +290,12 @@ export class GameClient {
         const player = this.core.ObjectsManager.get(this.localPlayerId);
         if (!(player instanceof Player)) {
             console.error("The initial server update did not contain the local player");
+            this.onConnectionError("Nie udało się dołączyć do świata. Odśwież stronę, aby spróbować ponownie.");
             this.dispose();
             return;
         }
         this.localPlayer = player;
+        this.localPresentation.reset(player.Transform.Position);
         this.renderer.FocusedObject = player;
         this.loopStarted = true;
         this.frameId = this.requestFrame(this.startGameLoop);
@@ -272,6 +309,7 @@ export class GameClient {
         }
         try {
             if (this.protocolVersion === 2) {
+                const wasDead = this.localPlayer !== null && this.localPlayer.HP <= 0;
                 const frames = update.map((payload) => normalizeBinaryPayload(payload));
                 if (frames.some((frame) => frame === null)) throw new Error("Malformed snapshot frame");
                 const snapshot = decodeSnapshot(frames as ArrayBuffer[]);
@@ -289,6 +327,7 @@ export class GameClient {
                         this.core.CollisionsSystem,
                         this.core.ChunksManager,
                     );
+                    this.localPresentation.reconcile(player.Transform.Position, wasDead && player.HP > 0);
                 }
                 this.interpolator?.push(
                     snapshot.serverTick,
@@ -310,6 +349,7 @@ export class GameClient {
             }
         } catch (error) {
             console.error("Cannot decode server update", error);
+            this.onConnectionError("Nie udało się odczytać stanu świata. Odśwież stronę, aby dołączyć ponownie.");
             this.dispose();
         }
     }
@@ -343,12 +383,16 @@ export class GameClient {
         if (this.disposed || this.connectionError !== null || typeof data !== "string" || !data.trim()) return;
         this.connectionError = data.slice(0, 256);
         this.expeditionHud?.showConnectionError(this.connectionError);
+        this.performancePanel?.showConnectionError(this.connectionError);
     }
 
     private onConnectionLost(): void {
         if (this.disposed) return;
-        this.connectionError ??= "Połączenie z obozem zostało przerwane. Wróć do wejścia i spróbuj dołączyć ponownie.";
+        this.connectionError ??= this.performancePanel
+            ? "Połączenie z poligonem zostało przerwane. Odśwież stronę, aby dołączyć ponownie."
+            : "Połączenie z obozem zostało przerwane. Wróć do wejścia i spróbuj dołączyć ponownie.";
         this.expeditionHud?.showConnectionError(this.connectionError);
+        this.performancePanel?.showConnectionError(this.connectionError);
         this.dispose();
     }
 

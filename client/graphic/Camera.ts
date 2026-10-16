@@ -14,6 +14,7 @@ export class Camera extends Container {
     private mouseDeviationY: number = 0;
 
     private deviationRate: number = 6;
+    private pointerPosition: [number, number] = [Renderer.WIDTH / 2, Renderer.HEIGHT / 2];
     private readonly mouseMoveHandler = (event: MouseEvent) => this.onMouseMove(event);
 
     constructor(follower: FollowPoint) {
@@ -26,14 +27,24 @@ export class Camera extends Container {
         window.addEventListener("mousemove", this.mouseMoveHandler);
     }
 
-    private onMouseMove(event: MouseEvent) {
+    public updatePointer(event: Pick<MouseEvent, "clientX" | "clientY">): void {
         const canvas = document.getElementById("game-canvas");
         if (!(canvas instanceof HTMLCanvasElement)) return;
         const rect: DOMRect = canvas.getBoundingClientRect();
 
         const position = canvasPointerPosition(event.clientX, event.clientY, rect, Renderer.WIDTH, Renderer.HEIGHT);
+        this.pointerPosition = position;
         this.mouseDeviationX = (position[0] - Renderer.WIDTH / 2) / this.deviationRate;
         this.mouseDeviationY = (position[1] - Renderer.HEIGHT / 2) / this.deviationRate;
+    }
+
+    private onMouseMove(event: MouseEvent) {
+        this.updatePointer(event);
+    }
+
+    /** Invert the camera actually drawn on screen, including its follow smoothing. */
+    get PointerWorldPosition(): [number, number] {
+        return screenToWorld(this.pointerPosition, this.position, this.pivot);
     }
 
     set Follower(follower: FollowPoint) {
@@ -56,6 +67,14 @@ export class Camera extends Container {
         window.removeEventListener("mousemove", this.mouseMoveHandler);
         super.destroy({ children: true });
     }
+}
+
+export function screenToWorld(
+    pointer: readonly [number, number],
+    cameraPosition: FollowPoint,
+    cameraPivot: FollowPoint,
+): [number, number] {
+    return [pointer[0] - cameraPosition.x + cameraPivot.x, pointer[1] - cameraPosition.y + cameraPivot.y];
 }
 
 /** CSS can shrink the canvas; aim coordinates still belong to its internal viewport. */

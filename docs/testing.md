@@ -49,7 +49,9 @@ V1 tests preserve complete/delta bytes, inherited field ordering, mask-width bou
 
 V2 tests cover each prefab, stable IDs, bounded UTF-8 and numeric values, unknown fields/types, every truncation, malformed/duplicate batches, total snapshot limits and controlled errors under deterministic malformed-frame fuzzing. A whole batch is decoded before application. Sequence tests exercise uint32 rollover. Server tests distinguish received inputs from inputs actually consumed by a simulation tick, including STOP and discrete actions.
 
-Client tests verify wall/corner replay, bounded prediction history, delayed interpolation through jitter/outage and release of departed entities. Frame-rate comparisons cover elapsed-time smoothing at 30, 60 and 144 FPS. DOM/socket/renderer doubles exercise ownership and callback disposal; they do not prove that a GPU draws the expected pixels.
+Client tests verify wall/corner replay, bounded prediction history, delayed actor interpolation and continuous projectile presentation through jitter/outage, plus release of departed entities. Frame-rate comparisons cover local fixed-step presentation, projectile trajectories and animation clocks at 30, 60 and 144 FPS. Aim regressions exercise a scaled canvas, smoothed camera, held fire and shots near thin walls. DOM/socket/renderer doubles exercise ownership and callback disposal; they do not prove that a GPU draws the expected pixels.
+
+Performance tests cover bounded batched populations, cancellation/reset, world-wide chunk activity, invulnerability isolation, real authenticated namespace admission, logout/revocation, application restart and production opt-in. Panel tests distinguish server population from client-known/visible objects and preserve connection errors after late updates. Use the interactive [performance world](performance.md) for local measurements.
 
 ## Real HTTP and Socket.IO
 
@@ -89,7 +91,7 @@ Repeat the smoke through the intended development proxy. HTTP success alone is i
 
 For renderer changes, compare a deterministic scene in the same browser version, OS, viewport and zoom. Include terrain edges/seams, a centered sprite, rotation/scale, name/health overlays, all movement directions, later animation frames and viewport-edge visibility. Keep expected, actual and diff images when output changes. Classify intentional changes separately from platform rasterization noise and regressions.
 
-`npm run test:browser` runs the real-renderer fixture through Playwright with the lockfile-selected Chromium, SwiftShader, a fixed viewport and stopped animation timing. Its fixed world contains terrain, walls and a named player with partial health. It checks pixel color/opacity metrics, captures the canvas, disposes/remounts the renderer and compares PNG bytes within that browser run. The fixture also rejects page errors and keeps both images, metrics and failure traces under `test-results/browser/`.
+`npm run test:browser` runs the real-renderer fixture through Playwright with the lockfile-selected Chromium, SwiftShader and a fixed viewport. Its fixed world contains terrain, walls, a named player with partial health, a damaged enemy and a projectile. The renderer advances exactly twenty frames of animation time per mount; Pixi's shared ticker stays stopped. The fixture checks pixel color/opacity metrics, captures the canvas, disposes/remounts the renderer and compares PNG bytes within that browser run. It also rejects page errors and keeps both images, metrics and failure traces under `test-results/browser/`.
 
 The refactor's manual browser check verified guest login, terrain/player/name/health rendering, live ping/FPS, movement/collision, idle animation, chat input isolation and logout. Its deterministic fixture also rendered matching canvas captures before and after remount. This manual run is separate from the Playwright CLI gate configured in CI.
 

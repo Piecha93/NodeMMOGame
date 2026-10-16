@@ -27,7 +27,10 @@ export class InputHandler {
     private isLeft: boolean = false;
     private isRight: boolean = false;
 
-    constructor(cursor: Cursor) {
+    constructor(
+        cursor: Cursor,
+        private readonly beforeAim: (event?: MouseEvent) => void = () => {},
+    ) {
         this.cursor = cursor;
 
         this.mouseButtonsDown = new Map<number, boolean>();
@@ -121,7 +124,8 @@ export class InputHandler {
         return (
             target instanceof HTMLInputElement ||
             target instanceof HTMLTextAreaElement ||
-            (target instanceof HTMLElement && target.isContentEditable)
+            (target instanceof HTMLElement &&
+                (target.isContentEditable || target.tagName === "SELECT" || target.tagName === "OPTION"))
         );
     }
 
@@ -190,13 +194,14 @@ export class InputHandler {
         }
         if (this.mouseButtonsDown.get(mouseEvent.button)) return true;
         this.mouseButtonsDown.set(mouseEvent.button, true);
-        this.repeatMouse(mouseEvent.button);
+        this.repeatMouse(mouseEvent.button, mouseEvent);
         return true;
     }
 
-    private repeatMouse(button: number): void {
+    private repeatMouse(button: number, event?: MouseEvent): void {
         this.mouseTimers.delete(button);
         if (this.disposed || !this.mouseButtonsDown.get(button)) return;
+        this.beforeAim(event);
         this.clickPosition = [this.cursor.Transform.X, this.cursor.Transform.Y];
         this.mouseButton = button;
         this.invokeSnapshotCallbacks();

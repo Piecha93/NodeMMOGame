@@ -4,6 +4,7 @@ export interface WorldOptions {
     role?: Origin;
     enableDebugActions?: boolean;
     cooperative?: boolean;
+    performanceMode?: boolean;
     chunkSize?: number;
     numOfChunksX?: number;
     numOfChunksY?: number;
@@ -26,6 +27,7 @@ export class WorldContext {
             role: options.role ?? Origin.SERVER,
             enableDebugActions: options.enableDebugActions ?? false,
             cooperative: options.cooperative ?? false,
+            performanceMode: options.performanceMode ?? false,
             chunkSize: options.chunkSize ?? 1280,
             numOfChunksX: options.numOfChunksX ?? 5,
             numOfChunksY: options.numOfChunksY ?? 5,

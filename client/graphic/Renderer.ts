@@ -4,6 +4,7 @@ import { GameObjectsSubscriber } from "../../shared/game_utils/factory/GameObjec
 import { GameObjectsManager } from "../../shared/game_utils/factory/GameObjectsManager";
 import { GameObjectRender } from "./GameObjectRender";
 import { PlayerRender } from "./PlayerRender";
+import { ProjectileRender } from "./ProjectileRender";
 import { Camera } from "./Camera";
 import { GameObjectSpriteRender } from "./GameObjectSpriteRender";
 import { TileMap, TileMapConfig } from "./TileMap";
@@ -32,6 +33,7 @@ export class Renderer extends GameObjectsSubscriber {
     private expeditionMarkers: ExpeditionMarkers | null = null;
     private resourcesLoader: ResourcesLoader;
     private disposed: boolean = false;
+    private visibleObjectCount = 0;
 
     static WIDTH: number = 1024;
     static HEIGHT: number = 576;
@@ -122,8 +124,10 @@ export class Renderer extends GameObjectsSubscriber {
     }
 
     private hideNotVisibleObjects() {
+        this.visibleObjectCount = 0;
         this.renderObjects.forEach((obj: GameObjectRender) => {
             obj.visible = obj.PresentationVisible && this.isInCameraView(obj);
+            if (obj.visible) this.visibleObjectCount++;
         });
 
         this.map?.children.forEach((obj) => {
@@ -169,6 +173,8 @@ export class Renderer extends GameObjectsSubscriber {
         const kind = presentationKind(gameObject, resource.type);
         if (kind === "actor") {
             gameObjectRender = new PlayerRender();
+        } else if (kind === "projectile") {
+            gameObjectRender = new ProjectileRender();
         } else if (kind === "animation") {
             gameObjectRender = new GameObjectAnimationRender();
         } else {
@@ -211,5 +217,17 @@ export class Renderer extends GameObjectsSubscriber {
 
     get CameraDeviation(): [number, number] {
         return this.camera.MouseDeviation;
+    }
+
+    get VisibleObjectCount(): number {
+        return this.visibleObjectCount;
+    }
+
+    public updatePointer(event: Pick<MouseEvent, "clientX" | "clientY">): void {
+        this.camera.updatePointer(event);
+    }
+
+    get PointerWorldPosition(): [number, number] {
+        return this.camera.PointerWorldPosition;
     }
 }

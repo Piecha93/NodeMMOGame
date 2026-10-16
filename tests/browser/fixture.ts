@@ -3,6 +3,7 @@ import { Renderer } from "../../client/graphic/Renderer";
 import { GameCore } from "../../shared/GameCore";
 import { Origin } from "../../shared/core/Origin";
 import { Player } from "../../shared/game_utils/game/objects/Player";
+import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 
 function requireElements() {
     const status = document.getElementById("status");
@@ -83,6 +84,12 @@ async function mount(): Promise<void> {
         player.Name = "Fixture";
         player.hit(45);
         for (const x of [256, 288, 352, 384]) world.ObjectsFactory.instantiateWithPosition("Wall", [x, 240]);
+        const enemy = world.ObjectsFactory.instantiateWithPosition("Michau", [400, 320]);
+        if (!(enemy instanceof Enemy)) throw new Error("Fixture enemy prefab is invalid");
+        enemy.Name = "Strażnik";
+        enemy.hit(25);
+        const projectile = world.ObjectsFactory.instantiateWithPosition("FireBall", [360, 350]);
+        projectile.Transform.Rotation = Math.PI / 4;
         view.createHUD();
         view.FocusedObject = player;
         const chunk = world.ChunksManager.getObjectChunk(player);

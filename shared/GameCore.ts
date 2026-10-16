@@ -26,6 +26,7 @@ export class GameCore {
     private accumulator = 0;
     private lastClock: number;
     private readonly beforeStep = new Set<(tick: number, delta: number) => void>();
+    private readonly afterStep = new Set<(tick: number, delta: number) => void>();
     public droppedTimeMs = 0;
 
     constructor(options: WorldOptions & { prefabs?: PrefabCatalog } = {}) {
@@ -79,6 +80,11 @@ export class GameCore {
         return () => this.beforeStep.delete(listener);
     }
 
+    subscribeAfterStep(listener: (tick: number, delta: number) => void): () => void {
+        this.afterStep.add(listener);
+        return () => this.afterStep.delete(listener);
+    }
+
     step(delta: number = this.Runtime.config.fixedDeltaMs): void {
         if (this.disposed) throw new Error("World is disposed");
         if (!Number.isFinite(delta) || delta <= 0) throw new RangeError("Invalid simulation delta");
@@ -86,6 +92,7 @@ export class GameCore {
         this.world.update(delta);
         this.Runtime.tick = (this.Runtime.tick + 1) >>> 0;
         this.Runtime.timeMs += delta;
+        for (const listener of this.afterStep) listener(this.Runtime.tick, delta);
     }
 
     advance(elapsedMs: number): number {
@@ -113,6 +120,10 @@ export class GameCore {
         return this.advance(elapsed);
     }
 
+    get SimulationAlpha(): number {
+        return Math.max(0, Math.min(1, this.accumulator / this.Runtime.config.fixedDeltaMs));
+    }
+
     collectUpdateFrames(): Map<Chunk, ArrayBuffer[]> {
         return this.updateCollector.collectUpdateFrames();
     }
@@ -135,6 +146,7 @@ export class GameCore {
         }
         this.disposed = true;
         this.beforeStep.clear();
+        this.afterStep.clear();
 
         try {
             this.objectsManager.dispose();

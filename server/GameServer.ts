@@ -2,7 +2,7 @@ import { WorldOptions } from "../shared/core/WorldContext";
 import { InputCommand, validateInputCommand, isNewerSequence, encodeSnapshot } from "../shared/protocol";
 import { commandToSnapshot } from "../shared/replication/InputCommandAdapter";
 import { ReplicationSession } from "../shared/replication/ReplicationSession";
-import { Server, Socket } from "socket.io";
+import { Server, Socket, Namespace } from "socket.io";
 
 import { ServerClient } from "./ServerClient";
 import { Player } from "../shared/game_utils/game/objects/Player";
@@ -22,12 +22,15 @@ import { ClientsInputSnapshotHandler } from "./ClientsInputSnapshotHandler";
 import { negotiateProtocolVersion } from "../shared/net/Protocol";
 import { ExpeditionController } from "./runtime/ExpeditionController";
 import { EXPEDITION, ExpeditionEvents } from "../shared/gameplay/Expedition";
+import { PerformanceEvents } from "../shared/gameplay/Performance";
+import { PerformanceController } from "./runtime/PerformanceController";
 
 export interface GameServerOptions {
     readonly userRepository?: Pick<UserRepository, "findUserById">;
     readonly world?: WorldOptions;
     readonly seedWorld?: (core: GameCore) => void;
     readonly expedition?: boolean;
+    readonly performance?: boolean;
 }
 
 export class GameServer {
@@ -40,13 +43,17 @@ export class GameServer {
             replication: ReplicationSession;
         }
     >();
-    private sockets: Server;
+    private sockets: Server | Namespace;
 
     private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
     private userIdToSocketMap: Map<string, Socket> = new Map<string, Socket>();
 
     private core: GameCore;
     private expedition: ExpeditionController | null = null;
+    private performance: PerformanceController | null = null;
+    private readonly snapshotTraffic = new Map<ServerClient, { startedAt: number; bytes: number; rate: number }>();
+    private lastPerformanceBroadcast = -Infinity;
+    private lastPerformanceConfiguration = -Infinity;
     private nextTraveler = 1;
     private lastExpeditionBroadcast = -Infinity;
 
@@ -63,9 +70,11 @@ export class GameServer {
     private readonly userRepository: Pick<UserRepository, "findUserById">;
 
     constructor(
-        sockets: Server,
+        sockets: Server | Namespace,
         private readonly options: GameServerOptions = {},
     ) {
+        if (options.performance && options.expedition)
+            throw new Error("Performance tests require a separate game world");
         this.sockets = sockets;
         this.userRepository = options.userRepository ?? disabledUserRepository;
         this.core = this.createCore();
@@ -78,8 +87,12 @@ export class GameServer {
             ...this.options.world,
             role: Origin.SERVER,
             ...(this.options.expedition ? { cooperative: true } : {}),
+            ...(this.options.performance
+                ? { performanceMode: true, cooperative: true, enableDebugActions: false }
+                : {}),
         });
         this.expedition = this.options.expedition ? new ExpeditionController(core) : null;
+        this.performance = this.options.performance ? new PerformanceController(core) : null;
         core.subscribeBeforeStep((_tick, delta) => {
             this.expedition?.update(delta);
             this.processInputCommands();
@@ -93,7 +106,11 @@ export class GameServer {
         for (const [client, state] of this.v2Clients) {
             const player = this.getReadyPlayer(client);
             if (!player) continue;
-            const command = state.queue.shift();
+            // A stress test can deliberately exceed the simulation budget. Apply
+            // the latest held movement and ACK the consumed queue in one tick,
+            // retaining queued actions under the normal action rate limit.
+            const commands = this.performance ? state.queue.splice(0) : undefined;
+            const command = commands ? commands.at(-1) : state.queue.shift();
             if (!command) {
                 player.setInput(new InputSnapshot("0=2:0#5:0"));
                 continue;
@@ -104,7 +121,8 @@ export class GameServer {
                 continue;
             }
             player.setInput(commandToSnapshot(command, false));
-            for (const action of command.actions ?? []) {
+            const actions = commands ? commands.flatMap((pending) => pending.actions ?? []) : (command.actions ?? []);
+            for (const action of actions) {
                 if (
                     !client.allowEvent("action-v2", ServerConfig.MAX_ACTIONS_PER_WINDOW, ServerConfig.RATE_LIMIT_WINDOW)
                 ) {
@@ -125,6 +143,11 @@ export class GameServer {
         if (!player || !state) return;
         const prepared = state.replication.prepare(this.core, player, state.lastProcessed);
         const frames = encodeSnapshot(prepared.snapshot);
+        if (this.performance) {
+            const traffic = this.snapshotTraffic.get(client) ?? { startedAt: Date.now(), bytes: 0, rate: 0 };
+            traffic.bytes += frames.reduce((bytes, frame) => bytes + frame.byteLength, 0);
+            this.snapshotTraffic.set(client, traffic);
+        }
         prepared.commit();
         client.Socket.emit(first ? SocketMsgs.FIRST_UPDATE_GAME : SocketMsgs.UPDATE_GAME, frames);
     }
@@ -181,6 +204,11 @@ export class GameServer {
         this.lastChunkSent.clear();
         this.expedition?.dispose();
         this.expedition = null;
+        this.performance?.dispose();
+        this.performance = null;
+        this.snapshotTraffic.clear();
+        this.lastPerformanceBroadcast = -Infinity;
+        this.lastPerformanceConfiguration = -Infinity;
         this.lastExpeditionBroadcast = -Infinity;
         if (!this.coreDisposed) {
             this.coreDisposed = true;
@@ -298,7 +326,11 @@ export class GameServer {
         this.userIdToSocketMap.set(userId, socket);
 
         if (userId.startsWith("Guest")) {
-            serverClient.Name = this.expedition ? `Wędrowiec ${this.nextTraveler++}` : userId;
+            serverClient.Name = this.expedition
+                ? `Wędrowiec ${this.nextTraveler++}`
+                : this.performance
+                  ? `Tester ${this.nextTraveler++}`
+                  : userId;
         } else {
             serverClient.Name = "User";
             void this.userRepository
@@ -332,7 +364,7 @@ export class GameServer {
             }
 
             serverClient.ProtocolVersion = protocolNegotiation.version;
-            if (this.expedition && serverClient.ProtocolVersion !== 2) {
+            if ((this.expedition || this.performance) && serverClient.ProtocolVersion !== 2) {
                 this.clientDisconnected(serverClient, "Wyprawa wymaga aktualnego klienta. Odśwież stronę.");
                 return;
             }
@@ -345,6 +377,7 @@ export class GameServer {
             try {
                 const position =
                     this.expedition?.spawnPosition(readyPlayers) ??
+                    this.performance?.spawnPosition() ??
                     ([
                         this.getRandomInsideMap(this.core.Runtime.config.numOfChunksX),
                         this.getRandomInsideMap(this.core.Runtime.config.numOfChunksY),
@@ -372,11 +405,33 @@ export class GameServer {
                     this.sendV2Snapshot(serverClient, true);
                 } else socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
                 if (this.expedition) this.broadcastExpeditionState(true);
+                if (this.performance) this.broadcastPerformanceState(true);
 
                 this.sockets.emit(SocketMsgs.CHAT_MESSAGE, { s: "Server", m: player.Name + " has joined game" });
             } catch (error) {
                 console.error("Cannot encode initial game state", error);
                 this.clientDisconnected(serverClient, "State synchronization failed");
+            }
+        });
+
+        socket.on(PerformanceEvents.CONFIGURE, (configuration: unknown) => {
+            const player = this.getReadyPlayer(serverClient);
+            if (
+                !this.performance ||
+                !player ||
+                serverClient.ProtocolVersion !== 2 ||
+                !serverClient.allowEvent("performance-setup", 1, 1000)
+            )
+                return;
+            const now = Date.now();
+            if (now - this.lastPerformanceConfiguration < 1000) return;
+            try {
+                this.performance.configure(configuration, player.Transform.Position);
+                this.lastPerformanceConfiguration = now;
+                this.broadcastPerformanceState(true);
+            } catch {
+                // Invalid or oversized test requests never allocate a population.
+                this.broadcastPerformanceState(true);
             }
         });
 
@@ -549,6 +604,23 @@ export class GameServer {
     private collectAndSendUpdate() {
         this.sendUpdate(this.core.collectUpdateFrames());
         this.broadcastExpeditionState();
+        this.broadcastPerformanceState();
+    }
+
+    private broadcastPerformanceState(force = false): void {
+        const now = Date.now();
+        if (!this.performance || (!force && now - this.lastPerformanceBroadcast < 250)) return;
+        this.lastPerformanceBroadcast = now;
+        for (const client of this.clients.values()) {
+            if (!client.IsReady || client.ProtocolVersion !== 2) continue;
+            const traffic = this.snapshotTraffic.get(client);
+            if (traffic && now - traffic.startedAt >= 1000) {
+                traffic.rate = traffic.bytes / ((now - traffic.startedAt) / 1000);
+                traffic.bytes = 0;
+                traffic.startedAt = now;
+            }
+            client.Socket.emit(PerformanceEvents.STATE, this.performance.state(traffic?.rate ?? 0));
+        }
     }
 
     private broadcastExpeditionState(force = false): void {
@@ -572,6 +644,11 @@ export class GameServer {
 
         this.clients.delete(socket);
         this.v2Clients.delete(client);
+        this.snapshotTraffic.delete(client);
+        if (this.performance && this.clients.size === 0) {
+            this.performance.configure({ count: 0, distribution: "nearby", scenario: "moving" });
+            this.lastPerformanceConfiguration = -Infinity;
+        }
         if (this.userIdToSocketMap.get(client.UserId) === socket) {
             this.userIdToSocketMap.delete(client.UserId);
         }

@@ -25,6 +25,7 @@ test("presentation: equal elapsed time gives equal smoothing at 30, 60 and 144 F
     const results = [30, 60, 144].map((fps) => {
         const render = new RenderProbe();
         render.setObject(object);
+        render.position.set(0, 0);
         for (let frame = 0; frame < fps; frame++) render.update(1000 / fps);
         const result = [render.x, render.y];
         render.destroy();
@@ -36,6 +37,17 @@ test("presentation: equal elapsed time gives equal smoothing at 30, 60 and 144 F
         assert.ok(Math.abs((result[0] ?? 0) - (reference[0] ?? 0)) < 1e-9);
         assert.ok(Math.abs((result[1] ?? 0) - (reference[1] ?? 0)) < 1e-9);
     }
+});
+
+test("presentation: a newly bound object starts at its body centre rather than sliding out of world zero", () => {
+    const object = new GameObject(new Transform([100, 50]));
+    object.Transform.Rotation = 1.2;
+    const render = new RenderProbe();
+    render.setObject(object);
+    assert.deepEqual([render.x, render.y, render.rotation], [100, 50, 1.2]);
+    render.update();
+    assert.deepEqual([render.x, render.y], [100, 50]);
+    render.destroy();
 });
 
 test("presentation: remote interpolation bypasses smoothing without moving simulation state", () => {

@@ -4,7 +4,7 @@ import { AddressInfo } from "node:net";
 import * as path from "node:path";
 import express, { Express, NextFunction, Request, Response } from "express";
 import session from "express-session";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 
 import { GameServer, GameServerOptions } from "./GameServer";
 import { ApplicationConfig, readApplicationConfig, ServerConfig } from "./ServerConfig";
@@ -42,6 +42,7 @@ export interface Application {
     readonly httpServer: HttpServer;
     readonly sockets: Server;
     readonly gameServer: GameServer;
+    readonly performanceServer: GameServer | null;
     start(): Promise<AddressInfo>;
     stop(): Promise<void>;
 }
@@ -73,6 +74,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
     }
 
     const app = express();
+    app.locals.performanceTests = config.enablePerformanceTests;
     app.disable("x-powered-by");
     if (config.trustProxy) app.set("trust proxy", 1);
     const middleware = session({
@@ -114,7 +116,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
         sockets.engine.use((request: IncomingMessage, response: ServerResponse, next: NextFunction) =>
             middleware(request as Request, response as Response, next),
         );
-        sockets.use((socket, next) => {
+        const authorize = (socket: Socket, next: (error?: Error) => void) => {
             const request = socket.request as AuthenticatedRequest;
             if (!request.session?.user_id || !request.sessionID) {
                 next(new Error("You are not authorized to play the game. Please log in first."));
@@ -130,14 +132,21 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
                 void socket.join(`session:${request.sessionID}`);
                 next();
             });
-        });
+        };
+        sockets.use(authorize);
         const options: GameServerOptions = {
             userRepository: repository,
             expedition: config.demoScenario === "expedition",
             ...(config.demoScenario === "walls" ? { seedWorld: seedDemoWorld } : {}),
         };
         const gameServer = dependencies.gameServerFactory?.(sockets, options) ?? new GameServer(sockets, options);
-        return { httpServer, sockets, gameServer };
+        let performanceServer: GameServer | null = null;
+        if (config.enablePerformanceTests) {
+            const namespace = sockets.of("/performance");
+            namespace.use(authorize);
+            performanceServer = new GameServer(namespace, { userRepository: repository, performance: true });
+        }
+        return { httpServer, sockets, gameServer, performanceServer };
     };
 
     let runtime = createRuntime();
@@ -151,12 +160,14 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
     });
 
     app.post("/login", async (request: Request, response: Response) => {
+        const destination =
+            config.enablePerformanceTests && request.query.mode === "performance" ? "/game?mode=performance" : "/game";
         if (!sameOrigin(request.get("origin"), request.get("host"))) {
             response.status(403).send("Cross-origin login is not allowed");
             return;
         }
         if (request.session.user_id) {
-            response.redirect("/game");
+            response.redirect(destination);
             return;
         }
         if (!loginLimiter.allow(request.ip ?? "unknown")) {
@@ -190,7 +201,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
                 else resolve();
             }),
         );
-        response.redirect("/game");
+        response.redirect(destination);
     });
 
     app.post("/logout", (request: Request, response: Response, next: NextFunction) => {
@@ -205,6 +216,8 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
                 return;
             }
             runtime.sockets.in(`session:${sessionId}`).disconnectSockets(true);
+            if (config.enablePerformanceTests)
+                runtime.sockets.of("/performance").in(`session:${sessionId}`).disconnectSockets(true);
             response.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: "lax", secure: config.cookieSecure });
             response.redirect("/");
         });
@@ -215,7 +228,9 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
     });
     app.get("/game", (request: Request, response: Response) => {
         if (!request.session.user_id) response.redirect("/");
-        else response.render("game");
+        else if (request.query.mode === "performance" && !config.enablePerformanceTests)
+            response.status(404).send("Performance tests are disabled");
+        else response.render("game", { performanceMode: request.query.mode === "performance" });
     });
     app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
         const status =
@@ -232,6 +247,11 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
 
     const closeRuntime = async (): Promise<void> => {
         const errors: unknown[] = [];
+        try {
+            runtime.performanceServer?.dispose();
+        } catch (error) {
+            errors.push(error);
+        }
         try {
             runtime.gameServer.dispose();
         } catch (error) {
@@ -269,6 +289,9 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
         get gameServer() {
             return runtime.gameServer;
         },
+        get performanceServer() {
+            return runtime.performanceServer;
+        },
         start(): Promise<AddressInfo> {
             if (starting) return starting;
             if (stopping) return stopping.then(() => this.start());
@@ -283,6 +306,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
                     await repository.connect();
                     await store.connect?.();
                     runtime.gameServer.start();
+                    runtime.performanceServer?.start();
                     await new Promise<void>((resolve, reject) => {
                         const onError = (error: Error) => reject(error);
                         runtime.httpServer.once("error", onError);

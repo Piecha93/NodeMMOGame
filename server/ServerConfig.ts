@@ -11,6 +11,7 @@ export interface ApplicationConfig {
     readonly mongoUri?: string;
     readonly demoScenario: "none" | "walls" | "expedition";
     readonly trustProxy: boolean;
+    readonly enablePerformanceTests: boolean;
 }
 
 export function readApplicationConfig(environment: NodeJS.ProcessEnv = process.env): ApplicationConfig {
@@ -34,7 +35,7 @@ export function readApplicationConfig(environment: NodeJS.ProcessEnv = process.e
     }
     if (mode === "production" && store === "memory") throw new Error("Production requires a persistent session store");
     if (store === "mongo" && !environment.MONGODB_URI) throw new Error("SESSION_STORE=mongo requires MONGODB_URI");
-    for (const name of ["SESSION_COOKIE_SECURE", "TRUST_PROXY"] as const) {
+    for (const name of ["SESSION_COOKIE_SECURE", "TRUST_PROXY", "ENABLE_PERF_TESTS"] as const) {
         if (environment[name] !== undefined && !["true", "false"].includes(environment[name])) {
             throw new Error(`${name} must be true or false`);
         }
@@ -56,6 +57,10 @@ export function readApplicationConfig(environment: NodeJS.ProcessEnv = process.e
         ...(environment.MONGODB_URI ? { mongoUri: environment.MONGODB_URI } : {}),
         demoScenario,
         trustProxy,
+        enablePerformanceTests:
+            environment.ENABLE_PERF_TESTS === undefined
+                ? mode !== "production"
+                : environment.ENABLE_PERF_TESTS === "true",
     });
 }
 

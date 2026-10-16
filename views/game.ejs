@@ -4,16 +4,52 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#151a19" />
-    <title>Ruiny — wyprawa</title>
+    <title><%= performanceMode ? 'Poligon — test wydajności' : 'Ruiny — wyprawa' %></title>
     <link rel="stylesheet" href="/css/style.css" />
     <script type="module" src="/build/game.js"></script>
 </head>
 <body class="game-page">
 <main id="content" class="game-shell">
+    <% if (performanceMode) { %>
+    <header class="game-header" data-game-ui>
+        <a class="wordmark" href="/game"><span class="rune" aria-hidden="true">◇</span> POLIGON</a>
+        <span class="expedition-round">Osobny świat testowy</span>
+        <nav class="mode-switch" aria-label="Tryb gry"><a href="/game">Wyprawa</a><span aria-current="page">Test wydajności</span></nav>
+        <form action="/logout" method="post"><button class="text-button" type="submit">Wyloguj ↗</button></form>
+    </header>
+    <section id="performance-panel" class="performance-panel" aria-label="Test wydajności">
+        <div class="objective-copy" data-game-ui><h1>Test obciążenia</h1><p>Swobodny ruch i strzelanie. Bez celów i obrażeń gracza. Ustawienia wspólne dla poligonu.</p></div>
+        <form data-performance-form class="performance-controls" data-game-ui>
+            <label>Przeciwnicy<select name="count"><option>100</option><option>500</option><option>1000</option><option>2000</option></select></label>
+            <label>Rozmieszczenie<select name="distribution"><option value="nearby">Wokół mnie</option><option value="world">Cała mapa</option></select></label>
+            <label>Zachowanie<select name="scenario"><option value="moving">Ruch</option><option value="static">Bezruch</option><option value="combat">Walka i pociski</option></select></label>
+            <button class="button button-primary" type="submit">Załaduj</button><button class="button button-secondary" type="button" data-performance-clear>Wyczyść</button>
+        </form>
+        <p class="performance-status" role="status" data-performance="status">Łączymy z poligonem…</p>
+        <div class="world-frame">
+            <canvas id="game-canvas" aria-label="Poligon do testów wydajności"></canvas>
+            <div class="world-caption" aria-hidden="true"><span class="status-dot"></span> POLIGON · GOD MODE</div>
+            <div id="debug-window" hidden></div>
+            <div id="chat-zone" data-game-ui><div id="chat-msgs" role="log" aria-label="Czat poligonu"></div><form id="chat-form"><label class="sr-only" for="chat-input">Wiadomość</label><input id="chat-input" type="text" maxlength="300" autocomplete="off" placeholder="Enter — czat poligonu" /></form></div>
+        </div>
+        <dl class="performance-metrics" data-game-ui>
+            <div><dt>FPS klienta</dt><dd data-performance="fps">—</dd></div>
+            <div><dt>Na ekranie / znane klientowi</dt><dd><span data-performance="rendered">—</span> / <span data-performance="known">—</span></dd></div>
+            <div><dt>Przeciwnicy na serwerze</dt><dd data-performance="enemies">0 / 0</dd></div>
+            <div><dt>Wszystkie obiekty / aktywne chunki</dt><dd><span data-performance="objects">—</span> / <span data-performance="chunks">—</span></dd></div>
+            <div><dt>Tick serwera · p50 / p95</dt><dd data-performance="tick">—</dd></div>
+            <div><dt>Budżet ticka / porzucony czas</dt><dd><span data-performance="budget">—</span> / <span data-performance="dropped">—</span></dd></div>
+            <div><dt>Dane świata do tego klienta</dt><dd data-performance="traffic">—</dd></div>
+        </dl>
+        <p class="performance-note">Odległe chunki też wykonują symulację; klient dostaje swoją okolicę. Tick to czas symulacji bez serializacji i wysyłki. Transfer obejmuje binarne snapshoty bez narzutu transportu. Porzucony czas sumuje się od uruchomienia świata.</p>
+    </section>
+    <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Załaduj zastępuje poprzednią populację. Wyczyść usuwa przeciwników i pociski.</span></footer>
+    <% } else { %>
     <div id="expedition-hud">
         <header class="game-header" data-game-ui>
             <a class="wordmark" href="/" aria-label="Ruiny — strona główna"><span class="rune" aria-hidden="true">◇</span> RUINY</a>
             <span class="expedition-round" data-expedition="round">Przygotowujemy wyprawę…</span>
+            <% if (performanceTests) { %><a class="mode-link" href="/game?mode=performance">Poligon / test wydajności ↗</a><% } %>
             <div class="expedition-stats"><span class="core-icon" aria-hidden="true">◇</span><strong data-expedition="progress">0 / 3</strong><span class="stat-divider"></span><span class="time-label">CZAS</span><strong class="expedition-timer" data-expedition="timer">10:00</strong></div>
             <form action="/logout" method="post"><button class="text-button" type="submit">Opuść wyprawę ↗</button></form>
         </header>
@@ -38,6 +74,7 @@
         </div>
         <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po odsłonięty rdzeń. Wróć do obozu ze wszystkimi trzema.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
     </div>
+    <% } %>
 </main>
 </body>
 </html>

@@ -1,7 +1,7 @@
 import { Actor } from "../objects/Actor";
 import { FireBall } from "../objects/FireBall";
 import { Weapon } from "./Weapon";
-import { calcAngle } from "../../../utils/functions/CalcAngle";
+import { projectileAim } from "../../../core/Aiming";
 import { MouseKeys } from "../../../input/InputCommands";
 
 export class MagicWand implements Weapon {
@@ -21,15 +21,20 @@ export class MagicWand implements Weapon {
             user.Runtime.timeMs < this.nextShotAtMs
         )
             return;
-        let angle: number = calcAngle(position, user.Transform.Position);
-
-        let fireBall: FireBall = user.ObjectsFactory.instantiateWithPosition("FireBall", [
-            user.Transform.X,
-            user.Transform.Y,
-        ]) as FireBall;
-
-        fireBall.setOwner(user);
-        fireBall.Transform.Rotation = angle;
+        const aim = projectileAim(user.Transform.Position, position, [user.Transform.ScaleX, user.Transform.ScaleY]);
+        if (!aim) return;
+        user.ObjectsFactory.instantiateWithPosition(
+            "FireBall",
+            aim.position,
+            undefined,
+            undefined,
+            undefined,
+            (object) => {
+                const fireBall = object as FireBall;
+                fireBall.setOwner(user);
+                fireBall.Transform.Rotation = aim.rotation;
+            },
+        );
         this.nextShotAtMs = user.Runtime.timeMs + this.cooldownMs;
     }
 

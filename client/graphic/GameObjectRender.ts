@@ -21,6 +21,9 @@ export abstract class GameObjectRender extends Container {
 
     public setObject(gameObjectReference: GameObject) {
         this.object = gameObjectReference;
+        // New entities must appear at their spawn point, rather than lerping from world (0, 0).
+        this.position.set(gameObjectReference.Transform.X, gameObjectReference.Transform.Y);
+        this.rotation = gameObjectReference.Transform.Rotation;
     }
 
     public update(deltaMs: number = 1000 / 60) {

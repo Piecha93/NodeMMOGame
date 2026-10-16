@@ -20,7 +20,7 @@ test("deterministic real renderer produces the same nonblank pixels after dispos
     await expect(status).toHaveText("ready");
     await expect(status).toHaveAttribute("data-mount", "1");
     const firstMetrics = JSON.parse(await page.locator("#metrics").innerText()) as Metrics;
-    expect(firstMetrics).toMatchObject({ width: 1024, height: 576, objects: 5, name: "Fixture", hp: 155 });
+    expect(firstMetrics).toMatchObject({ width: 1024, height: 576, objects: 7, name: "Fixture", hp: 155 });
     expect(firstMetrics.colors).toBeGreaterThan(16);
     expect(firstMetrics.opaqueSamples).toBeGreaterThan(1000);
     const first = await page.locator("#game-canvas").screenshot({ animations: "disabled" });

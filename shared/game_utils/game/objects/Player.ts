@@ -148,6 +148,7 @@ export class Player extends Actor {
     }
 
     public override hit(power: number): void {
+        if (this.Runtime.config.performanceMode) return;
         if (this.Runtime.timeMs < this.protectedUntilMs) return;
         const wasAlive = this.HP > 0;
         super.hit(power);

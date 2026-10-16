@@ -28,9 +28,11 @@ The refactor establishes explicit world ownership, fixed stepping, versioned ser
 
 The project has no measured production concurrency or bandwidth budget. Before optimizing or making capacity claims, profile simulation and collision time, catch-up/dropped time, event-loop lag, per-client replication bytes, Mongo latency, retained memory and browser frame time under realistic play.
 
+The development [performance world](performance.md) now exposes a bounded enemy population, simulation tick percentiles, discarded time, snapshot payload rate and browser FPS. Its different distributions separate local rendering pressure from world simulation. It is an interactive diagnostic, not a concurrency/soak benchmark.
+
 `droppedTimeMs` makes discarded simulation backlog visible, but production dashboards, alert thresholds, readiness/health integration and incident procedures are not configured. Application logging and a green development smoke do not supply those operating guarantees.
 
-Remote rendering intentionally interpolates about 100 ms behind authoritative snapshots and holds the newest sample during a longer outage. This favors bounded presentation over unlimited extrapolation. Historical rewind/lag compensation for hit detection is not implemented; add it only with explicit combat requirements and server-side history/latency tests. Source-engine UDP tuning guidance does not directly apply to Socket.IO's reliable ordered channel.
+Remote actor rendering intentionally interpolates about 100 ms behind authoritative snapshots and holds the newest sample during a longer outage. Straight projectiles use a continuous presentation clock from their first sample, bounded to 80 ms beyond the newest authoritative state. They stop at that bound during an outage and disappear on the server's destroy record. This avoids waiting for a second sample at spawn but does not predict the local shot before server acknowledgement. Historical rewind/lag compensation for hit detection is not implemented; add it only with explicit combat requirements and server-side history/latency tests. Source-engine UDP tuning guidance does not directly apply to Socket.IO's reliable ordered channel.
 
 ## Refactor changes already covered
 
