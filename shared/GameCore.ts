@@ -128,6 +128,10 @@ export class GameCore {
         return this.updateCollector.collectUpdateFrames();
     }
 
+    discardLegacyUpdate(): void {
+        this.updateCollector.discardUpdate();
+    }
+
     decodeUpdateFrames(frames: readonly ArrayBuffer[]): void {
         this.updateCollector.decodeUpdateFrames(frames);
     }

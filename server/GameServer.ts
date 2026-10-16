@@ -1,6 +1,7 @@
 import { WorldOptions } from "../shared/core/WorldContext";
 import { InputCommand, validateInputCommand, isNewerSequence, encodeSnapshot } from "../shared/protocol";
 import { commandToSnapshot } from "../shared/replication/InputCommandAdapter";
+import { simulateMovement } from "../shared/core/SimulateMovement";
 import { ReplicationSession } from "../shared/replication/ReplicationSession";
 import { Server, Socket, Namespace } from "socket.io";
 
@@ -24,6 +25,8 @@ import { ExpeditionController } from "./runtime/ExpeditionController";
 import { EXPEDITION, ExpeditionEvents } from "../shared/gameplay/Expedition";
 import { PerformanceEvents } from "../shared/gameplay/Performance";
 import { PerformanceController } from "./runtime/PerformanceController";
+import { InputMovementBudget } from "./runtime/InputMovementBudget";
+import { PerformanceMetrics } from "./runtime/PerformanceMetrics";
 
 export interface GameServerOptions {
     readonly userRepository?: Pick<UserRepository, "findUserById">;
@@ -41,6 +44,7 @@ export class GameServer {
             lastReceived: number | null;
             lastProcessed: number | null;
             replication: ReplicationSession;
+            movementBudget: InputMovementBudget;
         }
     >();
     private sockets: Server | Namespace;
@@ -51,6 +55,7 @@ export class GameServer {
     private core: GameCore;
     private expedition: ExpeditionController | null = null;
     private performance: PerformanceController | null = null;
+    private performanceMetrics: PerformanceMetrics | null = null;
     private readonly snapshotTraffic = new Map<ServerClient, { startedAt: number; bytes: number; rate: number }>();
     private lastPerformanceBroadcast = -Infinity;
     private lastPerformanceConfiguration = -Infinity;
@@ -88,11 +93,20 @@ export class GameServer {
             role: Origin.SERVER,
             ...(this.options.expedition ? { cooperative: true } : {}),
             ...(this.options.performance
-                ? { performanceMode: true, cooperative: true, enableDebugActions: false }
+                ? {
+                      performanceMode: true,
+                      cooperative: true,
+                      enableDebugActions: false,
+                      // Leave turns for transport/input when the stress workload cannot keep up.
+                      maxCatchUpSteps: this.options.world?.maxCatchUpSteps ?? 2,
+                  }
                 : {}),
         });
         this.expedition = this.options.expedition ? new ExpeditionController(core) : null;
         this.performance = this.options.performance ? new PerformanceController(core) : null;
+        this.performanceMetrics = this.options.performance
+            ? new PerformanceMetrics(performance.now(), core.Runtime.tick)
+            : null;
         core.subscribeBeforeStep((_tick, delta) => {
             this.expedition?.update(delta);
             this.processInputCommands();
@@ -106,34 +120,48 @@ export class GameServer {
         for (const [client, state] of this.v2Clients) {
             const player = this.getReadyPlayer(client);
             if (!player) continue;
-            // A stress test can deliberately exceed the simulation budget. Apply
-            // the latest held movement and ACK the consumed queue in one tick,
-            // retaining queued actions under the normal action rate limit.
-            const commands = this.performance ? state.queue.splice(0) : undefined;
-            const command = commands ? commands.at(-1) : state.queue.shift();
-            if (!command) {
+            // An overloaded world may receive several client ticks before its
+            // next update. Every ACKed command must still advance player movement
+            // once; discarding their time makes reconciliation rewind the player.
+            const count = this.performance
+                ? state.movementBudget.take(state.queue.length, this.options.world?.clock?.() ?? performance.now())
+                : Math.min(1, state.queue.length);
+            const commands = state.queue.splice(0, count);
+            if (commands.length === 0) {
                 player.setInput(new InputSnapshot("0=2:0#5:0"));
                 continue;
             }
-            if (!playable || player.HP <= 0) {
-                player.setInput(new InputSnapshot("0=2:0#5:0"));
-                state.lastProcessed = command.seq;
-                continue;
-            }
-            player.setInput(commandToSnapshot(command, false));
-            const actions = commands ? commands.flatMap((pending) => pending.actions ?? []) : (command.actions ?? []);
-            for (const action of actions) {
-                if (
-                    !client.allowEvent("action-v2", ServerConfig.MAX_ACTIONS_PER_WINDOW, ServerConfig.RATE_LIMIT_WINDOW)
-                ) {
+            for (const [index, command] of commands.entries()) {
+                if (!playable || player.HP <= 0) {
+                    player.setInput(new InputSnapshot("0=2:0#5:0"));
+                    state.lastProcessed = command.seq;
                     continue;
                 }
-                if (action.kind === "interact") {
-                    const target = this.core.ObjectsManager.get(action.targetId);
-                    if (target && player.Transform.distanceTo(target.Transform) < 75) target.interact();
-                } else player.setInput(commandToSnapshot({ ...command, actions: [action] }));
+                player.setInput(commandToSnapshot(command, false));
+                for (const action of command.actions ?? []) {
+                    if (
+                        !client.allowEvent(
+                            "action-v2",
+                            ServerConfig.MAX_ACTIONS_PER_WINDOW,
+                            ServerConfig.RATE_LIMIT_WINDOW,
+                        )
+                    ) {
+                        continue;
+                    }
+                    if (action.kind === "interact") {
+                        const target = this.core.ObjectsManager.get(action.targetId);
+                        if (target && player.Transform.distanceTo(target.Transform) < 75) target.interact();
+                    } else player.setInput(commandToSnapshot({ ...command, actions: [action] }));
+                }
+                // The world performs the final command's movement normally.
+                // Additional input steps use the same collision and boundary
+                // rules as prediction, without ticking every enemy again.
+                if (index < commands.length - 1)
+                    simulateMovement(player, this.core.CollisionsSystem, this.core.Runtime.config.fixedDeltaMs, () =>
+                        this.core.ChunksManager.rebuildOne(player),
+                    );
+                state.lastProcessed = command.seq;
             }
-            state.lastProcessed = command.seq;
         }
     }
 
@@ -206,6 +234,7 @@ export class GameServer {
         this.expedition = null;
         this.performance?.dispose();
         this.performance = null;
+        this.performanceMetrics = null;
         this.snapshotTraffic.clear();
         this.lastPerformanceBroadcast = -Infinity;
         this.lastPerformanceConfiguration = -Infinity;
@@ -401,6 +430,10 @@ export class GameServer {
                         lastReceived: null,
                         lastProcessed: null,
                         replication: new ReplicationSession(),
+                        movementBudget: new InputMovementBudget(
+                            this.core.Runtime.config.fixedDeltaMs,
+                            this.options.world?.clock?.() ?? performance.now(),
+                        ),
                     });
                     this.sendV2Snapshot(serverClient, true);
                 } else socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
@@ -427,6 +460,7 @@ export class GameServer {
             if (now - this.lastPerformanceConfiguration < 1000) return;
             try {
                 this.performance.configure(configuration, player.Transform.Position);
+                this.performanceMetrics?.reset(performance.now(), this.core.Runtime.tick);
                 this.lastPerformanceConfiguration = now;
                 this.broadcastPerformanceState(true);
             } catch {
@@ -602,8 +636,18 @@ export class GameServer {
     }
 
     private collectAndSendUpdate() {
-        this.sendUpdate(this.core.collectUpdateFrames());
+        const startedAt = this.performanceMetrics ? performance.now() : 0;
+        const needsLegacy = Array.from(this.clients.values()).some(
+            (client) => client.IsReady && client.ProtocolVersion === 1,
+        );
+        const legacyFrames = needsLegacy ? this.core.collectUpdateFrames() : new Map<Chunk, ArrayBuffer[]>();
+        if (!needsLegacy) this.core.discardLegacyUpdate();
+        this.sendUpdate(legacyFrames);
         this.broadcastExpeditionState();
+        if (this.performanceMetrics) {
+            const completedAt = performance.now();
+            this.performanceMetrics.recordSnapshot(completedAt - startedAt, completedAt, this.core.Runtime.tick);
+        }
         this.broadcastPerformanceState();
     }
 
@@ -619,7 +663,10 @@ export class GameServer {
                 traffic.bytes = 0;
                 traffic.startedAt = now;
             }
-            client.Socket.emit(PerformanceEvents.STATE, this.performance.state(traffic?.rate ?? 0));
+            client.Socket.emit(
+                PerformanceEvents.STATE,
+                this.performance.state(traffic?.rate ?? 0, this.performanceMetrics?.read()),
+            );
         }
     }
 

@@ -1,6 +1,6 @@
 import { GameCore } from "../GameCore";
 import { Player } from "../game_utils/game/objects/Player";
-import { EntityRecord, EntityState, Snapshot, nextSequence } from "../protocol";
+import { EntityRecord, EntityState, FieldValue, Snapshot, TransformState, nextSequence } from "../protocol";
 import { captureEntity } from "./EntityAdapter";
 
 export class ReplicationSession {
@@ -11,25 +11,30 @@ export class ReplicationSession {
         const chunk = core.ChunksManager.getObjectChunk(player);
         if (!chunk) throw new Error("Player has no interest area");
         const current = new Map<string, EntityState>();
-        for (const visible of [chunk, ...chunk.Neighbors]) {
-            for (const object of visible.Objects)
-                if (!object.IsDestroyed) current.set(object.ID, captureEntity(object));
-        }
         const records: EntityRecord[] = [];
-        for (const [id, state] of current) {
-            const old = this.baseline.get(id);
-            if (!old) records.push({ kind: "create", state });
-            else {
-                const fields = Object.fromEntries(
-                    Object.entries(state.fields).filter(([key, value]) => value !== old.fields[key]),
-                );
-                const transform = Object.fromEntries(
-                    Object.entries(state.transform).filter(
-                        ([key, value]) => value !== old.transform[key as keyof typeof old.transform],
-                    ),
-                );
-                if (Object.keys(fields).length || Object.keys(transform).length) {
-                    records.push({ kind: "update", id, prefab: state.prefab, fields, transform });
+        for (const visible of [chunk, ...chunk.Neighbors]) {
+            for (const object of visible.Objects) {
+                if (object.IsDestroyed) continue;
+                const state = captureEntity(object);
+                current.set(object.ID, state);
+                const old = this.baseline.get(object.ID);
+                if (!old) records.push({ kind: "create", state });
+                else {
+                    // Avoid building entries/filter/fromEntries arrays for every
+                    // entity on every snapshot, including completely idle ones.
+                    let fields: Record<string, FieldValue> | undefined;
+                    for (const key in state.fields) {
+                        const value = state.fields[key]!;
+                        if (value !== old.fields[key]) (fields ??= {})[key] = value;
+                    }
+                    let transform: { -readonly [Key in keyof TransformState]?: number } | undefined;
+                    for (const key of TRANSFORM_FIELDS) {
+                        const value = state.transform[key];
+                        if (value !== old.transform[key]) (transform ??= {})[key] = value;
+                    }
+                    if (fields || transform) {
+                        records.push({ kind: "update", id: object.ID, prefab: state.prefab, fields, transform });
+                    }
                 }
             }
         }
@@ -38,7 +43,7 @@ export class ReplicationSession {
             serverTick: core.Runtime.tick,
             snapshotId: this.snapshotId,
             lastProcessedInputSeq: ack,
-            localPlayerState: captureEntity(player),
+            localPlayerState: current.get(player.ID),
             records,
         };
         return {
@@ -50,3 +55,5 @@ export class ReplicationSession {
         };
     }
 }
+
+const TRANSFORM_FIELDS = ["x", "y", "scaleX", "scaleY", "rotation"] as const;

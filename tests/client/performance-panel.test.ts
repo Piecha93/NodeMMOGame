@@ -35,6 +35,7 @@ function fixture() {
         [
             "status",
             "fps",
+            "correction",
             "rendered",
             "known",
             "enemies",
@@ -44,6 +45,9 @@ function fixture() {
             "budget",
             "dropped",
             "traffic",
+            "simulation-hz",
+            "snapshot-hz",
+            "snapshot-cpu",
         ].map((key) => [key, root.add(`[data-performance="${key}"]`)]),
     );
     const field = (key: string): ElementProbe => {
@@ -88,6 +92,9 @@ const state: PerformanceState = {
     tickBudgetMs: 15.625,
     droppedTimeMs: 0,
     snapshotBytesPerSecond: 1024,
+    simulationHz: 63.5,
+    snapshotHz: 25,
+    snapshotP95Ms: 17.123,
 };
 
 test("performance panel: submit/clear are throttled and disposal removes command listeners", () => {
@@ -124,8 +131,16 @@ test("performance panel: server/client counts stay distinct and a connection fai
     assert.equal(field("fps").textContent, "60");
     assert.equal(field("tick").textContent, "2.00 / 4.00 ms");
     assert.equal(field("traffic").textContent, "1.0 KiB/s");
+    assert.equal(field("simulation-hz").textContent, "63.5 Hz");
+    assert.equal(field("snapshot-hz").textContent, "25.0 Hz");
+    assert.equal(field("snapshot-cpu").textContent, "17.12 ms");
     receive({ ...state, enemies: Number.NaN });
     assert.equal(field("enemies").textContent, "2000 / 2000");
+    for (const key of ["simulationHz", "snapshotHz", "snapshotP95Ms"]) {
+        receive({ ...state, [key]: Number.NaN, enemies: 100 });
+        receive({ ...state, [key]: -1, enemies: 100 });
+    }
+    assert.equal(field("enemies").textContent, "2000 / 2000", "invalid telemetry must not replace the state");
     panel.showConnectionError("Poligon rozłączony");
     advance(2000);
     receive(state);
@@ -136,4 +151,32 @@ test("performance panel: server/client counts stay distinct and a connection fai
     assert.ok(root.controls.every((control) => control.disabled));
     panel.dispose();
     assert.equal(field("status").textContent, "Poligon rozłączony");
+});
+
+test("performance panel: correction keeps the last distance and a one-second peak without frame-by-frame DOM writes", () => {
+    const { field, panel, advance } = fixture();
+    panel.updateCorrection(8);
+    assert.equal(field("correction").textContent, "");
+    advance(250);
+    panel.updateFrame(250, 0, 0);
+    assert.equal(field("correction").textContent, "8.0 / 8.0 px");
+    panel.updateCorrection(0);
+    panel.updateCorrection(-1);
+    panel.updateCorrection(Number.NaN);
+    panel.updateCorrection(Number.POSITIVE_INFINITY);
+    assert.equal(field("correction").textContent, "8.0 / 8.0 px");
+    advance(250);
+    panel.updateFrame(250, 0, 0);
+    assert.equal(field("correction").textContent, "0.0 / 8.0 px");
+    advance(500);
+    panel.updateFrame(500, 0, 0);
+    assert.equal(field("correction").textContent, "0.0 / 0.0 px");
+    panel.updateCorrection(0.125);
+    advance(250);
+    panel.updateFrame(250, 0, 0);
+    assert.equal(field("correction").textContent, "0.1 / 0.1 px");
+    panel.dispose();
+    panel.updateCorrection(99);
+    panel.updateFrame(250, 0, 0);
+    assert.equal(field("correction").textContent, "0.1 / 0.1 px");
 });

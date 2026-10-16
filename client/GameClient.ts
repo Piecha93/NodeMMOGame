@@ -310,6 +310,7 @@ export class GameClient {
         try {
             if (this.protocolVersion === 2) {
                 const wasDead = this.localPlayer !== null && this.localPlayer.HP <= 0;
+                const predictedPosition = this.localPlayer?.Transform.Position;
                 const frames = update.map((payload) => normalizeBinaryPayload(payload));
                 if (frames.some((frame) => frame === null)) throw new Error("Malformed snapshot frame");
                 const snapshot = decodeSnapshot(frames as ArrayBuffer[]);
@@ -327,6 +328,13 @@ export class GameClient {
                         this.core.CollisionsSystem,
                         this.core.ChunksManager,
                     );
+                    if (predictedPosition)
+                        this.performancePanel?.updateCorrection(
+                            Math.hypot(
+                                player.Transform.X - predictedPosition[0],
+                                player.Transform.Y - predictedPosition[1],
+                            ),
+                        );
                     this.localPresentation.reconcile(player.Transform.Position, wasDead && player.HP > 0);
                 }
                 this.interpolator?.push(

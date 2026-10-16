@@ -34,14 +34,17 @@
         </div>
         <dl class="performance-metrics" data-game-ui>
             <div><dt>FPS klienta</dt><dd data-performance="fps">—</dd></div>
+            <div><dt>Korekta pozycji · ostatnia / max 1 s</dt><dd data-performance="correction">—</dd></div>
             <div><dt>Na ekranie / znane klientowi</dt><dd><span data-performance="rendered">—</span> / <span data-performance="known">—</span></dd></div>
             <div><dt>Przeciwnicy na serwerze</dt><dd data-performance="enemies">0 / 0</dd></div>
             <div><dt>Wszystkie obiekty / aktywne chunki</dt><dd><span data-performance="objects">—</span> / <span data-performance="chunks">—</span></dd></div>
             <div><dt>Tick serwera · p50 / p95</dt><dd data-performance="tick">—</dd></div>
+            <div><dt>Rzeczywiste tempo symulacji / snapshotów</dt><dd><span data-performance="simulation-hz">—</span> / <span data-performance="snapshot-hz">—</span></dd></div>
+            <div><dt>Snapshot · p95 CPU</dt><dd data-performance="snapshot-cpu">—</dd></div>
             <div><dt>Budżet ticka / porzucony czas</dt><dd><span data-performance="budget">—</span> / <span data-performance="dropped">—</span></dd></div>
             <div><dt>Dane świata do tego klienta</dt><dd data-performance="traffic">—</dd></div>
         </dl>
-        <p class="performance-note">Odległe chunki też wykonują symulację; klient dostaje swoją okolicę. Tick to czas symulacji bez serializacji i wysyłki. Transfer obejmuje binarne snapshoty bez narzutu transportu. Porzucony czas sumuje się od uruchomienia świata.</p>
+        <p class="performance-note">Odległe chunki też wykonują symulację; klient dostaje swoją okolicę. Hz mierzy rzeczywiste tempo pracy; pierwsza próbka po sekundzie. Tick mierzy symulację, snapshot — zbieranie stanu, kodowanie i przekazanie do transportu, bez opóźnienia sieci. Transfer obejmuje binarne snapshoty bez narzutu transportu. Porzucony czas sumuje się od uruchomienia świata.</p>
     </section>
     <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Załaduj zastępuje poprzednią populację. Wyczyść usuwa przeciwników i pociski.</span></footer>
     <% } else { %>

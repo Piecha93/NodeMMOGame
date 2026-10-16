@@ -3,6 +3,7 @@ import { GameCore } from "../../shared/GameCore";
 import {
     PerformanceConfiguration,
     PerformanceState,
+    PerformanceTelemetry,
     validatePerformanceConfiguration,
 } from "../../shared/gameplay/Performance";
 import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
@@ -137,12 +138,16 @@ export class PerformanceController {
         }
     }
 
-    state(snapshotBytesPerSecond = 0): PerformanceState {
+    state(
+        snapshotBytesPerSecond = 0,
+        telemetry: PerformanceTelemetry = { simulationHz: 0, snapshotHz: 0, snapshotP95Ms: 0 },
+    ): PerformanceState {
         const sorted = [...this.tickSamples].sort((a, b) => a - b);
         const percentile = (fraction: number) => sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)] ?? 0;
         const chunks = Array.from(this.core.ChunksManager.ChunksIterator());
         return {
             ...this.configuration,
+            ...telemetry,
             enemies: this.enemies.size,
             pending: this.positions.length - this.spawned,
             objects: this.core.ObjectsManager.ObjectsById.size,

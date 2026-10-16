@@ -17,6 +17,8 @@ export class PerformancePanel {
     private state: PerformanceState | null = null;
     private elapsed = 0;
     private frames = 0;
+    private lastCorrection: number | null = null;
+    private readonly corrections: Array<{ at: number; distance: number }> = [];
     private nextRequestAt = 0;
     private readonly form: HTMLFormElement | null;
     private readonly clearButton: HTMLButtonElement | null;
@@ -67,10 +69,31 @@ export class PerformancePanel {
         this.text("fps", `${Math.round((this.frames * 1000) / this.elapsed)}`);
         this.text("rendered", String(renderedCount));
         this.text("known", String(knownCount));
+        this.renderCorrection();
         this.elapsed = 0;
         this.frames = 0;
         const disabled = this.connectionFailed || this.clock() < this.nextRequestAt;
         for (const button of this.root.querySelectorAll<HTMLButtonElement>("button")) button.disabled = disabled;
+    }
+
+    updateCorrection(distancePx: number): void {
+        if (this.disposed || this.connectionFailed || !Number.isFinite(distancePx) || distancePx < 0) return;
+        this.lastCorrection = distancePx;
+        const now = this.clock();
+        this.trimCorrections(now);
+        if (distancePx > 0) this.corrections.push({ at: now, distance: distancePx });
+    }
+
+    private trimCorrections(now: number): void {
+        while (this.corrections.length && this.corrections[0]!.at <= now - 1000) this.corrections.shift();
+    }
+
+    private renderCorrection(): void {
+        if (this.lastCorrection === null) return;
+        this.trimCorrections(this.clock());
+        let peak = 0;
+        for (const correction of this.corrections) peak = Math.max(peak, correction.distance);
+        this.text("correction", `${this.lastCorrection.toFixed(1)} / ${peak.toFixed(1)} px`);
     }
 
     showConnectionError(message: string): void {
@@ -96,6 +119,9 @@ export class PerformancePanel {
         this.text("budget", `${state.tickBudgetMs.toFixed(2)} ms`);
         this.text("dropped", `${Math.round(state.droppedTimeMs)} ms`);
         this.text("traffic", `${(state.snapshotBytesPerSecond / 1024).toFixed(1)} KiB/s`);
+        this.text("simulation-hz", `${state.simulationHz.toFixed(1)} Hz`);
+        this.text("snapshot-hz", `${state.snapshotHz.toFixed(1)} Hz`);
+        this.text("snapshot-cpu", `${state.snapshotP95Ms.toFixed(2)} ms`);
         this.text(
             "status",
             state.pending
@@ -118,5 +144,6 @@ export class PerformancePanel {
         this.form?.removeEventListener("submit", this.submitHandler);
         this.clearButton?.removeEventListener("click", this.clearHandler);
         this.state = null;
+        this.corrections.length = 0;
     }
 }

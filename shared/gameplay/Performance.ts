@@ -14,7 +14,13 @@ export interface PerformanceConfiguration {
     readonly scenario: PerformanceScenario;
 }
 
-export interface PerformanceState extends PerformanceConfiguration {
+export interface PerformanceTelemetry {
+    readonly simulationHz: number;
+    readonly snapshotHz: number;
+    readonly snapshotP95Ms: number;
+}
+
+export interface PerformanceState extends PerformanceConfiguration, PerformanceTelemetry {
     readonly enemies: number;
     readonly pending: number;
     readonly objects: number;
@@ -75,6 +81,9 @@ export function isPerformanceState(value: unknown): value is PerformanceState {
             state.tickBudgetMs,
             state.droppedTimeMs,
             state.snapshotBytesPerSecond,
+            state.simulationHz,
+            state.snapshotHz,
+            state.snapshotP95Ms,
         ].every((number) => Number.isFinite(number) && number >= 0) &&
         state.enemies <= 2000 &&
         state.pending <= 2000 &&

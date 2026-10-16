@@ -73,6 +73,23 @@ export class UpdateCollector {
         return prepared.frames;
     }
 
+    /** Finalize a v1 publication interval when there are no legacy recipients. */
+    public discardUpdate(): void {
+        for (const chunk of this.chunksManager.ChunksIterator()) {
+            if (chunk.HasPlayersInNeighborhood) {
+                for (const object of chunk.Objects) {
+                    if (!object.IsDestroyed) object.commitReplicationChanges();
+                }
+                for (const object of chunk.Leavers) {
+                    if (!object.IsDestroyed) object.commitReplicationChanges();
+                }
+                chunk.IsNextUpdateComplete = false;
+            }
+            chunk.resetLeavers();
+            this.destroyedObjects.get(chunk)?.clear();
+        }
+    }
+
     private prepareUpdate(): { frames: Map<Chunk, ArrayBuffer[]>; commit: () => void } {
         const updates = new Map<Chunk, ArrayBuffer[]>();
         const serializedObjects = new Set<GameObject>();
