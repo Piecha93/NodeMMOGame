@@ -8,7 +8,7 @@ This describes the current refactor and its compatibility boundaries. It does no
 flowchart LR
     Browser["Client: input, prediction, presentation, PixiJS"]
     HTTP["Application: HTTP, authentication, sessions"]
-    Transport["Socket.IO: negotiated v1/v2"]
+    Transport["Socket.IO: negotiated v1/v2/v3"]
     Server["GameServer: sessions, input queues, scheduling"]
     Protocol["Protocol: DTOs, validation, bounded codecs"]
     Replication["Per-client replication and domain adapter"]
@@ -31,7 +31,7 @@ flowchart LR
 | Area | Responsibility |
 | --- | --- |
 | `shared/core/`, objects, physics and chunks | Runtime context, game state, movement and simulation. |
-| `shared/protocol/` | Validated transport DTOs, sequence arithmetic and v2 encoding/decoding. No live-world mutation. |
+| `shared/protocol/` | Validated transport DTOs, sequence arithmetic and v2/v3 encoding/decoding. No live-world mutation. |
 | `shared/replication/` | Domain/state projection, snapshot application and each client's visibility baseline. |
 | `shared/serialize/` | Legacy v1 compatibility metadata, codec, preflight and chunk snapshot bridge. |
 | `server/` | Application composition, authenticated connections, scheduling and persistence. |
@@ -81,9 +81,11 @@ Default prefab mappings stay explicit:
 
 ## Protocol and serialization
 
-Protocol negotiation is connection context. New clients advertise `[2, 1]`; the server selects the highest common version and echoes it in initialization. Missing fields in either direction map to v1 for a rolling upgrade. Malformed and unsupported offers fail before creating a player. Application event codes remain frozen at `0` through `11`; Socket.IO's own connection/disconnect events remain transport names.
+Protocol negotiation is connection context. New clients advertise `[3, 2, 1]`; the server selects the highest common version and echoes it in initialization. Missing fields in either direction map to v1 for a rolling upgrade. Malformed and unsupported offers fail before creating a player. Application event codes remain frozen at `0` through `11`; Socket.IO's own connection/disconnect events remain transport names.
 
 V2 uses plain DTOs and explicit schema definitions. Prefab, field and type IDs do not depend on decorator execution, import order or runtime property enumeration. Text uses bounded UTF-8. Frames carry a version, lengths, record count, server tick, snapshot identity, input acknowledgement and batch metadata. Records identify create/update/destroy semantics; a complete local-player state accompanies reconciliation.
+
+V3 carries the same DTOs using a separate compact codec: a combined kind/prefab tag, canonical unsigned varints for entity sequences and integers, and a field mask whose bits refer to explicit schema IDs. Remote floating-point values use float32; the complete authoritative local player uses float64 so reconciliation retains simulation precision. At the schema's coordinate limit of ±1,000,000, float32 rounding is at most 1/32 pixel. V1 and V2 bytes stay unchanged. See the [wire format](../shared/protocol/README.md).
 
 `encodeSnapshot()` splits a snapshot at record boundaries. Current limits are 64 KiB per frame, 256 records per frame, 256 batches and 8 MiB per complete snapshot. Field schemas impose tighter bounds where needed. Unknown fields/types, invalid numbers and IDs, malformed UTF-8, truncation, inconsistent batches and oversized input fail with controlled protocol errors.
 
@@ -110,9 +112,9 @@ sequenceDiagram
 
 The server owns simulation duration; clients cannot submit their own delta or position as authoritative state. Received commands are acknowledged only after the tick that consumes them. Sequence comparison handles uint32 wrap. Server input queues and client prediction history are bounded at 256 commands. Discrete actions execute on the server once and are excluded from local movement replay.
 
-`ReplicationSession` owns a baseline per connection. The current chunk and its neighbors define interest. Entering objects receive complete create records, changed visible objects receive updates, and leaving/destroyed objects receive removal records. The next baseline commits after successful encoding; another client's interest transition does not consume that state.
+`ReplicationSession` owns a baseline per connection. The current chunk and its neighbors define the candidate set. V3 further filters it to a rectangle extending 768 pixels horizontally and 512 vertically around the player, including conservative object bounds. This covers the 1024×576 viewport, camera look-ahead and prefetch; already known objects receive an extra 96 pixels of exit hysteresis. V1/V2 retain their original interest. Entering objects receive complete create records, changed visible objects receive updates, and leaving/destroyed objects receive removal records. The next baseline commits after successful encoding; another client's interest transition does not consume that state. Immutable entity captures are shared only within one publication; baselines and transitions remain independent.
 
-Local v2 prediction restores authoritative state, retires acknowledged commands and replays pending movement through shared movement/collision code. Remote presentation uses `SnapshotInterpolator`: a 100 ms interpolation delay, at most 32 samples per entity, and a hold on the newest known position when data stops arriving. The renderer's smoothing depends on elapsed time and does not select presentation classes from network ID prefixes.
+Local v2/v3 prediction restores authoritative state, retires acknowledged commands and replays pending movement through shared movement/collision code. Remote presentation uses `SnapshotInterpolator`: a 100 ms interpolation delay, at most 32 samples per entity, and a hold on the newest known position when data stops arriving. The renderer's smoothing depends on elapsed time and does not select presentation classes from network ID prefixes.
 
 Legacy clients retain v1 input/reconciliation semantics, with regressions for STOP retries, idle acknowledgements, collision geometry and leaving/returning interest. V2 is the path for tick/sequence-based synchronization; it does not reinterpret legacy timestamps in place.
 

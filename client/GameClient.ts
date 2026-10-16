@@ -4,11 +4,12 @@ import {
     InputAction,
     InputDirection,
     decodeSnapshot,
+    decodeSnapshotV3,
     isNewerSequence,
     nextSequence,
 } from "../shared/protocol";
 import { INPUT_COMMAND } from "../shared/input/InputCommands";
-import { applySnapshot, captureEntity } from "../shared/replication/EntityAdapter";
+import { applySnapshot } from "../shared/replication/EntityAdapter";
 import { SnapshotInterpolator } from "./net/SnapshotInterpolator";
 import { V2Prediction } from "./net/V2Prediction";
 import { snapshotActions } from "../shared/replication/InputCommandAdapter";
@@ -32,7 +33,12 @@ import { GameObjectsManager } from "../shared/game_utils/factory/GameObjectsMana
 import { Reconciliation } from "./Reconciliation";
 import { TicksCounter } from "../shared/utils/TicksCounter";
 import { normalizeBinaryPayload } from "./net/BinaryPayload";
-import { Protocol, ProtocolVersion, protocolVersionFromInitializePayload } from "../shared/net/Protocol";
+import {
+    Protocol,
+    ProtocolVersion,
+    protocolVersionFromInitializePayload,
+    isSnapshotProtocol,
+} from "../shared/net/Protocol";
 import { ExpeditionEvents, ExpeditionState, isExpeditionState } from "../shared/gameplay/Expedition";
 import { ExpeditionHud } from "./graphic/ExpeditionHud";
 import { PerformancePanel } from "./graphic/PerformancePanel";
@@ -100,7 +106,7 @@ export class GameClient {
         this.core = new GameCore({ role: Origin.CLIENT, performanceMode: options.performanceMode ?? false });
         this.core.subscribeBeforeStep(() => this.predictTick());
         this.core.subscribeAfterStep(() => {
-            if (this.protocolVersion === 2 && this.localPlayer)
+            if (isSnapshotProtocol(this.protocolVersion) && this.localPlayer)
                 this.localPresentation.capture(this.localPlayer.Transform.Position);
         });
         this.socket =
@@ -203,7 +209,7 @@ export class GameClient {
             for (const [id, position] of this.interpolator.positions()) {
                 this.renderer.setPresentationPosition(id, position);
             }
-        if (this.protocolVersion === 2)
+        if (isSnapshotProtocol(this.protocolVersion))
             this.renderer.setPresentationPosition(
                 this.localPlayerId,
                 this.localPresentation.position(this.core.SimulationAlpha),
@@ -240,10 +246,11 @@ export class GameClient {
         }
         this.initialized = true;
         this.protocolVersion = protocolVersion;
+        this.performancePanel?.setProtocol(protocolVersion);
         this.localPlayerId = playerId;
         this.expeditionHud?.setLocalPlayer(playerId);
         this.reconciliation = new Reconciliation();
-        if (protocolVersion === 2) {
+        if (isSnapshotProtocol(protocolVersion)) {
             const fixedDelta = (data as Record<string, unknown>).fixedDeltaMs;
             if (fixedDelta !== this.core.Runtime.config.fixedDeltaMs) {
                 this.onConnectionError("Klient i serwer używają różnych ustawień gry. Odśwież stronę.");
@@ -260,7 +267,7 @@ export class GameClient {
         this.inputHandler = new InputHandler(this.cursor, (event) => this.updateCursor(event));
         this.inputHandler.addSnapshotCallback((snapshot: InputSnapshot) => {
             if (!this.disposed && this.localPlayer && this.reconciliation) {
-                if (this.protocolVersion === 2) {
+                if (isSnapshotProtocol(this.protocolVersion)) {
                     this.heldHorizontal = Number(
                         snapshot.Commands.get(INPUT_COMMAND.HORIZONTAL) ?? 0,
                     ) as InputDirection;
@@ -308,12 +315,15 @@ export class GameClient {
             return;
         }
         try {
-            if (this.protocolVersion === 2) {
+            if (isSnapshotProtocol(this.protocolVersion)) {
                 const wasDead = this.localPlayer !== null && this.localPlayer.HP <= 0;
                 const predictedPosition = this.localPlayer?.Transform.Position;
                 const frames = update.map((payload) => normalizeBinaryPayload(payload));
                 if (frames.some((frame) => frame === null)) throw new Error("Malformed snapshot frame");
-                const snapshot = decodeSnapshot(frames as ArrayBuffer[]);
+                const snapshot =
+                    this.protocolVersion === 3
+                        ? decodeSnapshotV3(frames as ArrayBuffer[])
+                        : decodeSnapshot(frames as ArrayBuffer[]);
                 if (this.lastSnapshotId !== null && !isNewerSequence(snapshot.snapshotId, this.lastSnapshotId)) return;
                 applySnapshot(this.core, snapshot);
                 this.lastSnapshotId = snapshot.snapshotId;
@@ -337,11 +347,10 @@ export class GameClient {
                         );
                     this.localPresentation.reconcile(player.Transform.Position, wasDead && player.HP > 0);
                 }
-                this.interpolator?.push(
+                this.interpolator?.pushObjects(
                     snapshot.serverTick,
-                    Array.from(this.core.ObjectsManager.ObjectsById.values())
-                        .filter((object) => object.ID !== this.localPlayerId)
-                        .map(captureEntity),
+                    this.core.ObjectsManager.ObjectsById.values(),
+                    this.localPlayerId,
                 );
                 return;
             }
@@ -363,7 +372,7 @@ export class GameClient {
     }
 
     private predictTick(): void {
-        if (this.protocolVersion !== 2 || !this.localPlayer || !this.prediction) return;
+        if (!isSnapshotProtocol(this.protocolVersion) || !this.localPlayer || !this.prediction) return;
         const self = this.expeditionState?.party.find((player) => player.id === this.localPlayerId);
         const inputBlocked =
             this.expeditionState !== null &&

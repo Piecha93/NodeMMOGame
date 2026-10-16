@@ -74,12 +74,13 @@ export class CollisionsSystem extends Collisions {
             // clean them even when a callback destroys an earlier contact.
             this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
 
-            for (let body of this.CollisionBodyIterator(colliderBody)) {
+            for (const body of colliderBody.potentials()) {
                 const colidedCollider = this.bodyToColliderMap.get(body);
                 if (
                     !colidedCollider ||
                     colidedCollider.Parent === gameObject ||
-                    !this.isRegisteredCollider(colidedCollider)
+                    !this.isRegisteredCollider(colidedCollider) ||
+                    !collider.collides(colidedCollider, this.lastCollisionResult)
                 ) {
                     continue;
                 }
@@ -135,7 +136,7 @@ export class CollisionsSystem extends Collisions {
                     //skip check colliders with same parent
                     continue;
                 }
-                if (collider.Body.collides(body)) {
+                if (collider.collides(otherCollider)) {
                     return true;
                 }
             }

@@ -76,6 +76,10 @@ export class PerformancePanel {
         for (const button of this.root.querySelectorAll<HTMLButtonElement>("button")) button.disabled = disabled;
     }
 
+    setProtocol(version: number): void {
+        if (!this.disposed && Number.isInteger(version) && version > 0) this.text("protocol", `Protokół v${version}`);
+    }
+
     updateCorrection(distancePx: number): void {
         if (this.disposed || this.connectionFailed || !Number.isFinite(distancePx) || distancePx < 0) return;
         this.lastCorrection = distancePx;

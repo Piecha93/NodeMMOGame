@@ -92,7 +92,7 @@ interface GameServerInternals {
     core: GameCore;
     clientsInputSnapshotHandler: ClientsInputSnapshotHandler;
     sendUpdate(chunksUpdate: Map<Chunk, ArrayBuffer>): void;
-    sendV2Snapshot(client: ServerClient, first?: boolean): void;
+    sendSnapshot(client: ServerClient, first?: boolean): void;
 }
 
 function createTestServer(): { server: GameServer; internals: GameServerInternals } {
@@ -161,7 +161,7 @@ test("socket/game-server: malformed and unsupported protocol offers disconnect w
     const rejectedOffers: Array<{ payload: unknown; error: RegExp }> = [
         { payload: null, error: /Malformed protocol negotiation/ },
         { payload: { supportedProtocolVersions: [1, "2"] }, error: /Malformed protocol negotiation/ },
-        { payload: { supportedProtocolVersions: [3] }, error: /Unsupported protocol version/ },
+        { payload: { supportedProtocolVersions: [4] }, error: /Unsupported protocol version/ },
     ];
 
     for (const [index, rejectedOffer] of rejectedOffers.entries()) {
@@ -288,7 +288,7 @@ test("socket/game-server: name limits preserve complete astral Unicode letters f
 });
 
 test("socket/game-server: initial codec failures disconnect and clean up inside readiness", async (t) => {
-    for (const version of [1, 2]) {
+    for (const version of [1, 2, 3]) {
         await t.test(`v${version}`, (context) => {
             const { server, internals } = createTestServer();
             const socket = new FakeSocket(`Guest codec-failure-${version}`);
@@ -298,7 +298,7 @@ test("socket/game-server: initial codec failures disconnect and clean up inside 
                     throw new Error("injected initial codec failure");
                 });
             } else {
-                context.mock.method(internals, "sendV2Snapshot", () => {
+                context.mock.method(internals, "sendSnapshot", () => {
                     throw new Error("injected initial codec failure");
                 });
             }

@@ -36,8 +36,8 @@ Tests should prove behavior at the changed boundary. Add a failing reproduction 
 | Location | What it exercises |
 | --- | --- |
 | `tests/foundation/` | Isolated worlds/configuration/catalogs, fixed-step accumulation, object lifecycle, chunks, collisions and legacy binary compatibility. |
-| `tests/protocol/` | Explicit schemas, UTF-8, bounds, all-frame truncation, malformed data, batching, deterministic decoder fuzzing, sequence wrap and the legacy adapter boundary. |
-| `tests/socket/` | Handler validation/rate limits, connection lifecycle, real polling/WebSocket v1 and mixed v2/v1 state/ACK/STOP transport, plus v2 authoritative queue/interest behavior. |
+| `tests/protocol/` | Explicit schemas, v2/v3 byte fixtures, UTF-8, bounds, truncation, malformed data, batching, deterministic decoder fuzzing, sequence wrap, viewport hysteresis and the legacy adapter boundary. V3 also checks canonical varints, field masks, remote precision and exact local-player state. |
+| `tests/socket/` | Handler validation/rate limits, connection lifecycle, real polling/WebSocket v1 and mixed v3/v2/v1 state/ACK/STOP transport, plus authoritative queue/interest behavior. |
 | `tests/client/` | Input delivery/disposal, prediction/replay, interpolation, interest transitions, presentation, resource lifecycle and binary normalization. |
 | `tests/application/`, `tests/auth/` | Real HTTP/session/socket integration, application start/stop/rollback, credentials, password migration and optional real Mongo persistence. |
 | `tests/build/` | Current-source browser artifact, npm PixiJS provenance and view entrypoint. |
@@ -59,7 +59,7 @@ The transport fixture opens real polling and WebSocket connections using the pro
 
 Application tests run on loopback ephemeral ports and use actual session middleware. They check session-ID regeneration, guest login without MongoDB, authenticated socket admission, logout disconnection, rejected reconnect with a revoked cookie, malformed forms and Origin rejection. Repeated/concurrent start/stop and startup failure must leave no listening server or owned game timers.
 
-Mixed-version transport fixtures also connect a v2 client with a v1 observer through each transport. They check tick-consumed acknowledgements, STOP and state delivery without changing v1 negotiation. Controlled fixtures exercise the wider v2 queue/interest cases. Large deployment matrices and long reconnect/soak scenarios remain separate operating evidence.
+Mixed-version transport fixtures connect v2/v1 and v3/v2/v1 clients through each transport. They check tick-consumed acknowledgements, STOP and state delivery without changing the older wire formats. Controlled fixtures exercise the wider queue/interest cases. Differential rectangle tests compare more than 12,000 directed collision results with the pinned SAT implementation, including containment, touching edges, normal tie breaking, rotation, circles and public polygon edits. Client delta tests cover preflight, lifecycle, partial fields and final collider/chunk publication. Large deployment matrices and long reconnect/soak scenarios remain separate operating evidence.
 
 ## Mongo persistence
 

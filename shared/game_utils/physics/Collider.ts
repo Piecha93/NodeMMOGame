@@ -12,6 +12,7 @@ export class Collider {
     private rotation = 0;
     private readonly widthRatio: number;
     private readonly heightRatio: number;
+    private isRectangle = true;
 
     private offsetX: number;
     private offsetY: number;
@@ -54,6 +55,14 @@ export class Collider {
                 [w, h],
                 [-w, h],
             ]);
+            const polygon = this.shape as Polygon & { setPoints(points: number[][]): void };
+            const setPoints = polygon.setPoints;
+            polygon.setPoints = (points) => {
+                // Body is public. Arbitrary polygons must retain the general
+                // SAT path even if the caller keeps their rotation at zero.
+                this.isRectangle = false;
+                setPoints.call(polygon, points);
+            };
         }
         this.widthRatio = parent.Transform.ScaleX === 0 ? 1 : this.width / parent.Transform.ScaleX;
         this.heightRatio = parent.Transform.ScaleY === 0 ? 1 : this.height / parent.Transform.ScaleY;
@@ -101,6 +110,102 @@ export class Collider {
         }
     }
 
+    /** Axis-aligned rectangles avoid SAT's repeated vertex projections. */
+    public collides(other: Collider, result?: Result): boolean {
+        const a = this.shape;
+        const b = other.shape;
+        if (
+            !(a instanceof Polygon) ||
+            !(b instanceof Polygon) ||
+            !this.isRectangle ||
+            !other.isRectangle ||
+            a.angle !== 0 ||
+            b.angle !== 0 ||
+            a.scale_x <= 0 ||
+            a.scale_y <= 0 ||
+            b.scale_x <= 0 ||
+            b.scale_y <= 0 ||
+            this.width <= 0 ||
+            this.height <= 0 ||
+            other.width <= 0 ||
+            other.height <= 0
+        ) {
+            return a.collides(b, result);
+        }
+
+        const aWidth = (this.width * a.scale_x) / 2;
+        const aHeight = (this.height * a.scale_y) / 2;
+        const bWidth = (other.width * b.scale_x) / 2;
+        const bHeight = (other.height * b.scale_y) / 2;
+        const aMinX = a.x - aWidth;
+        const aMaxX = a.x + aWidth;
+        const aMinY = a.y - aHeight;
+        const aMaxY = a.y + aHeight;
+        const bMinX = b.x - bWidth;
+        const bMaxX = b.x + bWidth;
+        const bMinY = b.y - bHeight;
+        const bMaxY = b.y + bHeight;
+        const collision = aMinX < bMaxX && aMaxX > bMinX && aMinY < bMaxY && aMaxY > bMinY;
+        if (!collision) return a.collides(b, result);
+        if (result) {
+            result.a = a;
+            result.b = b;
+            result.collision = collision;
+            result.a_in_b = true;
+            result.b_in_a = true;
+            result.overlap = Infinity;
+            result.overlap_x = 0;
+            result.overlap_y = 0;
+            // Match the library's axis order and tie breaking, including
+            // fully contained rectangles and coincident centers.
+            Collider.projectAxis(-aMaxY, -aMinY, -bMaxY, -bMinY, 0, -1, result);
+            Collider.projectAxis(aMinX, aMaxX, bMinX, bMaxX, 1, -0, result);
+            Collider.projectAxis(aMinY, aMaxY, bMinY, bMaxY, 0, 1, result);
+            Collider.projectAxis(-aMaxX, -aMinX, -bMaxX, -bMinX, -1, -0, result);
+        }
+        return collision;
+    }
+
+    private static projectAxis(
+        aStart: number,
+        aEnd: number,
+        bStart: number,
+        bEnd: number,
+        x: number,
+        y: number,
+        result: Result,
+    ): void {
+        let overlap: number;
+        if (aStart < bStart) {
+            result.a_in_b = false;
+            if (aEnd < bEnd) {
+                overlap = aEnd - bStart;
+                result.b_in_a = false;
+            } else {
+                const first = aEnd - bStart;
+                const second = bEnd - aStart;
+                overlap = first < second ? first : -second;
+            }
+        } else {
+            result.b_in_a = false;
+            if (aEnd > bEnd) {
+                overlap = aStart - bEnd;
+                result.a_in_b = false;
+            } else {
+                const first = aEnd - bStart;
+                const second = bEnd - aStart;
+                overlap = first < second ? first : -second;
+            }
+        }
+        const absolute = Math.abs(overlap);
+        if (result.overlap > absolute) {
+            const sign = overlap < 0 ? -1 : 1;
+            result.overlap = absolute;
+            result.overlap_x = x * sign;
+            result.overlap_y = y * sign;
+        }
+    }
+
     resize() {
         if (this.shape instanceof Polygon) {
             let w: number = this.width / 2;
@@ -112,6 +217,7 @@ export class Collider {
                 [w, h],
                 [-w, h],
             ]);
+            this.isRectangle = true;
         } else {
             //circle
             this.shape.radius = this.width;

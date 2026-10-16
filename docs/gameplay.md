@@ -33,7 +33,7 @@ Do swobodnego sprawdzania ruchu, strzelania i obciążenia służy osobny [Polig
 
 ## Uruchamianie i architektura
 
-Domyślny `DEMO_SCENARIO=expedition` włącza wyprawę. `walls` zachowuje techniczny sandbox, a `none` pusty świat do testów. Wyprawa wymaga aktualnego klienta v2; starszy klient otrzymuje kontrolowany komunikat zamiast nieznanych obiektów.
+Domyślny `DEMO_SCENARIO=expedition` włącza wyprawę. `walls` zachowuje techniczny sandbox, a `none` pusty świat do testów. Wyprawa wymaga klienta v2 lub nowszego; starszy klient otrzymuje kontrolowany komunikat zamiast nieznanych obiektów.
 
 `ExpeditionController` po stronie serwera prowadzi cele, zegar, populację i wynik. Klient otrzymuje walidowany `ExpeditionState` i wyświetla HUD; nie decyduje o zabiciu, podniesieniu ani zwycięstwie. Zegar i odnowienia używają czasu symulacji.
 

@@ -34,10 +34,10 @@ test("foundation/protocol: socket message codes stay frozen on their v1 wire val
     assert.equal(Object.isFrozen(SocketMsgs), true);
 });
 
-test("foundation/protocol: v2 is current and v1 remains the rolling-upgrade legacy", () => {
-    assert.equal(Protocol.CURRENT, 2);
+test("foundation/protocol: v3 is current and previous clients remain supported", () => {
+    assert.equal(Protocol.CURRENT, 3);
     assert.equal(Protocol.LEGACY, 1);
-    assert.deepEqual(Protocol.SUPPORTED, [2, 1]);
+    assert.deepEqual(Protocol.SUPPORTED, [3, 2, 1]);
     assert.equal(Object.isFrozen(Protocol), true);
     assert.equal(Object.isFrozen(Protocol.SUPPORTED), true);
 });
@@ -52,6 +52,8 @@ test("foundation/protocol: negotiation selects the highest common version", () =
         version: Protocol.LEGACY,
     });
     assert.deepEqual(negotiateProtocolVersion(undefined), { ok: true, version: Protocol.LEGACY });
+    assert.deepEqual(negotiateProtocolVersion({ supportedProtocolVersions: [3, 2, 1] }), { ok: true, version: 3 });
+    assert.deepEqual(negotiateProtocolVersion({ supportedProtocolVersions: [2, 1] }), { ok: true, version: 2 });
 });
 
 test("foundation/protocol: malformed and unsupported offers are distinct controlled failures", () => {
@@ -69,7 +71,7 @@ test("foundation/protocol: malformed and unsupported offers are distinct control
     }
 
     assert.deepEqual(negotiateProtocolVersion({ supportedProtocolVersions: [] }), { ok: false, reason: "unsupported" });
-    assert.deepEqual(negotiateProtocolVersion({ supportedProtocolVersions: [3] }), {
+    assert.deepEqual(negotiateProtocolVersion({ supportedProtocolVersions: [4] }), {
         ok: false,
         reason: "unsupported",
     });
@@ -81,6 +83,6 @@ test("foundation/protocol: initialize without a version remains legacy v1", () =
         protocolVersionFromInitializePayload({ id: "A0", protocolVersion: Protocol.CURRENT }),
         Protocol.CURRENT,
     );
-    assert.equal(protocolVersionFromInitializePayload({ id: "A0", protocolVersion: 3 }), null);
+    assert.equal(protocolVersionFromInitializePayload({ id: "A0", protocolVersion: 4 }), null);
     assert.equal(protocolVersionFromInitializePayload(null), null);
 });

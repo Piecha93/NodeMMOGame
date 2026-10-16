@@ -26,7 +26,8 @@
     "format:check": "biome format .",
     "test:browser": "playwright test",
     "test:browser:serve": "vite --config vite.fixture.config.mts",
-    "check:browser": "tsc --noEmit -p tsconfig.browser.json"
+    "check:browser": "tsc --noEmit -p tsconfig.browser.json",
+    "bench": "npm run build:server && node scripts/benchmark.mjs"
   },
   "dependencies": {
     "detect-collisions": "2.7.0",

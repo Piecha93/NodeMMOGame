@@ -35,7 +35,7 @@ Open <http://127.0.0.1:3000> and select **Wyrusz jako gość**. WASD moves the p
 ## Architecture
 
 - `shared/core/` supplies world context, movement and replication bookkeeping. Each world owns its configuration, clock, random source, registry and prefab catalog. `GameCore.step()` advances one fixed simulation tick; `advance()` and the application scheduler handle elapsed real time.
-- `shared/protocol/` owns validated DTOs and the v2 binary codec. Stable field IDs, explicit framing, UTF-8 and bounded batches are independent of class/decorator order.
+- `shared/protocol/` owns validated DTOs and the v2/v3 binary codecs. Stable field IDs, explicit framing, UTF-8 and bounded batches are independent of class/decorator order.
 - `shared/replication/` translates domain state and maintains each client's visibility baseline. Create, update and destroy records describe entering, changing and leaving interest.
 - `shared/serialize/` is the compatibility boundary for legacy v1 and chunk snapshots. Its metadata and byte fixtures remain separate from domain replication state.
 - `server/` owns HTTP, authentication, persistence, transport, client sessions and scheduling. `createApplication()` exposes explicit start/stop instead of starting on import.
@@ -45,11 +45,13 @@ The code remains a single repository with explicit import rules. It does not req
 
 ## Network compatibility
 
-New clients offer `[2, 1]`; the server chooses the highest common version. Missing negotiation fields still mean legacy v1. Application event codes remain frozen at their original values.
+New clients offer `[3, 2, 1]`; the server chooses the highest common version. Missing negotiation fields still mean legacy v1. Application event codes remain frozen at their original values.
 
-The new expedition uses the appended marker prefab `I` and requires v2. Sandbox modes retain v1 admission and the historical A–H prefab mappings.
+The new expedition uses the appended marker prefab `I` and requires v2 or newer. Sandbox modes retain v1 admission and the historical A–H prefab mappings.
 
-V2 snapshots identify the server tick, snapshot and last processed input sequence. Local prediction replays only unacknowledged commands through shared movement/collision code. Remote actors use a bounded interpolation history with a 100 ms delay. Straight projectiles start moving from their first sample and extrapolate at most 80 ms past the latest authoritative sample before holding; server collision/destruction remains authoritative.
+V2/v3 snapshots identify the server tick, snapshot and last processed input sequence. V3 uses compact field masks, variable-length integers and float32 for remote state; authoritative local-player state keeps float64 precision. Its interest area follows the camera with prefetch and exit hysteresis, while older clients keep their original formats and chunk interest.
+
+Local prediction replays only unacknowledged commands through shared movement/collision code. Remote actors use a bounded interpolation history with a 100 ms delay. Straight projectiles start moving from their first sample and extrapolate at most 80 ms past the latest authoritative sample before holding; server collision/destruction remains authoritative.
 
 V1 remains a rolling-upgrade fallback with its original record bytes and legacy string encoding. UTF-8 is a v2 feature. Existing v1 byte fixtures continue to guard compatibility.
 

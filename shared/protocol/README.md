@@ -1,4 +1,4 @@
-# Application protocol v2
+# Application protocols v2 and v3
 
 This module contains immutable network DTOs, schemas, codecs and input validation.
 It imports no world entities, decorators, graphics, persistence or transport code.
@@ -12,6 +12,51 @@ for inspection; applying its result individually would bypass batch atomicity.
 Frames may arrive in any order, but missing, duplicated or mixed batches fail.
 Only batch zero may carry `localPlayerState`, which is a complete `DefaultPlayer`.
 An empty snapshot is valid and can acknowledge idle input.
+
+V3 uses the same immutable DTOs and batch semantics through `encodeSnapshotV3`,
+`decodeSnapshotV3` and diagnostic `decodeFrameV3`. Negotiation chooses the highest
+common version from `[3, 2, 1]`; the v2 and legacy codecs retain their own bytes.
+
+## Compact v3 records
+
+The v3 header retains the 32-byte layout below, changing the magic to `NMM3`,
+protocol version to `3`, and using its own schema revision `1`. No record length,
+field count, field type or per-field payload length is repeated when the schema
+already determines it. A normal record contains:
+
+1. One byte: the high two bits identify create (`0`), update (`1`) or destroy
+   (`2`); low six bits identify the explicitly registered prefab wire ID minus
+   `0x41` (`A`). Kind `3` and unregistered prefab IDs are invalid.
+2. A canonical unsigned base-128 varint with the uint32 entity sequence.
+3. For create/update, a canonical unsigned varint field-presence mask. Bit
+   `field.id - 1` refers to that stable field ID. Bits for unregistered fields
+   fail. Create requires the entire prefab mask; update requires a nonzero mask.
+4. Selected values in ascending field-ID order. Remote float fields use
+   network-order IEEE float32, uint16 values use bounded canonical varints,
+   booleans use one byte (`0` or `1`), and strings use a bounded varint byte
+   length followed by strict UTF-8. Destroy ends after its entity sequence.
+
+Array/decorator/property order still cannot change field identity. A changed
+field table or wire meaning requires a new schema/protocol revision. Compact
+records intentionally reject unknown fields rather than guessing their size.
+V3 keeps the same frame, batch, total byte and record-count limits as v2.
+Overlong or overflowing varints, trailing bytes, mixed batches and malformed
+UTF-8 fail with `ProtocolError` before the snapshot can be applied.
+
+The special `localPlayerState` record always uses float64 for **every** numeric
+float field. Reconciliation therefore receives exact authoritative positions,
+movement directions and velocity. Other records use float32 for presentation;
+the rounding error in the allowed ±1,000,000-pixel coordinate range is at most
+1/32 pixel, and is substantially smaller near the playable area. Finite values
+which overflow float32, such as an extraordinarily large rotation, are rejected
+by the v3 encoder. Its validation also checks the rounded value against schema
+bounds, so it never knowingly creates a frame its decoder would reject.
+
+A deterministic regression fixture with 2000 enemy updates containing x/y
+uses **84,256 bytes in v2 and 24,129 bytes in v3**, including all eight frame
+headers: 71.36% fewer application-protocol bytes. This measures identical
+records, before transport overhead or interest-area filtering; it is not a
+claim about every live workload or all bandwidth used by Socket.IO.
 
 ## Frame header
 
@@ -43,7 +88,7 @@ A record starts with its total uint32 byte length, a uint8 kind (`1` create,
 `2` update, `3` destroy), a uint8 prefab ID and a uint32 entity sequence. Prefab
 IDs are explicitly fixed to `A` through `H` for the eight original prefabs.
 `I` appends the expedition's static marker without renumbering existing types.
-The expedition requires an updated v2 client; sandbox modes keep legacy admission.
+The expedition requires a v2 or newer client; sandbox modes keep legacy admission.
 An entity ID combines its registered prefix and the canonical unsigned decimal sequence.
 
 Destroy records end after these ten bytes. Create and update records append a
@@ -99,3 +144,9 @@ V2 is separately negotiated. It does not change v1 bytes or v1 declaration-order
 metadata. The old codec remains a separate compatibility path until the legacy
 adapter is removed. Changing the field table, prefab table or field meaning
 requires a schema/protocol revision and an explicit compatibility decision.
+
+V3 is also separately negotiated, preserves v2 DTO meanings with the documented
+remote float precision, and leaves both older codecs intact. Its field mask is
+stateless relative to previous snapshots: it needs no new baseline negotiation
+or transport ACK. Incremental record creation and per-client baselines remain
+the replication adapter's responsibility, and require ordered reliable delivery.

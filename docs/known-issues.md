@@ -5,7 +5,7 @@ The refactor establishes explicit world ownership, fixed stepping, versioned ser
 ## Deliberate compatibility boundaries
 
 - V1 remains available for rolling upgrades and retains its historical one-byte/code-unit string encoding. Non-ASCII names are reliable through v2's UTF-8 codec; changing v1 string bytes would break old peers. Its implicit masks and legacy field layout remain guarded by golden fixtures.
-- The v2 codec validates whole bounded snapshot batches before application, and the runtime adapter checks referenced objects/prefabs. Arbitrary gameplay/lifecycle exceptions during application do not have a general transactional world rollback. A controlled disconnect/recovery boundary is still necessary for such runtime failures.
+- The v2/v3 codecs validate whole bounded snapshot batches before application, and the runtime adapter checks referenced objects/prefabs. Arbitrary gameplay/lifecycle exceptions during application do not have a general transactional world rollback. A controlled disconnect/recovery boundary is still necessary for such runtime failures.
 - `SharedConfig` and legacy registries remain compatibility construction entrypoints. Live worlds use their captured context and own prefab catalogs; they are independently configurable. New code should pass explicit world options instead of mutating legacy defaults.
 - `detect-collisions` remains pinned to 2.7.0. Position/rotation/scale and lifecycle regressions are in place, but changing the collision engine's API/behavior is a separate migration. The current solver is discrete; fast-object tunnelling and historical hit validation require gameplay-specific work if those mechanics demand it.
 
@@ -19,7 +19,7 @@ The refactor establishes explicit world ownership, fixed stepping, versioned ser
 
 ## Integration evidence still to extend
 
-- Real HTTP/session/socket tests cover login, logout, revoked reconnect, both v1 transports and mixed v2/v1 tick ACK/STOP/state delivery. V2 authoritative queue/interest tests cover its wider state-machine behavior; large mixed-client deployments and a long reconnect/heartbeat-loss matrix are not yet measured.
+- Real HTTP/session/socket tests cover login, logout, revoked reconnect, both transports and mixed v3/v2/v1 tick ACK/STOP/state delivery. Authoritative queue/interest tests cover the wider state-machine behavior; large mixed-client deployments and a long reconnect/heartbeat-loss matrix are not yet measured.
 - Decoder tests include deterministic malformed-frame fuzzing and explicit bounds; this is not an exhaustive fuzzing campaign over every transport/parser interaction.
 - Client resource, disposal, culling, smoothing and interpolation contracts have automated tests. A pinned Chromium fixture renders a deterministic scene, validates nonblank pixels and compares PNGs before/after remount within one run. It does not persist golden images across commits; versioned visual baselines and full automated gameplay/proxy smoke remain separate work.
 - Runtime lifecycle tests exercise restart and cleanup. Long-duration soak tests with many real client sessions are still needed to detect growth that a short regression suite cannot show.

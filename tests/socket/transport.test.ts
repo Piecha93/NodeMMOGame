@@ -13,7 +13,7 @@ import { Player } from "../../shared/game_utils/game/objects/Player";
 import { Protocol } from "../../shared/net/Protocol";
 import { SocketMsgs } from "../../shared/net/SocketMsgs";
 import { Origin } from "../../shared/core/Origin";
-import { decodeSnapshot } from "../../shared/protocol";
+import { decodeSnapshot, decodeSnapshotV3 } from "../../shared/protocol";
 import { applySnapshot } from "../../shared/replication/EntityAdapter";
 
 const parser = require("socket.io-msgpack-parser");
@@ -126,119 +126,147 @@ for (const transport of ["polling", "websocket"]) {
         assert.equal(game.core.ObjectsManager.get(initialization.id), undefined);
     });
 
-    test(`socket/transport: ${transport} v2 tick acknowledgements and STOP coexist with a v1 observer`, {
-        timeout: 12000,
-    }, async (t) => {
-        const http = createServer();
-        const sockets = new Server(http, { parser });
-        let identity = 0;
-        sockets.use((socket, next) => {
-            (socket.request as typeof socket.request & { session: { user_id: string } }).session = {
-                user_id: `Guest mixed-${transport}-${identity++}`,
-            };
-            next();
-        });
-        const gameServer = new GameServer(sockets, { world: { fixedDeltaMs: 40, random: () => 0.1 } });
-        const game = gameServer as unknown as TransportServerInternals;
-        game.configureSockets();
-        const replica = new GameCore({ role: Origin.CLIENT, fixedDeltaMs: 40 });
-        const clients: ClientSocket[] = [];
-        t.after(async () => {
-            for (const client of clients) client.disconnect();
-            gameServer.dispose();
-            replica.dispose();
-            const closed = sockets.close();
-            http.closeAllConnections();
-            await closed;
-        });
-        await listen(http);
-        const port = (http.address() as AddressInfo).port;
+    for (const modernVersion of [2, 3] as const)
+        test(`socket/transport: ${transport} v${modernVersion} tick acknowledgements and STOP coexist with older observers`, {
+            timeout: 12000,
+        }, async (t) => {
+            const http = createServer();
+            const sockets = new Server(http, { parser });
+            let identity = 0;
+            sockets.use((socket, next) => {
+                (socket.request as typeof socket.request & { session: { user_id: string } }).session = {
+                    user_id: `Guest mixed-${transport}-${identity++}`,
+                };
+                next();
+            });
+            const gameServer = new GameServer(sockets, { world: { fixedDeltaMs: 40, random: () => 0.1 } });
+            const game = gameServer as unknown as TransportServerInternals;
+            game.configureSockets();
+            const replica = new GameCore({ role: Origin.CLIENT, fixedDeltaMs: 40 });
+            const clients: ClientSocket[] = [];
+            t.after(async () => {
+                for (const client of clients) client.disconnect();
+                gameServer.dispose();
+                replica.dispose();
+                const closed = sockets.close();
+                http.closeAllConnections();
+                await closed;
+            });
+            await listen(http);
+            const port = (http.address() as AddressInfo).port;
 
-        async function connect(version: 1 | 2) {
-            const connected = new Promise<ServerSocket>((resolve) => sockets.once("connection", resolve));
-            const socket = io(`http://127.0.0.1:${port}`, {
-                autoConnect: false,
-                reconnection: false,
-                transports: [transport],
-                parser,
-            });
-            clients.push(socket);
-            const ready = new Promise<void>((resolve, reject) => {
-                socket.once("connect", resolve);
-                socket.once("connect_error", reject);
-            });
-            socket.connect();
-            await ready;
-            const serverSocket = await connected;
-            const initialized = clientEvent<{ id: string; protocolVersion: number }>(
-                socket,
-                SocketMsgs.INITIALIZE_GAME,
+            async function connect(version: 1 | 2 | 3) {
+                const connected = new Promise<ServerSocket>((resolve) => sockets.once("connection", resolve));
+                const socket = io(`http://127.0.0.1:${port}`, {
+                    autoConnect: false,
+                    reconnection: false,
+                    transports: [transport],
+                    parser,
+                });
+                clients.push(socket);
+                const ready = new Promise<void>((resolve, reject) => {
+                    socket.once("connect", resolve);
+                    socket.once("connect_error", reject);
+                });
+                socket.connect();
+                await ready;
+                const serverSocket = await connected;
+                const initialized = clientEvent<{ id: string; protocolVersion: number }>(
+                    socket,
+                    SocketMsgs.INITIALIZE_GAME,
+                );
+                const first = clientEvent<unknown>(socket, SocketMsgs.FIRST_UPDATE_GAME);
+                socket.emit(SocketMsgs.CLIENT_READY, { supportedProtocolVersions: [version] });
+                const initialization = await initialized;
+                assert.equal(initialization.protocolVersion, version);
+                return { socket, serverSocket, initialization, first: await first };
+            }
+            function apply(payload: unknown) {
+                assert.ok(Array.isArray(payload));
+                const frames = payload.map(normalizeBinaryPayload);
+                assert.ok(frames.every((frame) => frame !== null));
+                const snapshot =
+                    modernVersion === 3
+                        ? decodeSnapshotV3(frames as ArrayBuffer[])
+                        : decodeSnapshot(frames as ArrayBuffer[]);
+                applySnapshot(replica, snapshot);
+                return snapshot;
+            }
+            const modern = await connect(modernVersion);
+            const initial = apply(modern.first);
+            assert.equal(initial.lastProcessedInputSeq, null);
+            const legacy = await connect(1);
+            const previous = modernVersion === 3 ? await connect(2) : null;
+            assert.equal(game.clients.size, previous ? 3 : 2);
+            const player = game.core.ObjectsManager.get(modern.initialization.id);
+            assert.ok(player instanceof Player);
+            const startX = player.Transform.X;
+
+            let received = new Promise<void>((resolve) => modern.serverSocket.once(SocketMsgs.INPUT_SNAPSHOT, resolve));
+            modern.socket.emit(SocketMsgs.INPUT_SNAPSHOT, { seq: 1, horizontal: 0, vertical: 1 });
+            await received;
+            let update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
+            const previousIdle = previous ? clientEvent<unknown[]>(previous.socket, SocketMsgs.UPDATE_GAME) : null;
+            game.collectAndSendUpdate();
+            assert.equal(
+                apply(await update).lastProcessedInputSeq,
+                null,
+                "accepting transport input is not simulation acknowledgement",
             );
-            const first = clientEvent<unknown>(socket, SocketMsgs.FIRST_UPDATE_GAME);
-            socket.emit(SocketMsgs.CLIENT_READY, { supportedProtocolVersions: [version] });
-            const initialization = await initialized;
-            assert.equal(initialization.protocolVersion, version);
-            return { socket, serverSocket, initialization, first: await first };
-        }
-        function apply(payload: unknown) {
-            assert.ok(Array.isArray(payload));
-            const frames = payload.map(normalizeBinaryPayload);
-            assert.ok(frames.every((frame) => frame !== null));
-            const snapshot = decodeSnapshot(frames as ArrayBuffer[]);
-            applySnapshot(replica, snapshot);
-            return snapshot;
-        }
-        const modern = await connect(2);
-        const initial = apply(modern.first);
-        assert.equal(initial.lastProcessedInputSeq, null);
-        const legacy = await connect(1);
-        assert.equal(game.clients.size, 2);
-        const player = game.core.ObjectsManager.get(modern.initialization.id);
-        assert.ok(player instanceof Player);
-        const startX = player.Transform.X;
+            if (previousIdle) await previousIdle;
+            assert.equal(player.Transform.X, startX);
 
-        let received = new Promise<void>((resolve) => modern.serverSocket.once(SocketMsgs.INPUT_SNAPSHOT, resolve));
-        modern.socket.emit(SocketMsgs.INPUT_SNAPSHOT, { seq: 1, horizontal: 0, vertical: 1 });
-        await received;
-        let update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
-        game.collectAndSendUpdate();
-        assert.equal(
-            apply(await update).lastProcessedInputSeq,
-            null,
-            "accepting transport input is not simulation acknowledgement",
-        );
-        assert.equal(player.Transform.X, startX);
+            game.core.step();
+            update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
+            const legacyUpdate = clientEvent<unknown[]>(legacy.socket, SocketMsgs.UPDATE_GAME);
+            const previousUpdate = previous ? clientEvent<unknown[]>(previous.socket, SocketMsgs.UPDATE_GAME) : null;
+            game.collectAndSendUpdate();
+            const moved = apply(await update);
+            assert.equal(moved.lastProcessedInputSeq, 1);
+            assert.equal(replica.ObjectsManager.get(player.ID)?.Transform.X, startX + 10);
+            const legacyFrames = await legacyUpdate;
+            assert.ok(legacyFrames.length > 0);
+            assert.ok(legacyFrames.every((frame) => normalizeBinaryPayload(frame) !== null));
+            if (previousUpdate) {
+                const frames = (await previousUpdate).map(normalizeBinaryPayload);
+                assert.ok(frames.every((frame) => frame !== null));
+                assert.equal(
+                    decodeSnapshot(frames as ArrayBuffer[]).serverTick,
+                    moved.serverTick,
+                    "a concurrent v2 client receives its negotiated encoding, independent of the v3 recipient",
+                );
+            }
 
-        game.core.step();
-        update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
-        const legacyUpdate = clientEvent<unknown[]>(legacy.socket, SocketMsgs.UPDATE_GAME);
-        game.collectAndSendUpdate();
-        const moved = apply(await update);
-        assert.equal(moved.lastProcessedInputSeq, 1);
-        assert.equal(replica.ObjectsManager.get(player.ID)?.Transform.X, startX + 10);
-        const legacyFrames = await legacyUpdate;
-        assert.ok(legacyFrames.length > 0);
-        assert.ok(legacyFrames.every((frame) => normalizeBinaryPayload(frame) !== null));
+            received = new Promise<void>((resolve) => modern.serverSocket.once(SocketMsgs.INPUT_SNAPSHOT, resolve));
+            modern.socket.emit(SocketMsgs.INPUT_SNAPSHOT, { seq: 2, horizontal: 0, vertical: 0 });
+            await received;
+            game.core.step();
+            update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
+            game.collectAndSendUpdate();
+            assert.equal(apply(await update).lastProcessedInputSeq, 2);
+            assert.equal(replica.ObjectsManager.get(player.ID)?.Transform.X, startX + 10);
 
-        received = new Promise<void>((resolve) => modern.serverSocket.once(SocketMsgs.INPUT_SNAPSHOT, resolve));
-        modern.socket.emit(SocketMsgs.INPUT_SNAPSHOT, { seq: 2, horizontal: 0, vertical: 0 });
-        await received;
-        game.core.step();
-        update = clientEvent<unknown>(modern.socket, SocketMsgs.UPDATE_GAME);
-        game.collectAndSendUpdate();
-        assert.equal(apply(await update).lastProcessedInputSeq, 2);
-        assert.equal(replica.ObjectsManager.get(player.ID)?.Transform.X, startX + 10);
-
-        const modernClosed = new Promise<void>((resolve) => modern.serverSocket.once("disconnect", () => resolve()));
-        modern.socket.disconnect();
-        await modernClosed;
-        assert.equal(game.clients.size, 1);
-        assert.equal(game.core.ObjectsManager.get(player.ID), undefined);
-        assert.ok(game.core.ObjectsManager.get(legacy.initialization.id));
-        const legacyClosed = new Promise<void>((resolve) => legacy.serverSocket.once("disconnect", () => resolve()));
-        legacy.socket.disconnect();
-        await legacyClosed;
-        assert.equal(game.clients.size, 0);
-        assert.equal(game.core.ObjectsManager.ObjectsById.size, 0);
-    });
+            const modernClosed = new Promise<void>((resolve) =>
+                modern.serverSocket.once("disconnect", () => resolve()),
+            );
+            modern.socket.disconnect();
+            await modernClosed;
+            assert.equal(game.clients.size, previous ? 2 : 1);
+            assert.equal(game.core.ObjectsManager.get(player.ID), undefined);
+            assert.ok(game.core.ObjectsManager.get(legacy.initialization.id));
+            if (previous) {
+                const previousClosed = new Promise<void>((resolve) =>
+                    previous.serverSocket.once("disconnect", () => resolve()),
+                );
+                previous.socket.disconnect();
+                await previousClosed;
+            }
+            const legacyClosed = new Promise<void>((resolve) =>
+                legacy.serverSocket.once("disconnect", () => resolve()),
+            );
+            legacy.socket.disconnect();
+            await legacyClosed;
+            assert.equal(game.clients.size, 0);
+            assert.equal(game.core.ObjectsManager.ObjectsById.size, 0);
+        });
 }

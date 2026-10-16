@@ -1,8 +1,15 @@
 import { WorldOptions } from "../shared/core/WorldContext";
-import { InputCommand, validateInputCommand, isNewerSequence, encodeSnapshot } from "../shared/protocol";
+import {
+    InputCommand,
+    validateInputCommand,
+    isNewerSequence,
+    encodeSnapshot,
+    encodeSnapshotV3,
+    EntityState,
+} from "../shared/protocol";
 import { commandToSnapshot } from "../shared/replication/InputCommandAdapter";
 import { simulateMovement } from "../shared/core/SimulateMovement";
-import { ReplicationSession } from "../shared/replication/ReplicationSession";
+import { ReplicationSession, VIEWPORT_INTEREST } from "../shared/replication/ReplicationSession";
 import { Server, Socket, Namespace } from "socket.io";
 
 import { ServerClient } from "./ServerClient";
@@ -20,7 +27,7 @@ import { MagicWand } from "../shared/game_utils/game/weapons/MagicWand";
 import { ObjectsSpawner } from "../shared/game_utils/game/weapons/ObjectsSpawner";
 import { ClientsInputSnapshotHandler } from "./ClientsInputSnapshotHandler";
 
-import { negotiateProtocolVersion } from "../shared/net/Protocol";
+import { negotiateProtocolVersion, isSnapshotProtocol } from "../shared/net/Protocol";
 import { ExpeditionController } from "./runtime/ExpeditionController";
 import { EXPEDITION, ExpeditionEvents } from "../shared/gameplay/Expedition";
 import { PerformanceEvents } from "../shared/gameplay/Performance";
@@ -37,7 +44,7 @@ export interface GameServerOptions {
 }
 
 export class GameServer {
-    private readonly v2Clients = new Map<
+    private readonly snapshotClients = new Map<
         ServerClient,
         {
             queue: InputCommand[];
@@ -117,7 +124,7 @@ export class GameServer {
     private processInputCommands(): void {
         const phase = this.expedition?.state().phase;
         const playable = phase === undefined || phase === "active";
-        for (const [client, state] of this.v2Clients) {
+        for (const [client, state] of this.snapshotClients) {
             const player = this.getReadyPlayer(client);
             if (!player) continue;
             // An overloaded world may receive several client ticks before its
@@ -165,12 +172,13 @@ export class GameServer {
         }
     }
 
-    private sendV2Snapshot(client: ServerClient, first = false): void {
+    private sendSnapshot(client: ServerClient, first = false, captured?: Map<string, EntityState>): void {
         const player = this.getReadyPlayer(client);
-        const state = this.v2Clients.get(client);
+        const state = this.snapshotClients.get(client);
         if (!player || !state) return;
-        const prepared = state.replication.prepare(this.core, player, state.lastProcessed);
-        const frames = encodeSnapshot(prepared.snapshot);
+        const prepared = state.replication.prepare(this.core, player, state.lastProcessed, captured);
+        const frames =
+            client.ProtocolVersion === 3 ? encodeSnapshotV3(prepared.snapshot) : encodeSnapshot(prepared.snapshot);
         if (this.performance) {
             const traffic = this.snapshotTraffic.get(client) ?? { startedAt: Date.now(), bytes: 0, rate: 0 };
             traffic.bytes += frames.reduce((bytes, frame) => bytes + frame.byteLength, 0);
@@ -227,7 +235,7 @@ export class GameServer {
             }
         }
         this.clients.clear();
-        this.v2Clients.clear();
+        this.snapshotClients.clear();
         this.userIdToSocketMap.clear();
         this.lastChunkSent.clear();
         this.expedition?.dispose();
@@ -393,7 +401,7 @@ export class GameServer {
             }
 
             serverClient.ProtocolVersion = protocolNegotiation.version;
-            if ((this.expedition || this.performance) && serverClient.ProtocolVersion !== 2) {
+            if ((this.expedition || this.performance) && !isSnapshotProtocol(serverClient.ProtocolVersion)) {
                 this.clientDisconnected(serverClient, "Wyprawa wymaga aktualnego klienta. Odśwież stronę.");
                 return;
             }
@@ -424,18 +432,20 @@ export class GameServer {
                     fixedDeltaMs: this.core.Runtime.config.fixedDeltaMs,
                 });
 
-                if (serverClient.ProtocolVersion === 2) {
-                    this.v2Clients.set(serverClient, {
+                if (isSnapshotProtocol(serverClient.ProtocolVersion)) {
+                    this.snapshotClients.set(serverClient, {
                         queue: [],
                         lastReceived: null,
                         lastProcessed: null,
-                        replication: new ReplicationSession(),
+                        replication: new ReplicationSession(
+                            serverClient.ProtocolVersion === 3 ? VIEWPORT_INTEREST : undefined,
+                        ),
                         movementBudget: new InputMovementBudget(
                             this.core.Runtime.config.fixedDeltaMs,
                             this.options.world?.clock?.() ?? performance.now(),
                         ),
                     });
-                    this.sendV2Snapshot(serverClient, true);
+                    this.sendSnapshot(serverClient, true);
                 } else socket.emit(SocketMsgs.FIRST_UPDATE_GAME, [ObjectsSerializer.serializeObject(player)]);
                 if (this.expedition) this.broadcastExpeditionState(true);
                 if (this.performance) this.broadcastPerformanceState(true);
@@ -452,7 +462,7 @@ export class GameServer {
             if (
                 !this.performance ||
                 !player ||
-                serverClient.ProtocolVersion !== 2 ||
+                !isSnapshotProtocol(serverClient.ProtocolVersion) ||
                 !serverClient.allowEvent("performance-setup", 1, 1000)
             )
                 return;
@@ -477,14 +487,14 @@ export class GameServer {
             )
                 return;
             if (this.expedition.restart()) {
-                for (const state of this.v2Clients.values()) state.queue.length = 0;
+                for (const state of this.snapshotClients.values()) state.queue.length = 0;
                 this.broadcastExpeditionState(true);
             }
         });
 
         socket.on(SocketMsgs.INPUT_SNAPSHOT, (snapshotData: unknown) => {
-            if (serverClient.ProtocolVersion === 2 && this.isConnectedClient(serverClient)) {
-                const state = this.v2Clients.get(serverClient);
+            if (isSnapshotProtocol(serverClient.ProtocolVersion) && this.isConnectedClient(serverClient)) {
+                const state = this.snapshotClients.get(serverClient);
                 if (!state || !this.getReadyPlayer(serverClient)) return;
                 try {
                     if (
@@ -584,12 +594,14 @@ export class GameServer {
     }
 
     private sendUpdate(chunksUpdate: Map<Chunk, ArrayBuffer | ArrayBuffer[]>) {
+        // Immutable captures live for this publication only; client baselines remain independent.
+        const captured = new Map<string, EntityState>();
         this.clients.forEach((client: ServerClient) => {
-            if (client.ProtocolVersion === 2) {
+            if (isSnapshotProtocol(client.ProtocolVersion)) {
                 try {
-                    this.sendV2Snapshot(client);
+                    this.sendSnapshot(client, false, captured);
                 } catch (error) {
-                    console.error("Cannot encode v2 update", error);
+                    console.error("Cannot encode snapshot update", error);
                     this.clientDisconnected(client, "State synchronization failed");
                 }
                 return;
@@ -656,7 +668,7 @@ export class GameServer {
         if (!this.performance || (!force && now - this.lastPerformanceBroadcast < 250)) return;
         this.lastPerformanceBroadcast = now;
         for (const client of this.clients.values()) {
-            if (!client.IsReady || client.ProtocolVersion !== 2) continue;
+            if (!client.IsReady || !isSnapshotProtocol(client.ProtocolVersion)) continue;
             const traffic = this.snapshotTraffic.get(client);
             if (traffic && now - traffic.startedAt >= 1000) {
                 traffic.rate = traffic.bytes / ((now - traffic.startedAt) / 1000);
@@ -675,7 +687,8 @@ export class GameServer {
         this.lastExpeditionBroadcast = this.core.Runtime.timeMs;
         const state = this.expedition.state();
         for (const client of this.clients.values()) {
-            if (client.IsReady && client.ProtocolVersion === 2) client.Socket.emit(ExpeditionEvents.STATE, state);
+            if (client.IsReady && isSnapshotProtocol(client.ProtocolVersion))
+                client.Socket.emit(ExpeditionEvents.STATE, state);
         }
     }
 
@@ -690,7 +703,7 @@ export class GameServer {
         const wasReady = client.IsReady;
 
         this.clients.delete(socket);
-        this.v2Clients.delete(client);
+        this.snapshotClients.delete(client);
         this.snapshotTraffic.delete(client);
         if (this.performance && this.clients.size === 0) {
             this.performance.configure({ count: 0, distribution: "nearby", scenario: "moving" });

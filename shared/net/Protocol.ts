@@ -4,14 +4,18 @@ export interface ClientProtocolOffer {
     supportedProtocolVersions: readonly ProtocolVersion[];
 }
 
-const supportedProtocolVersions = Object.freeze([2, 1] as const);
+const supportedProtocolVersions = Object.freeze([3, 2, 1] as const);
 const MAX_ADVERTISED_PROTOCOL_VERSIONS = 8;
 
 export const Protocol = Object.freeze({
     LEGACY: 1 as ProtocolVersion,
-    CURRENT: 2 as ProtocolVersion,
+    CURRENT: 3 as ProtocolVersion,
     SUPPORTED: supportedProtocolVersions as readonly ProtocolVersion[],
 });
+
+export function isSnapshotProtocol(version: ProtocolVersion | null): boolean {
+    return version === 2 || version === 3;
+}
 
 export type ProtocolNegotiationResult =
     | { ok: true; version: ProtocolVersion }

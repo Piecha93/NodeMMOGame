@@ -25,7 +25,7 @@
             <label>Zachowanie<select name="scenario"><option value="moving">Ruch</option><option value="static">Bezruch</option><option value="combat">Walka i pociski</option></select></label>
             <button class="button button-primary" type="submit">Załaduj</button><button class="button button-secondary" type="button" data-performance-clear>Wyczyść</button>
         </form>
-        <p class="performance-status" role="status" data-performance="status">Łączymy z poligonem…</p>
+        <p class="performance-status" role="status"><span data-performance="status">Łączymy z poligonem…</span><span class="performance-protocol" data-performance="protocol"></span></p>
         <div class="world-frame">
             <canvas id="game-canvas" aria-label="Poligon do testów wydajności"></canvas>
             <div class="world-caption" aria-hidden="true"><span class="status-dot"></span> POLIGON · GOD MODE</div>
