@@ -124,6 +124,11 @@ export class GameCore {
         return Math.max(0, Math.min(1, this.accumulator / this.Runtime.config.fixedDeltaMs));
     }
 
+    /** Before-step subscribers see the current step and all remaining catch-up steps. */
+    get PendingSimulationSteps(): number {
+        return Math.max(0, Math.floor((this.accumulator + 1e-9) / this.Runtime.config.fixedDeltaMs));
+    }
+
     collectUpdateFrames(): Map<Chunk, ArrayBuffer[]> {
         return this.updateCollector.collectUpdateFrames();
     }

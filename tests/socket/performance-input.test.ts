@@ -11,6 +11,7 @@ import { InputCommand } from "../../shared/protocol";
 import { V2Prediction } from "../../client/net/V2Prediction";
 import { applySnapshot } from "../../shared/replication/EntityAdapter";
 import { InputMovementBudget } from "../../server/runtime/InputMovementBudget";
+import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 
 class SocketProbe {
     readonly request = { session: { user_id: "Guest perf-input" } };
@@ -40,7 +41,7 @@ class SocketProbe {
     }
 }
 
-function fixture() {
+function fixture(options: { maxCatchUpSteps?: number } = {}) {
     let nowMs = 0;
     const transport = {
         on() {
@@ -55,7 +56,7 @@ function fixture() {
     };
     const server = new GameServer(transport as unknown as Server, {
         performance: true,
-        world: { clock: () => nowMs },
+        world: { clock: () => nowMs, ...options },
     });
     const internals = server as unknown as {
         core: GameCore;
@@ -140,7 +141,7 @@ test("performance input: overloaded ticks simulate every ACKed movement and STOP
 });
 
 test("performance input: bounded world catch-up yields without discarding acknowledged player movement", () => {
-    const game = fixture();
+    const game = fixture({ maxCatchUpSteps: 2 });
     const client = new GameCore({ role: Origin.CLIENT, performanceMode: true });
     try {
         applySnapshot(client, game.initial);
@@ -174,6 +175,193 @@ test("performance input: bounded world catch-up yields without discarding acknow
         client.dispose();
     }
 });
+
+test("performance input: scheduled catch-up uses one queued command per world step without redundant physics", (t) => {
+    const game = fixture();
+    try {
+        const fixed = game.core.Runtime.config.fixedDeltaMs;
+        const startX = game.player.Transform.X;
+        const enemy = game.core.ObjectsFactory.instantiateWithPosition("Michau", [
+            startX + 200,
+            game.player.Transform.Y,
+        ]) as Enemy;
+        enemy.configurePerformance("static", 0, () => [game.player]);
+        const enemyUpdates = t.mock.method(enemy, "update");
+        const collisionUpdates = t.mock.method(game.core.CollisionsSystem, "update");
+        const snapshots: Array<{ ack: number | null; x: number }> = [];
+        game.core.subscribeAfterStep(() => {
+            const snapshot = game.flush();
+            snapshots.push({ ack: snapshot.lastProcessedInputSeq, x: snapshot.localPlayerState!.transform.x });
+        });
+        for (let seq = 0; seq < 3; seq++)
+            game.socket.receive(SocketMsgs.INPUT_SNAPSHOT, { seq, horizontal: 0, vertical: 1 });
+        game.advanceTime(fixed * 3);
+        assert.equal(game.core.advance(fixed * 3), 3);
+        assert.deepEqual(
+            snapshots,
+            [0, 1, 2].map((ack) => ({
+                ack,
+                x: startX + (ack + 1) * game.player.Velocity * fixed,
+            })),
+        );
+        assert.equal(enemyUpdates.mock.callCount(), 3, "every scheduled world tick still updates the enemy");
+        assert.equal(
+            collisionUpdates.mock.callCount(),
+            3,
+            "commands use existing world physics instead of extra scans",
+        );
+        assert.equal(game.core.Runtime.timeMs, fixed * 3);
+        assert.equal(game.core.droppedTimeMs, 0);
+    } finally {
+        game.dispose();
+    }
+});
+
+test("performance input: surplus catch-up batches only extra commands and preserves STOP and action origins", (t) => {
+    const game = fixture();
+    try {
+        const fixed = game.core.Runtime.config.fixedDeltaMs;
+        const startX = game.player.Transform.X;
+        const distance = game.player.Velocity * fixed;
+        const actions: Array<{ x: number; tick: number; target: number }> = [];
+        game.player.Weapon = {
+            use(user, position) {
+                actions.push({ x: user.Transform.X, tick: user.Runtime.tick, target: position[0] });
+            },
+            equip() {},
+            hide() {},
+        };
+        const collisionUpdates = t.mock.method(game.core.CollisionsSystem, "update");
+        const snapshots: Array<{ ack: number | null; x: number }> = [];
+        game.core.subscribeAfterStep(() => {
+            const snapshot = game.flush();
+            snapshots.push({ ack: snapshot.lastProcessedInputSeq, x: snapshot.localPlayerState!.transform.x });
+        });
+        for (let seq = 0; seq < 5; seq++)
+            game.socket.receive(SocketMsgs.INPUT_SNAPSHOT, {
+                seq,
+                horizontal: 0,
+                vertical: seq === 4 ? 0 : 1,
+                actions: [{ kind: "primary", x: seq, y: 200 }],
+            });
+        game.advanceTime(fixed * 3);
+        assert.equal(game.core.advance(fixed * 3), 3);
+        assert.deepEqual(snapshots, [
+            { ack: 2, x: startX + 3 * distance },
+            { ack: 3, x: startX + 4 * distance },
+            { ack: 4, x: startX + 4 * distance },
+        ]);
+        assert.deepEqual(
+            actions,
+            [0, 1, 2, 3, 4].map((target) => ({
+                x: startX + target * distance,
+                tick: Math.max(0, target - 2),
+                target,
+            })),
+        );
+        assert.equal(
+            collisionUpdates.mock.callCount(),
+            5,
+            "only the two surplus commands require extra movement physics",
+        );
+        assert.equal(game.player.Vertical, 0);
+        game.core.step();
+        assert.equal(game.player.Transform.X, startX + 4 * distance, "STOP remains authoritative after catch-up");
+        assert.equal(game.core.droppedTimeMs, 0);
+    } finally {
+        game.dispose();
+    }
+});
+
+test("performance input: the worker world catches up eight real simulation ticks without dropping them", (t) => {
+    const game = fixture();
+    try {
+        const fixed = game.core.Runtime.config.fixedDeltaMs;
+        const startX = game.player.Transform.X;
+        const collisionUpdates = t.mock.method(game.core.CollisionsSystem, "update");
+        const acknowledgements: Array<number | null> = [];
+        game.core.subscribeAfterStep(() => acknowledgements.push(game.flush().lastProcessedInputSeq));
+        assert.equal(game.core.Runtime.config.maxCatchUpSteps, 8);
+        for (let seq = 0; seq < 8; seq++)
+            game.socket.receive(SocketMsgs.INPUT_SNAPSHOT, { seq, horizontal: 0, vertical: seq === 7 ? 0 : 1 });
+        game.advanceTime(fixed * 8);
+        assert.equal(game.core.advance(fixed * 8), 8);
+        assert.deepEqual(acknowledgements, [0, 1, 2, 3, 4, 5, 6, 7]);
+        assert.equal(collisionUpdates.mock.callCount(), 8);
+        assert.equal(game.player.Transform.X, startX + 7 * game.player.Velocity * fixed);
+        assert.equal(game.core.Runtime.timeMs, fixed * 8);
+        assert.equal(game.core.droppedTimeMs, 0);
+    } finally {
+        game.dispose();
+    }
+});
+
+test("performance input: reserved catch-up commands retain prediction's wall collision and final STOP", () => {
+    const game = fixture();
+    const client = new GameCore({ role: Origin.CLIENT, performanceMode: true });
+    try {
+        const fixed = game.core.Runtime.config.fixedDeltaMs;
+        const startX = game.player.Transform.X;
+        game.player.Velocity = 1;
+        const wall = game.core.ObjectsFactory.instantiateWithPosition(
+            "Wall",
+            [startX + 72, game.player.Transform.Y],
+            [32, 200],
+        );
+        assert.equal(wall.IsDestroyed, false);
+        applySnapshot(client, game.initial);
+        applySnapshot(client, game.flush());
+        const predicted = client.ObjectsManager.get(game.player.ID) as Player;
+        const prediction = new V2Prediction(fixed);
+        for (let seq = 0; seq < 5; seq++) {
+            const command: InputCommand = { seq, horizontal: 0, vertical: seq === 4 ? 0 : 1 };
+            prediction.predict(predicted, command);
+            client.step();
+            game.socket.receive(SocketMsgs.INPUT_SNAPSHOT, command);
+        }
+        game.advanceTime(fixed * 3);
+        assert.equal(game.core.advance(fixed * 3), 3);
+        const snapshot = game.flush();
+        assert.equal(snapshot.lastProcessedInputSeq, 4);
+        assert.equal(game.player.Transform.X, startX + 40);
+        assert.deepEqual(game.player.Transform.Position, predicted.Transform.Position);
+        prediction.reconcile(
+            predicted,
+            snapshot.localPlayerState!,
+            snapshot.lastProcessedInputSeq,
+            client.CollisionsSystem,
+            client.ChunksManager,
+        );
+        assert.equal(prediction.PendingCount, 0);
+        assert.deepEqual(predicted.Transform.Position, game.player.Transform.Position);
+        assert.equal(game.player.Vertical, 0);
+    } finally {
+        game.dispose();
+        client.dispose();
+    }
+});
+
+for (const mode of ["manual", "single scheduled"] as const)
+    test(`performance input: a ${mode} world step still consumes the available movement backlog`, (t) => {
+        const game = fixture();
+        try {
+            const fixed = game.core.Runtime.config.fixedDeltaMs;
+            const startX = game.player.Transform.X;
+            const collisionUpdates = t.mock.method(game.core.CollisionsSystem, "update");
+            for (let seq = 0; seq < 4; seq++)
+                game.socket.receive(SocketMsgs.INPUT_SNAPSHOT, { seq, horizontal: 0, vertical: seq === 3 ? 0 : 1 });
+            game.advanceTime(fixed);
+            if (mode === "manual") game.core.step();
+            else assert.equal(game.core.advance(fixed), 1);
+            assert.equal(game.flush().lastProcessedInputSeq, 3);
+            assert.equal(game.player.Transform.X, startX + 3 * game.player.Velocity * fixed);
+            assert.equal(collisionUpdates.mock.callCount(), 4);
+            assert.equal(game.player.Vertical, 0);
+            assert.equal(game.core.Runtime.tick, 1);
+        } finally {
+            game.dispose();
+        }
+    });
 
 test("performance input: catch-up preserves action order, origin and the existing per-client action limit", () => {
     const game = fixture();

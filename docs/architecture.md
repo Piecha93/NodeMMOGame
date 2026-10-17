@@ -55,6 +55,8 @@ The worker caps queued and in-flight output at 32 MiB globally. The host separat
 
 Every `GameCore` owns a `WorldContext`, object manager, factory, prefab catalog, chunks, collision system and update collector. The context captures immutable configuration plus injected clock and random functions. Runtime role, chunk dimensions and timers follow the owning context rather than mutable process-wide client/server flags. The remaining `SharedConfig` API supplies legacy construction defaults; changing it after construction does not reconfigure a live world.
 
+`ReplicatedState` defers allocating a fallback context until an unattached object first reads `Runtime`. Factories normally attach the owner's exact context first and propagate it to nested transforms, avoiding a temporary context for each newly constructed object and transform. Constructor-time change bookkeeping retains the default server semantics without requiring a context allocation. Standalone instances still receive independent fallback contexts, and a later owner attachment replaces an already requested fallback. The protected `runtime` getter/setter remains available to subclasses.
+
 ```ts
 const core = new GameCore({
     role: Origin.SERVER,
@@ -72,6 +74,10 @@ core.advance(elapsed);  // Accumulate elapsed time into bounded fixed steps.
 ```
 
 The default simulation frequency is 64 Hz. `advance()` limits catch-up to eight steps and records discarded backlog in `droppedTimeMs`. Chunk deactivation follows simulation `timeMs`, so explicit stepping produces the same world lifecycle regardless of wall-clock pace. Connection/session expiry still uses real time. Rendering and network snapshot scheduling are separate from simulation stepping. Tests can drive the same world without sleeping or starting application timers.
+
+The dedicated performance worker uses the same default eight-step limit as the ordinary world; an explicitly configured limit still takes precedence. Catch-up executes actual fixed-duration simulation steps, including AI and collisions. Delay beyond the bounded backlog is still recorded as discarded time; loading and reconfiguration never reset that counter.
+
+Performance population loading has both a maximum of 80 creations per tick and a default CPU-time target of 1 ms. Timing includes construction, registration and spatial insertion, measured by an injectable monotonic clock. The controller reduces the creation allowance when the previous non-creation part of a tick leaves less than 1 ms of safety margin. It checks the budget after each completed creation and always creates at least one pending enemy, so an individual creation or GC pause can exceed the target but loading cannot stall indefinitely. Existing objects still receive every simulation update. Position validation precedes replacement, and cancellation or disposal discards the old pending work.
 
 At the beginning of a world update, the runtime captures a stable set of objects. Destroying an object cannot skip the following object; objects destroyed before their turn are ignored, and spawned objects begin their updates on the next tick. Collision batches also tolerate lifecycle mutation. Source/target registration is rechecked after callbacks, current contacts remain reachable by cleanup, and colliders sharing one parent are filtered out. Collider geometry follows position, rotation and scale changes.
 
@@ -133,6 +139,8 @@ sequenceDiagram
 ```
 
 The server owns simulation duration; clients cannot submit their own delta or position as authoritative state. Received commands are acknowledged only after the tick that consumes them. Sequence comparison handles uint32 wrap. Server input queues and client prediction history are bounded at 256 commands. Discrete actions execute on the server once and are excluded from local movement replay.
+
+Performance input processing reserves queued commands for the remaining scheduled catch-up steps. `PendingSimulationSteps` includes the current step when read by a before-step subscriber: three due steps and three commands consume one command per step; five commands consume three, then one, then one. Only surplus commands need movement replay before the ordinary world update, avoiding repeated global collision work for commands that later world steps can process normally. Every consumed command still spends the elapsed-time movement budget and advances its ACK only after processing. AI observes the player's intermediate positions on successive world ticks; action order, shot origins, STOP and movement-credit limits remain covered by regressions. A manual step or a single due step retains bounded backlog replay.
 
 `ReplicationSession` owns a baseline per connection. The current chunk and its neighbors define the candidate set. V3 further filters it to a rectangle extending 768 pixels horizontally and 512 vertically around the player, including conservative object bounds. This covers the 1024×576 viewport, camera look-ahead and prefetch; already known objects receive an extra 96 pixels of exit hysteresis. V1/V2 retain their original interest. Entering objects receive complete create records, changed visible objects receive updates, and leaving/destroyed objects receive removal records. The next baseline commits after successful encoding; another client's interest transition does not consume that state. Immutable entity captures are shared only within one publication; baselines and transitions remain independent.
 

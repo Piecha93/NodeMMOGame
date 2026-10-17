@@ -93,6 +93,11 @@ export class CollisionsSystem extends Collisions {
             const contactFilter = gameObject.contactFilter(collider);
 
             let oldCollidingBodies: Set<Body> = this.collidingBodiesMap.get(colliderBody) || new Set<Body>();
+            // An empty history already represents the complete result when no
+            // solid target can exist. Keep it instead of allocating another
+            // empty set for every stock actor on every tick. Retained contacts
+            // still use the normal path so their exit callbacks are delivered.
+            if (onlySolidTargets && this.solidCandidates.size === 0 && oldCollidingBodies.size === 0) continue;
             let newCollidingBodies: Set<Body> = new Set<Body>();
             // Publish the current contacts before callbacks, so removeObject can
             // clean them even when a callback destroys an earlier contact.

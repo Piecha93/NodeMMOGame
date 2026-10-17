@@ -2,14 +2,24 @@ import { WorldContext } from "./WorldContext";
 
 /** Domain-side replication bookkeeping; wire codecs live at the application edge. */
 export abstract class ReplicatedState {
-    protected runtime: WorldContext = new WorldContext();
+    private runtimeContext: WorldContext | undefined;
     protected forceComplete = true;
     protected readonly changes = new Set<string>();
     protected readonly deserializedFields = new Set<string>();
     protected lastUpdateTick = 0;
 
     get Runtime(): WorldContext {
-        return this.runtime;
+        // Factories attach their world immediately after construction. Standalone
+        // objects still get an independent default context when they request it.
+        return (this.runtimeContext ??= new WorldContext());
+    }
+
+    protected get runtime(): WorldContext {
+        return this.Runtime;
+    }
+
+    protected set runtime(runtime: WorldContext) {
+        this.runtimeContext = runtime;
     }
 
     protected replicatedChildren(): readonly ReplicatedState[] {
@@ -17,16 +27,16 @@ export abstract class ReplicatedState {
     }
 
     setRuntime(runtime: WorldContext): void {
-        this.runtime = runtime;
+        this.runtimeContext = runtime;
         for (const child of this.replicatedChildren()) child.setRuntime(runtime);
     }
 
     addChange(change: string): void {
-        if (this.runtime.isServer) this.changes.add(change);
+        if (this.runtimeContext?.isServer ?? true) this.changes.add(change);
     }
 
     hasChange(change: string): boolean {
-        return this.runtime.isServer ? this.changes.has(change) : this.deserializedFields.has(change);
+        return (this.runtimeContext?.isServer ?? true) ? this.changes.has(change) : this.deserializedFields.has(change);
     }
 
     forceCompleteUpdate(): void {

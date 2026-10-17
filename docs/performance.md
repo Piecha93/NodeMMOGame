@@ -4,7 +4,7 @@ Wybierz **Poligon / test wydajności** na stronie wejścia lub w nagłówku gry.
 
 ## Ustawienia
 
-- **Przeciwnicy: 0–20 000** — wpisz dowolną liczbę całkowitą. Populacja powstaje partiami po maksymalnie 80 obiektów na tick, a licznik pokazuje postęp. Limit i walidacja są wspólne dla klienta oraz serwera.
+- **Przeciwnicy: 0–20 000** — wpisz dowolną liczbę całkowitą. Populacja powstaje partiami po maksymalnie 80 obiektów na tick, z celem 1 ms CPU na tworzenie, rejestrację i wstawienie do indeksu kolizji. Budżet maleje, gdy poprzedni tick zostawił mało zapasu. Pojedynczej konstrukcji ani GC nie można przerwać; każda partia tworzy przynajmniej jednego NPC. Licznik pokazuje postęp, a limit i walidacja są wspólne dla klienta oraz serwera.
 - **Wokół mnie** — siatka wokół bieżącej pozycji gracza; duże populacje wykraczają poza ekran i obszar zainteresowania klienta.
 - **Cała mapa** — populacja rozłożona między chunkami. Odległe chunki pozostają aktywne, więc cały świat nadal wykonuje symulację, a klient otrzymuje własną okolicę.
 - **Bezruch / Ruch / Walka i pociski** — porównanie kosztu nieruchomych obiektów, ruchu i kolizji oraz AI ze strzelaniem do graczy w zasięgu.
@@ -12,7 +12,7 @@ Wybierz **Poligon / test wydajności** na stronie wejścia lub w nagłówku gry.
 
 Ustawienia są wspólne dla wszystkich graczy na poligonie. Zmiana jest ograniczona do jednej na sekundę. Wyprawa działa w oddzielnym świecie i przestrzeni Socket.IO; zmiany poligonu nie modyfikują jej obiektów ani celów. Poligon ma własny worker thread: jego symulacja, kolizje, baselines replikacji i kodowanie snapshotów nie wykonują się na głównej pętli zdarzeń HTTP i wyprawy. Oba wątki nadal korzystają z zasobów tego samego komputera.
 
-Przeciążony poligon nadrabia najwyżej dwa ticki świata w jednej turze, aby częściej oddawać czas obsłudze sieci. Ruch gracza odtwarza każdą potwierdzoną komendę ze stałym krokiem, także gdy AI nadąża wolniej. Budżet czasu serwera ogranicza to do 8 komend na tick i 8 ticków zapasu; numer sekwencji ani zalewanie komendami nie przyznają dodatkowego czasu ruchu. Zwykła gra zachowuje obsługę jednej komendy na tick. Przy skrajnym przeciążeniu nadal możliwy jest zaległy input; panel pokazuje faktyczne Hz, porzucony czas i wielkość korekt.
+Poligon nadrabia najwyżej osiem rzeczywistych ticków świata w jednej turze, tak jak zwykły świat. Własny worker pozwala wykonać ten ograniczony zapas po krótkim skoku ładowania lub snapshotu. Kolejka inputu rezerwuje komendy dla nadchodzących ticków; tylko nadmiar odtwarza dodatkowy ruch i kolizje. Każda potwierdzona komenda nadal wykonuje stały krok ruchu. Budżet czasu serwera ogranicza to do 8 komend na tick i 8 ticków zapasu; numer sekwencji ani zalewanie komendami nie przyznają dodatkowego czasu ruchu. Zwykła gra zachowuje obsługę jednej komendy na tick. Przy skrajnym przeciążeniu nadal możliwy jest zaległy input; panel pokazuje faktyczne Hz, porzucony czas i wielkość korekt. Licznik porzuconego czasu pozostaje sumą od uruchomienia świata i nie zeruje się przy zmianie populacji.
 
 ## Co mierzy panel
 
@@ -68,7 +68,15 @@ npm run bench:server -- --count=2000 --seconds=20 --warmup=5
 
 Ten benchmark uruchamia prawdziwą aplikację na losowym lokalnym porcie oraz klienta Socket.IO w osobnym procesie. Poligon działa w workerze serwera, a raport podaje jego identyfikator wątku. Gość loguje się przez HTTP, negocjuje v3 i WebSocket, ładuje żądaną populację, następnie chodzi po kwadracie, zmieniając kierunek co 800 ms. Wysyła input z docelowym tempem 64 Hz, ale nie strzela, żeby liczba testowanych przeciwników pozostawała stała. Przeciwnicy wykonują zwykłą walkę i strzelają; reguły kooperacji i kolizji pozostają włączone. Drugi klient jest obecny w zwykłym świecie i mierzy jego heartbeaty; co 500 ms wykonywany jest też odczyt HTTP. Sekcja `isolation` pokazuje tempo zwykłego świata i opóźnienia tych prób podczas obciążenia workera.
 
-Pomiar zaczyna się po zakończeniu ładowania oraz rozgrzewce. Raport zawiera faktyczny przyrost ticków względem czasu monotonicznego, wszystkie zmierzone czasy ticków, snapshoty i bajty odebrane przez klienta, RTT heartbeatów, przyrost porzuconego czasu i minimum/maksimum żywych NPC. Inna niż zadana liczba NPC przerywa próbę. Skrypt zamyka własne procesy, sockety i timery także po błędzie. Zakresy parametrów: `--count=0..20000`, `--seconds=1..120`, `--warmup=0..30`.
+Domyślna faza `--phase=steady` zaczyna pomiar po zakończeniu ładowania oraz rozgrzewce. Raport zawiera faktyczny przyrost ticków względem czasu monotonicznego, wszystkie zmierzone czasy ticków, snapshoty i bajty odebrane przez klienta, RTT heartbeatów, przyrost porzuconego czasu i minimum/maksimum żywych NPC. Inna niż zadana liczba NPC przerywa próbę. Skrypt zamyka własne procesy, sockety i timery także po błędzie. Zakresy parametrów: `--count=0..20000`, `--seconds=1..120`, `--warmup=0..30`, `--scenario=static|moving|combat`, `--movement=idle|square`, `--direction-ms=100..10000` (domyślnie 800). Dłuższy bok trasy angażuje więcej NPC i może znacznie zwiększyć koszt walki.
+
+Żeby zmierzyć także spawn i pierwsze sekundy pracy pełnej populacji:
+
+```sh
+npm run bench:server -- --phase=spawn --count=5000 --movement=square --settle=5
+```
+
+Faza `spawn` rozpoczyna pomiar i wysyłanie inputu przed konfiguracją populacji. Po odebraniu pełnej liczby NPC i `pending=0` pobiera checkpoint z workera, a następnie kontynuuje wejście, snapshoty i sondy przez `--settle=0..30` sekund (domyślnie 3). Raport rozdziela przyrost porzuconego czasu podczas ładowania i po nim oraz podaje pełną sumę i wartości licznika na początku i końcu. `loadingElapsedSeconds` obejmuje oczekiwanie na telemetrię publikowaną co 250 ms; checkpoint obejmuje też opóźnienie odczytu z workera. Nie jest to dokładny czas samej fabryki. Ta faza nie przyjmuje `--seconds` ani `--warmup`; `steady` nie przyjmuje `--settle`.
 
 Przed wydzieleniem workera, na Node 24.19 / Windows x64 próba 2000 NPC, 5 s rozgrzewki + 20 s ciągłego ruchu pokazała:
 
@@ -140,6 +148,30 @@ Próba na Node 24.19 / Windows x64 / Ryzen 5 2600, 10 000 NPC, 60 przechwyconych
 | Pula 4 workerów | 0,163 ms | 0,282 ms |
 
 Pula pozostaje eksperymentem uruchamianym osobnym poleceniem. Gra zachowuje sekwencyjne callbacki w workerze świata; przy tak małej ilości pracy geometrycznej dodatkowe wiadomości nie dały zysku. Rozruch workerów jest raportowany osobno i nie wchodzi do powyższych czasów.
+
+## Spawn 5000 NPC — 17 października 2026
+
+Po dodaniu budżetu spawnu pomiar obejmuje cały start populacji. Fabryka nie tworzy już tymczasowego `WorldContext` dla każdego obiektu i transformu. Poligon wykonuje do ośmiu zaległych ticków, a input rezerwuje komendy dla tych ticków, unikając podwójnej pracy globalnego indeksu kolizji. Licznik porzuconego czasu i jego reguły pozostają bez zmian.
+
+Profil wskazał też koszt wielokrotnych dynamicznych odczytów metod kolizyjnych. Jawne odczyty zachowują ich kolejność i wykrywanie własnych callbacków, a silnik JavaScript może je specjalizować. Puste kontakty aktorów bez kandydatów solid zachowują swój istniejący pusty zbiór zamiast tworzyć kolejny. Pełna ścieżka dla zmienionych callbacków, geometrii i starych kontaktów pozostaje aktywna.
+
+Kontrolowana próba CPU z 5000 walczącymi NPC, 192 tickami rozgrzewki i 80 mierzonymi tickami ruchu zmniejszyła p50 / p95 z **15,28 / 19,67 ms** do **9,49 / 12,18 ms**. Końcowy fingerprint świata był identyczny. Oddzielne porównanie każdego z 400 ticków przy 5000 NPC zachowało identyczny stan, geometrię i przebieg tworzenia/usuwania obiektów, w tym 2842 utworzone pociski. Koszt odświeżania polityki w osobnym instrumentowanym przebiegu spadł z 4,42 do 1,87 ms/tick. Czasy faz są zagnieżdżone i zawierają narzut pomiaru.
+
+Prawdziwy serwer i klient v3/WebSocket, Node 24.19 / Windows x64 / Ryzen 5 2600, `combat`, pobliska populacja, input 64 Hz:
+
+| Próba | Ładowanie do pełnej telemetrii | Obserwacja po checkpointcie | Rzeczywiste Hz całej próby | Porzucony czas: ładowanie / po nim |
+| --- | ---: | ---: | ---: | ---: |
+| Ruch po kwadracie, 1 | 1,37 s | 5,01 s | 63,81 | 0 / 0 ms |
+| Postój | 1,38 s | 5,01 s | 63,93 | 0 / 0 ms |
+| Ruch po kwadracie, 2 | 1,39 s | 5,01 s | 63,83 | 0 / 0 ms |
+
+Każda próba zaczynała się od 0 NPC i licznika 0 ms, kończyła z 5000 NPC i licznikiem 0 ms. W początkowej wersji bez tych zmian sam spawn z ruchem dawał 69,75 ms porzuconego czasu. Oddzielna próba `steady`, 5 s rozgrzewki + 15 s pomiaru ruchu, wykonała **961 ticków w 15,008 s: 64,03 Hz**, tick p50 / p95 **8,91 / 13,70 ms**, bez przyrostu porzuconego czasu. Populacja pozostawała 5000 / 5000; zwykły świat utrzymał 63,96 Hz, HTTP p95 5,22 ms.
+
+Są to lokalne próby jednej trasy i jednego gracza bez renderowania. Gracz nie strzela, aby nie zmniejszać populacji; NPC normalnie strzelają i wykonują kolizje. Historyczne wyniki powyżej dotyczą wcześniejszych wersji.
+
+**Pozostałe ograniczenie:** dwukrotnie dłuższy bok trasy (`--direction-ms=1600 --settle=10`) angażuje większy tłum i ujawnił 51,88 Hz oraz 2004 ms porzuconego czasu po ładowaniu. Samo ładowanie nadal miało 0 ms. W przeglądarce spawn podczas ruchu także zakończył się z 5000 / 5000 NPC i 0 ms; dłuższe przejście z około 775 pociskami dało chwilowo 50,1 Hz / 53 FPS i 397 ms porzuconego czasu. To nie jest jeszcze gwarancja 64 Hz i braku strat podczas każdej walki z 5000 NPC.
+
+Profil całego workera dla trudniejszej trasy wskazuje przede wszystkim aktualizację geometrii, przechodzenie po BVH i odświeżanie polityki solidności; przygotowanie oraz wysyłka snapshotów stanowiły około 6,5% próbkowanego czasu. Drzewo po spawnie miało maksymalną głębokość 113 przy 5097 liściach, ale prywatne eksperymenty z większym paddingiem i balansowaniem zachowującym kolejność liści nie poprawiły wyniku. Nie zostały włączone do gry. Kolejne zmiany należy weryfikować również na tej dłuższej trasie.
 
 ## Konfiguracja
 

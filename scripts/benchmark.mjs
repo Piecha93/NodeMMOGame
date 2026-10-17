@@ -25,7 +25,9 @@ if (
 
 const core = new GameCore({ role: Origin.SERVER, performanceMode: true, cooperative: true, random: () => 0.5 });
 const replica = new GameCore({ role: Origin.CLIENT, performanceMode: true, random: () => 0.5 });
-const controller = new PerformanceController(core);
+// Offline fixtures load exactly 80 enemies per tick so their initial positions
+// and simulated ages stay deterministic. Tick CPU telemetry still uses real time.
+const controller = new PerformanceController(core, { clock: () => 0 });
 const all = new ReplicationSession();
 const viewport = new ReplicationSession(VIEWPORT_INTEREST);
 const measurements = {

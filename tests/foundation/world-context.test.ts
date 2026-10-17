@@ -70,6 +70,23 @@ test("world simulation: catch-up is bounded and reports discarded backlog", () =
     }
 });
 
+test("world simulation: before-step subscribers can reserve commands for remaining catch-up steps", () => {
+    const core = new GameCore({ fixedDeltaMs: 10, maxCatchUpSteps: 3 });
+    const remaining: number[] = [];
+    try {
+        core.subscribeBeforeStep(() => remaining.push(core.PendingSimulationSteps));
+        assert.equal(core.PendingSimulationSteps, 0);
+        assert.equal(core.advance(30), 3);
+        assert.deepEqual(remaining, [3, 2, 1]);
+        assert.equal(core.PendingSimulationSteps, 0);
+        core.step();
+        assert.deepEqual(remaining, [3, 2, 1, 0]);
+        assert.equal(core.droppedTimeMs, 0);
+    } finally {
+        core.dispose();
+    }
+});
+
 test("world simulation: chunk expiry follows simulation time even when the wall clock is frozen", () => {
     const core = new GameCore({ role: Origin.SERVER, clock: () => 0, fixedDeltaMs: 10, chunkDeactivationTime: 20 });
     try {

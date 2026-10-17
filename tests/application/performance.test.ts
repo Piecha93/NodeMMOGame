@@ -119,6 +119,11 @@ test("application/performance: authenticated namespace is isolated, logout revok
         0,
     );
     assert.equal(diagnostic.performance.enemies, 137);
+    // Reconfiguration is limited to one request per second for the whole world.
+    await delay(1000);
+    const loading = nextState(performance, (state) => state.count === 20_000 && state.pending > 0);
+    performance.emit(PerformanceEvents.CONFIGURE, { count: 20_000, distribution: "world", scenario: "static" });
+    await loading;
     const normalDisconnected = new Promise<void>((resolve) => ordinary.once("disconnect", () => resolve()));
     const performanceDisconnected = new Promise<void>((resolve) => performance.once("disconnect", () => resolve()));
     const logout = await fetch(`${base}/logout`, { method: "POST", headers: { cookie }, redirect: "manual" });
@@ -129,7 +134,16 @@ test("application/performance: authenticated namespace is isolated, logout revok
         (state) => state.clients === 0,
     );
     assert.equal(cleaned.performance.enemies, 0, "the last observer leaving cancels the performance workload");
+    assert.equal(cleaned.performance.pending, 0, "leaving also cancels unfinished creation batches");
     assert.equal(cleaned.performance.objects, 0);
+    const cleanedTick = cleaned.serverTick;
+    const afterCleanup = await eventually(
+        () => performanceServer.inspect(),
+        (state) => state.serverTick >= cleanedTick + 2,
+    );
+    assert.equal(afterCleanup.performance.enemies, 0);
+    assert.equal(afterCleanup.performance.pending, 0);
+    assert.equal(afterCleanup.performance.objects, 0, "later worker ticks cannot resume cancelled loading");
     await assert.rejects(connect(makeSocket("/performance", cookie)), /authorized|expired/);
     await application.stop();
     assert.equal(normalCore.ObjectsManager.ObjectsById.size, 0);

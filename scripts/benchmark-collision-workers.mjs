@@ -120,7 +120,9 @@ function captureQueries() {
         );
     };
     try {
-        controller = new PerformanceController(core);
+        // Offline fixtures keep the original 80-enemy batches and simulated ages;
+        // the injected loading clock does not replace real tick CPU measurements.
+        controller = new PerformanceController(core, { clock: () => 0 });
         const player = core.ObjectsFactory.instantiateWithPosition("DefaultPlayer", controller.spawnPosition());
         controller.configure({ count, scenario, distribution: "nearby" });
         for (let index = 0; index < Math.ceil(count / 80); index++) core.step();

@@ -24,6 +24,7 @@ function summarize(values) {
         p50: sorted[Math.floor(sorted.length * 0.5)] ?? 0,
         p95: sorted[Math.max(0, Math.ceil(sorted.length * 0.95) - 1)] ?? 0,
         mean: sorted.length ? sorted.reduce((sum, value) => sum + value, 0) / sorted.length : 0,
+        max: sorted.at(-1) ?? 0,
     };
 }
 
@@ -60,6 +61,8 @@ async function childServer() {
                     cpu: process.cpuUsage(),
                 };
                 process.send({ kind: "reply", id: message.id, value: started });
+            } else if (message.kind === "inspect") {
+                process.send({ kind: "reply", id: message.id, value: sample(await world.inspect()) });
             } else if (message.kind === "finish") {
                 if (!measuring) throw new Error("Measurement has not started");
                 const measuredWorld = await world.endMeasurement();
@@ -115,26 +118,52 @@ async function childServer() {
 }
 
 function options() {
+    const usage = `Use --count=0..${maximum} --phase=steady|spawn --scenario=static|moving|combat --movement=idle|square --direction-ms=100..10000. For --phase=steady only: --seconds=1..120 --warmup=0..30. For --phase=spawn only: --settle=0..30`;
     const values = new Map();
     for (const argument of process.argv.slice(2)) {
-        const match = /^--(count|seconds|warmup)=(\d+)$/.exec(argument);
-        if (!match || values.has(match[1]))
-            throw new Error(`Use --count=0..${maximum} --seconds=1..120 --warmup=0..30`);
-        values.set(match[1], Number(match[2]));
+        const match = /^--(count|seconds|warmup|settle|phase|scenario|movement|direction-ms)=([a-z0-9]+)$/.exec(
+            argument,
+        );
+        if (!match || values.has(match[1])) throw new Error(usage);
+        values.set(match[1], match[2]);
     }
-    const count = values.get("count") ?? 2000;
-    const seconds = values.get("seconds") ?? 20;
-    const warmup = values.get("warmup") ?? 5;
+    const count = Number(values.get("count") ?? 2000);
+    const seconds = Number(values.get("seconds") ?? 20);
+    const warmup = Number(values.get("warmup") ?? 5);
+    const settle = Number(values.get("settle") ?? 3);
+    const phase = values.get("phase") ?? "steady";
+    const scenario = values.get("scenario") ?? "combat";
+    const movement = values.get("movement") ?? "square";
+    const directionMs = Number(values.get("direction-ms") ?? 800);
     if (
-        ![count, seconds, warmup].every(Number.isSafeInteger) ||
+        ![count, seconds, warmup, settle, directionMs].every(Number.isSafeInteger) ||
         count > maximum ||
         seconds < 1 ||
         seconds > 120 ||
-        warmup > 30
+        warmup > 30 ||
+        settle > 30 ||
+        directionMs < 100 ||
+        directionMs > 10_000 ||
+        !["steady", "spawn"].includes(phase) ||
+        !["static", "moving", "combat"].includes(scenario) ||
+        !["idle", "square"].includes(movement)
     )
-        throw new Error(`Use --count=0..${maximum} --seconds=1..120 --warmup=0..30`);
-    validatePerformanceConfiguration({ count, distribution: "nearby", scenario: "combat" });
-    return { count, seconds, warmup };
+        throw new Error(usage);
+    if (phase === "spawn" && (values.has("seconds") || values.has("warmup")))
+        throw new Error(
+            "--seconds and --warmup apply only to --phase=steady; spawn measures the complete loading window",
+        );
+    if (phase === "steady" && values.has("settle"))
+        throw new Error("--settle applies only to --phase=spawn; steady uses --seconds and --warmup");
+    validatePerformanceConfiguration({ count, distribution: "nearby", scenario });
+    return {
+        count,
+        phase,
+        scenario,
+        movement,
+        directionMs,
+        ...(phase === "steady" ? { seconds, warmup } : { settle }),
+    };
 }
 
 function waitFor(emitter, event, predicate, signal, timeoutMs = 30_000) {
@@ -174,7 +203,7 @@ async function benchmark() {
     process.once("SIGTERM", interrupt);
     const lifetime = setTimeout(
         () => abort(new Error("Benchmark exceeded its total timeout")),
-        (configuration.seconds + configuration.warmup + 180) * 1000,
+        ((configuration.seconds ?? 0) + (configuration.warmup ?? 0) + (configuration.settle ?? 0) + 180) * 1000,
     );
     const child = fork(fileURLToPath(import.meta.url), ["--child"], {
         cwd: root,
@@ -328,22 +357,8 @@ async function benchmark() {
         socket.emit(SocketMsgs.CLIENT_READY, { supportedProtocolVersions: [3] });
         const [initialization] = await Promise.all([initialized, first]);
         if (initialization.protocolVersion !== 3) throw new Error("Benchmark requires protocol v3");
-        const populated = waitFor(
-            socket,
-            PerformanceEvents.STATE,
-            (state) =>
-                state.count === configuration.count && state.pending === 0 && state.enemies === configuration.count,
-            cancellation.signal,
-            120_000,
-        );
-        socket.emit(PerformanceEvents.CONFIGURE, {
-            count: configuration.count,
-            distribution: "nearby",
-            scenario: "combat",
-        });
-        await populated;
-        const movementStarted = performance.now();
-        let nextInput = movementStarted;
+        let movementStarted;
+        let nextInput;
         let sequence = 0;
         const directions = [
             [0, 1],
@@ -354,29 +369,78 @@ async function benchmark() {
         const sendInput = () => {
             if (inputStopped) return;
             const now = performance.now();
-            const [horizontal, vertical] = directions[Math.floor((now - movementStarted) / 800) % 4];
+            const [horizontal, vertical] =
+                configuration.movement === "idle"
+                    ? [0, 0]
+                    : directions[Math.floor((now - movementStarted) / configuration.directionMs) % 4];
             socket.emit(SocketMsgs.INPUT_SNAPSHOT, { seq: sequence, horizontal, vertical });
             sequence = (sequence + 1) >>> 0;
             if (measuring) inputCount++;
             nextInput = Math.max(nextInput + initialization.fixedDeltaMs, now);
             inputTimer = setTimeout(sendInput, Math.max(0, nextInput - performance.now()));
         };
-        sendInput();
-        await delay(configuration.warmup * 1000, undefined, { signal: cancellation.signal });
-        heartbeatRtt.length = 0;
-        ordinaryHeartbeatRtt.length = 0;
-        measuredPlayerStart = latestPlayer;
-        await request("start");
-        const observedStarted = performance.now();
-        measuring = true;
-        await delay(configuration.seconds * 1000, undefined, { signal: cancellation.signal });
+        const startInputs = () => {
+            movementStarted = performance.now();
+            nextInput = movementStarted;
+            sendInput();
+        };
+        const startMeasurement = async () => {
+            heartbeatRtt.length = 0;
+            ordinaryHeartbeatRtt.length = 0;
+            measuredPlayerStart = latestPlayer;
+            await request("start");
+            measuring = true;
+            return performance.now();
+        };
+        let observedStarted;
+        if (configuration.phase === "spawn") {
+            observedStarted = await startMeasurement();
+            startInputs();
+        }
+        const populated = waitFor(
+            socket,
+            PerformanceEvents.STATE,
+            (state) =>
+                state.count === configuration.count &&
+                state.scenario === configuration.scenario &&
+                state.pending === 0 &&
+                state.enemies === configuration.count,
+            cancellation.signal,
+            configuration.phase === "spawn" ? Math.min(120_000, 125_000 - configuration.settle * 1000) : 120_000,
+        );
+        const loadingStarted = performance.now();
+        socket.emit(PerformanceEvents.CONFIGURE, {
+            count: configuration.count,
+            distribution: "nearby",
+            scenario: configuration.scenario,
+        });
+        await populated;
+        const loadingElapsedSeconds = (performance.now() - loadingStarted) / 1000;
+        let loadingCheckpoint;
+        if (configuration.phase === "spawn") {
+            loadingCheckpoint = await request("inspect");
+            await delay(configuration.settle * 1000, undefined, { signal: cancellation.signal });
+        }
+        if (configuration.phase === "steady") {
+            startInputs();
+            await delay(configuration.warmup * 1000, undefined, { signal: cancellation.signal });
+            observedStarted = await startMeasurement();
+            await delay(configuration.seconds * 1000, undefined, { signal: cancellation.signal });
+        }
         const server = await request("finish");
         const observedSeconds = (performance.now() - observedStarted) / 1000;
         measuring = false;
         const elapsedSeconds = (server.ended.at - server.started.at) / 1000;
         const ticks = (server.ended.tick - server.started.tick) >>> 0;
         const nominalHz = 1000 / ready.fixedDeltaMs;
-        if (server.enemyMin !== configuration.count || server.enemyMax !== configuration.count)
+        if (server.ended.state.enemies !== configuration.count || server.ended.state.pending !== 0)
+            throw new Error(
+                `Enemy population did not finish loading (${server.ended.state.enemies}, pending ${server.ended.state.pending})`,
+            );
+        if (
+            configuration.phase === "steady" &&
+            (server.enemyMin !== configuration.count || server.enemyMax !== configuration.count)
+        )
             throw new Error(`Enemy population changed during measurement (${server.enemyMin}..${server.enemyMax})`);
         const artifact = await readFile(path.join(root, "dist/server/GameServer.js"));
         return {
@@ -391,11 +455,12 @@ async function benchmark() {
             },
             workload: {
                 ...configuration,
-                scenario: "combat",
                 distribution: "nearby",
                 protocol: 3,
                 inputTargetHz: nominalHz,
-                movement: "square, 800 ms per direction",
+                ...(configuration.movement === "square"
+                    ? { movementDirectionDurationMs: configuration.directionMs }
+                    : {}),
                 playerShoots: false,
                 browserRenderer: false,
             },
@@ -409,7 +474,25 @@ async function benchmark() {
                 snapshotP95Ms: server.ended.state.snapshotP95Ms,
                 processCpuMicroseconds: server.processCpuMicroseconds,
                 droppedTimeMs: server.ended.droppedTimeMs - server.started.droppedTimeMs,
-                enemies: { min: server.enemyMin, max: server.enemyMax },
+                droppedTimeAtStartMs: server.started.droppedTimeMs,
+                droppedTimeAtEndMs: server.ended.droppedTimeMs,
+                enemies: {
+                    started: server.started.state.enemies,
+                    ended: server.ended.state.enemies,
+                    min: Math.min(server.enemyMin, server.started.state.enemies, server.ended.state.enemies),
+                    max: Math.max(server.enemyMax, server.started.state.enemies, server.ended.state.enemies),
+                },
+                ...(configuration.phase === "spawn"
+                    ? {
+                          loadingElapsedSeconds,
+                          settlingSeconds: configuration.settle,
+                          loadingCheckpointElapsedSeconds: (loadingCheckpoint.at - server.started.at) / 1000,
+                          postLoadingElapsedSeconds: (server.ended.at - loadingCheckpoint.at) / 1000,
+                          droppedTimeAtLoadingCheckpointMs: loadingCheckpoint.droppedTimeMs,
+                          loadingDroppedTimeMs: loadingCheckpoint.droppedTimeMs - server.started.droppedTimeMs,
+                          postLoadingDroppedTimeMs: server.ended.droppedTimeMs - loadingCheckpoint.droppedTimeMs,
+                      }
+                    : {}),
                 endingObjects: server.ended.state.objects,
             },
             clientObserved: {
@@ -438,7 +521,7 @@ async function benchmark() {
                 endingTickP50Ms: server.ended.state.tickP50Ms,
                 endingTickP95Ms: server.ended.state.tickP95Ms,
             },
-            note: "Live wallclock benchmark: authenticated guest over localhost WebSocket, client and server in separate processes, performance simulation in its own worker thread. A second admitted client probes the ordinary world and HTTP is sampled every 500 ms. Actual server ticks and delivered v3 payload bytes are measured; tick CPU samples come from performance telemetry. No browser rendering, client prediction or GPU work. Payload bytes exclude transport headers. Enemy combat/friendly-fire rules are unchanged and the player sends no shots.",
+            note: `Live wallclock benchmark: authenticated guest over localhost WebSocket, client and server in separate processes, performance simulation in its own worker thread. A second admitted client probes the ordinary world and HTTP is sampled every 500 ms. Actual server ticks and delivered v3 payload bytes are measured; tick CPU samples come from performance telemetry. ${configuration.phase === "spawn" ? `Spawn measurement starts before CONFIGURE and continues for ${configuration.settle} seconds after receiving pending=0 and the requested enemy count and recording a worker checkpoint. Inputs, snapshots, telemetry and probes remain active throughout loading and settling. The 250 ms telemetry broadcast interval and event delivery can extend loadingElapsedSeconds; the loading drop checkpoint also includes the subsequent inspect RPC latency. No warmup is applied.` : "Steady measurement starts after loading and warmup."} Drop totals are never reset: their start/end values and delta are reported. No browser rendering, client prediction or GPU work. Payload bytes exclude transport headers. Enemy combat/friendly-fire rules are unchanged and the player sends no shots.`,
         };
     } catch (error) {
         if (diagnostics.trim()) console.error(diagnostics.trim());
@@ -466,6 +549,24 @@ async function benchmark() {
 
 if (process.argv.includes("--child") && typeof process.send === "function") {
     await childServer();
+} else if (process.argv.length === 3 && process.argv[2] === "--help") {
+    console.log(`Usage: node scripts/benchmark-server.mjs [options]
+
+  --count=0..${maximum}              Enemy population (default: 2000)
+  --phase=steady|spawn              Measure a loaded world or complete spawning (default: steady)
+  --scenario=static|moving|combat   Enemy behavior (default: combat)
+  --movement=idle|square            Player input at the fixed simulation rate (default: square)
+  --direction-ms=100..10000         Square direction duration (default: 800)
+  --seconds=1..120                  Steady measurement duration (default: 20)
+  --warmup=0..30                    Steady warmup after loading (default: 5)
+  --settle=0..30                    Spawn observation after loading checkpoint (default: 3)
+
+Spawn starts measurement and player input before configuring the population.
+It records a checkpoint when telemetry reports pending=0 and the requested count,
+then continues measuring for --settle seconds. The loading checkpoint includes
+the telemetry interval and inspect RPC latency. Loading times out after
+min(120, 125 - settle) seconds to keep the worker measurement bounded.
+--seconds and --warmup are rejected for spawn; --settle is rejected for steady.`);
 } else {
     try {
         console.log(JSON.stringify(await benchmark(), null, 2));

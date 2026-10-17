@@ -38,7 +38,7 @@ test("performance: setup accepts only bounded counts, distributions and scenario
 test("performance: population batches, resets and never changes a second world", () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true });
     const normal = new GameCore({ role: Origin.SERVER });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         const player = core.ObjectsFactory.instantiateWithPosition(
             "DefaultPlayer",
@@ -94,7 +94,7 @@ test("performance: population batches, resets and never changes a second world",
 
 test("performance: world population spans all chunks and can be cancelled during loading", () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         controller.configure({ count: 2000, distribution: "world", scenario: "static" });
         core.step();
@@ -118,7 +118,7 @@ test("performance: world population spans all chunks and can be cancelled during
 
 test("performance: arbitrary populations preserve the exact requested count and the 80-per-tick loading limit", () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         for (const count of [1, 137, 321]) {
             controller.configure({ count, distribution: "world", scenario: "static" });
@@ -137,7 +137,7 @@ test("performance: arbitrary populations preserve the exact requested count and 
 
 test("performance: maximum layouts have distinct unmodified positions safely inside every world edge", () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         const width = core.Runtime.config.chunkSize * core.Runtime.config.numOfChunksX;
         const height = core.Runtime.config.chunkSize * core.Runtime.config.numOfChunksY;
@@ -182,7 +182,7 @@ test("performance: maximum layouts have distinct unmodified positions safely ins
 
 test("performance: a world too small for a population rejects it without replacing the current workload", () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true, numOfChunksX: 1, numOfChunksY: 1 });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         controller.configure({ count: 1, distribution: "nearby", scenario: "static" });
         core.step();
@@ -204,7 +204,7 @@ test("performance: the full maximum spawns without clamping or dropping enemies 
     timeout: 60_000,
 }, () => {
     const core = new GameCore({ role: Origin.SERVER, performanceMode: true });
-    const controller = new PerformanceController(core);
+    const controller = new PerformanceController(core, { clock: () => 0 });
     try {
         controller.configure({ count: PERFORMANCE_MAX_ENEMIES, distribution: "world", scenario: "static" });
         const planned = new Set(

@@ -72,8 +72,16 @@ export abstract class Actor extends GameObject {
         if (hooks.sharedOnCollisionStay !== actorSharedStay) return false;
         // A stock actor only resolves solid obstacles. Pickups, shots and portals
         // process their own directional contacts. Custom hooks keep every pair.
-        for (const [name, implementation] of emptyCollisionHooks) if (hooks[name] !== implementation) return false;
-        return true;
+        return (
+            hooks.onCollisionEnter === emptyCollisionHooks[0]![1] &&
+            hooks.onCollisionStay === emptyCollisionHooks[1]![1] &&
+            hooks.onCollisionExit === emptyCollisionHooks[2]![1] &&
+            hooks.serverOnCollisionEnter === emptyCollisionHooks[3]![1] &&
+            hooks.serverOnCollisionStay === emptyCollisionHooks[4]![1] &&
+            hooks.serverOnCollisionExit === emptyCollisionHooks[5]![1] &&
+            hooks.sharedOnCollisionEnter === emptyCollisionHooks[6]![1] &&
+            hooks.sharedOnCollisionExit === emptyCollisionHooks[7]![1]
+        );
     }
 
     protected sharedOnCollisionStay(collision: Collision) {

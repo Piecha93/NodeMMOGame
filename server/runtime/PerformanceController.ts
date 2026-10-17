@@ -10,6 +10,12 @@ import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 import { Player } from "../../shared/game_utils/game/objects/Player";
 import { FireBall } from "../../shared/game_utils/game/objects/FireBall";
 
+export interface PerformanceControllerOptions {
+    /** Monotonic CPU clock; simulation time never determines loading capacity. */
+    readonly clock?: () => number;
+    readonly spawnBudgetMs?: number;
+}
+
 /** Owns a bounded test population; it never mutates the expedition world. */
 export class PerformanceController {
     private configuration: PerformanceConfiguration = { count: 0, distribution: "nearby", scenario: "moving" };
@@ -19,20 +25,41 @@ export class PerformanceController {
     private spawned = 0;
     private readonly tickSamples: number[] = [];
     private tickStarted = 0;
+    private budgetTickStarted = 0;
+    private spawnCostMs = 0;
+    private previousSimulationCostMs = 0;
+    private readonly spawnClock: () => number;
+    private readonly spawnBudgetMs: number;
     private readonly unsubscribeBefore: () => void;
     private readonly unsubscribeAfter: () => void;
     private readonly unsubscribeObjects: () => void;
 
-    constructor(private readonly core: GameCore) {
+    constructor(
+        private readonly core: GameCore,
+        options: PerformanceControllerOptions = {},
+    ) {
         if (!core.Runtime.config.performanceMode) throw new Error("Performance controller requires a dedicated world");
+        if (options.clock !== undefined && typeof options.clock !== "function")
+            throw new TypeError("Invalid performance loading clock");
+        this.spawnClock = options.clock ?? (() => performance.now());
+        this.spawnBudgetMs = options.spawnBudgetMs ?? Math.min(1, core.Runtime.config.fixedDeltaMs);
+        if (
+            !Number.isFinite(this.spawnBudgetMs) ||
+            this.spawnBudgetMs <= 0 ||
+            this.spawnBudgetMs > core.Runtime.config.fixedDeltaMs
+        )
+            throw new RangeError("Invalid performance loading budget");
         this.unsubscribeBefore = core.subscribeBeforeStep(() => {
             this.tickStarted = performance.now();
+            this.budgetTickStarted = this.spawnClock();
+            this.spawnCostMs = 0;
             this.updatePopulation();
             // This world intentionally simulates distant entities too. Keeping the
             // chunks alive makes a world-wide test repeatable beyond the first second.
             for (const chunk of core.ChunksManager.ChunksIterator()) chunk.activate();
         });
         this.unsubscribeAfter = core.subscribeAfterStep(() => {
+            this.previousSimulationCostMs = Math.max(0, this.spawnClock() - this.budgetTickStarted - this.spawnCostMs);
             this.tickSamples.push(performance.now() - this.tickStarted);
             if (this.tickSamples.length > 256) this.tickSamples.shift();
         });
@@ -61,6 +88,7 @@ export class PerformanceController {
         this.clearPopulation();
         this.configuration = configuration;
         this.tickSamples.length = 0;
+        this.previousSimulationCostMs = 0;
         this.positions = positions;
     }
 
@@ -142,6 +170,15 @@ export class PerformanceController {
     }
 
     private updatePopulation(): void {
+        if (this.spawned >= this.positions.length) return;
+        // Construction, registration and spatial insertion all consume this
+        // budget. Keep headroom for the rest of the tick, but always complete
+        // one enemy so a busy simulation cannot leave loading stalled forever.
+        const budget = Math.min(
+            this.spawnBudgetMs,
+            Math.max(0, this.core.Runtime.config.fixedDeltaMs - this.previousSimulationCostMs - 1),
+        );
+        const startedAt = this.spawnClock();
         for (let batch = 0; batch < 80 && this.spawned < this.positions.length; batch++) {
             const index = this.spawned++;
             const position = this.positions[index];
@@ -165,6 +202,8 @@ export class PerformanceController {
                 },
             );
             if (!object.IsDestroyed) this.enemies.add(object.ID);
+            this.spawnCostMs = Math.max(0, this.spawnClock() - startedAt);
+            if (this.spawnCostMs >= budget) break;
         }
     }
 

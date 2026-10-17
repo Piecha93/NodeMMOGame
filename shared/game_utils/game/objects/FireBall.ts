@@ -71,7 +71,18 @@ export class FireBall extends Projectile {
         )
             return null;
         const hooks = this as unknown as Record<string, unknown>;
-        for (const [name, implementation] of stockCollisionHooks) if (hooks[name] !== implementation) return null;
+        if (
+            hooks.onCollisionEnter !== stockCollisionHooks.onCollisionEnter ||
+            hooks.onCollisionStay !== stockCollisionHooks.onCollisionStay ||
+            hooks.onCollisionExit !== stockCollisionHooks.onCollisionExit ||
+            hooks.serverOnCollisionEnter !== stockCollisionHooks.serverOnCollisionEnter ||
+            hooks.serverOnCollisionStay !== stockCollisionHooks.serverOnCollisionStay ||
+            hooks.serverOnCollisionExit !== stockCollisionHooks.serverOnCollisionExit ||
+            hooks.sharedOnCollisionEnter !== stockCollisionHooks.sharedOnCollisionEnter ||
+            hooks.sharedOnCollisionStay !== stockCollisionHooks.sharedOnCollisionStay ||
+            hooks.sharedOnCollisionExit !== stockCollisionHooks.sharedOnCollisionExit
+        )
+            return null;
         return this.collisionFilter;
     }
 
@@ -108,20 +119,18 @@ export class FireBall extends Projectile {
     }
 }
 
-const collisionHookNames = [
-    "onCollisionEnter",
-    "onCollisionStay",
-    "onCollisionExit",
-    "serverOnCollisionEnter",
-    "serverOnCollisionStay",
-    "serverOnCollisionExit",
-    "sharedOnCollisionEnter",
-    "sharedOnCollisionStay",
-    "sharedOnCollisionExit",
-] as const;
-const stockCollisionHooks = collisionHookNames.map(
-    (name) => [name, (FireBall.prototype as unknown as Record<string, unknown>)[name]] as const,
-);
+const prototypeHooks = FireBall.prototype as unknown as Record<string, unknown>;
+const stockCollisionHooks = {
+    onCollisionEnter: prototypeHooks.onCollisionEnter,
+    onCollisionStay: prototypeHooks.onCollisionStay,
+    onCollisionExit: prototypeHooks.onCollisionExit,
+    serverOnCollisionEnter: prototypeHooks.serverOnCollisionEnter,
+    serverOnCollisionStay: prototypeHooks.serverOnCollisionStay,
+    serverOnCollisionExit: prototypeHooks.serverOnCollisionExit,
+    sharedOnCollisionEnter: prototypeHooks.sharedOnCollisionEnter,
+    sharedOnCollisionStay: prototypeHooks.sharedOnCollisionStay,
+    sharedOnCollisionExit: prototypeHooks.sharedOnCollisionExit,
+};
 const stockColliderHooks = [
     Collider.prototype.onCollisionEnter,
     Collider.prototype.onCollisionStay,

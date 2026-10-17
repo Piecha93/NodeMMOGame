@@ -117,8 +117,9 @@ export class GameServer {
                       performanceMode: true,
                       cooperative: true,
                       enableDebugActions: false,
-                      // Leave turns for transport/input when the stress workload cannot keep up.
-                      maxCatchUpSteps: this.options.world?.maxCatchUpSteps ?? 2,
+                      // The dedicated worker can execute the core's normal bounded
+                      // catch-up after loading/snapshot bursts without blocking HTTP.
+                      maxCatchUpSteps: this.options.world?.maxCatchUpSteps ?? 8,
                   }
                 : {}),
         });
@@ -143,8 +144,13 @@ export class GameServer {
             // An overloaded world may receive several client ticks before its
             // next update. Every ACKed command must still advance player movement
             // once; discarding their time makes reconciliation rewind the player.
+            // Upcoming catch-up ticks can consume their own commands normally.
+            // Replaying those commands now would repeat global collision work
+            // and leave later ticks with an artificial STOP input.
+            const reserved = Math.max(0, this.core.PendingSimulationSteps - 1);
+            const available = Math.min(state.queue.length, Math.max(1, state.queue.length - reserved));
             const count = this.performance
-                ? state.movementBudget.take(state.queue.length, this.options.world?.clock?.() ?? performance.now())
+                ? state.movementBudget.take(available, this.options.world?.clock?.() ?? performance.now())
                 : Math.min(1, state.queue.length);
             const commands = state.queue.splice(0, count);
             if (commands.length === 0) {

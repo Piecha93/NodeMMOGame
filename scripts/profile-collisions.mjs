@@ -116,7 +116,9 @@ function createWorld() {
     });
     let controller;
     try {
-        controller = new PerformanceController(core);
+        // Offline fixtures keep the original 80-enemy batches and simulated ages;
+        // the injected loading clock does not replace real tick CPU measurements.
+        controller = new PerformanceController(core, { clock: () => 0 });
         const player = core.ObjectsFactory.instantiateWithPosition("DefaultPlayer", controller.spawnPosition());
         controller.configure({ count, distribution: "nearby", scenario });
         const loadingTicks = Math.ceil(count / 80);

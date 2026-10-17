@@ -66,7 +66,29 @@ export function mayBecomeSolid(object: GameObject): boolean {
     )
         return true;
     const values = object as unknown as Record<string, unknown>;
-    for (let index = 0; index < hookNames.length; index++) if (values[hookNames[index]!] !== hooks[index]) return true;
+    // Named reads retain the same short-circuit order while allowing the engine
+    // to specialize these hot checks instead of dispatching 18 dynamic keys.
+    if (
+        values.onCollisionEnter !== hooks[0] ||
+        values.onCollisionStay !== hooks[1] ||
+        values.onCollisionExit !== hooks[2] ||
+        values.serverOnCollisionEnter !== hooks[3] ||
+        values.serverOnCollisionStay !== hooks[4] ||
+        values.serverOnCollisionExit !== hooks[5] ||
+        values.sharedOnCollisionEnter !== hooks[6] ||
+        values.sharedOnCollisionStay !== hooks[7] ||
+        values.sharedOnCollisionExit !== hooks[8] ||
+        values.onTriggerEnter !== hooks[9] ||
+        values.onTriggerStay !== hooks[10] ||
+        values.onTriggerExit !== hooks[11] ||
+        values.serverOnTriggerEnter !== hooks[12] ||
+        values.serverOnTriggerStay !== hooks[13] ||
+        values.serverOnTriggerExit !== hooks[14] ||
+        values.sharedOnTriggerEnter !== hooks[15] ||
+        values.sharedOnTriggerStay !== hooks[16] ||
+        values.sharedOnTriggerExit !== hooks[17]
+    )
+        return true;
     for (const collider of object.Colliders)
         if (
             collider.onCollisionEnter !== colliderHooks[0] ||
