@@ -7,8 +7,15 @@ import { Server, Socket as ServerSocket } from "socket.io";
 import { io, Socket } from "socket.io-client";
 import { GameServer } from "../../server/GameServer";
 import { ExpeditionController } from "../../server/runtime/ExpeditionController";
+import { AdventureController } from "../../server/runtime/AdventureController";
 import { GameCore } from "../../shared/GameCore";
-import { EXPEDITION, ExpeditionEvents, ExpeditionState, isExpeditionState } from "../../shared/gameplay/Expedition";
+import {
+    EXPEDITION,
+    ExpeditionEvents,
+    ExpeditionState,
+    VILLAGE_PREPARATION_MS,
+    isExpeditionState,
+} from "../../shared/gameplay/Expedition";
 import { SocketMsgs } from "../../shared/net/SocketMsgs";
 import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 import { Player } from "../../shared/game_utils/game/objects/Player";
@@ -30,7 +37,7 @@ function matchingState(socket: Socket, predicate: (state: ExpeditionState) => bo
     });
 }
 
-test("expedition transport: two real clients share objectives, timeout and an authorized new round", {
+test("expedition transport: two real clients share finite wave progress, timeout and an authorized new round", {
     timeout: 8000,
 }, async (t) => {
     const http = createServer();
@@ -45,6 +52,7 @@ test("expedition transport: two real clients share objectives, timeout and an au
     const game = server as unknown as {
         core: GameCore;
         expedition: ExpeditionController;
+        adventure: AdventureController;
         configureSockets(): void;
         collectAndSendUpdate(): void;
     };
@@ -86,28 +94,24 @@ test("expedition transport: two real clients share objectives, timeout and an au
     assert.ok(player instanceof Player && teammate instanceof Player);
     assert.ok(player.Transform.distanceTo(teammate.Transform) < 200, "party spawns together around the camp portal");
 
-    for (const camp of EXPEDITION.camps) {
-        player.Transform.X = camp.x;
-        player.Transform.Y = camp.y;
-        teammate.Transform.X = camp.x + 200;
-        teammate.Transform.Y = camp.y + 200;
-        game.core.ChunksManager.rebuildOne(player);
-        game.core.ChunksManager.rebuildOne(teammate);
-        game.core.step();
-        const guards = [...game.core.ObjectsManager.ObjectsById.values()].filter((object) => object instanceof Enemy);
-        assert.ok(guards.length > 0);
-        for (const guard of guards) guard.hit(guard.MaxHP);
-        game.core.step();
-        game.core.step();
-    }
-    const firstProgress = matchingState(first.socket, (value) => value.collected === 3);
-    const secondProgress = matchingState(second.socket, (value) => value.collected === 3);
+    game.adventure.update(VILLAGE_PREPARATION_MS);
+    const enemies = [...game.core.ObjectsManager.objectsOfType(Enemy)];
+    assert.equal(enemies.length, 4);
+    for (const enemy of enemies) enemy.hit(enemy.MaxHP);
+    game.core.step();
+    const firstProgress = matchingState(first.socket, (value) => value.collected === 1 && value.waveStage === "rest");
+    const secondProgress = matchingState(second.socket, (value) => value.collected === 1 && value.waveStage === "rest");
     game.core.advance(125);
+    game.core.Runtime.timeMs += 200;
     game.collectAndSendUpdate();
     const [one, two] = await Promise.all([firstProgress, secondProgress]);
-    assert.deepEqual(one.camps, two.camps);
+    assert.deepEqual(one, two);
+    assert.equal(one.total, 6);
+    assert.equal(one.kills, 4);
+    assert.equal(one.enemiesRemaining, 0);
+    assert.deepEqual(one.camps, []);
 
-    // Directly advancing the controller avoids a ten-minute wall-clock test.
+    // Directly advancing the controller avoids an eight-minute wall-clock test.
     game.expedition.update(EXPEDITION.durationMs);
     const lostFirst = matchingState(first.socket, (value) => value.phase === "lost");
     const lostSecond = matchingState(second.socket, (value) => value.phase === "lost");
@@ -119,6 +123,8 @@ test("expedition transport: two real clients share objectives, timeout and an au
     first.socket.emit(ExpeditionEvents.RESTART);
     const restarted = await Promise.all([roundFirst, roundSecond]);
     assert.equal(restarted[0].collected, 0);
+    assert.equal(restarted[0].waveStage, "preparing");
+    assert.equal(restarted[0].wave, 0);
     assert.equal(restarted[0].phase, "active");
     assert.deepEqual(restarted[0], restarted[1]);
     assert.equal(game.core.ObjectsManager.get(first.id), player, "restart preserves connected player identity");

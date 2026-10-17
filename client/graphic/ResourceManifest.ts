@@ -58,6 +58,7 @@ export const RESOURCE_MANIFEST = [
         type: ResourceType.OCTAGONAL_ANIMATION,
     },
     { name: "terrain", path: "/resources/maps/terrain.png", type: ResourceType.SPRITE },
+    { name: "village_props", path: "/resources/maps/village-props.png", type: ResourceType.SPRITE },
 ] as const satisfies readonly ResourceDefinition[];
 
 const OCTAGONAL_DIRECTIONS: ReadonlySet<string> = new Set(["U", "UR", "R", "DR", "D", "DL", "L", "UL"]);

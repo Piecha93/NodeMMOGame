@@ -8,16 +8,16 @@ function state(overrides: Partial<ExpeditionState> = {}): ExpeditionState {
     return {
         round: 1,
         phase: "active",
-        remainingMs: 600_000,
+        remainingMs: 480_000,
         collected: 0,
-        total: 3,
+        total: 6,
         kills: 0,
+        wave: 1,
+        waveStage: "combat",
+        enemiesRemaining: 4,
+        stageRemainingMs: 0,
         home: { x: 640, y: 640, radius: 110 },
-        camps: [
-            { id: "a", name: "Strażnica", x: 1000, y: 640, status: "guarded", guardsRemaining: 3 },
-            { id: "b", name: "Kamienny krąg", x: 2000, y: 2000, status: "guarded", guardsRemaining: 2 },
-            { id: "c", name: "Gaj", x: 500, y: 2500, status: "ready", guardsRemaining: 0 },
-        ],
+        camps: [],
         party: [{ id: "A0", name: "Zwiadowca", hp: 80, maxHp: 100, respawnInMs: 0 }],
         ...overrides,
     };
@@ -105,13 +105,13 @@ test("expedition HUD: invalid transport data leaves progress unchanged and names
         ),
         true,
     );
-    assert.equal(field("progress").textContent, "0 / 3");
+    assert.equal(field("progress").textContent, "0 / 6");
     assert.equal(field("party").children[0].children[0].textContent, "<img src=x onerror=alert(1)> · Ty");
     assert.equal(field("party").children[0].children[1].value, 80);
-    assert.equal(hud.receive({ ...state(), collected: 4 }), false);
+    assert.equal(hud.receive({ ...state(), collected: 7 }), false);
     assert.equal(hud.receive({ ...state(), remainingMs: Number.NaN }), false);
-    assert.equal(hud.receive({ ...state(), camps: [] }), false);
-    assert.equal(field("progress").textContent, "0 / 3");
+    assert.equal(hud.receive({ ...state(), waveStage: "fortress" }), false);
+    assert.equal(field("progress").textContent, "0 / 6");
     hud.dispose();
 });
 
@@ -127,11 +127,11 @@ test("expedition HUD: restart is allowed once for a finished round and listeners
     hud.receive(state());
     click();
     assert.equal(requests, 0);
-    hud.receive(state({ phase: "won", collected: 3 }));
+    hud.receive(state({ phase: "won", collected: 6, wave: 6, waveStage: "complete", enemiesRemaining: 0 }));
     assert.equal(field("result").hidden, false);
     click();
     click();
-    hud.receive(state({ phase: "won", collected: 3 }));
+    hud.receive(state({ phase: "won", collected: 6, wave: 6, waveStage: "complete", enemiesRemaining: 0 }));
     click();
     assert.equal(requests, 1, "a repeated server state must not re-enable a pending restart");
     assert.equal(field("restart").disabled, true);
@@ -180,7 +180,7 @@ test("expedition HUD: connection errors retain bounded text, prevent restart and
         () => restarts++,
         () => 0,
     );
-    hud.receive(state({ phase: "won", collected: 3 }));
+    hud.receive(state({ phase: "won", collected: 6, wave: 6, waveStage: "complete", enemiesRemaining: 0 }));
     const message = "<script>" + "x".repeat(300);
     hud.showConnectionError(message);
     hud.showConnectionError("Generic disconnect");
@@ -195,23 +195,35 @@ test("expedition HUD: connection errors retain bounded text, prevent restart and
     assert.equal(field("result-copy").textContent, message.slice(0, 256), "cleanup retains the actionable error panel");
 });
 
-test("expedition compass: picks the nearest uncollected camp, then directs the party home", () => {
-    const initial = state();
-    const near = expeditionView(initial, [640, 640]);
-    assert.match(near.guidance, /Strażnica.*3/);
-    assert.equal(near.bearing, "→ E");
-    assert.equal(near.distance, "360 kroków");
-    const camp = initial.camps[0];
-    const second = initial.camps[1];
-    const third = initial.camps[2];
-    assert.ok(camp && second && third);
-    const after = expeditionView(state({ camps: [{ ...camp, status: "collected" }, second, third] }), [1000, 640]);
-    assert.doesNotMatch(after.guidance, /Strażnica/);
-    const home = expeditionView(state({ collected: 3 }), [1000, 640]);
-    assert.equal(home.objective, "Wróćcie wszyscy do obozu");
-    assert.equal(home.bearing, "← W");
-    assert.equal(home.distance, "360 kroków");
-    assert.equal(expeditionTime(600_000), "10:00");
+test("village HUD: combat counts the actual survivors and preparation/rest only display server countdowns", () => {
+    const combat = expeditionView(state());
+    assert.equal(combat.objective, "Fala 1 / 6");
+    assert.equal(combat.bearing, "4");
+    assert.equal(combat.distance, "przeciwników");
+    const preparation = expeditionView(
+        state({ wave: 0, waveStage: "preparing", stageRemainingMs: 15_000, enemiesRemaining: 0 }),
+        1100,
+    );
+    assert.equal(preparation.bearing, "14 s");
+    assert.match(preparation.guidance, /Pierwsza fala/);
+    const rest = expeditionView(
+        state({ waveStage: "rest", stageRemainingMs: 20_000, enemiesRemaining: 0, collected: 1 }),
+        2300,
+    );
+    assert.equal(rest.bearing, "18 s");
+    assert.equal(rest.distance, "do fali 2");
+    assert.match(rest.guidance, /30 zdrowia/);
+    assert.equal(
+        expeditionView(state({ waveStage: "rest", stageRemainingMs: 20_000 }), 50_000).bearing,
+        "0 s",
+        "the presentation cannot start the next wave",
+    );
+    const victory = expeditionView(
+        state({ phase: "won", collected: 6, wave: 6, waveStage: "complete", enemiesRemaining: 0 }),
+    );
+    assert.equal(victory.objective, "Polana obroniona!");
+    assert.equal(victory.distance, "6 / 6 fal");
+    assert.equal(expeditionTime(480_000), "8:00");
     assert.equal(expeditionTime(-1), "0:00");
 });
 

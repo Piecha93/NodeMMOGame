@@ -503,6 +503,11 @@ kbd {
     white-space: nowrap;
 }
 
+.wave-status { flex-shrink: 0; }
+.wave-status span:first-child { font-variant-numeric: tabular-nums; }
+.village-rules p { margin: 0 0 7px; color: #bdc9ac; font-size: 12px; }
+.village-rules > span { display: block; max-width: 440px; color: #7d8c72; font-size: 11px; line-height: 1.6; }
+
 .world-frame {
     position: relative;
     overflow: hidden;
@@ -1042,6 +1047,20 @@ kbd {
 .upgrade-choices button small { display: block; margin-top: 3px; font-size: 8px; line-height: 1.2; color: #a3b09a; }
 .upgrade-choices button b { margin-left: auto; font-size: 9px; font-weight: 500; white-space: nowrap; color: #9cae96; }
 .hero-notice { grid-column: 1 / -1; min-height: 13px; margin: -2px 0 0; font-size: 9px; line-height: 1.4; color: #8da797; }
+.hero-shop { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid #99ad762e; }
+.hero-shop[hidden] { display: none; }
+.hero-shop-heading { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 7px; }
+.hero-shop-heading .eyebrow { margin: 0; color: #d4bb81; font-size: 9px; letter-spacing: .9px; }
+.hero-shop-heading > span:last-child { color: #8f9e81; font-size: 9px; }
+.shop-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.shop-choices button { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 42px; padding: 6px; text-align: left; color: #d5ddca; border: 1px solid #9fa77366; border-radius: 3px; background: #62714722; cursor: pointer; transition: background .15s, border-color .15s; }
+.shop-choices button:hover:not(:disabled) { background: #8994623d; border-color: #c2bc83; }
+.shop-choices button:focus-visible { outline: 2px solid #d7c089; outline-offset: 2px; }
+.shop-choices button:disabled { opacity: .45; cursor: default; }
+.shop-choices button > span { color: #d3bd84; font-size: 17px; }
+.shop-choices strong { font-weight: 500; font-size: 10px; }
+.shop-choices small { display: block; margin-top: 3px; color: #9eae8b; font-size: 9px; font-weight: 400; }
+.shop-choices b { margin-left: auto; white-space: nowrap; color: #e0c184; font-size: 10px; font-weight: 500; }
 .adventure-hud[data-points="true"] .hero-notice { color: #d6c28f; }
 @media (max-width: 800px) {
     .adventure-hud { grid-template-columns: 1fr; gap: 10px; padding: 10px; }

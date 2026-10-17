@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#151a19" />
-    <title><%= performanceMode ? 'Poligon — test wydajności' : 'Ruiny — wyprawa' %></title>
+    <title><%= performanceMode ? 'Poligon — test wydajności' : 'Żar — obroń polanę' %></title>
     <link rel="stylesheet" href="/css/style.css" />
     <script type="module" src="/build/game.js"></script>
 </head>
@@ -50,26 +50,26 @@
     <% } else { %>
     <div id="expedition-hud">
         <header class="game-header" data-game-ui>
-            <a class="wordmark" href="/" aria-label="Ruiny — strona główna"><span class="rune" aria-hidden="true">◇</span> RUINY</a>
-            <span class="expedition-round" data-expedition="round">Przygotowujemy wyprawę…</span>
+            <a class="wordmark" href="/" aria-label="Żar — strona główna"><span class="rune" aria-hidden="true">✧</span> ŻAR</a>
+            <span class="expedition-round" data-expedition="round">Przygotowujemy polanę…</span>
             <% if (performanceTests) { %><a class="mode-link" href="/game?mode=performance">Poligon / test wydajności ↗</a><% } %>
-            <div class="expedition-stats"><span class="core-icon" aria-hidden="true">◇</span><strong data-expedition="progress">0 / 3</strong><span class="stat-divider"></span><span class="time-label">CZAS</span><strong class="expedition-timer" data-expedition="timer">10:00</strong></div>
-            <form action="/logout" method="post"><button class="text-button" type="submit">Opuść wyprawę ↗</button></form>
+            <div class="expedition-stats"><span class="time-label">FALE</span><strong data-expedition="progress">0 / 6</strong><span class="stat-divider"></span><span class="time-label">CZAS</span><strong class="expedition-timer" data-expedition="timer">8:00</strong></div>
+            <form action="/logout" method="post"><button class="text-button" type="submit">Opuść polanę ↗</button></form>
         </header>
         <div class="objective-bar" data-game-ui>
-            <div class="objective-copy"><p class="eyebrow">WSPÓLNY CEL</p><h1 data-expedition="objective">Odzyskajcie 3 rdzenie</h1><p data-expedition="guidance">Łączymy z obozem…</p></div>
-            <div class="expedition-compass" aria-label="Kierunek do najbliższego celu"><span data-expedition="bearing">◇</span><span data-expedition="distance">—</span></div>
+            <div class="objective-copy"><p class="eyebrow">PRZETRWAJCIE SZEŚĆ FAL</p><h1 data-expedition="objective">Obrońcie polanę</h1><p data-expedition="guidance">Łączymy z obozem…</p></div>
+            <div class="expedition-compass wave-status" aria-label="Stan bieżącej fali"><span data-expedition="bearing">15 s</span><span data-expedition="distance">do pierwszej fali</span></div>
         </div>
         <div class="world-frame">
-            <canvas id="game-canvas" aria-label="Świat gry Ruiny"></canvas>
-            <div class="world-caption" aria-hidden="true"><span class="status-dot"></span> WYPRAWA NA ŻYWO</div>
+            <canvas id="game-canvas" aria-label="Polana — świat gry Żar"></canvas>
+            <div class="world-caption" aria-hidden="true"><span class="status-dot"></span> POLANA · WSPÓLNA OBRONA</div>
             <div id="debug-window" hidden></div>
             <div id="chat-zone" data-game-ui>
                 <div id="chat-msgs" role="log" aria-label="Czat drużyny"></div>
                 <form id="chat-form"><label class="sr-only" for="chat-input">Wiadomość do drużyny</label><input id="chat-input" type="text" maxlength="300" autocomplete="off" placeholder="Enter — porozmawiaj z drużyną" /></form>
             </div>
-            <div class="respawn-notice" data-expedition="respawn" hidden data-game-ui><span class="eyebrow">CHWILA ODDECHU</span><strong>Wracasz do obozu za <span data-expedition="respawn-time">3</span>…</strong><span>Drużyna wciąż może walczyć. Rdzenie są wspólne.</span></div>
-            <section class="result-panel" data-expedition="result" role="status" hidden data-game-ui><span class="eyebrow" data-expedition="result-label">KONIEC WYPRAWY</span><h2 data-expedition="result-title"></h2><p data-expedition="result-copy"></p><button class="button button-primary" data-expedition="restart" type="button">Jeszcze jedna wyprawa</button><form action="/logout" method="post" data-expedition="leave" hidden><button class="button button-primary" type="submit">Wróć do wejścia ↗</button></form></section>
+            <div class="respawn-notice" data-expedition="respawn" hidden data-game-ui><span class="eyebrow">ZŁAP ODDECH</span><strong>Wracasz do ogniska za <span data-expedition="respawn-time">3</span>…</strong><span>Zachowujesz poziom i ulepszenia. Drużyna wciąż walczy.</span></div>
+            <section class="result-panel" data-expedition="result" role="status" hidden data-game-ui><span class="eyebrow" data-expedition="result-label">KONIEC OBRONY</span><h2 data-expedition="result-title"></h2><p data-expedition="result-copy"></p><button class="button button-primary" data-expedition="restart" type="button">Jeszcze jedna obrona</button><form action="/logout" method="post" data-expedition="leave" hidden><button class="button button-primary" type="submit">Wróć do wejścia ↗</button></form></section>
         <section id="adventure-hud" class="adventure-hud" aria-label="Bohater, uzbrojenie i rozwój" data-game-ui>
             <div class="hero-progress">
                 <span class="hero-level" aria-label="Poziom bohatera"><small>POZIOM</small><strong data-adventure="level">1</strong></span>
@@ -89,14 +89,21 @@
                     <button type="button" data-adventure-upgrade="stride" disabled><span class="upgrade-symbol" aria-hidden="true">»</span><span><strong>Zwinność</strong><small>+5% szybkości ruchu</small></span><b data-upgrade-rank>0 / 5</b></button>
                 </div>
             </div>
+            <section class="hero-shop" data-adventure="shop" aria-label="Sklep na czas przerwy" hidden>
+                <div class="hero-shop-heading"><span class="eyebrow">CHWILA NA ZAKUPY</span><span>Tylko w przerwie</span></div>
+                <div class="shop-choices">
+                    <button type="button" data-adventure-purchase="heal" disabled><span aria-hidden="true">✚</span><strong>Opatrunek<small>+60 zdrowia</small></strong><b>6 ◈</b></button>
+                    <button type="button" data-adventure-purchase="training" disabled><span aria-hidden="true">✧</span><strong>Trening<small>+20 PD</small></strong><b>10 ◈</b></button>
+                </div>
+            </section>
             <p class="hero-notice" data-adventure="notice" role="status" aria-live="polite">Łączymy z bohaterem…</p>
         </section>
         </div>
         <div class="expedition-bottom" data-game-ui>
-            <section class="party-section"><h2 class="eyebrow">TWOJA DRUŻYNA <span>1–4 GRACZY</span></h2><ul class="party-list" data-expedition="party"><li class="party-placeholder">Czekamy na zwiadowców…</li></ul></section>
-            <section class="camps-section"><h2 class="eyebrow">RDZENIE <span>STRAŻNICY POKONANI: <b data-expedition="kills">0</b></span></h2><ol class="camp-list" data-expedition="camps"></ol></section>
+            <section class="party-section"><h2 class="eyebrow">TWOJA DRUŻYNA <span>1–4 GRACZY</span></h2><ul class="party-list" data-expedition="party"><li class="party-placeholder">Czekamy na obrońców…</li></ul></section>
+            <section class="village-rules"><h2 class="eyebrow">RYTM OBRONY <span>POKONANI: <b data-expedition="kills">0</b></span></h2><p>Pokonaj falę → zbierz łup → kup wzmocnienia.</p><span>20 sekund przerwy po każdej fali. Żadna kolejna nie zacznie się, dopóki nie padnie ostatni przeciwnik.</span></section>
         </div>
-        <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>PPM</kbd> fala mocy · 3 s odnowienia <span class="control-separator">/</span> <kbd>Q</kbd> broń <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po łup i odsłonięte rdzenie.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
+        <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>PPM</kbd> fala mocy · 3 s odnowienia <span class="control-separator">/</span> <kbd>Q</kbd> broń <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po łup. W przerwie wydaj monety.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
     </div>
     <% } %>
 </main>

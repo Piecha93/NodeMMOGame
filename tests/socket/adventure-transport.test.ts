@@ -7,6 +7,8 @@ import { createApplication } from "../../server/Application";
 import { readApplicationConfig } from "../../server/ServerConfig";
 import { GameCore } from "../../shared/GameCore";
 import { AdventureEvents, AdventureState, isAdventureState } from "../../shared/gameplay/Adventure";
+import { AdventureController } from "../../server/runtime/AdventureController";
+import { VILLAGE_PREPARATION_MS } from "../../shared/gameplay/Expedition";
 import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 import { Player } from "../../shared/game_utils/game/objects/Player";
 import { SocketMsgs } from "../../shared/net/SocketMsgs";
@@ -173,6 +175,58 @@ test("adventure transport: authenticated parties own their choices, performance 
     assert.equal(latePlayer.xp, 0);
     assert.equal(latePlayer.points, 0);
     assert.equal(application.gameServer.getDiagnostics().clients, 2);
+});
+
+test("village shop transport: only the caller spends earned coins, and combat closes purchases", {
+    timeout: 20_000,
+}, async (context) => {
+    const { application, makeSocket, login } = await fixture(context);
+    const first = makeSocket(await login());
+    const second = makeSocket(await login());
+    await Promise.all([connect(first), connect(second)]);
+    const firstId = await ready(first);
+    const secondJoined = nextState(first, (state) => state.players.length === 2);
+    const secondId = await ready(second);
+    await secondJoined;
+    const game = application.gameServer as unknown as { core: GameCore; adventure: AdventureController };
+    const player = game.core.ObjectsManager.get(firstId);
+    assert.ok(player instanceof Player);
+    const admittedAtTick = game.core.Runtime.tick;
+    const by = Date.now() + 3000;
+    while (
+        (game.core.Runtime.tick === admittedAtTick ||
+            !game.core.ChunksManager.getChunkAtPosition(...player.Transform.Position)?.IsActive) &&
+        Date.now() < by
+    )
+        await delay(10);
+    const earned = nextState(first, (state) => state.players.every((entry) => entry.coins === 10));
+    for (let index = 0; index < 10; index++) {
+        const enemy = game.core.ObjectsFactory.instantiateWithPosition("Michau", player.Transform.Position) as Enemy;
+        enemy.hit(1000);
+        enemy.destroy();
+    }
+    await earned;
+    const forged = nextState(first);
+    first.emit(AdventureEvents.PURCHASE, { playerId: secondId, purchase: "training", coins: 100 });
+    assert.ok((await forged).players.every((entry) => entry.coins === 10));
+    const bought = nextState(first, (state) => state.players.find((entry) => entry.id === firstId)?.coins === 0);
+    first.emit(AdventureEvents.PURCHASE, "training");
+    const receipt = await bought;
+    assert.equal(receipt.players.find((entry) => entry.id === firstId)?.level, 4);
+    assert.equal(receipt.players.find((entry) => entry.id === firstId)?.xp, 15);
+    assert.equal(receipt.players.find((entry) => entry.id === secondId)?.coins, 10);
+    assert.equal(receipt.players.find((entry) => entry.id === secondId)?.level, 3);
+    const duplicate = nextState(first);
+    first.emit(AdventureEvents.PURCHASE, "training");
+    assert.equal((await duplicate).players.find((entry) => entry.id === firstId)?.xp, 15);
+    const combat = nextState(second, (state) => state.stage === "combat");
+    game.adventure.update(VILLAGE_PREPARATION_MS);
+    await combat;
+    const refused = nextState(second);
+    second.emit(AdventureEvents.PURCHASE, "training");
+    const after = (await refused).players.find((entry) => entry.id === secondId);
+    assert.equal(after?.coins, 10);
+    assert.equal(after?.level, 3);
 });
 
 test("adventure transport: collected kill loot levels the whole party and only acknowledged choices spend points", {

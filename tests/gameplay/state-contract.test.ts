@@ -7,10 +7,14 @@ const state = (): ExpeditionState => ({
     phase: "active",
     remainingMs: EXPEDITION.durationMs,
     collected: 0,
-    total: 3,
+    total: 6,
     kills: 0,
+    waveStage: "preparing",
+    wave: 0,
+    enemiesRemaining: 0,
+    stageRemainingMs: 15_000,
     home: EXPEDITION.home,
-    camps: EXPEDITION.camps.map((camp) => ({ ...camp, status: "guarded", guardsRemaining: 2 })),
+    camps: [],
     party: [{ id: "A1", name: "Wędrowiec", hp: 175, maxHp: 200, respawnInMs: 0 }],
 });
 
@@ -25,8 +29,13 @@ test("expedition state: validates the whole bounded HUD message without coercion
         { ...state(), remainingMs: Infinity },
         { ...state(), party: Array(5).fill(state().party[0]) },
         { ...state(), party: [{ ...state().party[0], hp: 201 }] },
-        { ...state(), camps: Array(3).fill(state().camps[0]) },
-        { ...state(), camps: state().camps.map((camp) => ({ ...camp, status: ["guarded"] })) },
+        { ...state(), camps: [{ id: "old-fortress" }] },
+        { ...state(), waveStage: ["combat"] },
+        { ...state(), wave: 7 },
+        { ...state(), collected: 1, wave: 0 },
+        { ...state(), enemiesRemaining: 16 },
+        { ...state(), stageRemainingMs: 20_001 },
+        { ...state(), total: 3 },
     ]) {
         assert.equal(isExpeditionState(invalid), false);
     }

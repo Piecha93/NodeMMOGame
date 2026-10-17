@@ -4,28 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#151a19" />
-    <title>Ruiny — wspólna wyprawa</title>
+    <title>Żar — obroń polanę</title>
     <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body class="landing-page">
     <div class="landing-shell">
         <header class="site-header">
-            <a class="wordmark" href="/" aria-label="Ruiny — strona główna"><span class="rune" aria-hidden="true">◇</span> RUINY</a>
-            <span class="build-label">MAŁA GRA. WSPÓLNA WYPRAWA.</span>
+            <a class="wordmark" href="/" aria-label="Żar — strona główna"><span class="rune" aria-hidden="true">✧</span> ŻAR</a>
+            <span class="build-label">MAŁA GRA. WSPÓLNA OBRONA.</span>
         </header>
         <main class="landing-main">
             <div class="landing-copy">
                 <p class="eyebrow"><span class="status-dot"></span> KOOPERACJA · 1–4 GRACZY</p>
-                <h1>Co zostało<br />w ruinach?</h1>
-                <p class="landing-lead">Walcz. Zbieraj. Rośnij w siłę.<br />Wróć z ruin z trzema rdzeniami.</p>
-                <p class="landing-description">Zdobywaj doświadczenie, wybieraj ulepszenia i odblokuj trzy bronie. Odpieraj nadciągające upiory, zbieraj łup i pokonaj strażników ruin — sam lub z drużyną. Na wyprawę masz dziesięć minut.</p>
+                <h1>Mała polana.<br />Wielki kłopot.</h1>
+                <p class="landing-lead">Sześć fal. Trzy bronie.<br />I chwila oddechu między walkami.</p>
+                <p class="landing-description">Upiory nadciągają do wioski. Odpieraj je, lawiruj między chatami i zbieraj łup. Awansuj, składaj własny zestaw ulepszeń, a w przerwie zamień monety na zdrowie lub trening. Sam albo z drużyną — obrońcie polanę przed szóstą falą.</p>
                 <% if (locals.error_message) { %>
                     <p class="login-error" role="alert"><%= error_message %></p>
                 <% } %>
                 <form id="guest-form" action="/login" method="post">
                     <input type="hidden" name="username" value="guest" />
                     <input type="hidden" name="password" value="guest" />
-                    <button class="button button-primary" type="submit">Wyrusz jako gość <span aria-hidden="true">↗</span></button>
+                    <button class="button button-primary" type="submit">Wejdź na polanę <span aria-hidden="true">↗</span></button>
                     <span class="cta-note">Bez konta i bez instalacji. Po prostu wejdź.</span>
                 </form>
                 <% if (performanceTests) { %>
@@ -46,43 +46,41 @@
                     </form>
                 </details>
             </div>
-            <div class="expedition-map" aria-label="Mapa wyprawy: obóz i trzy ruiny">
-                <div class="map-heading"><span>TEREN WYPRAWY</span><span>01 / RUINY</span></div>
-                <svg viewBox="0 0 440 440" role="img" aria-label="Schemat trasy przez Strażnicę, Kamienny krąg i Zapomniany gaj">
+            <div class="expedition-map village-map" aria-label="Polana z ogniskiem, domkami i wodą">
+                <div class="map-heading"><span>WASZ KAWAŁEK ŚWIATA</span><span>01 / POLANA</span></div>
+                <svg viewBox="0 0 440 440" role="img" aria-label="Schemat polany: domy, ognisko i fale przeciwników">
                     <defs>
                         <pattern id="map-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#a6aa8f" stroke-opacity=".065" /></pattern>
-                        <radialGradient id="map-glow"><stop stop-color="#c7a466" stop-opacity=".13" /><stop offset="1" stop-color="#c7a466" stop-opacity="0" /></radialGradient>
+                        <radialGradient id="map-glow"><stop stop-color="#c7a466" stop-opacity=".20" /><stop offset="1" stop-color="#c7a466" stop-opacity="0" /></radialGradient>
                     </defs>
                     <rect width="440" height="440" fill="url(#map-grid)" />
                     <circle cx="225" cy="218" r="190" fill="url(#map-glow)" />
-                    <g fill="none" stroke="#6f7b66" stroke-width="1" opacity=".25">
-                        <path d="M8 236Q74 171 45 108T186 13M6 259Q99 199 73 119T211 7M18 288Q132 246 103 142T244 9M146 430Q230 347 344 399T438 277M113 432Q225 317 350 367T433 244M76 436Q218 293 359 333T435 202" />
-                        <path d="M350 20Q303 89 369 143T423 224M383 11Q335 89 398 130T437 194" />
+                    <path d="M371 0Q319 87 359 150T337 287T373 440H440V0Z" fill="#426c702e" stroke="#638b8755" />
+                    <g fill="none" stroke="#6f7b66" stroke-width="1" opacity=".25"><path d="M35 87Q177 10 294 95M20 110Q177 30 310 118M24 343Q172 433 318 351M32 365Q172 453 327 374" /></g>
+                    <path d="M109 154Q216 165 218 230T286 318M218 230L303 162M218 230L122 297" fill="none" stroke="#b7a57c" stroke-width="19" opacity=".12" />
+                    <g stroke="#c5a36b" stroke-width="1.5" fill="#27322a">
+                        <path d="M79 153V112H130V153ZM71 115L104 83L138 115ZM93 153V134H110V153" />
+                        <path d="M267 175V132H318V175ZM259 135L292 104L326 135ZM281 175V155H298V175" />
+                        <path d="M88 326V288H134V326ZM80 291L111 261L142 291ZM102 326V307H118V326" />
                     </g>
-                    <path d="M95 164L148 140L242 111L313 210L279 304L163 321L95 164" fill="none" stroke="#b7a57c" stroke-width="1.4" stroke-dasharray="3 7" opacity=".6" />
-                    <g stroke="#c5a36b" fill="#1b211e">
-                        <circle cx="95" cy="164" r="24" stroke-opacity=".25" /><circle cx="95" cy="164" r="15" />
-                        <path d="M87 166L95 154L103 166M91 162V173H99V162" fill="none" />
-                        <path d="M242 94L254 111L242 128L230 111Z" /><path d="M242 103V119M237 111H247" />
-                        <path d="M313 193L325 210L313 227L301 210Z" /><path d="M313 202V218M308 210H318" />
-                        <path d="M163 304L175 321L163 338L151 321Z" /><path d="M163 313V329M158 321H168" />
-                    </g>
-                    <g fill="#c4c6af" font-family="Georgia, serif" font-size="12">
-                        <text x="95" y="207" text-anchor="middle">Obóz</text><text x="242" y="82" text-anchor="middle">Stara strażnica</text>
-                        <text x="313" y="253" text-anchor="middle">Kamienny krąg</text><text x="163" y="364" text-anchor="middle">Zapomniany gaj</text>
-                    </g>
-                    <g stroke="#79836e" fill="none" opacity=".65"><path d="M383 326V374M359 350H407M383 331L379 343H387Z" /></g>
-                    <text x="383" y="319" text-anchor="middle" fill="#9da78f" font-family="monospace" font-size="10">N</text>
+                    <circle cx="219" cy="230" r="48" fill="none" stroke="#d4ac6755" stroke-dasharray="3 7" />
+                    <g stroke="#b28a53" stroke-width="5" stroke-linecap="round"><path d="M205 243L233 234M207 234L232 244" /></g>
+                    <path d="M220 201Q222 216 230 222Q241 240 219 241Q200 239 208 225L213 213L215 227Q226 221 220 201Z" fill="#d9a25e" />
+                    <path d="M219 221Q232 237 219 238Q209 236 219 221Z" fill="#f5d796" />
+                    <g stroke="#758768" fill="#263a28"><path d="M59 209L43 232H75ZM52 221L38 242H80ZM170 95L155 118H185ZM162 108L149 128H191ZM295 284L279 307H311ZM287 297L273 318H316ZM205 326L188 352H221ZM197 342L182 364H228" /></g>
+                    <g fill="none" stroke="#9cae8d" stroke-width="1.3" opacity=".75"><path d="M191 55L219 76L247 55M219 40V75M371 218L350 238L371 258M387 238H351M208 389L229 368L250 389M229 405V369" /></g>
+                    <g fill="#c4c6af" font-family="Georgia, serif" font-size="12"><text x="219" y="275" text-anchor="middle">Wasze ognisko</text><text x="226" y="27" text-anchor="middle">Nadciągają upiory</text></g>
                 </svg>
-                <div class="map-footer"><span><i></i> TRZY MIEJSCA DO ODNALEZIENIA</span><span>↗</span></div>
+                <div class="map-footer"><span><i></i> WALCZ · ZBIERAJ · ULEPSZAJ</span><span>6 FAL</span></div>
             </div>
         </main>
         <footer class="landing-footer">
-            <span class="controls-label">ZANIM WYRUSZYSZ</span>
+            <span class="controls-label">ZANIM NADCIĄGNĄ</span>
             <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ruch</span>
             <span><kbd>LPM</kbd> strzał w kierunku kursora</span>
+            <span><kbd>PPM</kbd> fala mocy</span>
             <span><kbd>Enter</kbd> czat drużyny</span>
-            <span class="friendly-note">Wspólne rdzenie. Bez obrażeń od sojuszników.</span>
+            <span class="friendly-note">Wspólne PD i łup. Bez obrażeń od sojuszników.</span>
         </footer>
     </div>
 </body>

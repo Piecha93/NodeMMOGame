@@ -4,6 +4,8 @@ import { AdventureController } from "../../server/runtime/AdventureController";
 import { GameCore } from "../../shared/GameCore";
 import { Origin } from "../../shared/core/Origin";
 import { ADVENTURE_MAX_LEVEL, createAdventureBuild, isAdventureState } from "../../shared/gameplay/Adventure";
+import { VILLAGE_PREPARATION_MS, VILLAGE_REST_MS, VILLAGE_WAVES } from "../../shared/gameplay/Expedition";
+import { isVillageWalkable } from "../../shared/gameplay/VillageMap";
 import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
 import { ExpeditionMarker } from "../../shared/game_utils/game/objects/ExpeditionMarker";
 import { FireBall } from "../../shared/game_utils/game/objects/FireBall";
@@ -160,6 +162,9 @@ test("adventure: upgrade ranks and the level cap remain bounded over a long run"
         assert.equal(game.progress(player).xp, 0);
         assert.equal(game.progress(player).xpToNext, 0);
         assert.equal(game.progress(player).points, ADVENTURE_MAX_LEVEL - 1 - 5);
+        const coinsAtCap = game.progress(player).coins;
+        assert.equal(game.adventure.choosePurchase(player.ID, "training"), false);
+        assert.equal(game.progress(player).coins, coinsAtCap, "training at the level cap never consumes coins");
         assert.ok(isAdventureState(game.adventure.state()));
         assert.deepEqual(createAdventureBuild("ember", { power: 5, haste: 5, vitality: 5, stride: 5 }), {
             weapon: "ember",
@@ -248,36 +253,49 @@ test("adventure: loot cannot resurrect from a sleeping chunk, including a death 
     }
 });
 
-test("adventure: first waves are nearby, active, paced and bounded even for a large delta", () => {
+test("adventure: finite waves wait for preparation and never overlap, even after a large delta", () => {
     const game = fixture();
     try {
         game.adventure.update(10_000);
         assert.equal(game.adventure.state().wave, 0, "empty parties pause the wave clock");
         const player = game.join();
-        game.adventure.update(2999);
+        game.adventure.update(VILLAGE_PREPARATION_MS - 1);
         assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
         game.adventure.update(1);
         const first = Array.from(game.core.ObjectsManager.objectsOfType(Enemy));
-        assert.equal(first.length, 3);
+        assert.equal(first.length, 4);
         for (const enemy of first) {
-            assert.equal(enemy.MaxHP, 70);
+            assert.equal(enemy.MaxHP, 45);
+            assert.equal(enemy.Name, "Biegacz");
             assert.equal(enemy.SpriteName, "wraith_idle");
             assert.ok(
-                Math.hypot(enemy.Transform.X - player.Transform.X, enemy.Transform.Y - player.Transform.Y) >= 329,
+                Math.hypot(enemy.Transform.X - player.Transform.X, enemy.Transform.Y - player.Transform.Y) >= 134,
             );
             assert.equal(game.core.ChunksManager.getObjectChunk(enemy)?.IsActive, true);
+            assert.ok(isVillageWalkable(enemy.Transform.X, enemy.Transform.Y, 24));
         }
         game.adventure.update(120_000);
-        assert.equal(game.adventure.state().wave, 2, "a pause cannot catch up a dozen encounters at once");
+        assert.equal(game.adventure.state().wave, 1, "elapsed time cannot stack another live wave");
         for (let index = 0; index < 30; index++) game.adventure.update(12_000);
-        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 32);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 4);
+        for (const enemy of first) enemy.hit(enemy.MaxHP);
+        game.adventure.update(120_000);
+        assert.equal(game.adventure.state().stage, "rest");
+        assert.equal(game.adventure.state().wave, 1);
+        assert.equal(game.adventure.state().nextWaveInMs, VILLAGE_REST_MS, "clearing starts the full recovery break");
+        game.adventure.update(VILLAGE_REST_MS - 1);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
+        game.adventure.update(1);
+        assert.equal(game.adventure.state().wave, 2);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 6);
+        assert.ok(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).some((enemy) => enemy.Name === "Plujek"));
         assert.ok(isAdventureState(game.adventure.state()));
     } finally {
         game.dispose();
     }
 });
 
-test("adventure: waves leave sleeping chunks asleep and drops remain collectible at a world edge", () => {
+test("adventure: wave spawns use active terrain, preserve unload damage and drops remain collectible at a world edge", () => {
     const core = new GameCore({
         role: Origin.SERVER,
         cooperative: true,
@@ -293,16 +311,9 @@ test("adventure: waves leave sleeping chunks asleep and drops remain collectible
         adventure.join(player);
         core.Runtime.timeMs = 2000;
         core.ChunksManager.deactivateUnusedChunks();
-        adventure.update(3000);
-        assert.equal(
-            Array.from(core.ObjectsManager.objectsOfType(Enemy)).length,
-            0,
-            "distant spawn points cannot wake sleeping chunks",
-        );
-        for (const chunk of core.ChunksManager.ChunksIterator()) chunk.activate();
-        adventure.update(12_000);
+        adventure.update(VILLAGE_PREPARATION_MS);
         const wave = Array.from(core.ObjectsManager.objectsOfType(Enemy));
-        assert.equal(wave.length, 3);
+        assert.equal(wave.length, 4);
         assert.ok(
             wave.every(
                 (enemy) =>
@@ -312,6 +323,21 @@ test("adventure: waves leave sleeping chunks asleep and drops remain collectible
                     enemy.Transform.Y <= 992,
             ),
         );
+        assert.ok(wave.every((enemy) => core.ChunksManager.getObjectChunk(enemy)?.IsActive));
+        const wounded = wave[0];
+        assert.ok(wounded);
+        wounded.hit(15);
+        const woundedHp = wounded.HP;
+        const chunk = core.ChunksManager.getObjectChunk(wounded);
+        assert.ok(chunk);
+        chunk.deactivate();
+        assert.equal(adventure.encounterState().kills, 0);
+        assert.equal(adventure.encounterState().enemiesRemaining, 4, "unloading is not clearing a wave");
+        adventure.update(0);
+        const restored = Array.from(core.ObjectsManager.objectsOfType(Enemy));
+        assert.equal(restored.length, 4);
+        assert.ok(restored.some((enemy) => enemy.HP === woundedHp));
+        assert.equal(adventure.encounterState().completedWaves, 0);
         player.Transform.X = 0;
         player.Transform.Y = 0;
         player.updateColliders();
@@ -329,6 +355,139 @@ test("adventure: waves leave sleeping chunks asleep and drops remain collectible
     }
 });
 
+test("adventure: six cleared waves complete the round and each recovery heals living players only once", () => {
+    const game = fixture();
+    try {
+        const player = game.join();
+        const dead = game.join([670, 640]);
+        player.hit(80);
+        dead.hit(dead.MaxHP);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
+        for (const [index, amount] of VILLAGE_WAVES.entries()) {
+            const enemies = Array.from(game.core.ObjectsManager.objectsOfType(Enemy));
+            assert.equal(enemies.length, amount);
+            assert.equal(game.adventure.encounterState().enemiesRemaining, amount);
+            if (index === VILLAGE_WAVES.length - 1) {
+                assert.equal(enemies.filter((enemy) => enemy.Name === "Koloss").length, 1);
+                assert.ok(enemies.some((enemy) => enemy.MaxHP === 550));
+            }
+            // Avoid loot pickup healing while measuring the clear reward.
+            for (const enemy of enemies) {
+                enemy.Transform.X = 1800;
+                enemy.Transform.Y = 1800;
+                enemy.hit(enemy.MaxHP);
+            }
+            const before = player.HP;
+            game.adventure.update(0);
+            assert.equal(player.HP, Math.min(player.MaxHP, before + 30));
+            assert.equal(dead.HP, 0, "a clear cannot resurrect a dead teammate");
+            const healed = player.HP;
+            game.adventure.update(1);
+            assert.equal(player.HP, healed, "healing is tied to one stage transition");
+            assert.equal(game.adventure.encounterState().completedWaves, index + 1);
+            if (index < VILLAGE_WAVES.length - 1) {
+                assert.equal(game.adventure.encounterState().stage, "rest");
+                game.adventure.update(VILLAGE_REST_MS);
+            }
+        }
+        assert.deepEqual(game.adventure.encounterState(), {
+            stage: "complete",
+            wave: 6,
+            completedWaves: 6,
+            enemiesRemaining: 0,
+            stageRemainingMs: 0,
+            kills: 55,
+        });
+        game.adventure.update(120_000);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
+        assert.equal(game.adventure.state().wave, 6);
+    } finally {
+        game.dispose();
+    }
+});
+
+test("adventure: purchases spend authoritative coins only between waves and reward only their purchaser", () => {
+    const game = fixture();
+    try {
+        const first = game.join();
+        const second = game.join([650, 640]);
+        assert.equal(game.adventure.choosePurchase(first.ID, "heal"), false);
+        assert.equal(game.adventure.choosePurchase(first.ID, "training"), false);
+        game.collectKills(10);
+        const teammate = game.progress(second);
+        assert.equal(game.progress(first).coins, 10);
+        for (const value of [null, {}, [], "__proto__", "constructor", "training\u0000", 1]) {
+            assert.equal(game.adventure.choosePurchase(first.ID, value), false);
+        }
+        assert.equal(game.adventure.choosePurchase("foreign-player", "training"), false);
+        second.hit(second.MaxHP);
+        assert.equal(game.adventure.choosePurchase(second.ID, "heal"), false, "purchases cannot resurrect players");
+        assert.equal(game.adventure.choosePurchase(second.ID, "training"), false);
+        assert.equal(game.adventure.choosePurchase(first.ID, "heal"), false, "full health never consumes coins");
+        assert.equal(game.adventure.choosePurchase(first.ID, "training"), true);
+        assert.equal(game.progress(first).coins, 0);
+        assert.equal(game.progress(first).level, 4);
+        assert.equal(game.progress(first).xp, 15);
+        assert.deepEqual(game.progress(second), teammate, "buying XP is not a shared pickup");
+        assert.equal(
+            game.adventure.choosePurchase(first.ID, "training"),
+            false,
+            "the same coins cannot be spent twice",
+        );
+        game.collectKills(6);
+        first.hit(80);
+        const damaged = first.HP;
+        assert.equal(game.adventure.choosePurchase(first.ID, "heal"), true);
+        assert.equal(first.HP, damaged + 60);
+        assert.equal(game.progress(first).coins, 0);
+        game.collectKills(10);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
+        const coins = game.progress(first).coins;
+        assert.equal(game.adventure.choosePurchase(first.ID, "heal"), false);
+        assert.equal(game.adventure.choosePurchase(first.ID, "training"), false);
+        assert.equal(game.progress(first).coins, coins);
+        for (const enemy of game.core.ObjectsManager.objectsOfType(Enemy)) enemy.hit(enemy.MaxHP);
+        game.adventure.update(0);
+        assert.equal(game.adventure.state().stage, "rest");
+        assert.equal(game.adventure.choosePurchase(first.ID, "training"), true);
+        game.adventure.update(0, false);
+        assert.equal(game.adventure.choosePurchase(second.ID, "training"), false, "finished rounds cannot spend coins");
+    } finally {
+        game.dispose();
+    }
+});
+
+test("adventure: an empty party pauses a combat wave and reconnecting restores its surviving enemies", () => {
+    const game = fixture();
+    try {
+        const player = game.join();
+        game.adventure.update(VILLAGE_PREPARATION_MS);
+        const enemies = Array.from(game.core.ObjectsManager.objectsOfType(Enemy));
+        const defeated = enemies[0];
+        const wounded = enemies[1];
+        assert.ok(defeated && wounded);
+        defeated.hit(defeated.MaxHP);
+        wounded.hit(15);
+        game.adventure.update(0);
+        assert.equal(game.adventure.encounterState().enemiesRemaining, 3);
+        const before = game.adventure.encounterState();
+        game.adventure.leave(player.ID);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
+        game.adventure.update(100_000);
+        assert.deepEqual(game.adventure.encounterState(), before);
+        game.adventure.join(player);
+        game.adventure.update(100_000);
+        const restored = Array.from(game.core.ObjectsManager.objectsOfType(Enemy));
+        assert.equal(restored.length, 3);
+        assert.ok(restored.some((enemy) => enemy.HP === 30));
+        assert.deepEqual(game.adventure.encounterState(), before);
+        assert.equal(game.progress(player).coins, 0);
+        assert.equal(game.progress(player).xp, 0);
+    } finally {
+        game.dispose();
+    }
+});
+
 test("adventure: ground drops are capped, and reset clears encounters and progression without cleanup rewards", () => {
     const game = fixture();
     try {
@@ -337,9 +496,9 @@ test("adventure: ground drops are capped, and reset clears encounters and progre
         game.adventure.chooseUpgrade(player.ID, "vitality");
         game.adventure.chooseWeapon(player.ID, "scatter");
         for (let index = 0; index < 100; index++) game.kill([1800, 1800]);
-        game.adventure.update(3000);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
         assert.equal(game.drops().length, 128);
-        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 3);
+        assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 4);
         game.adventure.reset();
         assert.equal(game.drops().length, 0);
         assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
@@ -360,7 +519,7 @@ test("adventure: stopping, disconnecting and disposal remove owned encounters an
     const game = fixture();
     try {
         const player = game.join();
-        game.adventure.update(3000);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
         const enemy = Array.from(game.core.ObjectsManager.objectsOfType(Enemy))[0];
         assert.ok(enemy);
         enemy.hit(enemy.MaxHP);
@@ -370,7 +529,7 @@ test("adventure: stopping, disconnecting and disposal remove owned encounters an
         assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
         assert.equal(game.adventure.chooseWeapon(player.ID, "scatter"), false);
         game.adventure.reset();
-        game.adventure.update(3000);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
         game.adventure.leave(player.ID);
         assert.equal(Array.from(game.core.ObjectsManager.objectsOfType(Enemy)).length, 0);
         assert.equal(game.adventure.state().players.length, 0);
@@ -391,7 +550,7 @@ test("adventure: all encounter cleanup paths remove shots even after their wave 
         const game = fixture();
         try {
             const player = game.join();
-            game.adventure.update(3000);
+            game.adventure.update(VILLAGE_PREPARATION_MS);
             const enemy = Array.from(game.core.ObjectsManager.objectsOfType(Enemy))[0];
             assert.ok(enemy);
             enemy.Weapon?.use(enemy, player.Transform.Position, MouseKeys.LEFT);
@@ -417,7 +576,7 @@ test("adventure: encounter cleanup only owns wave projectiles and tolerates shot
     const game = fixture();
     try {
         const player = game.join();
-        game.adventure.update(3000);
+        game.adventure.update(VILLAGE_PREPARATION_MS);
         const enemy = Array.from(game.core.ObjectsManager.objectsOfType(Enemy))[0];
         assert.ok(enemy);
         enemy.Weapon?.use(enemy, player.Transform.Position, MouseKeys.LEFT);
@@ -449,6 +608,9 @@ test("adventure: state validation rejects malformed and impossible progression a
             [],
             { ...state, wave: NaN },
             { ...state, nextWaveInMs: Infinity },
+            { ...state, stage: "unknown" },
+            { ...state, remainingEnemies: 16 },
+            { ...state, wave: 7 },
             { ...state, players: [player, player] },
             { ...state, players: [{ ...player, level: 21 }] },
             { ...state, players: [{ ...player, points: 1 }] },

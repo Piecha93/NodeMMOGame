@@ -1,11 +1,12 @@
 import { Container, Graphics, Text } from "pixi.js";
 import { ExpeditionState } from "../../shared/gameplay/Expedition";
 
-/** Floor markings remain presentation; collecting a core is decided by the server. */
+/** The campfire is a landmark; round progress and healing belong to the server. */
 export class ExpeditionMarkers extends Container {
     private signature = "";
     public setState(state: ExpeditionState): void {
-        const signature = JSON.stringify([state.home, state.collected === state.total, state.camps]);
+        const resting = state.waveStage === "preparing" || state.waveStage === "rest";
+        const signature = JSON.stringify([state.home.x, state.home.y, resting]);
         if (signature === this.signature) return;
         this.signature = signature;
         for (const child of this.removeChildren()) child.destroy({ children: true });
@@ -13,40 +14,23 @@ export class ExpeditionMarkers extends Container {
         home.position.set(state.home.x, state.home.y);
         home.addChild(
             new Graphics()
-                .circle(0, 0, state.home.radius)
-                .fill({ color: 0x8fcba9, alpha: 0.08 })
-                .stroke({ color: 0x8fcba9, width: 2, alpha: 0.75 }),
+                .ellipse(0, 2, 43, 29)
+                .fill({ color: 0xe8a951, alpha: 0.1 })
+                .ellipse(0, 6, 20, 9)
+                .fill({ color: 0x18221b, alpha: 0.5 })
+                .moveTo(-13, 8)
+                .lineTo(13, -2)
+                .stroke({ color: 0x79513a, width: 7 })
+                .moveTo(13, 8)
+                .lineTo(-13, -2)
+                .stroke({ color: 0x9b6943, width: 6 })
+                .poly([0, -28, 13, -6, 9, 6, -10, 6, -14, -5, -7, -18, -5, -8])
+                .fill(0xe58b38)
+                .poly([0, -16, 7, -2, 3, 6, -5, 4, -6, -3])
+                .fill(0xf7cd70),
         );
-        home.addChild(
-            this.createLabel(
-                state.collected === state.total ? "OBÓZ · WRÓĆ TUTAJ" : "OBÓZ · BEZPIECZNY POWRÓT",
-                -state.home.radius - 26,
-                0xb8e8cc,
-            ),
-        );
+        home.addChild(this.createLabel(resting ? "OGNISKO · CHWILA ODDECHU" : "POLANA", -50, 0xe3c38b, 10));
         this.addChild(home);
-        for (const camp of state.camps) {
-            const marker = new Container();
-            marker.position.set(camp.x, camp.y);
-            const color = camp.status === "collected" ? 0x84a68a : camp.status === "ready" ? 0xb5dce5 : 0xc89b70;
-            marker.addChild(
-                new Graphics().circle(0, 0, 92).fill({ color, alpha: 0.055 }).stroke({ color, width: 2, alpha: 0.6 }),
-            );
-            marker.addChild(this.createLabel(camp.name, -122, color));
-            marker.addChild(
-                this.createLabel(
-                    camp.status === "collected"
-                        ? "ODZYSKANY"
-                        : camp.status === "ready"
-                          ? "PODEJDŹ PO RDZEŃ"
-                          : `STRAŻNICY: ${camp.guardsRemaining}`,
-                    -102,
-                    color,
-                    10,
-                ),
-            );
-            this.addChild(marker);
-        }
     }
 
     private createLabel(text: string, y: number, color: number, size = 12): Text {

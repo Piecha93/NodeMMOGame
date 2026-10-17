@@ -1,6 +1,7 @@
 import {
     AdventureState,
     isAdventureState,
+    PurchaseId,
     UpgradeId,
     UPGRADES,
     WeaponId,
@@ -8,7 +9,15 @@ import {
 } from "../../shared/gameplay/Adventure";
 
 type Adventurer = AdventureState["players"][number];
-type PendingChoice = { kind: "upgrade"; id: UpgradeId; rank: number } | { kind: "weapon"; id: WeaponId };
+type PendingChoice =
+    | { kind: "upgrade"; id: UpgradeId; rank: number }
+    | { kind: "weapon"; id: WeaponId }
+    | { kind: "purchase"; id: PurchaseId; coins: number };
+
+const SHOP = [
+    { id: "heal", name: "Opatrunek", description: "+60 zdrowia", cost: 6 },
+    { id: "training", name: "Trening", description: "+20 doświadczenia", cost: 10 },
+] as const;
 
 /** Displays server-owned progression. A click only requests a change; no stats are predicted here. */
 export class AdventureHud {
@@ -17,6 +26,7 @@ export class AdventureHud {
     private disposed = false;
     private failed = false;
     private active = true;
+    private health: { hp: number; maxHp: number } | null = null;
     private pending: PendingChoice | null = null;
     private pendingTimeout: ReturnType<typeof setTimeout> | null = null;
     private lastLevel = 0;
@@ -27,6 +37,7 @@ export class AdventureHud {
         private readonly root: HTMLElement,
         private readonly onUpgrade: (id: UpgradeId) => void,
         private readonly onWeapon: (id: WeaponId) => void,
+        private readonly onPurchase: (id: PurchaseId) => void = () => {},
     ) {
         for (const upgrade of UPGRADES) {
             const element = this.upgradeButton(upgrade.id);
@@ -54,18 +65,38 @@ export class AdventureHud {
             element.addEventListener("click", listener);
             this.listeners.push({ element, listener });
         }
+        for (const purchase of SHOP) {
+            const element = this.purchaseButton(purchase.id);
+            if (!element) continue;
+            const listener = () => {
+                const player = this.self();
+                if (!player || this.disposed || this.failed || !this.active || this.pending || !this.isShopOpen())
+                    return;
+                if (player.coins < purchase.cost || (purchase.id === "training" && player.xpToNext === 0)) return;
+                if (purchase.id === "heal" && !this.canHeal()) return;
+                this.beginRequest({ kind: "purchase", id: purchase.id, coins: player.coins });
+                this.onPurchase(purchase.id);
+            };
+            element.addEventListener("click", listener);
+            this.listeners.push({ element, listener });
+        }
         this.render();
     }
 
-    public static create(onUpgrade: (id: UpgradeId) => void, onWeapon: (id: WeaponId) => void): AdventureHud | null {
+    public static create(
+        onUpgrade: (id: UpgradeId) => void,
+        onWeapon: (id: WeaponId) => void,
+        onPurchase: (id: PurchaseId) => void = () => {},
+    ): AdventureHud | null {
         if (typeof document === "undefined") return null;
         const root = document.getElementById("adventure-hud");
-        return root ? new AdventureHud(root, onUpgrade, onWeapon) : null;
+        return root ? new AdventureHud(root, onUpgrade, onWeapon, onPurchase) : null;
     }
 
     public setLocalPlayerId(id: string): void {
         if (this.disposed || this.localPlayerId === id) return;
         this.localPlayerId = id;
+        this.health = null;
         this.lastLevel = 0;
         this.clearRequest();
         this.render();
@@ -75,6 +106,13 @@ export class AdventureHud {
         if (this.disposed || this.active === active) return;
         this.active = active;
         if (!active) this.clearRequest();
+        this.render();
+    }
+
+    public setHealth(hp: number, maxHp: number): void {
+        if (this.disposed || !Number.isFinite(hp) || !Number.isFinite(maxHp) || hp < 0 || maxHp < 1 || hp > maxHp)
+            return;
+        this.health = { hp, maxHp };
         this.render();
     }
 
@@ -88,7 +126,9 @@ export class AdventureHud {
                 !nextPlayer ||
                 (this.pending.kind === "weapon"
                     ? nextPlayer.weapon === this.pending.id
-                    : nextPlayer.upgrades[this.pending.id] !== this.pending.rank))
+                    : this.pending.kind === "purchase"
+                      ? nextPlayer.coins < this.pending.coins || value.stage === "combat" || value.stage === "complete"
+                      : nextPlayer.upgrades[this.pending.id] !== this.pending.rank))
         )
             this.clearRequest();
         this.state = value;
@@ -106,6 +146,14 @@ export class AdventureHud {
 
     private self(): Adventurer | undefined {
         return this.state?.players.find((player) => player.id === this.localPlayerId);
+    }
+
+    private isShopOpen(): boolean {
+        return this.state?.stage === "preparing" || this.state?.stage === "rest";
+    }
+
+    private canHeal(): boolean {
+        return !!this.health && this.health.hp > 0 && this.health.hp < this.health.maxHp;
     }
 
     private beginRequest(choice: PendingChoice): void {
@@ -130,6 +178,8 @@ export class AdventureHud {
     private render(): void {
         const player = this.self();
         const unavailable = this.disposed || this.failed || !this.active || !player;
+        const shop = this.field("shop");
+        if (shop) shop.hidden = !this.isShopOpen() || !this.active || this.failed || this.disposed;
         if (player && this.state) {
             const levelUp = this.lastRound === this.state.round && this.lastLevel > 0 && player.level > this.lastLevel;
             this.lastRound = this.state.round;
@@ -155,25 +205,29 @@ export class AdventureHud {
                     : "ROZWÓJ BOHATERA",
             );
             this.root.dataset.points = String(player.points > 0 && this.active);
-            this.text("wave", `Fala ${this.state.wave}`);
+            this.text("wave", this.state.wave === 0 ? "Przygotowanie" : `Fala ${this.state.wave} / 6`);
             this.text(
                 "wave-time",
                 this.state.nextWaveInMs > 0
                     ? `Następna za ${Math.ceil(this.state.nextWaveInMs / 1000)} s`
-                    : "Przeciwnicy w ruinach",
+                    : this.state.stage === "combat"
+                      ? `Pozostało: ${this.state.remainingEnemies}`
+                      : "Polana obroniona",
             );
             if (!this.failed)
                 this.text(
                     "notice",
                     !this.active
-                        ? "Rozwój wróci z kolejną wyprawą."
+                        ? "Rozwój wróci z kolejną obroną."
                         : this.pending
                           ? "Czekamy na potwierdzenie…"
                           : levelUp
                             ? `Poziom ${player.level}! Wybierz ulepszenie poniżej.`
                             : player.points
                               ? "Masz punkty rozwoju. Wybierz ulepszenie."
-                              : "Zbieraj łup po przeciwnikach · PD i monety dla drużyny",
+                              : this.isShopOpen()
+                                ? "Wydaj monety na zdrowie lub trening. Sklep zamknie się z początkiem fali."
+                                : "Zbieraj łup · PD i monety dla drużyny",
                 );
         }
         for (const weapon of WEAPONS) {
@@ -207,6 +261,22 @@ export class AdventureHud {
             const label = button.querySelector<HTMLElement>("[data-upgrade-rank]");
             if (label) label.textContent = maxed ? "MAX" : `${rank} / ${upgrade.maxRank}`;
         }
+        for (const purchase of SHOP) {
+            const button = this.purchaseButton(purchase.id);
+            if (!button) continue;
+            button.disabled =
+                unavailable ||
+                !this.isShopOpen() ||
+                !player ||
+                player.coins < purchase.cost ||
+                Boolean(this.pending) ||
+                (purchase.id === "training" ? player.xpToNext === 0 : !this.canHeal());
+            button.setAttribute("aria-label", `${purchase.name} · ${purchase.description} · ${purchase.cost} monet`);
+            button.title =
+                purchase.id === "heal"
+                    ? "Dla żywego, rannego bohatera. Pełne zdrowie nie zużywa monet."
+                    : "Doświadczenie dla twojego bohatera. Maksymalny poziom nie zużywa monet.";
+        }
     }
 
     private field<T extends HTMLElement = HTMLElement>(name: string): T | null {
@@ -219,6 +289,10 @@ export class AdventureHud {
 
     private upgradeButton(id: UpgradeId): HTMLButtonElement | null {
         return this.root.querySelector<HTMLButtonElement>(`[data-adventure-upgrade='${id}']`);
+    }
+
+    private purchaseButton(id: PurchaseId): HTMLButtonElement | null {
+        return this.root.querySelector<HTMLButtonElement>(`[data-adventure-purchase='${id}']`);
     }
 
     private text(name: string, value: string): void {

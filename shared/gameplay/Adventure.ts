@@ -1,10 +1,14 @@
+import { EncounterStage, VILLAGE_REST_MS, VILLAGE_WAVES, isEncounterStage } from "./Expedition";
+
 export type WeaponId = "ember" | "scatter" | "lance";
 export type UpgradeId = "power" | "haste" | "vitality" | "stride";
+export type PurchaseId = "heal" | "training";
 
 export const AdventureEvents = Object.freeze({
     STATE: "adventure:state",
     UPGRADE: "adventure:upgrade",
     WEAPON: "adventure:weapon",
+    PURCHASE: "adventure:purchase",
 });
 
 export const WEAPONS = Object.freeze([
@@ -60,6 +64,8 @@ export interface AdventureState {
     readonly round: number;
     readonly wave: number;
     readonly nextWaveInMs: number;
+    readonly stage: EncounterStage;
+    readonly remainingEnemies: number;
     readonly players: readonly AdventurePlayerState[];
 }
 
@@ -94,8 +100,10 @@ export function isAdventureState(value: unknown): value is AdventureState {
     if (
         !record(value) ||
         !integer(value.round, 1, 1_000_000) ||
-        !integer(value.wave, 0, 1_000_000) ||
-        !integer(value.nextWaveInMs, 0, 12_000) ||
+        !integer(value.wave, 0, VILLAGE_WAVES.length) ||
+        !integer(value.nextWaveInMs, 0, VILLAGE_REST_MS) ||
+        !isEncounterStage(value.stage) ||
+        !integer(value.remainingEnemies, 0, 15) ||
         !Array.isArray(value.players) ||
         value.players.length > 4
     )

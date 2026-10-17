@@ -37,6 +37,7 @@ test("client/assets: manifest aliases are valid and every source file exists", a
             "template_idle",
             "template_run",
             "terrain",
+            "village_props",
             "wall",
             "wanderer_idle",
             "wanderer_run",

@@ -37,6 +37,7 @@ import { PerformanceMetrics } from "./runtime/PerformanceMetrics";
 import { LoopSchedule } from "./runtime/LoopSchedule";
 import { AdventureController } from "./runtime/AdventureController";
 import { AdventureEvents, WEAPONS } from "../shared/gameplay/Adventure";
+import { VillageMapController } from "./runtime/VillageMapController";
 
 export interface GameServerOptions {
     readonly userRepository?: Pick<UserRepository, "findUserById">;
@@ -75,6 +76,7 @@ export class GameServer {
     private core: GameCore;
     private expedition: ExpeditionController | null = null;
     private adventure: AdventureController | null = null;
+    private village: VillageMapController | null = null;
     private performance: PerformanceController | null = null;
     private performanceMetrics: PerformanceMetrics | null = null;
     private readonly snapshotTraffic = new Map<ServerClient, { startedAt: number; bytes: number; rate: number }>();
@@ -128,6 +130,7 @@ export class GameServer {
         });
         this.expedition = this.options.expedition ? new ExpeditionController(core) : null;
         this.adventure = this.options.expedition ? new AdventureController(core) : null;
+        this.village = this.options.expedition ? new VillageMapController(core) : null;
         this.performance = this.options.performance ? new PerformanceController(core) : null;
         this.performanceMetrics = this.options.performance
             ? new PerformanceMetrics(performance.now(), core.Runtime.tick)
@@ -135,6 +138,7 @@ export class GameServer {
         core.subscribeBeforeStep((_tick, delta) => {
             this.expedition?.update(delta);
             this.adventure?.update(delta, this.expedition?.state().phase === "active");
+            if (this.expedition && this.adventure) this.expedition.setEncounterState(this.adventure.encounterState());
             this.processInputCommands();
         });
         return core;
@@ -274,6 +278,8 @@ export class GameServer {
         this.expedition = null;
         this.adventure?.dispose();
         this.adventure = null;
+        this.village?.dispose();
+        this.village = null;
         this.performance?.dispose();
         this.performance = null;
         this.performanceMetrics = null;
@@ -322,6 +328,7 @@ export class GameServer {
     }
 
     private startGame() {
+        this.village?.start();
         this.expedition?.start();
         this.options.seedWorld?.(this.core);
 
@@ -556,6 +563,7 @@ export class GameServer {
         for (const [event, choose] of [
             [AdventureEvents.UPGRADE, (id: string, value: unknown) => this.adventure?.chooseUpgrade(id, value)],
             [AdventureEvents.WEAPON, (id: string, value: unknown) => this.adventure?.chooseWeapon(id, value)],
+            [AdventureEvents.PURCHASE, (id: string, value: unknown) => this.adventure?.choosePurchase(id, value)],
         ] as const) {
             socket.on(event, (value: unknown) => {
                 const player = this.getReadyPlayer(serverClient);

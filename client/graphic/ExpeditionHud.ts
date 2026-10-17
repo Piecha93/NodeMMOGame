@@ -7,34 +7,34 @@ export interface ExpeditionView {
     readonly distance: string;
 }
 
-const DIRECTIONS = ["→ E", "↘ SE", "↓ S", "↙ SW", "← W", "↖ NW", "↑ N", "↗ NE"] as const;
-
-/** A presentation-only compass: progress and outcomes always come from the server. */
-export function expeditionView(state: ExpeditionState, position?: readonly [number, number]): ExpeditionView {
-    const returning = state.collected === state.total;
-    const camps = state.camps.filter((camp) => camp.status !== "collected");
-    const nearest = position
-        ? [...camps].sort(
-              (a, b) =>
-                  Math.hypot(a.x - position[0], a.y - position[1]) - Math.hypot(b.x - position[0], b.y - position[1]),
-          )[0]
-        : camps[0];
-    const target = returning ? state.home : nearest;
-    const objective = returning ? "Wróćcie wszyscy do obozu" : "Odzyskajcie 3 rdzenie";
-    const guidance = returning
-        ? "Wszystkie rdzenie są wasze. Zbierzcie całą żywą drużynę w świetlistym kręgu."
-        : nearest
-          ? `${nearest.name} · ${nearest.status === "guarded" ? `strażnicy: ${nearest.guardsRemaining}` : "rdzeń odsłonięty — podejdź bliżej"}`
-          : "Czekamy na sygnał z wyprawy…";
-    if (!position || !target) return { objective, guidance, bearing: "◇", distance: "—" };
-    const dx = target.x - position[0];
-    const dy = target.y - position[1];
-    const direction = ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8;
+/** Counts down for presentation only. Only the server starts or clears a wave. */
+export function expeditionView(state: ExpeditionState, elapsedMs = 0): ExpeditionView {
+    const seconds = Math.ceil(Math.max(0, state.stageRemainingMs - elapsedMs) / 1000);
+    if (state.waveStage === "complete")
+        return {
+            objective: "Polana obroniona!",
+            guidance: "Szósta fala za wami. Dobra robota, drużyno.",
+            bearing: "✓",
+            distance: "6 / 6 fal",
+        };
+    if (state.waveStage === "combat")
+        return {
+            objective: `Fala ${state.wave} / ${state.total}`,
+            guidance: "Pokonajcie wszystkich napastników. Potem 20 sekund na łup i zakupy.",
+            bearing: String(state.enemiesRemaining),
+            distance: "przeciwników",
+        };
     return {
-        objective,
-        guidance,
-        bearing: DIRECTIONS[direction] ?? "◇",
-        distance: `${Math.round(Math.hypot(dx, dy))} kroków`,
+        objective:
+            state.waveStage === "preparing"
+                ? "Rozejrzyjcie się po polanie"
+                : `Fala ${state.wave} odparta · chwila oddechu`,
+        guidance:
+            state.waveStage === "preparing"
+                ? "Pierwsza fala za chwilę. Celuj kursorem, strzelaj LPM; PPM uderza falą mocy dookoła ciebie."
+                : "+30 zdrowia na przerwę. Zbierzcie łup, wydajcie monety i wybierzcie ulepszenia.",
+        bearing: `${seconds} s`,
+        distance: state.waveStage === "preparing" ? "do pierwszej fali" : `do fali ${state.wave + 1}`,
     };
 }
 
@@ -64,7 +64,7 @@ export class ExpeditionHud {
         this.restartPending = true;
         if (this.restart) {
             this.restart.disabled = true;
-            this.restart.textContent = "Przygotowujemy wyprawę…";
+            this.restart.textContent = "Przygotowujemy polanę…";
         }
         this.restartRound();
     };
@@ -106,54 +106,36 @@ export class ExpeditionHud {
         this.root.dataset.phase = value.phase;
         this.text("progress", `${value.collected} / ${value.total}`);
         this.text("kills", String(value.kills));
-        this.text("round", `Wyprawa ${value.round}`);
+        this.text("round", `Obrona ${value.round}`);
         this.renderParty(value);
-        const camps = this.root.querySelector<HTMLElement>("[data-expedition='camps']");
-        if (camps) {
-            camps.replaceChildren(
-                ...value.camps.map((camp) => {
-                    const item = this.root.ownerDocument.createElement("li");
-                    item.dataset.status = camp.status;
-                    const name = this.root.ownerDocument.createElement("span");
-                    name.textContent = camp.name;
-                    const status = this.root.ownerDocument.createElement("span");
-                    status.className = "camp-status";
-                    status.textContent =
-                        camp.status === "collected"
-                            ? "✓ odzyskany"
-                            : camp.status === "ready"
-                              ? "◇ do zebrania"
-                              : `${camp.guardsRemaining} strażników`;
-                    item.append(name, status);
-                    return item;
-                }),
-            );
-        }
         const finished = value.phase === "won" || value.phase === "lost";
         this.hidden("result", !finished);
-        this.text("result-title", value.phase === "won" ? "Wróciliście z ruin" : "Ruiny zatrzymały was na dłużej");
+        this.text("result-title", value.phase === "won" ? "Polana jest wasza" : "Tym razem zabrakło czasu");
         this.text(
             "result-copy",
             value.phase === "won"
-                ? `Trzy rdzenie bezpiecznie w obozie. Pokonani strażnicy: ${value.kills}. Gotowi na kolejną wyprawę?`
-                : `Czas minął. Odzyskane rdzenie: ${value.collected} z ${value.total}. Spróbujcie inną drogą.`,
+                ? `Odpartych fal: ${value.collected} z ${value.total}. Pokonani przeciwnicy: ${value.kills}. Jeszcze jedna runda?`
+                : `Odpartych fal: ${value.collected} z ${value.total}. Pokonani przeciwnicy: ${value.kills}. Spróbujcie innego zestawu ulepszeń.`,
         );
         if (this.restart) {
             this.restart.disabled = !finished || this.restartPending;
-            this.restart.textContent = this.restartPending ? "Przygotowujemy wyprawę…" : "Jeszcze jedna wyprawa";
+            this.restart.textContent = this.restartPending ? "Przygotowujemy polanę…" : "Jeszcze jedna obrona";
         }
         this.update();
         return true;
     }
 
-    public update(position?: readonly [number, number]): void {
+    public update(_position?: readonly [number, number]): void {
         if (this.disposed || this.connectionFailed || !this.state) return;
         const state = this.state;
         const elapsed = state.phase === "active" ? Math.max(0, this.clock() - this.receivedAt) : 0;
         this.text("timer", expeditionTime(state.remainingMs - elapsed));
-        const view = expeditionView(state, position);
+        const view = expeditionView(state, elapsed);
         this.text("objective", state.phase === "waiting" ? "Zbieramy drużynę" : view.objective);
-        this.text("guidance", view.guidance);
+        this.text(
+            "guidance",
+            state.phase === "lost" ? "Czas na nową próbę. Wybierzcie ulepszenia pasujące do broni." : view.guidance,
+        );
         this.text("bearing", view.bearing);
         this.text("distance", view.distance);
         const self = state.party.find((player) => player.id === this.localPlayerId);
@@ -168,7 +150,7 @@ export class ExpeditionHud {
         this.text("result-label", "POŁĄCZENIE Z OBOZEM");
         this.text("result-title", "Nie możemy ruszyć dalej");
         this.text("result-copy", message.slice(0, 256));
-        this.text("objective", "Wyprawa niedostępna");
+        this.text("objective", "Obrona niedostępna");
         this.text("guidance", "Wróć do wejścia, aby spróbować ponownie.");
         this.text("timer", "—");
         this.hidden("respawn", true);

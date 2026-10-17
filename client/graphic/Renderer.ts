@@ -20,6 +20,9 @@ import { ExpeditionState } from "../../shared/gameplay/Expedition";
 import { WeaponId } from "../../shared/gameplay/Adventure";
 import { FireBall } from "../../shared/game_utils/game/objects/FireBall";
 import { LootRender } from "./LootRender";
+import { VillageScenery } from "./VillageScenery";
+import { CampfireRender } from "./CampfireRender";
+import { ExpeditionMarker } from "../../shared/game_utils/game/objects/ExpeditionMarker";
 
 type PixiRenderer = Awaited<ReturnType<typeof autoDetectRenderer>>;
 type CameraObject = Pick<Container, "x" | "y" | "width" | "height">;
@@ -34,6 +37,8 @@ export class Renderer extends GameObjectsSubscriber {
     private readonly adventureWeapons = new Map<string, WeaponId>();
     private focusedObjectId: string | null = null;
     private map: TileMap | null = null;
+    private villageScenery: VillageScenery | null = null;
+    private depthSorting = false;
     private hud: HUD | null = null;
     private expeditionMarkers: ExpeditionMarkers | null = null;
     private resourcesLoader: ResourcesLoader;
@@ -97,7 +102,14 @@ export class Renderer extends GameObjectsSubscriber {
         await this.resourcesLoader.load();
 
         this.map = new TileMap(config);
+        this.depthSorting = config?.terrain === "village";
+        this.rootContainer.sortableChildren = this.depthSorting;
+        this.map.zIndex = -100_000;
         this.rootContainer.addChild(this.map);
+        if (this.depthSorting) {
+            this.villageScenery = new VillageScenery();
+            this.villageScenery.attachTo(this.rootContainer);
+        }
     }
 
     public dispose(): void {
@@ -111,6 +123,8 @@ export class Renderer extends GameObjectsSubscriber {
         this.renderObjectsById.clear();
         this.adventureWeapons.clear();
         this.stage.destroy({ children: true });
+        this.villageScenery?.destroy();
+        this.villageScenery = null;
         this.renderer.destroy();
     }
 
@@ -124,6 +138,7 @@ export class Renderer extends GameObjectsSubscriber {
         if (this.disposed) return;
         if (!this.expeditionMarkers) {
             this.expeditionMarkers = new ExpeditionMarkers();
+            this.expeditionMarkers.zIndex = -99_999;
             this.rootContainer.addChildAt(this.expeditionMarkers, this.map ? 1 : 0);
         }
         this.expeditionMarkers.setState(state);
@@ -159,6 +174,7 @@ export class Renderer extends GameObjectsSubscriber {
         if (this.disposed) return;
         this.renderObjects.forEach((gameObjectRender: GameObjectRender) => {
             gameObjectRender.update(deltaMs);
+            if (this.depthSorting) gameObjectRender.zIndex = gameObjectRender.y + 16;
         });
 
         this.map?.update();
@@ -175,7 +191,9 @@ export class Renderer extends GameObjectsSubscriber {
         }
         let gameObjectRender: GameObjectRender;
 
-        if (["loot_xp", "loot_coin", "loot_heal"].includes(gameObject.SpriteName)) {
+        if (gameObject instanceof ExpeditionMarker && gameObject.SpriteName === "portal") {
+            gameObjectRender = new CampfireRender();
+        } else if (["loot_xp", "loot_coin", "loot_heal"].includes(gameObject.SpriteName)) {
             gameObjectRender = new LootRender();
         } else {
             const resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
@@ -195,6 +213,8 @@ export class Renderer extends GameObjectsSubscriber {
         }
 
         gameObjectRender.setObject(gameObject);
+        if (gameObject.SpriteName === "none" && gameObject.IsSolid) gameObjectRender.renderable = false;
+        if (this.depthSorting) gameObjectRender.zIndex = gameObject.Transform.Y + 16;
         this.renderObjects.set(gameObject, gameObjectRender);
         this.renderObjectsById.set(gameObject.ID, gameObjectRender);
         this.rootContainer.addChild(gameObjectRender);

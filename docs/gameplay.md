@@ -1,71 +1,60 @@
-# Ruiny — walka i rozwój bohatera
+# Żar — najazdy na polanę
 
-Mała wyprawa dla 1–4 graczy łączy eksplorację trzech ruin z walką, zbieraniem przedmiotów i rozwojem postaci. W trakcie drogi pojawiają się kolejne grupy upiorów. Pokonani przeciwnicy zostawiają łup, doświadczenie odblokowuje bronie i punkty ulepszeń, a drużyna próbuje wrócić do obozu z trzema rdzeniami przed końcem dziesięciu minut.
+Mała gra akcji dla 1–4 graczy: walka o polanę w wiosce, zbieranie łupu i rozwój bohatera pomiędzy najazdami. Cel jest blisko i czytelny: pokonaj sześć fal, w tym końcowego Kolossa. Nie ma szukania ruin, rdzeni ani obowiązkowego marszu przez mapę.
 
 ## Pętla rozgrywki
 
-1. Drużyna pojawia się razem w obozie.
-2. Kompas i mapa celów prowadzą do Starej strażnicy, Kamiennego kręgu i Zapomnianego gaju.
-3. Każde miejsce ma trzech strażników. Po pokonaniu wszystkich odsłania się rdzeń; podejście podnosi go dla całej drużyny.
-4. Po odzyskaniu trzech rdzeni wszyscy aktualni członkowie drużyny muszą żywi wrócić do świetlistego kręgu w obozie.
-5. Limit wynosi 10 minut. Ekran wyniku pozwala rozpocząć kolejną wyprawę w tej samej sesji.
+1. Po wejściu masz 15 sekund przygotowania przy ognisku.
+2. Nadchodzi fala: kolejno 4, 6, 8, 10, 12 i 15 przeciwników. Następna nigdy nie dokłada się do niedokończonej walki.
+3. Pokonaj wszystkich przeciwników i zbierz kryształy PD, monety oraz mikstury.
+4. Między falami dostajesz 20 sekund odpoczynku. Żywi gracze odzyskują jednorazowo 30 HP, można wydać punkty i monety.
+5. Pokonanie szóstej fali wygrywa rundę. Wspólny limit 8 minut zapobiega nieskończonej rundzie. Zegar i etap zatrzymują się przy pustej drużynie.
 
-Zegar zaczyna biec po dołączeniu pierwszego gracza i zatrzymuje się, gdy nikogo nie ma w świecie. Dołączenie wznawia tę samą wyprawę. Postęp celów jest wspólny. Odłączeni gracze nie blokują zakończenia rundy.
+Śmierć wyłącza ruch i strzelanie; po 3 sekundach wracasz przy ognisku z pełnym zdrowiem i 3 sekundami ochrony. Rozwój pozostaje do końca rundy. Nowa runda oraz ponowne dołączenie jako nowa postać zaczynają od poziomu 1.
 
-## Walka i sterowanie
+## Walka i przeciwnicy
 
-- **WASD** — ruch, **mysz** — celowanie, **przytrzymany lewy przycisk** — strzały.
-- **Prawy przycisk myszy** — fala mocy: 12 krótkich pocisków wokół postaci, po 28 obrażeń, odnowienie 3 sekundy. Działa także podczas odnowienia zwykłego strzału.
-- **Q** — przełączanie odblokowanych broni. Można też kliknąć broń w panelu bohatera.
-- **Enter** — czat; pisanie i klikanie interfejsu nie steruje postacią.
-- Gracz zaczyna z 200 HP, strażnik ruin ma 100 HP, a upiór z fali 70 HP. Przeciwnicy używają własnego odnowienia 1200 ms.
-- Przeciwnicy zauważają żywego gracza w promieniu 480, podchodzą do dystansu 200 i wracają po oddaleniu się od swojej strażnicy.
-- Współpracujący gracze nie ranią się wzajemnie. Mikstury przy ruinach leczą 50 HP rannemu, żywemu graczowi; mikstury z łupu leczą 45 HP.
-- Śmierć wyłącza ruch i strzelanie. Po 3 sekundach postać odradza się w obozie z pełnym zdrowiem i 3 sekundami ochrony. Wspólny postęp pozostaje.
+- WASD — ruch, mysz — celowanie, przytrzymany LPM — strzelanie.
+- PPM — fala mocy: 12 krótkich pocisków po 28 obrażeń, odnowienie 3 sekundy.
+- Q — zmiana odblokowanej broni; Enter — czat. Interfejs i czat nie uruchamiają strzałów.
+- Biegacz ma 45 HP i atakuje z bliska po 12 obrażeń, co najmniej 850 ms między trafieniami.
+- Plujek ma 80 HP, utrzymuje dystans i strzela wolniejszym pociskiem za 14 obrażeń co 1800 ms.
+- Koloss ma 550 HP, mocniejsze ataki z bliska i powolne pierścienie ośmiu pocisków. Pojawia się w ostatniej fali.
+- Przeciwnicy obchodzą scenerię po wspólnej siatce; domy i woda blokują ich ataki na wprost. Poligon zachowuje wcześniejsze zachowanie AI.
 
-| Broń | Odblokowanie | Obrażenia podstawowe | Odnowienie | Zachowanie |
+| Broń | Odblokowanie | Obrażenia | Odnowienie | Zachowanie |
 | --- | ---: | ---: | ---: | --- |
-| Żar | poziom 1 | 25 | 180 ms | Szybki, pojedynczy pocisk ognia. |
-| Rozprysk | poziom 2 | 3 × 22 | 460 ms | Trzy pociski w wachlarzu; krótki zasięg. |
-| Przebicie | poziom 3 | 60 | 650 ms | Szybka włócznia energii, trafiająca do trzech różnych przeciwników. |
+| Żar | poziom 1 | 25 | 180 ms | Szybki pojedynczy pocisk. |
+| Rozprysk | poziom 2 | 3 × 22 | 460 ms | Krótki wachlarz. |
+| Przebicie | poziom 3 | 60 | 650 ms | Przelatuje przez trzech różnych przeciwników. |
 
-Każda broń korzysta z ulepszeń postaci. Obrażenia są zaokrąglane do liczb całkowitych zgodnie ze schematem sieciowym. Przełączenie broni nie zeruje odnowienia. Pociski zachowują wydłużoną geometrię w kierunku lotu i powstają wewnątrz sylwetki gracza; regresja sprawdza cienką osłonę przy postaci dla wszystkich trzech broni przy 64 Hz. To wartości do ogrania i strojenia.
+Ulepszenia zwiększają obrażenia, skracają odnowienie, dodają zdrowie lub szybkość ruchu; każda kategoria ma 5 rang. Zmiana broni nie zeruje odnowienia, a zwiększenie maksymalnego zdrowia zachowuje dotychczasowy ubytek HP. Pociski zaczynają wewnątrz sylwetki i nie przeskakują cienkiej osłony przy postaci przy 64 Hz. Gracze nie ranią członków drużyny.
 
-## Doświadczenie i przedmioty
+## Łup i wydawanie monet
 
-Każdy pokonany przeciwnik zostawia kryształ za 10 PD i monetę. Co piąty dodatkowo zostawia miksturę. Podejdź po łup: przedmioty przyciągają się w promieniu 140 pikseli, a zbierają w promieniu 52. Kryształy i monety dostają wszyscy obecni członkowie drużyny, więc gracze nie rywalizują o ostatnie trafienie ani podniesienie. Ranny, żywy gracz zbiera leczenie dla siebie; pełne zdrowie nie marnuje mikstury.
+Pokonany przeciwnik zostawia 10 PD i monetę; co piąty również miksturę za 45 HP. Podejdź po łup: przyciąganie działa w promieniu 140 pikseli, podniesienie w promieniu 52. Zebrane PD i monety dostaje cała aktualna drużyna, leczenie tylko ranny żywy gracz. Łup znika po minucie, maksymalnie 128 przedmiotów pozostaje w świecie.
 
-Pierwszy awans wymaga 20 PD; każdy następny o 15 więcej. Awans przyznaje punkt rozwoju i może odblokować broń. Maksymalny poziom wynosi 20. Panel w prawym górnym rogu pokazuje PD, poziom, łup i zbliżającą się falę; przy dostępnych punktach rozwija wybór ulepszeń:
+Pierwszy awans wymaga 20 PD, każdy kolejny o 15 więcej; maksymalny poziom to 20. Awans daje punkt rozwoju. Panel pokazuje broń, punkty i ulepszenia dopiero po potwierdzeniu serwera.
 
-- **Moc** — +18% obrażeń za rangę.
-- **Szybkostrzelność** — −8% podstawowego czasu między strzałami za rangę.
-- **Witalność** — +30 maksymalnego HP za rangę, z zachowaniem wcześniejszego ubytku zdrowia.
-- **Zwinność** — +5% prędkości ruchu za rangę.
+W przygotowaniu i przerwach sklep oferuje wybór:
 
-Każde ulepszenie ma maksymalnie 5 rang. Serwer sprawdza poziom, punkty i limity; interfejs czeka na potwierdzenie. Śmierć zachowuje rozwój. Nowa runda i ponowne dołączenie jako nowa postać zaczynają od poziomu 1; nie jest to trwały rozwój konta.
+- Opatrunek: 6 monet, przywraca 60 HP kupującemu. Nie można marnować monet przy pełnym zdrowiu ani leczyć martwej postaci.
+- Trening: 10 monet, 20 PD dla kupującego. Można zachować monety na leczenie lub przyspieszyć rozwój.
 
-## Fale i czytelność walki
+Zakupy w walce są zablokowane. Wybór należy do gotowej postaci danego połączenia; klient nie podaje ceny, ilości doświadczenia ani identyfikatora innego gracza.
 
-Pierwsza grupa pojawia się po 3 sekundach, następne co 12 sekund. Grupy rosną od 3 do 8 przeciwników, z limitem 32 żywych upiorów fal. Powstają 330–430 pikseli od żywych graczy, wyłącznie w aktywnych chunkach. Zegar zatrzymuje się wraz z rundą. Koniec rundy, reset i wyjście ostatniego gracza usuwają także pociski fal. Przedmioty znikają po minucie; na ziemi pozostaje maksymalnie 128.
+## Teren z kafelków
 
-Nowe atlasy bohatera i upiorów zastępują sylwetki techniczne w wyprawie. Ruch ma animowany chód, oddech i kierunek; trzymana broń celuje kursorem, reaguje odrzutem i błyskiem wystrzału. Trafienia pokazują liczby obrażeń, a przedmioty unoszą się i pulsują. [Źródła grafiki, prompty i pliki](art-assets.md) opisują nowe zasoby.
+Wspólny `VillageMap` opisuje trawę, ścieżki, wodę, most i położenie obiektów. Deterministyczne warianty rozbijają powtarzalność, a maska czterech sąsiadów dobiera brzegi wody. Z tych samych elementów można układać kolejne mapy; obecna polana jest ręcznie skomponowana pod walkę, a nie losowana przy wejściu.
 
-## Zakres pierwszej wersji
+Domki, drzewa, skały i płoty dają osłony. Woda jest nieprzechodnia, most zapewnia przejście. Opis przeszkód służy zarówno kolizjom serwera, jak i klientowi przewidującemu ruch. Ziemia jest renderowana w cache chunków; opis mapy nie płynie w każdym snapshotcie. Obiekty scenerii i postacie są porządkowane po głębokości.
 
-Jedna mapa, trzy bronie, fala mocy, rozwój bohatera, łup i trzy cele wyprawy tworzą zamkniętą rozgrywkę. Fale zapewniają walkę także podczas drogi między ruinami.
+[Grafika postaci](art-assets.md) i [grafika wioski](village-art.md) mają zapisane prompty oraz pochodzenie. Efekty trafień, broń, ognisko i przedmioty animują się lokalnie bez zmiany stanu fizyki.
 
-Do swobodnego sprawdzania ruchu, strzelania i obciążenia służy osobny [Poligon](performance.md). Nie ma tam celów, zegara ani śmierci gracza.
+## Architektura i testy
 
-## Uruchamianie i architektura
+`DEMO_SCENARIO=expedition` włącza tę rozgrywkę. `ExpeditionController` prowadzi rundę i drużynę, `AdventureController` sześć fal, postęp i łup, a `VillageMapController` statyczne kolizje. Wszystkie czasy rozgrywki wynikają z kroków symulacji. Uśpienie chunka nie liczy się jako zabicie przeciwnika; aktywna fala zachowuje stan slotów i zdrowie. Zakończenie oraz reset usuwają pociski, również po śmierci właściciela.
 
-Domyślny `DEMO_SCENARIO=expedition` włącza wyprawę. `walls` zachowuje techniczny sandbox, a `none` pusty świat do testów. Wyprawa wymaga klienta v2 lub nowszego; starszy klient otrzymuje kontrolowany komunikat zamiast nieznanych obiektów.
+Binarne schematy v1/v2/v3 pozostają bez zmian. Stan rundy i rozwoju ma osobne walidowane komunikaty. Oddzielny [Poligon](performance.md) zachowuje własną mapę, testowe AI i brak obrażeń gracza; nie uruchamia fal, sklepu ani kolizji wioski.
 
-`ExpeditionController` po stronie serwera prowadzi cele, zegar, populację i wynik. Klient otrzymuje walidowany `ExpeditionState` i wyświetla HUD; nie decyduje o zabiciu, podniesieniu ani zwycięstwie. Zegar i odnowienia używają czasu symulacji.
-
-`AdventureController` osobno prowadzi fale, łup i rozwój. Wysyła ograniczony, walidowany `AdventureState`; żądania wyboru dotyczą wyłącznie gotowej postaci danego połączenia i podlegają limitowi częstotliwości. `AdventureWeapon` utrzymuje odnowienie niezależnie od wybranej broni. XP nie wynika z zniknięcia obiektu przy uśpieniu chunka. Łup używa istniejącego prefabu znacznika bez trwałości chunkowej i powstaje po transakcji zniszczenia przeciwnika. Binarne schematy v1/v2/v3 pozostają bez zmian.
-
-Poligon nie tworzy kontrolera rozwoju, fal ani łupu. Zachowuje poprzednią broń i zasoby `template`; dodatkowe napisy obrażeń i efekty bohatera dotyczą wyprawy.
-
-Obrażenia strażnika, pokonane sloty i zużyte mikstury są zapamiętywane niezależnie od aktywnych obiektów chunków. Uśpienie sektora nie przyznaje zabójstwa, nie usuwa celu i nie uzupełnia zużytego leczenia. Kontroler ponownie tworzy potrzebną populację po powrocie gracza. Prefab `ExpeditionMarker` ma dopisany identyfikator `I`; istniejące identyfikatory pozostają stabilne.
-
-Regresje obejmują walkę, śmierć i odrodzenie, cooldowny, wspólne cele, uśpienie sektorów, powrót całej drużyny, nową rundę i rzeczywisty transport dwóch klientów.
+Regresje obejmują granice etapów, brak nakładających się fal, zwycięstwo, reset, uśpienie chunków, zakupy i ich autoryzację przez prawdziwy transport, role przeciwników oraz zgodność terenu z kolizjami.

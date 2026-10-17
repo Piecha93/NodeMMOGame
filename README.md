@@ -2,7 +2,7 @@
 
 Multiplayer browser game built with TypeScript, Node.js, Socket.IO and PixiJS. The server owns game state; the client predicts local movement and renders remote snapshots.
 
-The current expedition is a gameplay prototype for 1–4 players: recover three cores from guarded ruins and return to camp. The next direction is still open; current work focuses on responsive movement, shooting and a small, readable game loop. WASD moves, the mouse aims and holding the left button fires. [Prototype rules](docs/gameplay.md).
+The current game, Żar, is a village arena for 1–4 players: defeat six finite waves, collect shared experience and loot, and spend coins during recovery breaks. Grass, water, bridges and cottages provide navigable cover. Three enemy roles and a final heavy enemy vary the encounters. WASD moves, the mouse aims, LMB fires, RMB casts a radial ability and Q switches unlocked weapons. [Game rules](docs/gameplay.md).
 
 For engine experiments, choose **Poligon / test wydajności** at the entrance or in the game header. Its separate world accepts a custom population from 0 through 20,000 enemies, different workloads and live client/server measurements. [Performance test controls and metric definitions](docs/performance.md).
 

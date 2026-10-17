@@ -80,12 +80,17 @@ export class PlayerRender extends GameObjectAnimationRender {
         this.previousHp = player.HP;
         this.feedback.update(player.HP, player.MaxHP, deltaMs);
         const hit = this.feedback.hit;
+        if (this.adventureBody && player instanceof Enemy) {
+            this.bodyColor = player.Name === "Biegacz" ? 0xb2edb4 : player.Name === "Plujek" ? 0xabcafa : 0xffc28f;
+        }
         const moving = player.HP > 0 && (player.Horizontal !== 0 || player.Vertical !== 0);
         const gait = Math.sin((this.elapsedMs / 1000) * Math.PI * 6);
         const bob = moving ? Math.abs(gait) * 1.6 : Math.sin(this.elapsedMs / 500 + this.phase) * 0.45;
         this.animation.y = (this.adventureBody ? -player.Transform.ScaleY * 0.15 : 0) + (player.HP > 0 ? -bob : 4);
         this.animation.scale.x *= 1 + hit * 0.12;
         this.animation.scale.y *= 1 - hit * 0.1 + (moving ? gait * 0.025 : 0);
+        if (this.adventureBody && player.Name === "Koloss")
+            this.animation.scale.set(this.animation.scale.x * 1.4, this.animation.scale.y * 1.4);
         this.animation.tint = flashTint(this.bodyColor, hit * 0.9);
         this.animation.alpha = player.HP > 0 ? 1 : 0.4;
         this.animation.rotation = player.HP > 0 ? hit * 0.08 : -0.45;

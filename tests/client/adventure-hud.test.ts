@@ -4,6 +4,7 @@ import { AdventureHud } from "../../client/graphic/AdventureHud";
 import {
     AdventurePlayerState,
     AdventureState,
+    PurchaseId,
     UpgradeId,
     UPGRADES,
     WeaponId,
@@ -16,6 +17,7 @@ class ElementProbe extends EventTarget {
     readonly elements = new Map<string, ElementProbe>();
     textContent = "";
     disabled = false;
+    hidden = false;
     title = "";
     value = 0;
     max = 0;
@@ -50,13 +52,21 @@ function player(overrides: Partial<AdventurePlayerState> = {}): AdventurePlayerS
 }
 
 function state(overrides: Partial<AdventureState> = {}): AdventureState {
-    return { round: 1, wave: 2, nextWaveInMs: 3500, players: [player()], ...overrides };
+    return {
+        round: 1,
+        wave: 2,
+        stage: "combat",
+        remainingEnemies: 4,
+        nextWaveInMs: 0,
+        players: [player()],
+        ...overrides,
+    };
 }
 
 function fixture() {
     const root = new ElementProbe();
     const fields = new Map(
-        ["level", "xp", "xp-bar", "coins", "points", "wave", "wave-time", "notice"].map((name) => [
+        ["level", "xp", "xp-bar", "coins", "points", "wave", "wave-time", "notice", "shop"].map((name) => [
             name,
             root.add(`[data-adventure='${name}']`),
         ]),
@@ -75,9 +85,13 @@ function fixture() {
             return [id, element];
         }),
     );
-    const requests: Array<UpgradeId | WeaponId> = [];
+    const purchases = new Map<PurchaseId, ElementProbe>(
+        ["heal", "training"].map((id) => [id as PurchaseId, root.add(`[data-adventure-purchase='${id}']`)]),
+    );
+    const requests: Array<UpgradeId | WeaponId | PurchaseId> = [];
     const hud = new AdventureHud(
         root as unknown as HTMLElement,
+        (id) => requests.push(id),
         (id) => requests.push(id),
         (id) => requests.push(id),
     );
@@ -96,7 +110,12 @@ function fixture() {
         assert.ok(result);
         return result;
     };
-    return { root, hud, field, weapon, upgrade, requests };
+    const purchase = (id: PurchaseId): ElementProbe => {
+        const result = purchases.get(id);
+        assert.ok(result);
+        return result;
+    };
+    return { root, hud, field, weapon, upgrade, purchase, requests };
 }
 
 test("adventure HUD: a late local ID selects the player's authoritative progression, invalid states do not render", () => {
@@ -110,7 +129,7 @@ test("adventure HUD: a late local ID selects the player's authoritative progress
     assert.equal(field("xp-bar").value, 12);
     assert.equal(field("xp-bar").max, 50);
     assert.equal(field("coins").textContent, "18");
-    assert.equal(field("wave-time").textContent, "Następna za 4 s");
+    assert.equal(field("wave-time").textContent, "Pozostało: 4");
     assert.equal(hud.update(state({ players: [player({ xp: Number.NaN })] })), false);
     assert.equal(hud.update(state({ players: [player({ points: 999 })] })), false);
     assert.equal(field("xp").textContent, "12 / 50 PD");
@@ -262,5 +281,101 @@ test("adventure HUD: finished or waiting expeditions disable choices until the n
     assert.equal(root.dataset.points, "true");
     assert.equal(upgrade("power").disabled, false);
     assert.equal(weapon("scatter").disabled, false);
+    hud.dispose();
+});
+
+test("village shop: only preparation and rest allow purchases, regardless of manipulated buttons", () => {
+    const { hud, field, purchase, requests } = fixture();
+    hud.setLocalPlayerId("A0");
+    hud.setHealth(100, 200);
+    hud.update(state());
+    assert.equal(field("shop").hidden, true);
+    purchase("training").disabled = false;
+    purchase("training").click();
+    assert.deepEqual(requests, []);
+    hud.update(state({ stage: "preparing", wave: 0, remainingEnemies: 0, nextWaveInMs: 15_000 }));
+    assert.equal(field("shop").hidden, false);
+    assert.equal(purchase("heal").disabled, false);
+    hud.setActive(false);
+    assert.equal(field("shop").hidden, true);
+    purchase("heal").click();
+    assert.deepEqual(requests, []);
+    hud.dispose();
+});
+
+test("village shop: prices, level cap and authoritative acknowledgements prevent repeated or optimistic purchases", () => {
+    const { hud, field, purchase, requests } = fixture();
+    hud.setLocalPlayerId("A0");
+    hud.setHealth(100, 200);
+    const rest = { stage: "rest", remainingEnemies: 0, nextWaveInMs: 12_000 } as const;
+    hud.update(state({ ...rest, players: [player({ coins: 5 })] }));
+    assert.equal(purchase("heal").disabled, true);
+    purchase("heal").disabled = false;
+    purchase("heal").click();
+    assert.deepEqual(requests, []);
+    hud.update(state(rest));
+    purchase("heal").click();
+    purchase("heal").click();
+    purchase("training").click();
+    assert.deepEqual(requests, ["heal"]);
+    assert.equal(field("coins").textContent, "18");
+    hud.update(state(rest));
+    assert.equal(purchase("heal").disabled, true, "unchanged packets cannot acknowledge a purchase");
+    hud.update(state({ ...rest, players: [player({ coins: 19 })] }));
+    assert.equal(purchase("heal").disabled, true, "collecting another coin is not a purchase acknowledgement");
+    hud.update(state({ ...rest, players: [player({ coins: 12 })] }));
+    assert.equal(field("coins").textContent, "12");
+    assert.equal(purchase("heal").disabled, false);
+    purchase("training").click();
+    assert.deepEqual(requests, ["heal", "training"]);
+    hud.update(state());
+    assert.equal(field("shop").hidden, true);
+    hud.update(state(rest));
+    assert.equal(purchase("training").disabled, false, "the next wave releases old shop requests");
+    hud.update(state({ ...rest, players: [player({ level: 20, xp: 0, xpToNext: 0, points: 19 })] }));
+    assert.equal(purchase("training").disabled, true);
+    purchase("training").disabled = false;
+    purchase("training").click();
+    assert.deepEqual(requests, ["heal", "training"]);
+    hud.dispose();
+});
+
+test("village shop: refused purchases time out, and disposal releases their listeners and timers", (context) => {
+    context.mock.timers.enable({ apis: ["setTimeout"] });
+    const { hud, purchase, requests, field } = fixture();
+    hud.setLocalPlayerId("A0");
+    hud.setHealth(100, 200);
+    hud.update(state({ stage: "rest", remainingEnemies: 0, nextWaveInMs: 12_000 }));
+    purchase("heal").click();
+    context.mock.timers.tick(1500);
+    assert.equal(purchase("heal").disabled, false);
+    assert.match(field("notice").textContent, /ponownie/);
+    purchase("training").click();
+    hud.dispose();
+    context.mock.timers.tick(5000);
+    purchase("training").click();
+    assert.deepEqual(requests, ["heal", "training"]);
+    assert.equal(purchase("training").disabled, true);
+});
+
+test("village shop: full health, death and unknown health cannot request healing after button tampering", () => {
+    const { hud, purchase, requests } = fixture();
+    hud.setLocalPlayerId("A0");
+    hud.update(state({ stage: "rest", remainingEnemies: 0, nextWaveInMs: 12_000 }));
+    const attempt = () => {
+        assert.equal(purchase("heal").disabled, true);
+        purchase("heal").disabled = false;
+        purchase("heal").click();
+    };
+    attempt();
+    hud.setHealth(200, 200);
+    attempt();
+    hud.setHealth(0, 200);
+    attempt();
+    assert.deepEqual(requests, []);
+    hud.setHealth(140, 200);
+    assert.equal(purchase("heal").disabled, false);
+    purchase("heal").click();
+    assert.deepEqual(requests, ["heal"]);
     hud.dispose();
 });

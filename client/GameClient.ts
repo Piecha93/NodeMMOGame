@@ -128,6 +128,7 @@ export class GameClient {
             : AdventureHud.create(
                   (id) => this.socket.emit(AdventureEvents.UPGRADE, id),
                   (id) => this.socket.emit(AdventureEvents.WEAPON, id),
+                  (id) => this.socket.emit(AdventureEvents.PURCHASE, id),
               );
         const performanceRoot = typeof document === "undefined" ? null : document.getElementById("performance-panel");
         this.performancePanel =
@@ -135,7 +136,12 @@ export class GameClient {
         for (const [event, handler] of this.socketHandlers) this.socket.on(event, handler);
         if (typeof window !== "undefined") window.addEventListener("pagehide", this.pageHideHandler);
         void this.initializeRenderer(
-            options.createRenderer ?? ((objects) => Renderer.create(objects, this.core.Runtime.config)),
+            options.createRenderer ??
+                ((objects) =>
+                    Renderer.create(objects, {
+                        ...this.core.Runtime.config,
+                        terrain: this.expeditionHud ? "village" : "legacy",
+                    })),
         );
     }
 
@@ -265,6 +271,8 @@ export class GameClient {
         this.localPlayerId = playerId;
         this.expeditionHud?.setLocalPlayer(playerId);
         this.adventureHud?.setLocalPlayerId(playerId);
+        const health = this.expeditionState?.party.find((player) => player.id === playerId);
+        if (health) this.adventureHud?.setHealth(health.hp, health.maxHp);
         this.reconciliation = new Reconciliation();
         if (isSnapshotProtocol(protocolVersion)) {
             const fixedDelta = (data as Record<string, unknown>).fixedDeltaMs;
@@ -410,6 +418,8 @@ export class GameClient {
         this.expeditionState = data;
         this.expeditionHud?.receive(data);
         this.adventureHud?.setActive(data.phase === "active");
+        const health = data.party.find((player) => player.id === this.localPlayerId);
+        if (health) this.adventureHud?.setHealth(health.hp, health.maxHp);
         this.renderer?.setExpeditionState(data);
     }
 
