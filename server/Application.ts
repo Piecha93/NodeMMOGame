@@ -4,7 +4,7 @@ import { AddressInfo } from "node:net";
 import * as path from "node:path";
 import express, { Express, NextFunction, Request, Response } from "express";
 import session from "express-session";
-import { Server, Socket } from "socket.io";
+import { Server, Socket, Namespace } from "socket.io";
 
 import { GameServer, GameServerOptions } from "./GameServer";
 import { ApplicationConfig, readApplicationConfig, ServerConfig } from "./ServerConfig";
@@ -15,6 +15,7 @@ import { ManagedSessionStore, MongoSessionStore } from "./database/MongoSessionS
 import { disabledUserRepository, UserRepository } from "./database/UserRepository";
 import { seedDemoWorld } from "./runtime/DemoScenario";
 import { PERFORMANCE_MAX_ENEMIES } from "../shared/gameplay/Performance";
+import { PerformanceWorkerHost, PerformanceWorkerHostOptions } from "./workers/PerformanceWorkerHost";
 
 const customParser = require("socket.io-msgpack-parser");
 const COOKIE_NAME = "node-mmo.sid";
@@ -35,6 +36,10 @@ export interface ApplicationDependencies {
     readonly userRepository?: UserRepository;
     readonly sessionStore?: ManagedSessionStore;
     readonly gameServerFactory?: (sockets: Server, options: GameServerOptions) => GameServer;
+    readonly performanceServerFactory?: (
+        sockets: Namespace,
+        options: PerformanceWorkerHostOptions,
+    ) => PerformanceWorkerHost;
     readonly projectRoot?: string;
 }
 
@@ -43,7 +48,7 @@ export interface Application {
     readonly httpServer: HttpServer;
     readonly sockets: Server;
     readonly gameServer: GameServer;
-    readonly performanceServer: GameServer | null;
+    readonly performanceServer: PerformanceWorkerHost | null;
     start(): Promise<AddressInfo>;
     stop(): Promise<void>;
 }
@@ -141,11 +146,14 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
             ...(config.demoScenario === "walls" ? { seedWorld: seedDemoWorld } : {}),
         };
         const gameServer = dependencies.gameServerFactory?.(sockets, options) ?? new GameServer(sockets, options);
-        let performanceServer: GameServer | null = null;
+        let performanceServer: PerformanceWorkerHost | null = null;
         if (config.enablePerformanceTests) {
             const namespace = sockets.of("/performance");
             namespace.use(authorize);
-            performanceServer = new GameServer(namespace, { userRepository: repository, performance: true });
+            const workerOptions: PerformanceWorkerHostOptions = { userRepository: repository };
+            performanceServer =
+                dependencies.performanceServerFactory?.(namespace, workerOptions) ??
+                new PerformanceWorkerHost(namespace, workerOptions);
         }
         return { httpServer, sockets, gameServer, performanceServer };
     };
@@ -253,7 +261,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
     const closeRuntime = async (): Promise<void> => {
         const errors: unknown[] = [];
         try {
-            runtime.performanceServer?.dispose();
+            await runtime.performanceServer?.dispose();
         } catch (error) {
             errors.push(error);
         }
@@ -311,7 +319,7 @@ export function createApplication(dependencies: ApplicationDependencies = {}): A
                     await repository.connect();
                     await store.connect?.();
                     runtime.gameServer.start();
-                    runtime.performanceServer?.start();
+                    await runtime.performanceServer?.start();
                     await new Promise<void>((resolve, reject) => {
                         const onError = (error: Error) => reject(error);
                         runtime.httpServer.once("error", onError);

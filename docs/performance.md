@@ -10,7 +10,7 @@ Wybierz **Poligon / test wydajności** na stronie wejścia lub w nagłówku gry.
 - **Bezruch / Ruch / Walka i pociski** — porównanie kosztu nieruchomych obiektów, ruchu i kolizji oraz AI ze strzelaniem do graczy w zasięgu.
 - **Załaduj** zastępuje poprzednią populację i usuwa jej pociski. **Wyczyść** ustawia liczbę przeciwników na zero.
 
-Ustawienia są wspólne dla wszystkich graczy na poligonie. Zmiana jest ograniczona do jednej na sekundę. Wyprawa działa w oddzielnym świecie i przestrzeni Socket.IO; zmiany poligonu nie modyfikują jej obiektów ani celów. Oba światy współdzielą proces Node, więc silne obciążenie poligonu nadal może opóźnić wyprawę.
+Ustawienia są wspólne dla wszystkich graczy na poligonie. Zmiana jest ograniczona do jednej na sekundę. Wyprawa działa w oddzielnym świecie i przestrzeni Socket.IO; zmiany poligonu nie modyfikują jej obiektów ani celów. Poligon ma własny worker thread: jego symulacja, kolizje, baselines replikacji i kodowanie snapshotów nie wykonują się na głównej pętli zdarzeń HTTP i wyprawy. Oba wątki nadal korzystają z zasobów tego samego komputera.
 
 Przeciążony poligon nadrabia najwyżej dwa ticki świata w jednej turze, aby częściej oddawać czas obsłudze sieci. Ruch gracza odtwarza każdą potwierdzoną komendę ze stałym krokiem, także gdy AI nadąża wolniej. Budżet czasu serwera ogranicza to do 8 komend na tick i 8 ticków zapasu; numer sekwencji ani zalewanie komendami nie przyznają dodatkowego czasu ruchu. Zwykła gra zachowuje obsługę jednej komendy na tick. Przy skrajnym przeciążeniu nadal możliwy jest zaległy input; panel pokazuje faktyczne Hz, porzucony czas i wielkość korekt.
 
@@ -66,11 +66,11 @@ Po stronie repliki częściowa aktualizacja zmienia tylko przesłane pola, a ind
 npm run bench:server -- --count=2000 --seconds=20 --warmup=5
 ```
 
-Ten benchmark uruchamia prawdziwą aplikację na losowym lokalnym porcie oraz klienta Socket.IO w osobnym procesie. Gość loguje się przez HTTP, negocjuje v3 i WebSocket, ładuje żądaną populację, następnie chodzi po kwadracie, zmieniając kierunek co 800 ms. Wysyła input z docelowym tempem 64 Hz, ale nie strzela, żeby liczba testowanych przeciwników pozostawała stała. Przeciwnicy wykonują zwykłą walkę i strzelają; reguły kooperacji i kolizji pozostają włączone.
+Ten benchmark uruchamia prawdziwą aplikację na losowym lokalnym porcie oraz klienta Socket.IO w osobnym procesie. Poligon działa w workerze serwera, a raport podaje jego identyfikator wątku. Gość loguje się przez HTTP, negocjuje v3 i WebSocket, ładuje żądaną populację, następnie chodzi po kwadracie, zmieniając kierunek co 800 ms. Wysyła input z docelowym tempem 64 Hz, ale nie strzela, żeby liczba testowanych przeciwników pozostawała stała. Przeciwnicy wykonują zwykłą walkę i strzelają; reguły kooperacji i kolizji pozostają włączone. Drugi klient jest obecny w zwykłym świecie i mierzy jego heartbeaty; co 500 ms wykonywany jest też odczyt HTTP. Sekcja `isolation` pokazuje tempo zwykłego świata i opóźnienia tych prób podczas obciążenia workera.
 
 Pomiar zaczyna się po zakończeniu ładowania oraz rozgrzewce. Raport zawiera faktyczny przyrost ticków względem czasu monotonicznego, wszystkie zmierzone czasy ticków, snapshoty i bajty odebrane przez klienta, RTT heartbeatów, przyrost porzuconego czasu i minimum/maksimum żywych NPC. Inna niż zadana liczba NPC przerywa próbę. Skrypt zamyka własne procesy, sockety i timery także po błędzie. Zakresy parametrów: `--count=0..20000`, `--seconds=1..120`, `--warmup=0..30`.
 
-Na Node 24.19 / Windows x64 próba 2000 NPC, 5 s rozgrzewki + 20 s ciągłego ruchu pokazała:
+Przed wydzieleniem workera, na Node 24.19 / Windows x64 próba 2000 NPC, 5 s rozgrzewki + 20 s ciągłego ruchu pokazała:
 
 | Pomiar | Przed | Po |
 | --- | ---: | ---: |
@@ -86,6 +86,21 @@ Osobna próba ustabilizowanej pracy (10 s rozgrzewki + 30 s pomiaru, te same 200
 Oszczędności pochodzą z pomijania pustych kierunkowych kontaktów niesolidnych aktorów, konserwatywnej szybkiej ścieżki bez kandydatów na solidną geometrię oraz filtrowania stabilnych sojuszniczych interakcji pocisków. Własne callbacki, drzwi, nieznane drużyny i dynamiczna geometria zachowują ścieżkę ogólną. Pętle czasowe odejmują też czas pracy od następnego oczekiwania, zamiast dodawać go do okresu. Osobny deterministyczny test 560 ticków zachował identyczny stan świata i 4915 utworzonych pocisków.
 
 W zwykłym świecie AI korzysta z żywego indeksu graczy; nie przegląda wszystkich obiektów dla każdego NPC. Poligon miał już własny zbiór graczy, więc ten zysk dotyczy przede wszystkim normalnej rozgrywki. Pomiar serwera nie zawiera renderowania, prediction klienta ani GPU i nie jest testem wielu graczy. Wynik 20 000 NPC sprawdza limit i poprawność generowania; nie oznacza 64 Hz przy takiej populacji.
+
+Po przeniesieniu poligonu do workera wykonano pomiar na tym samym Node 24.19 / Windows x64. Drugi klient był obecny w pustym zwykłym świecie (`DEMO_SCENARIO=none`); był nieruchomy, a sondy HTTP czytały uwierzytelnioną stronę gry:
+
+| Pomiar | 2000 NPC, rozgrzewka 10 s + pomiar 30 s | 10 000 NPC, rozgrzewka 5 s + pomiar 10 s |
+| --- | ---: | ---: |
+| Poligon, rzeczywiste ticki/s | 63,98 | 6,23 |
+| CPU ticka p50 / p95 | 7,35 / 8,75 ms | 154,70 / 163,31 ms |
+| Odebrane snapshoty/s | 24,99 | 3,11 |
+| Zwykły świat, rzeczywiste ticki/s | 63,98 | 64,02 |
+| Zwykły świat, porzucony czas | 0 ms | 0 ms |
+| Zwykły świat, heartbeat RTT p95 | 0,61 ms | 0,59 ms |
+| HTTP RTT p95 | 5,72 ms | 6,05 ms |
+| Żywi przeciwnicy min / max | 2000 / 2000 | 10 000 / 10 000 |
+
+To dowód izolacji pętli zdarzeń, nie przyspieszenia jednej symulacji proporcjonalnie do liczby rdzeni. Przy 10 000 NPC poligon jest przeciążony: ruch i ACK pozostają opóźnione, a dłuższa praca może wypełnić ograniczoną kolejkę inputu i zakończyć połączenie. Nie należy traktować krótkiej próby jako obsługiwanej pojemności. Następnym ograniczeniem pozostaje koszt symulacji tłumu i kontaktów, podczas gdy HTTP oraz zwykły świat zachowują responsywność.
 
 ## Konfiguracja
 

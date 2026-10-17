@@ -30,6 +30,8 @@ The project has no measured production concurrency or bandwidth budget. Before o
 
 The development [performance world](performance.md) now exposes a bounded enemy population, simulation tick percentiles, discarded time, snapshot payload rate and browser FPS. Its different distributions separate local rendering pressure from world simulation. It is an interactive diagnostic, not a concurrency/soak benchmark.
 
+Its dedicated worker isolates the performance world's JavaScript event loop from HTTP and the ordinary world. It does not parallelize one world's physics across cores. CPU saturation across all cores, shared memory pressure and transport work can still affect the whole process. A failed worker disconnects performance clients; application stop/start creates a fresh worker and world. Region workers and distributed world ownership remain separate architecture work.
+
 Collision filters define directional contact interest. Changing a stock projectile's owner or team while it remains geometrically overlapping can admit a previously filtered contact as a new enter. Normal `MagicWand` shots capture a stable owner/team once; legacy owner-string restoration, unknown teams and custom callbacks retain full contact history. Runtime ownership/team changes need an explicit gameplay policy if they are introduced.
 
 `droppedTimeMs` makes discarded simulation backlog visible, but production dashboards, alert thresholds, readiness/health integration and incident procedures are not configured. Application logging and a green development smoke do not supply those operating guarantees.

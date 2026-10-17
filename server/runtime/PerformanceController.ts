@@ -168,6 +168,14 @@ export class PerformanceController {
         }
     }
 
+    get LastTickDurationMs(): number {
+        return this.tickSamples.at(-1) ?? 0;
+    }
+
+    get EnemyCount(): number {
+        return this.enemies.size;
+    }
+
     state(
         snapshotBytesPerSecond = 0,
         telemetry: PerformanceTelemetry = { simulationHz: 0, snapshotHz: 0, snapshotP95Ms: 0 },

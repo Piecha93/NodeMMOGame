@@ -6,6 +6,8 @@ The current expedition is a gameplay prototype for 1–4 players: recover three 
 
 For engine experiments, choose **Poligon / test wydajności** at the entrance or in the game header. Its separate world accepts a custom population from 0 through 20,000 enemies, different workloads and live client/server measurements. [Performance test controls and metric definitions](docs/performance.md).
 
+The performance world runs in a dedicated Node.js worker thread. The main thread retains HTTP, sessions, database access, Socket.IO and the ordinary world; simulation, replication baselines and snapshot encoding for the performance world stay together in its worker.
+
 ## Requirements
 
 - Node.js 24 LTS, selected by `.nvmrc`.

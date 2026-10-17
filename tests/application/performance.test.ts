@@ -7,6 +7,17 @@ import { GameCore } from "../../shared/GameCore";
 import { SocketMsgs } from "../../shared/net/SocketMsgs";
 import { PerformanceEvents, PerformanceState } from "../../shared/gameplay/Performance";
 import { Enemy } from "../../shared/game_utils/game/objects/Enemy";
+import { setTimeout as delay } from "node:timers/promises";
+
+async function eventually<T>(read: () => Promise<T>, matches: (value: T) => boolean): Promise<T> {
+    const deadline = Date.now() + 5000;
+    do {
+        const value = await read();
+        if (matches(value)) return value;
+        await delay(20);
+    } while (Date.now() < deadline);
+    throw new Error("Timed out waiting for worker cleanup");
+}
 
 const parser = require("socket.io-msgpack-parser");
 const settings = (enabled = true) =>
@@ -45,7 +56,7 @@ function ready(socket: Socket): Promise<void> {
 }
 
 test("application/performance: authenticated namespace is isolated, logout revokes both worlds, restart owns resources", {
-    timeout: 15_000,
+    timeout: 20_000,
 }, async (t) => {
     const application = createApplication({ config: settings() });
     const sockets: Socket[] = [];
@@ -95,37 +106,43 @@ test("application/performance: authenticated namespace is isolated, logout revok
     const normalCore = (application.gameServer as unknown as { core: GameCore }).core;
     const performanceServer = application.performanceServer;
     assert.ok(performanceServer);
-    const performanceCore = (performanceServer as unknown as { core: GameCore }).core;
+    const diagnostic = await performanceServer.inspect();
+    const firstThread = performanceServer.threadId;
+    assert.ok(firstThread !== null && firstThread > 0, "the performance simulation owns a separate worker thread");
+    assert.equal(diagnostic.threadId, firstThread);
+    assert.equal(performanceServer.running, true);
+    assert.equal(diagnostic.clients, 1);
+    assert.equal(diagnostic.gameTimerActive, true);
+    assert.equal(diagnostic.updateTimerActive, true);
     assert.equal(
         [...normalCore.ObjectsManager.ObjectsById.values()].filter((object) => object instanceof Enemy).length,
         0,
     );
-    assert.equal(
-        [...performanceCore.ObjectsManager.ObjectsById.values()].filter((object) => object instanceof Enemy).length,
-        137,
-    );
+    assert.equal(diagnostic.performance.enemies, 137);
     const normalDisconnected = new Promise<void>((resolve) => ordinary.once("disconnect", () => resolve()));
     const performanceDisconnected = new Promise<void>((resolve) => performance.once("disconnect", () => resolve()));
     const logout = await fetch(`${base}/logout`, { method: "POST", headers: { cookie }, redirect: "manual" });
     assert.equal(logout.status, 302);
     await Promise.all([normalDisconnected, performanceDisconnected]);
-    assert.equal(
-        [...performanceCore.ObjectsManager.ObjectsById.values()].filter((object) => object instanceof Enemy).length,
-        0,
-        "the last observer leaving cancels the performance workload",
+    const cleaned = await eventually(
+        () => performanceServer.inspect(),
+        (state) => state.clients === 0,
     );
+    assert.equal(cleaned.performance.enemies, 0, "the last observer leaving cancels the performance workload");
+    assert.equal(cleaned.performance.objects, 0);
     await assert.rejects(connect(makeSocket("/performance", cookie)), /authorized|expired/);
     await application.stop();
-    assert.equal(performanceCore.ObjectsManager.ObjectsById.size, 0);
     assert.equal(normalCore.ObjectsManager.ObjectsById.size, 0);
-    assert.equal((performanceServer as unknown as { gameTimer: unknown }).gameTimer, null);
-    assert.equal((performanceServer as unknown as { updateTimer: unknown }).updateTimer, null);
+    assert.equal(performanceServer.running, false);
+    assert.equal(performanceServer.threadId, null);
+    await assert.rejects(performanceServer.inspect());
     await application.start();
     assert.notEqual(application.performanceServer, performanceServer);
-    assert.equal(
-        (application.performanceServer as unknown as { core: GameCore }).core.ObjectsManager.ObjectsById.size,
-        0,
-    );
+    assert.ok(application.performanceServer);
+    const restarted = await application.performanceServer.inspect();
+    assert.equal(restarted.performance.objects, 0);
+    assert.equal(restarted.clients, 0);
+    assert.notEqual(restarted.threadId, firstThread);
 });
 
 test("application/performance: disabled mode has no namespace or entrypoint and production requires opt-in", {

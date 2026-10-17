@@ -10,6 +10,8 @@ flowchart LR
     HTTP["Application: HTTP, authentication, sessions"]
     Transport["Socket.IO: negotiated v1/v2/v3"]
     Server["GameServer: sessions, input queues, scheduling"]
+    Gateway["PerformanceWorkerHost: admission and bounded IPC"]
+    Worker["Performance worker: GameServer and world"]
     Protocol["Protocol: DTOs, validation, bounded codecs"]
     Replication["Per-client replication and domain adapter"]
     Core["GameCore: world, objects, movement, collisions, chunks"]
@@ -18,6 +20,10 @@ flowchart LR
     Browser <-->|"HTTP"| HTTP
     Browser <-->|"realtime"| Transport
     Transport --> Server
+    Transport --> Gateway
+    Gateway <-->|"DTO commands / transferred snapshots"| Worker
+    Worker --> Core
+    Worker --> Replication
     Server --> Core
     Server --> Replication
     Browser --> Protocol
@@ -38,6 +44,12 @@ flowchart LR
 | `client/` | Browser input/UI, prediction, interpolation, renderers and resources. |
 
 Separate TypeScript configurations and import-boundary checks prevent browser/server dependencies from leaking into portable modules. A single repository is sufficient; publishing packages, introducing an ECS and changing transport are not prerequisites for these boundaries.
+
+The ordinary world stays on the main thread. The performance world runs in one dedicated `node:worker_threads` worker; its `GameCore`, input queues, physics, interest baselines and codecs have a single owner. HTTP, session validation, account lookup and Socket.IO remain on the main thread. `GameServer` depends on the small `GameTransport`/`GameConnection` interfaces, so both Socket.IO and an admitted worker connection use the same simulation and reconciliation logic. The worker receives a client ID, an authenticated user ID and a sanitized display name, never a socket, session object or database handle.
+
+IPC carries bounded plain DTOs in input order. Delivery ACKs bound the bridge's memory and do not acknowledge simulated movement: `lastProcessedInputSeq` still advances only after authoritative processing. Outgoing snapshots transfer their owned `ArrayBuffer`s to the main thread. Bridge receipt means queued to transport, not delivered to the browser. Queue overflow disconnects the affected client instead of dropping an incremental snapshot or STOP command. Per-client and global byte/message bounds also cover slow admission and outbound transport. Worker startup, failure, shutdown and restart belong to application lifecycle; a crashed world closes its clients without restarting an empty world behind existing connections.
+
+The worker caps queued and in-flight output at 32 MiB globally. The host separately caps the Engine.IO queued packet buffer at 32 MiB; a batch already handed to the network transport is outside that counter. These are queue limits, not a total process memory budget. Input backlog and diagnostic requests have their own bounds. A slow network transport can close its entire Engine.IO connection to release its buffers; a worker failure closes only the performance namespace, leaving a shared ordinary-world connection alive.
 
 ## World ownership and fixed simulation
 

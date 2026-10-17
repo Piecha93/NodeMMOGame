@@ -10,7 +10,7 @@ import {
 import { commandToSnapshot } from "../shared/replication/InputCommandAdapter";
 import { simulateMovement } from "../shared/core/SimulateMovement";
 import { ReplicationSession, VIEWPORT_INTEREST } from "../shared/replication/ReplicationSession";
-import { Server, Socket, Namespace } from "socket.io";
+import type { GameConnection, GameTransport } from "./transport/GameTransport";
 
 import { ServerClient } from "./ServerClient";
 import { Player } from "../shared/game_utils/game/objects/Player";
@@ -30,7 +30,7 @@ import { ClientsInputSnapshotHandler } from "./ClientsInputSnapshotHandler";
 import { negotiateProtocolVersion, isSnapshotProtocol } from "../shared/net/Protocol";
 import { ExpeditionController } from "./runtime/ExpeditionController";
 import { EXPEDITION, ExpeditionEvents } from "../shared/gameplay/Expedition";
-import { PerformanceEvents } from "../shared/gameplay/Performance";
+import { PerformanceEvents, PerformanceState } from "../shared/gameplay/Performance";
 import { PerformanceController } from "./runtime/PerformanceController";
 import { InputMovementBudget } from "./runtime/InputMovementBudget";
 import { PerformanceMetrics } from "./runtime/PerformanceMetrics";
@@ -44,6 +44,16 @@ export interface GameServerOptions {
     readonly performance?: boolean;
 }
 
+export interface GameServerDiagnostics {
+    readonly serverTick: number;
+    readonly at: number;
+    readonly droppedTimeMs: number;
+    readonly performance: PerformanceState | null;
+    readonly clients: number;
+    readonly gameTimerActive: boolean;
+    readonly updateTimerActive: boolean;
+}
+
 export class GameServer {
     private readonly snapshotClients = new Map<
         ServerClient,
@@ -55,10 +65,10 @@ export class GameServer {
             movementBudget: InputMovementBudget;
         }
     >();
-    private sockets: Server | Namespace;
+    private sockets: GameTransport;
 
-    private clients: Map<Socket, ServerClient> = new Map<Socket, ServerClient>();
-    private userIdToSocketMap: Map<string, Socket> = new Map<string, Socket>();
+    private clients: Map<GameConnection, ServerClient> = new Map<GameConnection, ServerClient>();
+    private userIdToSocketMap: Map<string, GameConnection> = new Map<string, GameConnection>();
 
     private core: GameCore;
     private expedition: ExpeditionController | null = null;
@@ -81,11 +91,11 @@ export class GameServer {
     private updateTimer: ReturnType<typeof setTimeout> | null = null;
     private readonly gameSchedule = new LoopSchedule(ServerConfig.TICKRATE);
     private readonly updateSchedule = new LoopSchedule(ServerConfig.UPDATE_INTERVAL);
-    private readonly connectionHandler = (socket: Socket) => this.onConnection(socket);
+    private readonly connectionHandler = (socket: GameConnection) => this.onConnection(socket);
     private readonly userRepository: Pick<UserRepository, "findUserById">;
 
     constructor(
-        sockets: Server | Namespace,
+        sockets: GameTransport,
         private readonly options: GameServerOptions = {},
     ) {
         if (options.performance && options.expedition)
@@ -271,6 +281,25 @@ export class GameServer {
         this.stop();
     }
 
+    /** Plain diagnostic data; never exposes live world objects across a worker boundary. */
+    public getDiagnostics(): GameServerDiagnostics {
+        return {
+            serverTick: this.core.Runtime.tick,
+            at: performance.now(),
+            droppedTimeMs: this.core.droppedTimeMs,
+            performance: this.performance?.state(0, this.performanceMetrics?.read()) ?? null,
+            clients: this.clients.size,
+            gameTimerActive: this.gameTimer !== null,
+            updateTimerActive: this.updateTimer !== null,
+        };
+    }
+
+    public subscribeStepTiming(listener: (durationMs: number, enemies: number) => void): () => void {
+        return this.core.subscribeAfterStep(() => {
+            if (this.performance) listener(this.performance.LastTickDurationMs, this.performance.EnemyCount);
+        });
+    }
+
     private startGame() {
         this.expedition?.start();
         this.options.seedWorld?.(this.core);
@@ -327,7 +356,7 @@ export class GameServer {
         }
     }
 
-    private onConnection(socket: Socket) {
+    private onConnection(socket: GameConnection) {
         socket.compress(false);
         // use to fake latency
         // (function() {
@@ -375,6 +404,8 @@ export class GameServer {
                 : this.performance
                   ? `Tester ${this.nextTraveler++}`
                   : userId;
+        } else if (typeof socket.displayName === "string") {
+            serverClient.Name = this.sanitizePlayerName(socket.displayName);
         } else {
             serverClient.Name = "User";
             void this.userRepository

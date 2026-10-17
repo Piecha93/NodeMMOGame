@@ -6,6 +6,6 @@
     "sourceMap": false,
     "noUncheckedIndexedAccess": false
   },
-  "include": ["tests/**/*.ts"],
+  "include": ["tests/**/*.ts", "server/workers/**/*.ts"],
   "exclude": ["dist", "dist-test", "node_modules", "public", "tests/browser"]
 }

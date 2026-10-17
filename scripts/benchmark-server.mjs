@@ -12,12 +12,10 @@ const require = createRequire(import.meta.url);
 const {
     PerformanceEvents,
     validatePerformanceConfiguration,
-    ...performanceContract
+    PERFORMANCE_MAX_ENEMIES: maximum,
 } = require("../dist/shared/gameplay/Performance.js");
 const { SocketMsgs } = require("../dist/shared/net/SocketMsgs.js");
 const { decodeSnapshotV3 } = require("../dist/shared/protocol/index.js");
-// Older build artifacts can still be measured before rebuilding the optimized source.
-const maximum = performanceContract.PERFORMANCE_MAX_ENEMIES ?? Math.max(...performanceContract.PERFORMANCE_COUNTS);
 
 function summarize(values) {
     const sorted = [...values].sort((left, right) => left - right);
@@ -44,56 +42,49 @@ async function childServer() {
             ENABLE_PERF_TESTS: "true",
         }),
     });
+    const world = application.performanceServer;
     let measuring = null;
     let stopping;
-    const core = application.performanceServer.core;
-    const population = application.performanceServer.performance;
-    const telemetry = application.performanceServer.performanceMetrics;
-    const unsubscribe = core.subscribeAfterStep(() => {
-        if (!measuring) return;
-        const duration = population.tickSamples.at(-1);
-        if (Number.isFinite(duration)) measuring.tickCpu.push(duration);
-        measuring.enemyMin = Math.min(measuring.enemyMin, population.enemies.size);
-        measuring.enemyMax = Math.max(measuring.enemyMax, population.enemies.size);
-    });
-    const sample = () => ({
-        at: performance.now(),
-        tick: core.Runtime.tick,
-        droppedTimeMs: core.droppedTimeMs,
-        state: population.state(0, telemetry.read()),
-    });
+    const sample = (diagnostics) => ({ ...diagnostics, tick: diagnostics.serverTick, state: diagnostics.performance });
     const stop = () =>
         (stopping ??= (async () => {
-            unsubscribe();
             await application.stop();
         })());
     process.on("message", async (message) => {
         try {
             if (message.kind === "start") {
-                const started = sample();
+                const started = sample(await world.beginMeasurement());
                 measuring = {
                     started,
-                    tickCpu: [],
-                    enemyMin: started.state.enemies,
-                    enemyMax: started.state.enemies,
+                    ordinary: application.gameServer.getDiagnostics(),
                     cpu: process.cpuUsage(),
                 };
                 process.send({ kind: "reply", id: message.id, value: started });
             } else if (message.kind === "finish") {
                 if (!measuring) throw new Error("Measurement has not started");
-                const ended = sample();
+                const measuredWorld = await world.endMeasurement();
+                const ended = sample(measuredWorld.ended);
+                const ordinary = application.gameServer.getDiagnostics();
                 const measured = measuring;
                 measuring = null;
+                const ordinaryElapsed = (ordinary.at - measured.ordinary.at) / 1000;
+                const ordinaryTicks = (ordinary.serverTick - measured.ordinary.serverTick) >>> 0;
                 process.send({
                     kind: "reply",
                     id: message.id,
                     value: {
                         started: measured.started,
                         ended,
-                        tickCpuMs: summarize(measured.tickCpu),
+                        tickCpuMs: summarize(measuredWorld.tickCpuMs),
                         processCpuMicroseconds: process.cpuUsage(measured.cpu),
-                        enemyMin: measured.enemyMin,
-                        enemyMax: measured.enemyMax,
+                        enemyMin: measuredWorld.enemyMin,
+                        enemyMax: measuredWorld.enemyMax,
+                        ordinaryWorld: {
+                            elapsedSeconds: ordinaryElapsed,
+                            ticks: ordinaryTicks,
+                            simulationHz: ordinaryTicks / ordinaryElapsed,
+                            droppedTimeMs: ordinary.droppedTimeMs - measured.ordinary.droppedTimeMs,
+                        },
                     },
                 });
             } else if (message.kind === "stop") {
@@ -108,7 +99,13 @@ async function childServer() {
     process.once("SIGTERM", () => void stop().then(() => process.exit(0)));
     try {
         const address = await application.start();
-        process.send({ kind: "ready", port: address.port, fixedDeltaMs: core.Runtime.config.fixedDeltaMs });
+        const diagnostics = await world.inspect();
+        process.send({
+            kind: "ready",
+            port: address.port,
+            fixedDeltaMs: diagnostics.performance.tickBudgetMs,
+            workerThreadId: diagnostics.threadId,
+        });
     } catch (error) {
         process.send({ kind: "error", message: error.stack ?? String(error) });
         await stop();
@@ -206,9 +203,11 @@ async function benchmark() {
         return (await result).value;
     };
     let socket;
+    let ordinarySocket;
     let heartbeat;
     let inputTimer;
     let inputStopped = false;
+    let httpProbe = Promise.resolve();
     try {
         const ready = await waitFor(child, "message", (message) => message.kind === "ready", cancellation.signal);
         const base = `http://127.0.0.1:${ready.port}`;
@@ -235,20 +234,44 @@ async function benchmark() {
         const connected = waitFor(socket, "connect", () => true, cancellation.signal);
         socket.connect();
         await connected;
+        ordinarySocket = io(base, {
+            autoConnect: false,
+            reconnection: false,
+            transports: ["websocket"],
+            parser,
+            extraHeaders: { Cookie: cookie },
+            forceNew: true,
+        });
+        ordinarySocket.on("connect_error", abort);
+        ordinarySocket.on(SocketMsgs.ERROR, (message) => abort(new Error(`Ordinary world error: ${message}`)));
+        ordinarySocket.on("disconnect", (reason) => {
+            if (!finished) abort(new Error(`Ordinary client disconnected: ${reason}`));
+        });
+        const ordinaryConnected = waitFor(ordinarySocket, "connect", () => true, cancellation.signal);
+        ordinarySocket.connect();
+        await ordinaryConnected;
+        const ordinaryReady = waitFor(ordinarySocket, SocketMsgs.FIRST_UPDATE_GAME, () => true, cancellation.signal);
+        ordinarySocket.emit(SocketMsgs.CLIENT_READY, { supportedProtocolVersions: [3] });
+        await ordinaryReady;
         const heartbeatSent = new Map();
         const heartbeatRtt = [];
+        const ordinaryHeartbeatRtt = [];
         const beat = () => {
             const id = Date.now();
             heartbeatSent.set(id, performance.now());
             socket.emit(SocketMsgs.HEARTBEAT, id);
+            ordinarySocket.emit(SocketMsgs.HEARTBEAT, id);
             for (const key of heartbeatSent.keys()) if (id - key > 10_000) heartbeatSent.delete(key);
         };
         socket.on(SocketMsgs.HEARTBEAT_RESPONSE, (id) => {
             const sent = heartbeatSent.get(id);
             if (sent !== undefined) {
                 heartbeatRtt.push(performance.now() - sent);
-                heartbeatSent.delete(id);
             }
+        });
+        ordinarySocket.on(SocketMsgs.HEARTBEAT_RESPONSE, (id) => {
+            const sent = heartbeatSent.get(id);
+            if (sent !== undefined) ordinaryHeartbeatRtt.push(performance.now() - sent);
         });
         heartbeat = setInterval(beat, 1000);
         beat();
@@ -260,6 +283,22 @@ async function benchmark() {
         let measuredPlayerStart;
         let lastAck = null;
         const observedTelemetry = [];
+        const httpRtt = [];
+        httpProbe = (async () => {
+            while (!inputStopped) {
+                const started = performance.now();
+                const response = await fetch(`${base}/game?mode=performance`, {
+                    headers: { Cookie: cookie },
+                    signal: AbortSignal.any([cancellation.signal, AbortSignal.timeout(3000)]),
+                });
+                await response.arrayBuffer();
+                if (!response.ok) throw new Error(`HTTP probe failed: ${response.status}`);
+                if (measuring) httpRtt.push(performance.now() - started);
+                await delay(500);
+            }
+        })().catch((error) => {
+            if (!finished) abort(error);
+        });
         socket.on(PerformanceEvents.STATE, (state) => {
             if (measuring) observedTelemetry.push(state);
         });
@@ -325,6 +364,7 @@ async function benchmark() {
         sendInput();
         await delay(configuration.warmup * 1000, undefined, { signal: cancellation.signal });
         heartbeatRtt.length = 0;
+        ordinaryHeartbeatRtt.length = 0;
         measuredPlayerStart = latestPlayer;
         await request("start");
         const observedStarted = performance.now();
@@ -346,6 +386,7 @@ async function benchmark() {
                 arch: process.arch,
                 clientPid: process.pid,
                 serverPid: child.pid,
+                workerThreadId: ready.workerThreadId,
                 serverArtifactSha256: createHash("sha256").update(artifact).digest("hex"),
             },
             workload: {
@@ -385,6 +426,11 @@ async function benchmark() {
                 playerStart: measuredPlayerStart,
                 playerEnd: latestPlayer,
             },
+            isolation: {
+                ordinaryWorld: server.ordinaryWorld,
+                ordinaryHeartbeatRttMs: summarize(ordinaryHeartbeatRtt),
+                httpRttMs: summarize(httpRtt),
+            },
             telemetry: {
                 samples: observedTelemetry.length,
                 endingSimulationHz: server.ended.state.simulationHz,
@@ -392,10 +438,11 @@ async function benchmark() {
                 endingTickP50Ms: server.ended.state.tickP50Ms,
                 endingTickP95Ms: server.ended.state.tickP95Ms,
             },
-            note: "Live wallclock benchmark: authenticated guest over localhost WebSocket, client and server in separate processes. Actual server ticks and delivered v3 payload bytes are measured; CPU tick samples come from the same timer as performance telemetry. Snapshot CPU p95 uses the latest bounded server telemetry window. No browser rendering, client prediction or GPU work. Payload bytes exclude transport headers. Enemy combat/friendly-fire rules are unchanged and the player sends no shots.",
+            note: "Live wallclock benchmark: authenticated guest over localhost WebSocket, client and server in separate processes, performance simulation in its own worker thread. A second admitted client probes the ordinary world and HTTP is sampled every 500 ms. Actual server ticks and delivered v3 payload bytes are measured; tick CPU samples come from performance telemetry. No browser rendering, client prediction or GPU work. Payload bytes exclude transport headers. Enemy combat/friendly-fire rules are unchanged and the player sends no shots.",
         };
     } catch (error) {
         if (diagnostics.trim()) console.error(diagnostics.trim());
+        if (cancellation.signal.aborted) throw cancellation.signal.reason;
         throw error;
     } finally {
         finished = true;
@@ -403,6 +450,8 @@ async function benchmark() {
         clearTimeout(inputTimer);
         clearInterval(heartbeat);
         socket?.disconnect();
+        ordinarySocket?.disconnect();
+        await httpProbe;
         try {
             if (child.connected) await request("stop", AbortSignal.timeout(15_000));
         } catch {

@@ -1,4 +1,4 @@
-import { Socket } from "socket.io";
+import type { GameConnection } from "./transport/GameTransport";
 import { ProtocolVersion } from "../shared/net/Protocol";
 
 interface RateLimitWindow {
@@ -7,7 +7,7 @@ interface RateLimitWindow {
 }
 
 export class ServerClient {
-    private socket: Socket;
+    private socket: GameConnection;
     private userId: string;
     private name: string = "";
     private isReady: boolean = false;
@@ -17,7 +17,7 @@ export class ServerClient {
     private playerId: string = "";
     private rateLimitWindows: Map<string, RateLimitWindow> = new Map<string, RateLimitWindow>();
 
-    constructor(socket: Socket, userId: string) {
+    constructor(socket: GameConnection, userId: string) {
         this.socket = socket;
         this.userId = userId;
     }
@@ -26,7 +26,7 @@ export class ServerClient {
         return this.name;
     }
 
-    get Socket(): Socket {
+    get Socket(): GameConnection {
         return this.socket;
     }
 
