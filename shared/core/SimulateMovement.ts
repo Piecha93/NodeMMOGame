@@ -13,5 +13,5 @@ export function simulateMovement(
     collisions.updateCollisionsForGameObject(player);
     reindex();
     player.updateColliders();
-    collisions.update();
+    collisions.updateGeometry();
 }

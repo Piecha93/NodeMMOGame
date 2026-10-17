@@ -9,8 +9,10 @@ const noCollisionBodies: readonly Body[] = [];
 export class CollisionsSystem extends Collisions {
     private bodyToColliderMap: Map<Body, Collider> = new Map<Body, Collider>();
     private collidingBodiesMap: Map<Body, Set<Body>> = new Map<Body, Set<Body>>();
+    private readonly incomingCollidingBodiesMap = new Map<Body, Set<Body>>();
     private lastCollisionResult: Result = new Result();
     private readonly solidCandidates = new Set<GameObject>();
+    private solidCandidatesDirty = false;
 
     constructor() {
         super();
@@ -33,25 +35,34 @@ export class CollisionsSystem extends Collisions {
     public removeObject(gameObject: GameObject) {
         this.solidCandidates.delete(gameObject);
         for (let collider of gameObject.Colliders) {
-            for (let collidingBodies of this.collidingBodiesMap.values()) {
-                collidingBodies.delete(collider.Body);
+            const body = collider.Body;
+            this.unlinkOutgoingContacts(body);
+            this.collidingBodiesMap.delete(body);
+
+            // Contact histories are directional. Only sources which currently
+            // retain this target need cleanup when a projectile disappears.
+            const incoming = this.incomingCollidingBodiesMap.get(body);
+            if (incoming) {
+                for (const source of incoming) this.collidingBodiesMap.get(source)?.delete(body);
+                this.incomingCollidingBodiesMap.delete(body);
             }
 
-            if (this.bodyToColliderMap.has(collider.Body)) {
-                super.remove(collider.Body);
-                this.bodyToColliderMap.delete(collider.Body);
-            }
-
-            if (this.collidingBodiesMap.has(collider.Body)) {
-                this.collidingBodiesMap.delete(collider.Body);
+            if (this.bodyToColliderMap.has(body)) {
+                super.remove(body);
+                this.bodyToColliderMap.delete(body);
             }
         }
     }
 
     public update(): CollisionsSystem {
-        this.solidCandidates.clear();
-        for (const collider of this.bodyToColliderMap.values())
-            if (mayBecomeSolid(collider.Parent)) this.solidCandidates.add(collider.Parent);
+        this.refreshSolidCandidates();
+        super.update();
+        return this;
+    }
+
+    /** Publish final geometry; refresh contact capabilities when next needed. */
+    public updateGeometry(): CollisionsSystem {
+        this.solidCandidatesDirty = true;
         super.update();
         return this;
     }
@@ -71,6 +82,8 @@ export class CollisionsSystem extends Collisions {
             return;
         }
 
+        if (this.solidCandidatesDirty) this.update();
+
         for (let collider of gameObject.Colliders) {
             if (!this.isRegisteredCollider(collider)) {
                 continue;
@@ -83,10 +96,14 @@ export class CollisionsSystem extends Collisions {
             let newCollidingBodies: Set<Body> = new Set<Body>();
             // Publish the current contacts before callbacks, so removeObject can
             // clean them even when a callback destroys an earlier contact.
+            this.unlinkOutgoingContacts(colliderBody);
             this.collidingBodiesMap.set(colliderBody, newCollidingBodies);
 
             const potentials =
-                onlySolidTargets && this.solidCandidates.size === 0 ? noCollisionBodies : colliderBody.potentials();
+                this.solidCandidates.size === 0 &&
+                (onlySolidTargets || gameObject.canSkipContactsWithoutSolidCandidates(collider))
+                    ? noCollisionBodies
+                    : colliderBody.potentials();
             for (const body of potentials) {
                 const colidedCollider = this.bodyToColliderMap.get(body);
                 if (
@@ -110,12 +127,24 @@ export class CollisionsSystem extends Collisions {
                     }
                 }
                 newCollidingBodies.add(body);
+                // A custom callback may recursively process this source. Only
+                // the set still published in the map belongs in the index.
+                if (this.collidingBodiesMap.get(colliderBody) === newCollidingBodies) {
+                    let incoming = this.incomingCollidingBodiesMap.get(body);
+                    if (!incoming) {
+                        incoming = new Set<Body>();
+                        this.incomingCollidingBodiesMap.set(body, incoming);
+                    }
+                    incoming.add(colliderBody);
+                }
                 collider.onCollisionStay(colidedCollider, this.lastCollisionResult);
                 if (!this.isRegisteredCollider(collider)) {
                     return;
                 }
                 if (!this.isRegisteredCollider(colidedCollider)) {
                     newCollidingBodies.delete(body);
+                    if (this.collidingBodiesMap.get(colliderBody) === newCollidingBodies)
+                        this.unlinkContact(colliderBody, body);
                 }
             }
 
@@ -136,6 +165,28 @@ export class CollisionsSystem extends Collisions {
                 }
             }
         }
+    }
+
+    private unlinkOutgoingContacts(source: Body): void {
+        for (const target of this.collidingBodiesMap.get(source) ?? noCollisionBodies) {
+            this.unlinkContact(source, target);
+        }
+    }
+
+    private refreshSolidCandidates(): void {
+        // Clear before invoking custom getters, matching the partial index a
+        // reentrant collision query can observe during a normal full update.
+        this.solidCandidatesDirty = false;
+        this.solidCandidates.clear();
+        for (const collider of this.bodyToColliderMap.values())
+            if (mayBecomeSolid(collider.Parent)) this.solidCandidates.add(collider.Parent);
+    }
+
+    private unlinkContact(source: Body, target: Body): void {
+        const incoming = this.incomingCollidingBodiesMap.get(target);
+        if (!incoming) return;
+        incoming.delete(source);
+        if (incoming.size === 0) this.incomingCollidingBodiesMap.delete(target);
     }
 
     private isRegisteredCollider(collider: Collider): boolean {

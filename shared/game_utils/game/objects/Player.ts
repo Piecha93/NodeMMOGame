@@ -54,6 +54,20 @@ export class Player extends Actor {
         }
     }
 
+    override canSkipContactsWithoutSolidCandidates(collider: Collider): boolean {
+        if (Object.getPrototypeOf(this) !== Player.prototype || Object.getPrototypeOf(collider) !== Collider.prototype)
+            return false;
+        const trigger = Object.getOwnPropertyDescriptor(collider, "isTrigger");
+        if (!trigger || !("value" in trigger) || trigger.value !== true) return false;
+        for (const [name, implementation] of stockMovementTriggerHooks)
+            if (!matchesStockMethod(this, name, implementation)) return false;
+        for (const [name, implementation] of stockMovementColliderHooks)
+            if (!matchesStockMethod(collider, name, implementation)) return false;
+        // Stock movement triggers only toggle Doors. Doors and every custom
+        // object remain solid candidates, including doors which are open now.
+        return true;
+    }
+
     private lastInputSnapshot: InputSnapshot | null = null;
 
     public setInput(inputSnapshot: InputSnapshot) {
@@ -185,3 +199,32 @@ export class Player extends Actor {
 }
 
 const playerCombatTeamGetter = Object.getOwnPropertyDescriptor(Player.prototype, "CombatTeam")?.get;
+const movementTriggerHookNames = [
+    "onTriggerEnter",
+    "onTriggerStay",
+    "onTriggerExit",
+    "serverOnTriggerEnter",
+    "serverOnTriggerStay",
+    "serverOnTriggerExit",
+    "sharedOnTriggerEnter",
+    "sharedOnTriggerStay",
+    "sharedOnTriggerExit",
+    "contactFilter",
+    "canSkipNonSolidContacts",
+] as const;
+const stockMovementTriggerHooks = movementTriggerHookNames.map(
+    (name) => [name, (Player.prototype as unknown as Record<string, unknown>)[name]] as const,
+);
+const stockMovementColliderHooks = ["onCollisionEnter", "onCollisionStay", "onCollisionExit"].map(
+    (name) => [name, (Collider.prototype as unknown as Record<string, unknown>)[name]] as const,
+);
+
+function matchesStockMethod(object: object, name: string, implementation: unknown): boolean {
+    let current: object | null = object;
+    while (current) {
+        const descriptor = Object.getOwnPropertyDescriptor(current, name);
+        if (descriptor) return "value" in descriptor && descriptor.value === implementation;
+        current = Object.getPrototypeOf(current) as object | null;
+    }
+    return false;
+}

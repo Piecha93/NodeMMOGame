@@ -102,6 +102,45 @@ Po przeniesieniu poligonu do workera wykonano pomiar na tym samym Node 24.19 / W
 
 To dowód izolacji pętli zdarzeń, nie przyspieszenia jednej symulacji proporcjonalnie do liczby rdzeni. Przy 10 000 NPC poligon jest przeciążony: ruch i ACK pozostają opóźnione, a dłuższa praca może wypełnić ograniczoną kolejkę inputu i zakończyć połączenie. Nie należy traktować krótkiej próby jako obsługiwanej pojemności. Następnym ograniczeniem pozostaje koszt symulacji tłumu i kontaktów, podczas gdy HTTP oraz zwykły świat zachowują responsywność.
 
+## Profilowanie kolizji i eksperyment z pulą workerów
+
+```sh
+npm run profile:collisions -- --count=10000 --ticks=30 --warmup=32 --scenario=combat --movement-steps=8
+npm run bench:collision-workers -- --count=10000 --samples=60 --warmup=64
+```
+
+Profiler wykonuje trzy oddzielne, identycznie zasiane przebiegi: bez instrumentacji, z licznikami faz i z próbkowaniem CPU przez Node Inspector. Sprawdza zgodność końcowych stanów. `--movement-steps=8` dodaje siedem kroków `simulateMovement` przed tickiem świata, żeby zbadać ścieżkę zaległego inputu. Jest to kontrolowany test CPU, nie pomiar rzeczywistych Hz. `--cpu-profile=test-results/example.cpuprofile` zapisuje profil do nowego pliku, a `--artifacts=directory` pozwala wskazać wcześniej skompilowaną wersję. Czasy faz są zagnieżdżone; nie należy ich sumować. Koszt instrumentacji i niezależne gorące funkcje są w raporcie.
+
+Na wersji sprzed tych optymalizacji, przy 10 000 NPC i ośmiu krokach ruchu, zaobserwowano 16 globalnych aktualizacji indeksu na tick. W przebiegu z licznikami zajęły one łącznie około 153,5 ms/tick, podczas gdy szacowany narrowphase wyniósł około 0,14 ms/tick. Przebieg bez instrumentacji miał tick p50 157,57 ms. Próbkowanie CPU wskazało przede wszystkim odświeżanie indeksu oraz refleksyjne sprawdzanie polityki solidności.
+
+Po rozdzieleniu publikacji geometrii i odświeżania polityki ten sam test zachował 16 publikacji BVH, ale tylko 8 pełnych odświeżeń polityki. Tick bez instrumentacji miał p50 87,00 ms, p95 91,35 ms; końcowy fingerprint świata pozostał identyczny. Usuwanie obiektów przez indeks kontaktów przychodzących zmniejszyło zmierzony koszt cleanupu z około 0,49 do 0,027 ms/tick. Standardowy trigger gracza pomija też puste zapytania, zachowując ścieżkę ogólną dla drzwi i własnych callbacków.
+
+Oddzielne porównanie starej i nowej wersji przez 560 kolejnych ticków, z ruchem i strzelaniem obu stron, zachowało identyczny stan każdego ticka, końcową geometrię colliderów i transkrypt tworzenia/niszczenia. W próbie powstało 4259 pocisków; pozostało 1997 z 2000 NPC. To sprawdzenie zgodności symulacji, bez deklaracji przepustowości.
+
+Końcowy benchmark prawdziwego serwera, z klientem v3 poruszającym się przez WebSocket i walczącymi NPC, dał:
+
+| NPC | Rozgrzewka + pomiar | Rzeczywiste Hz | Tick p50 / p95 |
+| --- | --- | ---: | ---: |
+| 2000 | 10 s + 20 s | 63,97 | 6,06 / 9,07 ms |
+| 5000 | 10 s + 20 s | 59,83 | 12,10 / 20,84 ms |
+| 10 000 | 5 s + 10 s | 15,97 | 56,63 / 91,57 ms |
+
+Bezpośrednia próba sprzed zmian przy 10 000 NPC, również 5 s + 10 s, wyniosła 6,62 Hz i tick p50 / p95 144,28 / 157,55 ms. W końcowej próbie zwykły świat utrzymał 63,98 Hz, HTTP p95 6,30 ms. Populacja w każdym benchmarku pozostała stała. Gracz nie strzelał, żeby nie zmniejszać liczby NPC; rendering przeglądarki nie wchodzi do pomiaru. To krótkie lokalne próby: 5000 NPC nie osiąga pełnych 64 Hz, a 10 000 nadal przeciąża symulację.
+
+Ręczna próba w przeglądarce przy 5000 NPC potwierdziła ruch, strzelanie, trafienia i brak błędów konsoli. Po dłuższym przejściu gracza skupienie NPC i dodatkowe pociski dały chwilowy odczyt panelu 26,8 Hz symulacji / 49 FPS; po zatrzymaniu i wygaśnięciu pocisków odczyt wrócił w okolice 60 Hz / 60 FPS. To inna trasa i zmienne obciążenie niż krótki kwadrat benchmarku. Wyniku 59,83 Hz nie należy traktować jako gwarancji płynności każdej walki z taką populacją.
+
+Eksperyment puli przechwytuje rzeczywiste wywołania `Collider.collides` z kolejnych ticków gry, wraz z geometrią w momencie zapytania. Callbacki wykonują się normalnie podczas przechwytywania; późniejszy replay oblicza tylko czysty SAT. Porównuje wykonanie szeregowe ze stałymi pulami 2 i 4 workerów, wlicza pakowanie, wiadomości, transfer buforów i zebranie wyników. Każdy wynik jest porównywany z pierwotnym zapytaniem, także penetracja i normalna udanych kontaktów. Nie zwielokrotnia pracy w pojedynczym batchu. Nie bada równoległej mutacji świata ani kolejności callbacków i nie używa prostokątnej szybkiej ścieżki produkcyjnego `Collider`.
+
+Próba na Node 24.19 / Windows x64 / Ryzen 5 2600, 10 000 NPC, 60 przechwyconych ticków po 64 tickach rozgrzewki, zawierała 1236 rzeczywistych zapytań (średnio 20,6/tick). Wszystkie wyniki były zgodne:
+
+| Wykonanie replay geometrii | Średni czas batcha | p95 |
+| --- | ---: | ---: |
+| Szeregowo | 0,041 ms | 0,070 ms |
+| Pula 2 workerów | 0,140 ms | 0,185 ms |
+| Pula 4 workerów | 0,163 ms | 0,282 ms |
+
+Pula pozostaje eksperymentem uruchamianym osobnym poleceniem. Gra zachowuje sekwencyjne callbacki w workerze świata; przy tak małej ilości pracy geometrycznej dodatkowe wiadomości nie dały zysku. Rozruch workerów jest raportowany osobno i nie wchodzi do powyższych czasów.
+
 ## Konfiguracja
 
 Poligon jest domyślnie dostępny w development i test. W produkcji wymaga jawnego `ENABLE_PERF_TESTS=true`; `ENABLE_PERF_TESTS=false` wyłącza go również lokalnie. Wykorzystuje tę samą sesję i kontrolę dostępu co gra; wylogowanie kończy połączenia obu światów.

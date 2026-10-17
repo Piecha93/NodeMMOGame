@@ -47,7 +47,7 @@ export class GameWorld {
                 if (!object.IsDestroyed) object.updateColliders();
             }
         }
-        this.collisionsSystem.update();
+        this.collisionsSystem.updateGeometry();
     }
 
     public addObject(gameObject: GameObject) {

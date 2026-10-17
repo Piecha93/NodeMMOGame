@@ -28,7 +28,9 @@
     "test:browser:serve": "vite --config vite.fixture.config.mts",
     "check:browser": "tsc --noEmit -p tsconfig.browser.json",
     "bench": "npm run build:server && node scripts/benchmark.mjs",
-    "bench:server": "npm run build:server && node scripts/benchmark-server.mjs"
+    "bench:server": "npm run build:server && node scripts/benchmark-server.mjs",
+    "profile:collisions": "npm run build:server && node scripts/profile-collisions.mjs",
+    "bench:collision-workers": "npm run build:server && node scripts/benchmark-collision-workers.mjs"
   },
   "dependencies": {
     "detect-collisions": "2.7.0",

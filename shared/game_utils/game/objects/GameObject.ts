@@ -171,6 +171,10 @@ export class GameObject extends ReplicatedState {
         return false;
     }
 
+    public canSkipContactsWithoutSolidCandidates(collider: Collider): boolean {
+        return false;
+    }
+
     public contactFilter(collider: Collider): ((other: Collider) => boolean) | null {
         return null;
     }
