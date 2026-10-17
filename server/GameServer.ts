@@ -35,6 +35,8 @@ import { PerformanceController } from "./runtime/PerformanceController";
 import { InputMovementBudget } from "./runtime/InputMovementBudget";
 import { PerformanceMetrics } from "./runtime/PerformanceMetrics";
 import { LoopSchedule } from "./runtime/LoopSchedule";
+import { AdventureController } from "./runtime/AdventureController";
+import { AdventureEvents, WEAPONS } from "../shared/gameplay/Adventure";
 
 export interface GameServerOptions {
     readonly userRepository?: Pick<UserRepository, "findUserById">;
@@ -72,6 +74,7 @@ export class GameServer {
 
     private core: GameCore;
     private expedition: ExpeditionController | null = null;
+    private adventure: AdventureController | null = null;
     private performance: PerformanceController | null = null;
     private performanceMetrics: PerformanceMetrics | null = null;
     private readonly snapshotTraffic = new Map<ServerClient, { startedAt: number; bytes: number; rate: number }>();
@@ -124,12 +127,14 @@ export class GameServer {
                 : {}),
         });
         this.expedition = this.options.expedition ? new ExpeditionController(core) : null;
+        this.adventure = this.options.expedition ? new AdventureController(core) : null;
         this.performance = this.options.performance ? new PerformanceController(core) : null;
         this.performanceMetrics = this.options.performance
             ? new PerformanceMetrics(performance.now(), core.Runtime.tick)
             : null;
         core.subscribeBeforeStep((_tick, delta) => {
             this.expedition?.update(delta);
+            this.adventure?.update(delta, this.expedition?.state().phase === "active");
             this.processInputCommands();
         });
         return core;
@@ -177,6 +182,14 @@ export class GameServer {
                     if (action.kind === "interact") {
                         const target = this.core.ObjectsManager.get(action.targetId);
                         if (target && player.Transform.distanceTo(target.Transform) < 75) target.interact();
+                    } else if (action.kind === "switchWeapon" && this.adventure) {
+                        const progression = this.adventure.state().players.find((entry) => entry.id === player.ID);
+                        if (progression) {
+                            const available = WEAPONS.filter((weapon) => weapon.unlockLevel <= progression.level);
+                            const index = available.findIndex((weapon) => weapon.id === progression.weapon);
+                            const next = available[(index + 1) % available.length];
+                            if (next) this.adventure.chooseWeapon(player.ID, next.id);
+                        }
                     } else player.setInput(commandToSnapshot({ ...command, actions: [action] }));
                 }
                 // The world performs the final command's movement normally.
@@ -259,6 +272,8 @@ export class GameServer {
         this.lastChunkSent.clear();
         this.expedition?.dispose();
         this.expedition = null;
+        this.adventure?.dispose();
+        this.adventure = null;
         this.performance?.dispose();
         this.performance = null;
         this.performanceMetrics = null;
@@ -469,6 +484,7 @@ export class GameServer {
                 player.Name = serverClient.Name;
                 serverClient.IsReady = true;
                 this.expedition?.join(player);
+                this.adventure?.join(player);
 
                 socket.emit(SocketMsgs.INITIALIZE_GAME, {
                     id: player.ID,
@@ -531,10 +547,30 @@ export class GameServer {
             )
                 return;
             if (this.expedition.restart()) {
+                this.adventure?.reset();
                 for (const state of this.snapshotClients.values()) state.queue.length = 0;
                 this.broadcastExpeditionState(true);
             }
         });
+
+        for (const [event, choose] of [
+            [AdventureEvents.UPGRADE, (id: string, value: unknown) => this.adventure?.chooseUpgrade(id, value)],
+            [AdventureEvents.WEAPON, (id: string, value: unknown) => this.adventure?.chooseWeapon(id, value)],
+        ] as const) {
+            socket.on(event, (value: unknown) => {
+                const player = this.getReadyPlayer(serverClient);
+                if (
+                    !this.adventure ||
+                    !player ||
+                    !isSnapshotProtocol(serverClient.ProtocolVersion) ||
+                    this.expedition?.state().phase !== "active" ||
+                    !serverClient.allowEvent("adventure-choice", 8, 1000)
+                )
+                    return;
+                choose(player.ID, value);
+                this.broadcastExpeditionState(true);
+            });
+        }
 
         socket.on(SocketMsgs.INPUT_SNAPSHOT, (snapshotData: unknown) => {
             if (isSnapshotProtocol(serverClient.ProtocolVersion) && this.isConnectedClient(serverClient)) {
@@ -730,9 +766,12 @@ export class GameServer {
         if (!this.expedition || (!force && this.core.Runtime.timeMs - this.lastExpeditionBroadcast < 200)) return;
         this.lastExpeditionBroadcast = this.core.Runtime.timeMs;
         const state = this.expedition.state();
+        const adventure = this.adventure?.state();
         for (const client of this.clients.values()) {
-            if (client.IsReady && isSnapshotProtocol(client.ProtocolVersion))
+            if (client.IsReady && isSnapshotProtocol(client.ProtocolVersion)) {
                 client.Socket.emit(ExpeditionEvents.STATE, state);
+                if (adventure) client.Socket.emit(AdventureEvents.STATE, adventure);
+            }
         }
     }
 
@@ -762,6 +801,7 @@ export class GameServer {
         try {
             if (playerId) {
                 this.expedition?.leave(playerId);
+                this.adventure?.leave(playerId);
                 this.core.ObjectsManager.destroy(playerId);
             }
         } finally {

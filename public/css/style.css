@@ -996,7 +996,88 @@ kbd {
 .performance-metrics dt { color: #8b9c80; font-size: 10px; line-height: 1.4; }
 .performance-metrics dd { margin: 4px 0 0; color: #d7e0c8; font-size: 14px; font-variant-numeric: tabular-nums; }
 .performance-note { margin: 12px 0 0; max-width: 840px; color: #839577; font-size: 11px; line-height: 1.6; }
+.adventure-hud { position: absolute; z-index: 1; right: 12px; top: 12px; display: grid; grid-template-columns: 1fr; width: 276px; gap: 10px; padding: 11px; border: 1px solid #6c806666; border-radius: 4px; background: linear-gradient(125deg, #1b2b27f5, #1d2421f2 65%); box-shadow: 0 5px 22px #0004; }
+.world-frame > :is(.result-panel, .respawn-notice) { z-index: 2; }
+#expedition-hud #debug-window { top: auto; bottom: 12px; z-index: 3; }
+.hero-progress { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.hero-level { display: grid; place-items: center; align-content: center; flex: 0 0 43px; height: 47px; border: 1px solid #8b8056; border-radius: 3px; color: #e7cca0; background: #2e3428; box-shadow: inset 0 0 15px #ceb67b0a; }
+.hero-level small { font-size: 8px; letter-spacing: 1.3px; }
+.hero-level strong { font-family: Georgia, serif; font-weight: normal; font-size: 23px; line-height: 1.25; }
+.hero-experience { flex: 1; min-width: 0; }
+.hero-experience > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hero-experience .eyebrow { margin: 0; font-size: 8px; letter-spacing: 1px; color: #a7c4b6; }
+.hero-experience [data-adventure="xp"] { font-size: 10px; white-space: nowrap; color: #9eb8a9; font-variant-numeric: tabular-nums; }
+.hero-experience progress { display: block; width: 100%; height: 5px; margin: 9px 0; overflow: hidden; appearance: none; border: 0; border-radius: 4px; background: #101d18; accent-color: #a9d2b6; }
+.hero-experience progress::-webkit-progress-bar { border-radius: 4px; background: #101d18; }
+.hero-experience progress::-webkit-progress-value { border-radius: 4px; background: linear-gradient(90deg, #6b9c83, #c1dcad); transition: width .3s; }
+.hero-experience progress::-moz-progress-bar { border-radius: 4px; background: #a9d2b6; }
+.hero-experience p { margin: 0; color: #809c8c; font-size: 10px; }
+.hero-experience p strong { color: #e1c794; font-weight: 500; font-variant-numeric: tabular-nums; }
+.loot-coin { margin-right: 4px; color: #ddbc77; }
+.hero-wave { float: right; color: #abc0ac; }
+.hero-weapons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.weapon-choice { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 61px; padding: 6px 4px; border: 1px solid #42534a; border-radius: 3px; color: #b7c9bd; background: #17231f; text-align: center; transition: border-color .15s, background .15s, opacity .15s; }
+.weapon-choice svg { width: 21px; height: 21px; flex: 0 0 21px; fill: #96ae9c22; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.weapon-choice span { min-width: 0; }
+.weapon-choice strong { display: block; font-size: 11px; font-weight: 500; }
+.weapon-choice small { display: block; margin-top: 4px; font-size: 7px; letter-spacing: .3px; white-space: nowrap; color: #819687; }
+.weapon-choice[aria-pressed="true"] { border-color: #b59c61; color: #e5c692; background: #38392b; box-shadow: inset 0 0 20px #e6bc4a08; }
+.weapon-choice[aria-pressed="true"] small { color: #bda876; }
+.weapon-choice:disabled { cursor: default; }
+.weapon-choice[data-locked="true"] { opacity: .45; }
+.weapon-choice:not(:disabled):hover { border-color: #bdcbbb; background: #273a30; }
+.hero-upgrades { display: none; grid-column: 1 / -1; }
+.adventure-hud[data-points="true"] .hero-upgrades { display: block; }
+.hero-upgrade-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.hero-upgrade-heading .eyebrow { margin: 0; font-size: 9px; color: #849e8f; letter-spacing: 1px; }
+.hero-upgrade-heading > span:last-child { display: none; font-size: 9px; color: #7f9688; }
+.adventure-hud[data-points="true"] .hero-upgrade-heading .eyebrow { color: #edd095; }
+.upgrade-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.upgrade-choices button { display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 45px; padding: 7px 9px; border: 1px solid #485044; border-radius: 3px; background: #202a23; color: #d6dccc; text-align: left; }
+.upgrade-choices button:disabled { cursor: default; opacity: .62; }
+.upgrade-choices button:not(:disabled) { border-color: #9f905f; background: #353c28; }
+.upgrade-choices button:not(:disabled):hover { border-color: #dfc68a; background: #454b31; }
+.upgrade-symbol { display: none; flex: 0 0 19px; font-size: 23px; color: #d1bc87; text-align: center; }
+.upgrade-choices button strong { display: block; font-size: 11px; font-weight: 500; }
+.upgrade-choices button small { display: block; margin-top: 3px; font-size: 8px; line-height: 1.2; color: #a3b09a; }
+.upgrade-choices button b { margin-left: auto; font-size: 9px; font-weight: 500; white-space: nowrap; color: #9cae96; }
+.hero-notice { grid-column: 1 / -1; min-height: 13px; margin: -2px 0 0; font-size: 9px; line-height: 1.4; color: #8da797; }
+.adventure-hud[data-points="true"] .hero-notice { color: #d6c28f; }
+@media (max-width: 800px) {
+    .adventure-hud { grid-template-columns: 1fr; gap: 10px; padding: 10px; }
+    .weapon-choice { gap: 6px; padding: 7px; }
+    .weapon-choice svg { width: 22px; height: 22px; flex-basis: 22px; }
+    .weapon-choice strong { font-size: 11px; }
+    .weapon-choice small { font-size: 7px; letter-spacing: 0; }
+    .upgrade-choices button { gap: 6px; padding: 7px; }
+    .upgrade-symbol { display: none; }
+}
+@media (max-width: 760px) {
+    #expedition-hud .world-frame { container-type: inline-size; }
+    #expedition-hud #chat-zone { top: calc(56.25cqw - 106px); bottom: auto; }
+    #expedition-hud #debug-window { top: 10px; bottom: auto; }
+    #expedition-hud .world-frame > :is(.result-panel, .respawn-notice) { top: 28.125cqw; }
+    .adventure-hud { position: relative; inset: auto; width: auto; margin: 10px; }
+    .hero-upgrade-heading > span:last-child { display: block; }
+    .hero-weapons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .weapon-choice { flex-direction: row; min-height: 48px; gap: 8px; }
+}
 @media (max-width: 650px) {
+    #expedition-hud #chat-zone { top: calc(56.25cqw - 76px); }
+    .adventure-hud { grid-template-columns: 1fr; gap: 10px; margin-top: 8px; padding: 10px; }
+    .hero-level { flex-basis: 43px; height: 46px; }
+    .hero-level strong { font-size: 23px; }
+    .hero-experience .eyebrow { font-size: 9px; }
+    .hero-weapons { gap: 6px; }
+    .weapon-choice { min-height: 48px; }
+    .weapon-choice svg { width: 26px; height: 26px; flex-basis: 26px; }
+    .weapon-choice strong { font-size: 12px; }
+    .weapon-choice small { font-size: 8px; }
+    .upgrade-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .upgrade-choices button { min-height: 43px; padding: 7px 10px; }
+    .upgrade-symbol { display: block; }
+    .upgrade-choices button small { font-size: 9px; }
+    .hero-notice { font-size: 10px; }
     .performance-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .performance-controls { gap: 8px; }
     .performance-controls label { flex: 1; }

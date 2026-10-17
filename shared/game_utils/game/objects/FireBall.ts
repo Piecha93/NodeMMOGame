@@ -10,6 +10,8 @@ export class FireBall extends Projectile {
     private power: number = 25;
     private owner: string = "";
     private ownerTeam: Actor["CombatTeam"] = null;
+    private hitsRemaining = 1;
+    private hitTargets: Set<string> | null = null;
     private readonly collisionFilter = (other: Collider): boolean => {
         const object = other.Parent;
         if (object instanceof FireBall) {
@@ -51,8 +53,10 @@ export class FireBall extends Projectile {
                 const owner = this.ObjectsFactory.Manager.get(this.owner);
                 const team = this.ownerTeam ?? (owner instanceof Actor ? owner.CombatTeam : null);
                 if (this.Runtime.config.cooperative && team !== null && team === gameObject.CombatTeam) return;
+                if (this.hitTargets?.has(gameObject.ID)) return;
+                this.hitTargets?.add(gameObject.ID);
                 gameObject.hit(this.power);
-                this.destroy();
+                if (--this.hitsRemaining <= 0) this.destroy();
             }
         } else if (gameObject.IsSolid) {
             this.destroy();
@@ -103,6 +107,31 @@ export class FireBall extends Projectile {
     public setOwner(owner: Actor): void {
         this.Owner = owner.ID;
         this.ownerTeam = owner.CombatTeam;
+    }
+
+    public configureCombat(power: number, speed: number, lifetimeMs: number, hits = 1): void {
+        if (
+            !Number.isInteger(power) ||
+            power <= 0 ||
+            power > 1000 ||
+            !Number.isFinite(speed) ||
+            speed <= 0 ||
+            speed > 3 ||
+            !Number.isFinite(lifetimeMs) ||
+            lifetimeMs <= 0 ||
+            lifetimeMs > 3000 ||
+            !Number.isInteger(hits) ||
+            hits < 1 ||
+            hits > 4
+        )
+            throw new RangeError("Invalid projectile combat configuration");
+        this.power = power;
+        this.velocity = speed;
+        this.lifeSpan = lifetimeMs;
+        this.hitsRemaining = hits;
+        this.hitTargets = hits > 1 ? new Set() : null;
+        this.addChange(ChangesDict.POWER);
+        this.addChange(ChangesDict.VELOCITY);
     }
 
     protected commonUpdate(delta: number) {

@@ -256,6 +256,7 @@ export class ExpeditionController {
                 (object) => {
                     if (!(object instanceof Enemy)) throw new Error("Camp guards require the Enemy prefab");
                     object.Name = "Strażnik ruin";
+                    object.SpriteName = "wraith";
                     object.setHomePosition(slot.position);
                     if (slot.hp !== null) object.hit(Math.max(0, object.MaxHP - slot.hp));
                     slot.hp = object.HP;

@@ -70,12 +70,33 @@
             </div>
             <div class="respawn-notice" data-expedition="respawn" hidden data-game-ui><span class="eyebrow">CHWILA ODDECHU</span><strong>Wracasz do obozu za <span data-expedition="respawn-time">3</span>…</strong><span>Drużyna wciąż może walczyć. Rdzenie są wspólne.</span></div>
             <section class="result-panel" data-expedition="result" role="status" hidden data-game-ui><span class="eyebrow" data-expedition="result-label">KONIEC WYPRAWY</span><h2 data-expedition="result-title"></h2><p data-expedition="result-copy"></p><button class="button button-primary" data-expedition="restart" type="button">Jeszcze jedna wyprawa</button><form action="/logout" method="post" data-expedition="leave" hidden><button class="button button-primary" type="submit">Wróć do wejścia ↗</button></form></section>
+        <section id="adventure-hud" class="adventure-hud" aria-label="Bohater, uzbrojenie i rozwój" data-game-ui>
+            <div class="hero-progress">
+                <span class="hero-level" aria-label="Poziom bohatera"><small>POZIOM</small><strong data-adventure="level">1</strong></span>
+                <div class="hero-experience"><div><span class="eyebrow">DOŚWIADCZENIE</span><span data-adventure="xp">0 / 20 PD</span></div><progress data-adventure="xp-bar" value="0" max="20" aria-label="Doświadczenie do następnego poziomu"></progress><p><span class="loot-coin" aria-hidden="true">◈</span><strong data-adventure="coins">0</strong> monet <span class="hero-wave" data-adventure="wave">Fala 1</span></p></div>
+            </div>
+            <div class="hero-weapons" role="group" aria-label="Wybór broni">
+                <button class="weapon-choice" type="button" data-adventure-weapon="ember" aria-pressed="true" aria-label="Żar · wybrana broń" disabled><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M17 3C19 12 25 12 25 20a9 9 0 1 1-18 0c0-6 5-8 5-13 3 3 2 6 3 8 4-3 0-7 2-12Z"/><path d="M17 17c0 4 4 5 3 8a4 4 0 0 1-8-1c0-3 3-4 5-7Z"/></svg><span><strong>Żar</strong><small data-weapon-detail>W EKWIPUNKU</small></span></button>
+                <button class="weapon-choice" type="button" data-adventure-weapon="scatter" aria-pressed="false" aria-label="Rozprysk · od poziomu 2" disabled><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m5 27 10-10m-5-7 3-7 5 4-3 7Zm8 8 7-3 4 5-7 3ZM19 9l6-6 4 4-6 6Z"/></svg><span><strong>Rozprysk</strong><small data-weapon-detail>POZIOM 2</small></span></button>
+                <button class="weapon-choice" type="button" data-adventure-weapon="lance" aria-pressed="false" aria-label="Przebicie · od poziomu 3" disabled><svg viewBox="0 0 32 32" aria-hidden="true"><path d="m3 29 19-19m-4-3L29 3l-4 11-7-7ZM9 17l6 6m-10-2 6 6"/></svg><span><strong>Przebicie</strong><small data-weapon-detail>POZIOM 3</small></span></button>
+            </div>
+            <div class="hero-upgrades">
+                <div class="hero-upgrade-heading"><span class="eyebrow" data-adventure="points">ROZWÓJ BOHATERA</span><span data-adventure="wave-time">Kolejna fala w drodze</span></div>
+                <div class="upgrade-choices" role="group" aria-label="Ulepszenia za punkty rozwoju">
+                    <button type="button" data-adventure-upgrade="power" disabled><span class="upgrade-symbol" aria-hidden="true">✧</span><span><strong>Moc</strong><small>+18% obrażeń</small></span><b data-upgrade-rank>0 / 5</b></button>
+                    <button type="button" data-adventure-upgrade="haste" disabled><span class="upgrade-symbol" aria-hidden="true">↯</span><span><strong>Tempo</strong><small>−8% czasu między strzałami</small></span><b data-upgrade-rank>0 / 5</b></button>
+                    <button type="button" data-adventure-upgrade="vitality" disabled><span class="upgrade-symbol" aria-hidden="true">♡</span><span><strong>Witalność</strong><small>+30 maks. zdrowia</small></span><b data-upgrade-rank>0 / 5</b></button>
+                    <button type="button" data-adventure-upgrade="stride" disabled><span class="upgrade-symbol" aria-hidden="true">»</span><span><strong>Zwinność</strong><small>+5% szybkości ruchu</small></span><b data-upgrade-rank>0 / 5</b></button>
+                </div>
+            </div>
+            <p class="hero-notice" data-adventure="notice" role="status" aria-live="polite">Łączymy z bohaterem…</p>
+        </section>
         </div>
         <div class="expedition-bottom" data-game-ui>
             <section class="party-section"><h2 class="eyebrow">TWOJA DRUŻYNA <span>1–4 GRACZY</span></h2><ul class="party-list" data-expedition="party"><li class="party-placeholder">Czekamy na zwiadowców…</li></ul></section>
             <section class="camps-section"><h2 class="eyebrow">RDZENIE <span>STRAŻNICY POKONANI: <b data-expedition="kills">0</b></span></h2><ol class="camp-list" data-expedition="camps"></ol></section>
         </div>
-        <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po odsłonięty rdzeń. Wróć do obozu ze wszystkimi trzema.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
+        <footer class="game-footer" data-game-ui><span><kbd>WASD</kbd> ruch <span class="control-separator">/</span> <kbd>LPM</kbd> strzał <span class="control-separator">/</span> <kbd>PPM</kbd> fala mocy · 3 s odnowienia <span class="control-separator">/</span> <kbd>Q</kbd> broń <span class="control-separator">/</span> <kbd>Enter</kbd> czat</span><span>Podejdź po łup i odsłonięte rdzenie.</span><button class="text-button" data-expedition="debug" type="button" aria-pressed="false">Statystyki</button></footer>
     </div>
     <% } %>
 </main>

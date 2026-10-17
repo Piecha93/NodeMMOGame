@@ -14,6 +14,7 @@ export class GameObjectAnimationRender extends GameObjectRender {
     protected animation: AnimatedSprite | null = null;
     private animationKey: string = "";
     private animationResource = "";
+    private animationScale = 1;
     private readonly animationClock = new AnimationClock();
 
     private lastDirectionKey: string = "D";
@@ -28,12 +29,13 @@ export class GameObjectAnimationRender extends GameObjectRender {
         const animationState = this.getAnimationState();
         this.animationKey = animationState.key;
         this.animationResource = this.objectRef.SpriteName;
+        this.updateAnimationScale();
         this.animationClock.reset();
         this.animation = new AnimatedSprite({ textures: animationState.textures, autoUpdate: false, autoPlay: false });
 
         this.addChild(this.animation);
 
-        this.animation.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
+        this.updateAnimationSize();
 
         this.animation.anchor.set(0.5);
     }
@@ -47,7 +49,21 @@ export class GameObjectAnimationRender extends GameObjectRender {
         const actor = this.objectRef;
         const fps = actor instanceof Actor && actor.Horizontal === 0 && actor.Vertical === 0 ? 6 : 12;
         this.animation.gotoAndStop(this.animationClock.frame(this.animation.totalFrames, fps));
-        this.animation.setSize(this.objectRef.Transform.ScaleX, this.objectRef.Transform.ScaleY);
+        this.updateAnimationSize();
+    }
+
+    private updateAnimationSize(): void {
+        // The generated sheets include transparent cell padding. Their painted body
+        // remains readable without changing the authoritative collider dimensions.
+        this.animation?.setSize(
+            this.objectRef.Transform.ScaleX * this.animationScale,
+            this.objectRef.Transform.ScaleY * this.animationScale,
+        );
+    }
+
+    private updateAnimationScale(): void {
+        this.animationScale =
+            this.animationResource.startsWith("wanderer_") || this.animationResource.startsWith("wraith_") ? 1.35 : 1;
     }
 
     private updateAnimationTextures() {
@@ -61,6 +77,7 @@ export class GameObjectAnimationRender extends GameObjectRender {
         this.animationKey = animationState.key;
         if (this.animationResource !== this.objectRef.SpriteName) {
             this.animationResource = this.objectRef.SpriteName;
+            this.updateAnimationScale();
             this.animationClock.reset();
         }
     }

@@ -156,6 +156,8 @@ Socket.IO remains a reliable ordered transport. UDP packet-loss assumptions from
 
 `GameClient.dispose()` cancels RAF/input/network timers, removes callbacks/listeners, closes the socket and releases the renderer/core. Async renderer initialization handles disposal before completion. Resource registration/loading is idempotent for the same resource definition, so recreating the renderer does not duplicate assets or animation frames.
 
+The ordinary expedition composes two server-side controllers: `ExpeditionController` owns objectives and the round, while `AdventureController` owns bounded encounters, ephemeral loot and per-run progression. Both advance only through the owning fixed-step core. Gameplay choices identify the caller's ready player through its connection; clients cannot submit XP, levels, builds or another player's identity. Separate validated adventure DTOs drive the HUD without extending the binary entity schemas. Existing marker entities carry nonpersistent loot; rewards are deferred until after destruction transactions so chunk unloading cannot restore consumed loot. Stopping/resetting the adventure cleans up projectiles even after their wave enemy owner has died. The performance worker does not instantiate this controller or apply adventure builds.
+
 Authentication uses injected `UserRepository` and session-store contracts. Mongo connections expose explicit connect/close. Login regenerates session identifiers; logout destroys the store record and disconnects that session's sockets. Registered credentials use salted scrypt with atomic legacy migration. See [Authentication and lifecycle](authentication.md).
 
 ## Deliberate limits

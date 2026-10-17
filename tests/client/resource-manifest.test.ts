@@ -38,7 +38,11 @@ test("client/assets: manifest aliases are valid and every source file exists", a
             "template_run",
             "terrain",
             "wall",
+            "wanderer_idle",
+            "wanderer_run",
             "white",
+            "wraith_idle",
+            "wraith_run",
         ],
         "renderer resources must not disappear silently during loader changes",
     );

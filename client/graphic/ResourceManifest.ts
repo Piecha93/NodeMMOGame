@@ -37,6 +37,26 @@ export const RESOURCE_MANIFEST = [
         path: "/resources/animations/actor_animations/template/run.json",
         type: ResourceType.OCTAGONAL_ANIMATION,
     },
+    {
+        name: "wanderer_idle",
+        path: "/resources/animations/wanderer/idle.json",
+        type: ResourceType.OCTAGONAL_ANIMATION,
+    },
+    {
+        name: "wanderer_run",
+        path: "/resources/animations/wanderer/run.json",
+        type: ResourceType.OCTAGONAL_ANIMATION,
+    },
+    {
+        name: "wraith_idle",
+        path: "/resources/animations/wraith/idle.json",
+        type: ResourceType.OCTAGONAL_ANIMATION,
+    },
+    {
+        name: "wraith_run",
+        path: "/resources/animations/wraith/run.json",
+        type: ResourceType.OCTAGONAL_ANIMATION,
+    },
     { name: "terrain", path: "/resources/maps/terrain.png", type: ResourceType.SPRITE },
 ] as const satisfies readonly ResourceDefinition[];
 

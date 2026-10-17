@@ -10,8 +10,11 @@ import { Collider } from "../../physics/Collider";
 import { GameObject } from "./GameObject";
 import { Doors } from "./Doors";
 import { Collision } from "../../physics/Collision";
+import { AdventureBuild, isWeaponId } from "../../../gameplay/Adventure";
+import { AdventureWeapon } from "../weapons/AdventureWeapon";
 
 export class Player extends Actor {
+    private adventureBuild: AdventureBuild | null = null;
     private respawnPosition: readonly [number, number];
     private respawnAtMs: number | null = null;
     private protectedUntilMs = -Infinity;
@@ -148,6 +151,36 @@ export class Player extends Actor {
     public configureRespawn(position: readonly [number, number]): void {
         if (!position.every(Number.isFinite)) throw new RangeError("Invalid respawn position");
         this.respawnPosition = [...position];
+    }
+
+    public applyAdventureBuild(build: AdventureBuild): void {
+        if (this.Runtime.isClient || this.Runtime.config.performanceMode)
+            throw new Error("Adventure builds require an authoritative adventure world");
+        if (
+            !isWeaponId(build.weapon) ||
+            !Number.isFinite(build.damageMultiplier) ||
+            build.damageMultiplier < 1 ||
+            build.damageMultiplier > 3 ||
+            !Number.isFinite(build.cooldownMultiplier) ||
+            build.cooldownMultiplier < 0.4 ||
+            build.cooldownMultiplier > 1 ||
+            !Number.isFinite(build.movementMultiplier) ||
+            build.movementMultiplier < 1 ||
+            build.movementMultiplier > 2 ||
+            !Number.isInteger(build.maxHp) ||
+            build.maxHp < 200 ||
+            build.maxHp > 1000
+        )
+            throw new RangeError("Invalid adventure build");
+        this.adventureBuild = Object.freeze({ ...build });
+        if (!(this.weapon instanceof AdventureWeapon)) this.weapon = new AdventureWeapon(() => this.adventureBuild!);
+        if (this.MaxHP !== build.maxHp) this.configureVitals(build.maxHp, true);
+        const velocity = 0.25 * build.movementMultiplier;
+        if (this.velocity !== velocity) {
+            this.velocity = velocity;
+            this.addChange(ChangesDict.VELOCITY);
+        }
+        this.SpriteName = "wanderer";
     }
 
     public respawn(position: readonly [number, number] = this.respawnPosition): void {

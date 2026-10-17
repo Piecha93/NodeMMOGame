@@ -17,6 +17,9 @@ import { RESOURCE_MANIFEST } from "./ResourceManifest";
 import { presentationKind } from "./Presentation";
 import { ExpeditionMarkers } from "./ExpeditionMarkers";
 import { ExpeditionState } from "../../shared/gameplay/Expedition";
+import { WeaponId } from "../../shared/gameplay/Adventure";
+import { FireBall } from "../../shared/game_utils/game/objects/FireBall";
+import { LootRender } from "./LootRender";
 
 type PixiRenderer = Awaited<ReturnType<typeof autoDetectRenderer>>;
 type CameraObject = Pick<Container, "x" | "y" | "width" | "height">;
@@ -28,6 +31,8 @@ export class Renderer extends GameObjectsSubscriber {
     private camera: Camera;
     private renderObjects: Map<GameObject, GameObjectRender>;
     private readonly renderObjectsById = new Map<string, GameObjectRender>();
+    private readonly adventureWeapons = new Map<string, WeaponId>();
+    private focusedObjectId: string | null = null;
     private map: TileMap | null = null;
     private hud: HUD | null = null;
     private expeditionMarkers: ExpeditionMarkers | null = null;
@@ -104,6 +109,7 @@ export class Renderer extends GameObjectsSubscriber {
         super.dispose();
         this.renderObjects.clear();
         this.renderObjectsById.clear();
+        this.adventureWeapons.clear();
         this.stage.destroy({ children: true });
         this.renderer.destroy();
     }
@@ -169,22 +175,37 @@ export class Renderer extends GameObjectsSubscriber {
         }
         let gameObjectRender: GameObjectRender;
 
-        const resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
-        const kind = presentationKind(gameObject, resource.type);
-        if (kind === "actor") {
-            gameObjectRender = new PlayerRender();
-        } else if (kind === "projectile") {
-            gameObjectRender = new ProjectileRender();
-        } else if (kind === "animation") {
-            gameObjectRender = new GameObjectAnimationRender();
+        if (["loot_xp", "loot_coin", "loot_heal"].includes(gameObject.SpriteName)) {
+            gameObjectRender = new LootRender();
         } else {
-            gameObjectRender = new GameObjectSpriteRender();
+            const resource: Resource = this.resourcesLoader.getResource(gameObject.SpriteName);
+            const kind = presentationKind(gameObject, resource.type);
+            if (kind === "actor") {
+                gameObjectRender = new PlayerRender();
+            } else if (
+                kind === "projectile" ||
+                (gameObject instanceof FireBall && ["bluebolt", "fireball"].includes(gameObject.SpriteName))
+            ) {
+                gameObjectRender = new ProjectileRender();
+            } else if (kind === "animation") {
+                gameObjectRender = new GameObjectAnimationRender();
+            } else {
+                gameObjectRender = new GameObjectSpriteRender();
+            }
         }
 
         gameObjectRender.setObject(gameObject);
         this.renderObjects.set(gameObject, gameObjectRender);
         this.renderObjectsById.set(gameObject.ID, gameObjectRender);
         this.rootContainer.addChild(gameObjectRender);
+        if (gameObjectRender instanceof PlayerRender) {
+            const weapon = this.adventureWeapons.get(gameObject.ID);
+            if (weapon) gameObjectRender.setAdventureWeapon(weapon);
+        }
+        if (gameObject instanceof FireBall) {
+            const owner = this.renderObjectsById.get(gameObject.Owner);
+            if (owner instanceof PlayerRender) owner.fire(gameObject.Transform.Rotation);
+        }
     }
 
     public onObjectDestroy(gameObject: GameObject) {
@@ -193,6 +214,7 @@ export class Renderer extends GameObjectsSubscriber {
             renderObject.destroy();
             this.renderObjects.delete(gameObject);
             this.renderObjectsById.delete(gameObject.ID);
+            this.adventureWeapons.delete(gameObject.ID);
         }
     }
 
@@ -203,6 +225,7 @@ export class Renderer extends GameObjectsSubscriber {
         }
 
         this.camera.Follower = renderObject.position;
+        this.focusedObjectId = gameObject.ID;
         if (this.map) this.map.FocusedObject = gameObject;
     }
 
@@ -225,6 +248,15 @@ export class Renderer extends GameObjectsSubscriber {
 
     public updatePointer(event: Pick<MouseEvent, "clientX" | "clientY">): void {
         this.camera.updatePointer(event);
+        const render = this.focusedObjectId ? this.renderObjectsById.get(this.focusedObjectId) : undefined;
+        if (render instanceof PlayerRender) render.aimAt(...this.camera.PointerWorldPosition);
+    }
+
+    public setAdventureWeapon(playerId: string, weaponId: WeaponId): void {
+        if (this.disposed) return;
+        this.adventureWeapons.set(playerId, weaponId);
+        const render = this.renderObjectsById.get(playerId);
+        if (render instanceof PlayerRender) render.setAdventureWeapon(weaponId);
     }
 
     get PointerWorldPosition(): [number, number] {

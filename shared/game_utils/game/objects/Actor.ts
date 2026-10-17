@@ -110,10 +110,12 @@ export abstract class Actor extends GameObject {
         this.addChange(ChangesDict.HP);
     }
 
-    public configureVitals(maxHp: number): void {
+    public configureVitals(maxHp: number, preserveDamage = false): void {
         if (!Number.isFinite(maxHp) || maxHp <= 0) throw new RangeError("Invalid maximum health");
+        const missing = this.maxHp - this.hp;
+        const wasDead = this.hp <= 0;
         this.maxHp = maxHp;
-        this.hp = maxHp;
+        this.hp = preserveDamage ? (wasDead ? 0 : Math.max(1, maxHp - missing)) : maxHp;
         this.addChange(ChangesDict.MAX_HP);
         this.addChange(ChangesDict.HP);
     }

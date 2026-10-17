@@ -43,6 +43,8 @@ import { ExpeditionEvents, ExpeditionState, isExpeditionState } from "../shared/
 import { ExpeditionHud } from "./graphic/ExpeditionHud";
 import { PerformancePanel } from "./graphic/PerformancePanel";
 import { FixedStepPresentation } from "./graphic/FixedStepPresentation";
+import { AdventureEvents, AdventureState, isAdventureState } from "../shared/gameplay/Adventure";
+import { AdventureHud } from "./graphic/AdventureHud";
 
 export interface GameClientOptions {
     performanceMode?: boolean;
@@ -68,6 +70,8 @@ export class GameClient {
     private renderer: Renderer | null = null;
     private readonly chat: Chat;
     private readonly expeditionHud: ExpeditionHud | null;
+    private readonly adventureHud: AdventureHud | null;
+    private adventureState: AdventureState | null = null;
     private readonly performancePanel: PerformancePanel | null;
     private expeditionState: ExpeditionState | null = null;
     private connectionError: string | null = null;
@@ -100,6 +104,7 @@ export class GameClient {
         [SocketMsgs.DISCONNECT, () => this.onConnectionLost()],
         ["connect_error", () => this.onConnectionLost()],
         [ExpeditionEvents.STATE, (data) => this.onExpeditionState(data)],
+        [AdventureEvents.STATE, (data) => this.onAdventureState(data)],
     ];
 
     constructor(options: GameClientOptions = {}) {
@@ -118,6 +123,12 @@ export class GameClient {
         this.heartBeatSender = new HeartBeatSender(this.socket);
         this.chat = options.createChat ? options.createChat(this.socket) : new Chat(this.socket);
         this.expeditionHud = ExpeditionHud.create(() => this.socket.emit(ExpeditionEvents.RESTART));
+        this.adventureHud = options.performanceMode
+            ? null
+            : AdventureHud.create(
+                  (id) => this.socket.emit(AdventureEvents.UPGRADE, id),
+                  (id) => this.socket.emit(AdventureEvents.WEAPON, id),
+              );
         const performanceRoot = typeof document === "undefined" ? null : document.getElementById("performance-panel");
         this.performancePanel =
             options.performanceMode && performanceRoot ? new PerformancePanel(this.socket, performanceRoot) : null;
@@ -140,6 +151,8 @@ export class GameClient {
             this.renderer = renderer;
             renderer.createHUD();
             if (this.expeditionState) renderer.setExpeditionState(this.expeditionState);
+            if (this.adventureState)
+                for (const player of this.adventureState.players) renderer.setAdventureWeapon(player.id, player.weapon);
             if (!this.readySent) {
                 this.readySent = true;
                 this.socket.emit(SocketMsgs.CLIENT_READY, { supportedProtocolVersions: [...Protocol.SUPPORTED] });
@@ -164,6 +177,7 @@ export class GameClient {
             () => this.heartBeatSender.dispose(),
             () => this.chat.dispose(),
             () => this.expeditionHud?.dispose(),
+            () => this.adventureHud?.dispose(),
             () => this.performancePanel?.dispose(),
             () => {
                 if (this.cursor) {
@@ -190,6 +204,7 @@ export class GameClient {
         this.interpolator = null;
         this.queuedActions = [];
         this.expeditionState = null;
+        this.adventureState = null;
     }
 
     private readonly startGameLoop = (timestamp: number): void => {
@@ -249,6 +264,7 @@ export class GameClient {
         this.performancePanel?.setProtocol(protocolVersion);
         this.localPlayerId = playerId;
         this.expeditionHud?.setLocalPlayer(playerId);
+        this.adventureHud?.setLocalPlayerId(playerId);
         this.reconciliation = new Reconciliation();
         if (isSnapshotProtocol(protocolVersion)) {
             const fixedDelta = (data as Record<string, unknown>).fixedDeltaMs;
@@ -393,13 +409,22 @@ export class GameClient {
         if (this.disposed || !isExpeditionState(data)) return;
         this.expeditionState = data;
         this.expeditionHud?.receive(data);
+        this.adventureHud?.setActive(data.phase === "active");
         this.renderer?.setExpeditionState(data);
+    }
+
+    private onAdventureState(data: unknown): void {
+        if (this.disposed || !isAdventureState(data)) return;
+        this.adventureState = data;
+        this.adventureHud?.update(data);
+        for (const player of data.players) this.renderer?.setAdventureWeapon(player.id, player.weapon);
     }
 
     private onConnectionError(data: unknown): void {
         if (this.disposed || this.connectionError !== null || typeof data !== "string" || !data.trim()) return;
         this.connectionError = data.slice(0, 256);
         this.expeditionHud?.showConnectionError(this.connectionError);
+        this.adventureHud?.setConnectionError(this.connectionError);
         this.performancePanel?.showConnectionError(this.connectionError);
     }
 
@@ -409,6 +434,7 @@ export class GameClient {
             ? "Połączenie z poligonem zostało przerwane. Odśwież stronę, aby dołączyć ponownie."
             : "Połączenie z obozem zostało przerwane. Wróć do wejścia i spróbuj dołączyć ponownie.";
         this.expeditionHud?.showConnectionError(this.connectionError);
+        this.adventureHud?.setConnectionError(this.connectionError);
         this.performancePanel?.showConnectionError(this.connectionError);
         this.dispose();
     }
